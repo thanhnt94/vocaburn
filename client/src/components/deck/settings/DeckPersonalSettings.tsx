@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Brain,
   Compass,
@@ -8,17 +8,22 @@ import {
   Headphones,
   Sparkles,
   Volume2,
+  VolumeX,
   Image as ImageIcon,
+  ImageOff,
   Shuffle,
   Music,
   Check,
-  RotateCcw as ResetIcon,
   Save,
   User,
   ShieldAlert,
   Sliders,
   BookmarkCheck,
-  Zap
+  Zap,
+  MousePointer,
+  Move,
+  Layers,
+  ArrowRight
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -36,10 +41,23 @@ type PreferredMode = 'fsrs' | 'roadmap' | 'flip' | 'mcq' | 'typing' | 'listening
 type AudioChoice = 'none' | 'front' | 'back' | 'always'
 type ImageChoice = 'always' | 'front' | 'back' | 'none'
 
-const SYSTEM_TEMPLATES = [
+interface StudyTemplateItem {
+  id: string
+  name: string
+  badge: string
+  desc: string
+  isSystem?: boolean
+  isDeckDefault?: boolean
+  settings: Record<string, any>
+}
+
+const SYSTEM_TEMPLATES: StudyTemplateItem[] = [
   {
     id: 'preset-minimal',
     name: 'Minimalist',
+    badge: 'Zero Distraction',
+    desc: 'No images, no audio autoplay, hidden metrics, swipe-only without button clutter.',
+    isSystem: true,
     settings: {
       learning_mode: 'fsrs',
       autoplay_audio: 'none',
@@ -56,26 +74,11 @@ const SYSTEM_TEMPLATES = [
     }
   },
   {
-    id: 'preset-full',
-    name: 'Full Experience',
-    settings: {
-      learning_mode: 'fsrs',
-      autoplay_audio: 'always',
-      show_images: 'always',
-      front_valign: 'center',
-      front_halign: 'left',
-      back_valign: 'center',
-      back_halign: 'left',
-      random_enabled: false,
-      sfx_enabled: true,
-      quick_learn_enabled: false,
-      card_flip_trigger: 'both',
-      card_rating_mode: 'both',
-    }
-  },
-  {
     id: 'preset-standard',
     name: 'Standard',
+    badge: 'Recommended',
+    desc: 'Balanced recall: front question, audio pronunciation & illustration on back side.',
+    isSystem: true,
     settings: {
       learning_mode: 'fsrs',
       autoplay_audio: 'back',
@@ -92,8 +95,32 @@ const SYSTEM_TEMPLATES = [
     }
   },
   {
+    id: 'preset-full',
+    name: 'Full Experience',
+    badge: 'All Features',
+    desc: 'Everything enabled: dual-sided images, autoplay TTS audio, combined swipe & buttons.',
+    isSystem: true,
+    settings: {
+      learning_mode: 'fsrs',
+      autoplay_audio: 'always',
+      show_images: 'always',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: true,
+      quick_learn_enabled: false,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'both',
+    }
+  },
+  {
     id: 'preset-classic',
     name: 'Classic',
+    badge: 'Traditional',
+    desc: 'Traditional study: 4 rating buttons, top alignment, flip button trigger.',
+    isSystem: true,
     settings: {
       learning_mode: 'fsrs',
       autoplay_audio: 'back',
@@ -111,28 +138,16 @@ const SYSTEM_TEMPLATES = [
   },
 ]
 
-const audioLabelMap: Record<string, string> = {
-  none: 'Off',
-  front: 'Front Only',
-  back: 'Back Only',
-  always: 'Always Play'
-}
-
-const imageLabelMap: Record<string, string> = {
-  always: 'Both Sides',
-  front: 'Front Only',
-  back: 'Back Only',
-  none: 'Hidden'
-}
-
 export function DeckPersonalSettings({
   deckId,
   deckTitle,
   onSaved
 }: DeckPersonalSettingsProps) {
   const queryClient = useQueryClient()
+  const [viewMode, setViewMode] = useState<'simple' | 'advanced'>('simple')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('deck-default')
 
-  // 1. Fetch practice & study settings (both creator defaults and user overrides)
+  // Fetch practice & study settings (both creator defaults and user overrides)
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['deck-practice-settings', String(deckId)],
     queryFn: async () => {
@@ -147,7 +162,7 @@ export function DeckPersonalSettings({
   const userOverrides = settingsData?.user_study_settings || {}
   const isCustomized = Boolean(settingsData?.is_study_customized)
 
-  // Local state: automatically copies exact original values from deck defaults if not customized
+  // Granular settings state
   const [preferredMode, setPreferredMode] = useState<PreferredMode>('fsrs')
   const [autoplayAudio, setAutoplayAudio] = useState<AudioChoice>('none')
   const [showImages, setShowImages] = useState<ImageChoice>('always')
@@ -166,23 +181,43 @@ export function DeckPersonalSettings({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const userSettings = useAppStore((state) => state.userSettings)
-  const customTemplates = React.useMemo(() => {
-    const seen = new Set<string>()
-    return (userSettings?.study_profiles || []).filter((p: any) => {
-      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
-      seen.add(p.id)
-      return true
-    })
-  }, [userSettings?.study_profiles])
-  const allTemplates = [...SYSTEM_TEMPLATES, ...customTemplates]
 
-  const applyTemplate = (settings: any) => {
+  // Build complete list of templates
+  const allTemplates: StudyTemplateItem[] = useMemo(() => {
+    const deckDefaultItem: StudyTemplateItem = {
+      id: 'deck-default',
+      name: 'Deck Creator Default',
+      badge: 'Creator Baseline',
+      desc: 'The original baseline study configuration recommended by the deck creator.',
+      isDeckDefault: true,
+      settings: creatorDefs
+    }
+
+    const seen = new Set<string>()
+    const customList: StudyTemplateItem[] = (userSettings?.study_profiles || [])
+      .filter((p: any) => {
+        if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
+        seen.add(p.id)
+        return true
+      })
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name || 'Custom Template',
+        badge: 'My Template',
+        desc: p.desc || 'Your saved custom study profile.',
+        settings: p.settings || {}
+      }))
+
+    return [deckDefaultItem, ...SYSTEM_TEMPLATES, ...customList]
+  }, [creatorDefs, userSettings?.study_profiles])
+
+  const applyTemplate = (settings: any, templateId?: string) => {
     if (!settings) return
-    if (settings.learning_mode || settings.quiz_learning_mode) {
-      const lm = settings.learning_mode || settings.quiz_learning_mode
-      if (['fsrs', 'roadmap', 'flip', 'mcq', 'typing', 'listening'].includes(lm)) {
-        setPreferredMode(lm as any)
-      }
+    if (templateId) setSelectedTemplateId(templateId)
+
+    const lm = settings.learning_mode || settings.quiz_learning_mode
+    if (lm && ['fsrs', 'roadmap', 'flip', 'mcq', 'typing', 'listening'].includes(lm)) {
+      setPreferredMode(lm as any)
     }
     if (settings.autoplay_audio) setAutoplayAudio(settings.autoplay_audio as any)
     if (settings.show_images) setShowImages(settings.show_images as any)
@@ -195,11 +230,9 @@ export function DeckPersonalSettings({
     if (settings.quick_learn_enabled !== undefined) setQuickLearnEnabled(Boolean(settings.quick_learn_enabled))
     if (settings.card_flip_trigger) setCardFlipTrigger(settings.card_flip_trigger)
     if (settings.card_rating_mode) setCardRatingMode(settings.card_rating_mode)
-    setMessage({ type: 'success', text: 'Đã áp dụng cử chỉ & thông số từ Template vào biểu mẫu! Bấm "Lưu Thay Đổi" để kích hoạt.' })
-    setTimeout(() => setMessage(null), 3500)
   }
 
-  // Sync state when data loads: copy user settings if customized, otherwise copy deck's original default settings
+  // Synchronize state when data loads
   useEffect(() => {
     if (settingsData) {
       const initialMode = (userOverrides.learning_mode || creatorDefs.learning_mode || 'fsrs') as PreferredMode
@@ -233,75 +266,12 @@ export function DeckPersonalSettings({
       setQuickLearnEnabled(initialQuickLearn)
       setCardFlipTrigger(initialFlip)
       setCardRatingMode(initialRating)
+
+      if (!isCustomized) {
+        setSelectedTemplateId('deck-default')
+      }
     }
   }, [settingsData])
-
-  const defaultCreatorMode = creatorDefs.learning_mode || 'fsrs'
-
-  const studyModes: {
-    id: PreferredMode
-    title: string
-    sublabel: string
-    desc: string
-    icon: React.ComponentType<{ className?: string }>
-    color: string
-    border: string
-  }[] = [
-    {
-      id: 'fsrs',
-      title: 'Flashcard FSRS',
-      sublabel: 'Lặp lại ngắt quãng v6',
-      desc: 'Ôn luyện thông minh theo thuật toán lặp lại ngắt quãng hiện đại nhất',
-      icon: Brain,
-      color: 'text-purple-600 bg-purple-50',
-      border: 'border-purple-500'
-    },
-    {
-      id: 'roadmap',
-      title: 'Flashcard Lộ Trình',
-      sublabel: 'Roadmap hàng ngày',
-      desc: 'Học thẻ mới và ôn tập đúng hạn theo chỉ tiêu mỗi ngày',
-      icon: Compass,
-      color: 'text-amber-600 bg-amber-50',
-      border: 'border-amber-500'
-    },
-    {
-      id: 'flip',
-      title: 'Lật Thẻ Phản Xạ',
-      sublabel: 'Flip Cards tự do',
-      desc: 'Chế độ lật thẻ 2 mặt truyền thống, thích hợp xem lướt phản xạ',
-      icon: RotateCcw,
-      color: 'text-emerald-600 bg-emerald-50',
-      border: 'border-emerald-500'
-    },
-    {
-      id: 'mcq',
-      title: 'Trắc Nghiệm MCQ',
-      sublabel: 'Chọn 1 trong 4 đáp án',
-      desc: 'Hỏi mặt trước và chọn nhanh đáp án mặt sau từ các phương án ngẫu nhiên',
-      icon: Trophy,
-      color: 'text-amber-600 bg-amber-50',
-      border: 'border-amber-500'
-    },
-    {
-      id: 'typing',
-      title: 'Gõ Từ Vựng',
-      sublabel: 'Luyện nhớ mặt chữ',
-      desc: 'Bắt buộc gõ chuẩn xác từng ký tự của từ vựng để ghi nhớ sâu',
-      icon: Keyboard,
-      color: 'text-indigo-600 bg-indigo-50',
-      border: 'border-indigo-500'
-    },
-    {
-      id: 'listening',
-      title: 'Luyện Nghe',
-      sublabel: 'Nghe TTS chọn nghĩa',
-      desc: 'Phát âm thanh đọc mẫu và chọn đáp án dịch nghĩa chuẩn',
-      icon: Headphones,
-      color: 'text-sky-600 bg-sky-50',
-      border: 'border-sky-500'
-    }
-  ]
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -345,12 +315,11 @@ export function DeckPersonalSettings({
   }
 
   const handleResetDefaults = async () => {
-    if (!confirm('Are you sure you want to reset all settings to the original deck defaults?')) return
+    if (!confirm('Reset all settings to the original deck defaults?')) return
 
     setIsResetting(true)
     setMessage(null)
 
-    // Copy original deck settings directly into the form
     const creatorMode = (creatorDefs.learning_mode || 'fsrs') as PreferredMode
     const creatorAudio = (creatorDefs.autoplay_audio || 'none') as AudioChoice
     const creatorImages = (creatorDefs.show_images || 'always') as ImageChoice
@@ -376,6 +345,7 @@ export function DeckPersonalSettings({
     setQuickLearnEnabled(creatorQuickLearn)
     setCardFlipTrigger(creatorFlip)
     setCardRatingMode(creatorRating)
+    setSelectedTemplateId('deck-default')
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -389,7 +359,7 @@ export function DeckPersonalSettings({
       if (onSaved) onSaved()
       setTimeout(() => setMessage(null), 3500)
     } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to reset default settings' })
+      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to reset defaults' })
     } finally {
       setIsResetting(false)
     }
@@ -407,37 +377,51 @@ export function DeckPersonalSettings({
 
   return (
     <form onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
-      {/* ═══════════ HEADER & STATUS BANNER ═══════════ */}
+      {/* HEADER & MODE SWITCHER */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shadow-2xs shrink-0">
-                <User className="w-4 h-4" />
-              </span>
-              <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
-                  Personal Study Preferences
-                </h3>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {deckTitle ? `Customize study experience for "${deckTitle}"` : 'Customize study experience for your account'}
-                </p>
-              </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shadow-2xs shrink-0">
+              <User className="w-4 h-4" />
+            </span>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                Personal Study Preferences
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {deckTitle ? `Customize study experience for "${deckTitle}"` : 'Customize study experience for your account'}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {isCustomized ? (
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200/80 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-orange-600" />
-                Custom Overrides Active
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
-                <Check className="w-3 h-3 text-emerald-600" />
-                Using Deck Defaults
-              </span>
-            )}
+          {/* Simple Mode vs Advanced Mode Switch */}
+          <div className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('simple')}
+              className={cn(
+                "py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
+                viewMode === 'simple'
+                  ? "bg-white text-orange-600 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <BookmarkCheck className="w-3.5 h-3.5" />
+              <span>Simple Mode</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('advanced')}
+              className={cn(
+                "py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
+                viewMode === 'advanced'
+                  ? "bg-white text-indigo-600 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Advanced Mode</span>
+            </button>
           </div>
         </div>
 
@@ -453,541 +437,464 @@ export function DeckPersonalSettings({
           </div>
         )}
 
-        {/* ═══════════ QUICK APPLY TEMPLATE SELECTOR ═══════════ */}
-        <div className="p-3.5 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 rounded-2xl border border-indigo-100/80 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-indigo-900 uppercase tracking-wide flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              Quick Apply Template
-            </span>
-            <span className="text-[10px] font-bold text-indigo-600/80">
-              1-click populate gestures & algorithm
-            </span>
-          </div>
+        {/* ═══════════ VIEW 1: SIMPLE MODE (TEMPLATE RADIO LIST) ═══════════ */}
+        {viewMode === 'simple' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <span className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                  <BookmarkCheck className="w-3.5 h-3.5 text-orange-500" />
+                  Select Study Template
+                </span>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Pick a pre-configured template with 1 click
+                </p>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">
+                {allTemplates.length} templates available
+              </span>
+            </div>
 
-          <div className="flex flex-wrap gap-1.5">
-            {allTemplates.map((tpl) => (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => applyTemplate(tpl.settings)}
-                className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-indigo-600 text-slate-700 hover:text-white border border-indigo-200/60 hover:border-indigo-600 text-[11px] font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              >
-                <BookmarkCheck className="w-3 h-3 text-indigo-500 group-hover:text-white" />
-                <span>{tpl.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+            <div className="space-y-2">
+              {allTemplates.map((tpl) => {
+                const isSelected = selectedTemplateId === tpl.id
+                const s = tpl.settings || {}
+                const flipText = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Only' : 'Tap & Swipe'
+                const ratingText = s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : 'Both'
+                const audioText = s.autoplay_audio === 'always' ? 'Always' : s.autoplay_audio === 'back' ? 'Back' : s.autoplay_audio === 'front' ? 'Front' : 'Off'
 
-        {/* ═══════════ 1. PREFERRED STUDY MODE ═══════════ */}
-        <div className="space-y-2.5 pt-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Brain className="w-3.5 h-3.5 text-orange-500" />
-              Preferred Study Mode
-            </span>
-            <span className="text-[10px] font-bold text-slate-400">Default mode for "Study Now"</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {studyModes.map((mode) => {
-              const Icon = mode.icon
-              const isSelected = preferredMode === mode.id
-              const isDeckDefault = mode.id === defaultCreatorMode
-
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => setPreferredMode(mode.id)}
-                  className={cn(
-                    "p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 cursor-pointer select-none group",
-                    isSelected
-                      ? `bg-orange-50/50 border-orange-500 shadow-xs ring-1 ring-orange-500/30`
-                      : "bg-slate-50/60 border-slate-200/70 hover:bg-slate-50 hover:border-slate-300"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => applyTemplate(tpl.settings, tpl.id)}
+                    className={cn(
+                      "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 select-none",
+                      isSelected
+                        ? "bg-orange-50/40 border-orange-500 shadow-xs ring-1 ring-orange-400/30"
+                        : "bg-slate-50/60 border-slate-200/80 hover:bg-slate-50 hover:border-slate-300"
+                    )}
+                  >
+                    {/* Circular Radio Dot */}
+                    <div className="pt-0.5 shrink-0">
                       <div className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 shadow-2xs transition-transform group-hover:scale-105",
-                        mode.color
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                        isSelected ? "border-orange-500 bg-orange-500" : "border-slate-300 bg-white"
                       )}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className={cn("text-xs font-black block truncate", isSelected ? "text-orange-950" : "text-slate-800")}>
-                          {mode.title}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold block truncate">
-                          {mode.sublabel}
-                        </span>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isDeckDefault && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
-                          Default
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={cn("text-xs font-black truncate", isSelected ? "text-orange-950" : "text-slate-800")}>
+                          {tpl.name}
                         </span>
-                      )}
-                      {isSelected && (
-                        <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 text-[10px] shadow-xs">
-                          <Check className="w-3 h-3 stroke-[3]" />
+                        <span className={cn(
+                          "px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                          tpl.isDeckDefault
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : isSelected
+                            ? "bg-orange-100 text-orange-800 border-orange-200"
+                            : "bg-slate-200/70 text-slate-600 border-slate-200"
+                        )}>
+                          {tpl.badge}
                         </span>
-                      )}
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-2">
+                        {tpl.desc}
+                      </p>
+
+                      {/* Spec Pills */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-white rounded-lg border border-slate-200/60 text-[9.5px] font-bold text-slate-600">
+                          Flip: {flipText}
+                        </span>
+                        <span className="px-2 py-0.5 bg-white rounded-lg border border-slate-200/60 text-[9.5px] font-bold text-slate-600">
+                          Rating: {ratingText}
+                        </span>
+                        <span className="px-2 py-0.5 bg-white rounded-lg border border-slate-200/60 text-[9.5px] font-bold text-slate-600">
+                          Audio: {audioText}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                )
+              })}
+            </div>
 
-                  <p className="text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
-                    {mode.desc}
-                  </p>
+            {/* Simple Mode Save Actions */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              {isCustomized && (
+                <button
+                  type="button"
+                  disabled={isResetting}
+                  onClick={handleResetDefaults}
+                  className="px-3.5 h-9 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset to Deck Default</span>
                 </button>
-              )
-            })}
-          </div>
-        </div>
+              )}
 
-        {/* ═══════════ 2. SENSORY & DISPLAY CUSTOMIZATIONS ═══════════ */}
-        <div className="pt-2 border-t border-slate-100 space-y-3">
-          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Volume2 className="w-3.5 h-3.5 text-orange-600" />
-            Media & Display Preferences
-          </span>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Audio Autoplay */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
-                  Automatic Audio (TTS)
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  Original: {audioLabelMap[creatorDefs.autoplay_audio || 'none'] || 'Off'}
-                </span>
+              <div className="ml-auto">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 h-10 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-black shadow-xs shadow-orange-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSaving ? 'SAVING...' : 'SAVE PREFERENCES'}</span>
+                </button>
               </div>
-              <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ VIEW 2: ADVANCED MODE (GRANULAR FINE-TUNING) ═══════════ */}
+        {viewMode === 'advanced' && (
+          <div className="space-y-4 pt-1">
+            {/* Preferred Mode */}
+            <div className="space-y-2">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5 text-indigo-600" />
+                Preferred Learning Mode
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
-                  { id: 'none', label: 'Off' },
-                  { id: 'front', label: 'Front' },
-                  { id: 'back', label: 'Back' },
-                  { id: 'always', label: 'Always' },
-                ].map(opt => {
-                  const active = autoplayAudio === opt.id
+                  { id: 'fsrs', title: 'Flashcard FSRS', sub: 'Spaced repetition v6', icon: Brain },
+                  { id: 'roadmap', title: 'Daily Roadmap', sub: 'Targeted daily goals', icon: Compass },
+                  { id: 'flip', title: 'Quick Flip', sub: 'Free 2-sided review', icon: RotateCcw },
+                  { id: 'mcq', title: 'Multiple Choice', sub: 'Pick 1 of 4 choices', icon: Trophy },
+                  { id: 'typing', title: 'Typing Drill', sub: 'Type exact vocabulary', icon: Keyboard },
+                  { id: 'listening', title: 'Listening Drill', sub: 'Audio to meaning', icon: Headphones },
+                ].map((m) => {
+                  const Icon = m.icon
+                  const isSelected = preferredMode === m.id
                   return (
                     <button
-                      key={opt.id}
+                      key={m.id}
                       type="button"
-                      onClick={() => setAutoplayAudio(opt.id as AudioChoice)}
+                      onClick={() => setPreferredMode(m.id as any)}
                       className={cn(
-                        "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                        active
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                        "p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer",
+                        isSelected
+                          ? "bg-indigo-50/50 border-indigo-500 shadow-xs ring-1 ring-indigo-400/30"
+                          : "bg-slate-50/60 border-slate-200/80 hover:bg-slate-50"
                       )}
                     >
-                      {opt.label}
+                      <div className="flex items-center justify-between mb-1">
+                        <Icon className={cn("w-4 h-4", isSelected ? "text-indigo-600" : "text-slate-400")} />
+                        {isSelected && <span className="w-2 h-2 rounded-full bg-indigo-600" />}
+                      </div>
+                      <span className="text-xs font-black text-slate-800 block truncate">{m.title}</span>
+                      <span className="text-[9.5px] font-medium text-slate-400 block truncate">{m.sub}</span>
                     </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* Image Visibility */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
-                  Illustration Images
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  Original: {imageLabelMap[creatorDefs.show_images || 'always'] || 'Both Sides'}
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
-                {[
-                  { id: 'always', label: 'Both' },
-                  { id: 'front', label: 'Front' },
-                  { id: 'back', label: 'Back' },
-                  { id: 'none', label: 'Off' },
-                ].map(opt => {
-                  const active = showImages === opt.id
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setShowImages(opt.id as ImageChoice)}
-                      className={cn(
-                        "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                        active
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ═══════════ CARD ALIGNMENT (2-AXIS: FRONT & BACK) ═══════════ */}
-        <div className="pt-2 border-t border-slate-100 space-y-3">
-          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Sliders className="w-3.5 h-3.5 text-orange-600" />
-            Card Content Alignment (Front & Back)
-          </span>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Front Card Alignment */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                  🎴 Front Card
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  Original: {creatorDefs.front_valign === 'top' ? 'Top' : 'Center'} / {creatorDefs.front_halign === 'center' ? 'Center' : 'Left'}
-                </span>
-              </div>
-              
-              <div className="space-y-2">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Vertical:</span>
-                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => setFrontValign('center')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        frontValign === 'center'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Center
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFrontValign('top')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        frontValign === 'top'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Top
-                    </button>
+            {/* Gestures */}
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Move className="w-3.5 h-3.5 text-purple-600" />
+                Flashcard Gestures
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <MousePointer className="w-3.5 h-3.5 text-indigo-600" />
+                    Flip Trigger
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {[
+                      { id: 'both', label: 'Both' },
+                      { id: 'tap', label: 'Tap Only' },
+                      { id: 'button_only', label: 'Button Only' }
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCardFlipTrigger(opt.id as any)}
+                        className={cn(
+                          "py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center cursor-pointer",
+                          cardFlipTrigger === opt.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Horizontal:</span>
-                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => setFrontHalign('center')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        frontHalign === 'center'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Center
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFrontHalign('left')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        frontHalign === 'left'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Left
-                    </button>
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-purple-600" />
+                    FSRS Rating Mode
+                  </span>
+                  <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {[
+                      { id: 'both', label: 'Both' },
+                      { id: 'buttons', label: 'Buttons' },
+                      { id: 'swipe_4way', label: '4-Way' },
+                      { id: 'swipe_2way', label: '2-Way' }
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setCardRatingMode(opt.id as any)}
+                        className={cn(
+                          "py-1.5 px-1 rounded-lg text-[9.5px] font-black transition-all text-center cursor-pointer",
+                          cardRatingMode === opt.id ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Back Card Alignment */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                  📖 Back Card
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  Original: {creatorDefs.back_valign === 'top' ? 'Top' : 'Center'} / {creatorDefs.back_halign === 'center' ? 'Center' : 'Left'}
-                </span>
-              </div>
-              
-              <div className="space-y-2">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Vertical:</span>
-                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => setBackValign('center')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        backValign === 'center'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Center
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBackValign('top')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        backValign === 'top'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Top
-                    </button>
+            {/* Card Content Alignment */}
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                Card Alignment (2-Axis)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Front */}
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 block">Front Card Alignment</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Vertical:</span>
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                        <button
+                          type="button"
+                          onClick={() => setFrontValign('center')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", frontValign === 'center' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Center
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFrontValign('top')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", frontValign === 'top' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Top
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Horizontal:</span>
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                        <button
+                          type="button"
+                          onClick={() => setFrontHalign('left')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", frontHalign === 'left' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Left
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFrontHalign('center')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", frontHalign === 'center' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Center
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 block mb-1">Horizontal:</span>
-                  <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => setBackHalign('left')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        backHalign === 'left'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Left
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBackHalign('center')}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg text-xs font-black transition-all text-center cursor-pointer active:scale-95",
-                        backHalign === 'center'
-                          ? "bg-orange-500 text-white shadow-xs"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                      )}
-                    >
-                      Center
-                    </button>
+                {/* Back */}
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 block">Back Card Alignment</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Vertical:</span>
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                        <button
+                          type="button"
+                          onClick={() => setBackValign('center')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", backValign === 'center' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Center
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBackValign('top')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", backValign === 'top' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Top
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Horizontal:</span>
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                        <button
+                          type="button"
+                          onClick={() => setBackHalign('left')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", backHalign === 'left' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Left
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBackHalign('center')}
+                          className={cn("py-1 rounded-lg text-[10px] font-black text-center cursor-pointer", backHalign === 'center' ? "bg-indigo-600 text-white" : "text-slate-500")}
+                        >
+                          Center
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* ═══════════ 3. BEHAVIOR & INTERACTION TOGGLES ═══════════ */}
-        <div className="pt-2 border-t border-slate-100 space-y-2.5">
-          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-            Study Behavior & Interaction
-          </span>
+            {/* Sensory & Toggles */}
+            <div className="pt-2 border-t border-slate-100 space-y-3">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+                Sensory & Playback Options
+              </span>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {/* Shuffle */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
-              <div className="flex items-center gap-2 min-w-0 mr-2">
-                <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-700 truncate">Random Shuffle</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* TTS Autoplay */}
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+                    TTS Audio Autoplay
+                  </span>
+                  <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {[
+                      { id: 'none', label: 'Off' },
+                      { id: 'front', label: 'Front' },
+                      { id: 'back', label: 'Back' },
+                      { id: 'always', label: 'Both' }
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setAutoplayAudio(opt.id as any)}
+                        className={cn(
+                          "py-1.5 px-1 rounded-lg text-[10px] font-black text-center cursor-pointer",
+                          autoplayAudio === opt.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Show Images */}
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                    Image Illustrations
+                  </span>
+                  <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
+                    {[
+                      { id: 'always', label: 'Both' },
+                      { id: 'front', label: 'Front' },
+                      { id: 'back', label: 'Back' },
+                      { id: 'none', label: 'Off' }
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setShowImages(opt.id as any)}
+                        className={cn(
+                          "py-1.5 px-1 rounded-lg text-[10px] font-black text-center cursor-pointer",
+                          showImages === opt.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setRandomEnabled(prev => !prev)}
-                className={cn(
-                  "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
-                  randomEnabled ? "bg-orange-500" : "bg-slate-200"
-                )}
-              >
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", randomEnabled ? "translate-x-4" : "translate-x-0")} />
-              </button>
-            </div>
 
-            {/* SFX */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
-              <div className="flex items-center gap-2 min-w-0 mr-2">
-                <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-700 truncate">Sound Effects (SFX)</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSfxEnabled(prev => !prev)}
-                className={cn(
-                  "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
-                  sfxEnabled ? "bg-orange-500" : "bg-slate-200"
-                )}
-              >
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", sfxEnabled ? "translate-x-4" : "translate-x-0")} />
-              </button>
-            </div>
+              {/* Toggles */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
+                  <div className="flex items-center gap-2 min-w-0 mr-2">
+                    <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-700 truncate">Shuffle Queue</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRandomEnabled(!randomEnabled)}
+                    className={cn("w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer", randomEnabled ? "bg-indigo-600" : "bg-slate-200")}
+                  >
+                    <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", randomEnabled ? "translate-x-4" : "translate-x-0")} />
+                  </button>
+                </div>
 
-            {/* Auto Advance */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
-              <div className="flex items-center gap-2 min-w-0 mr-2">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span className="text-xs font-bold text-slate-700 truncate">Auto Advance</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setQuickLearnEnabled(prev => !prev)}
-                className={cn(
-                  "w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer",
-                  quickLearnEnabled ? "bg-orange-500" : "bg-slate-200"
-                )}
-              >
-                <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
-              </button>
-            </div>
-          </div>
-        </div>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
+                  <div className="flex items-center gap-2 min-w-0 mr-2">
+                    <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-700 truncate">Sound FX (SFX)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSfxEnabled(!sfxEnabled)}
+                    className={cn("w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer", sfxEnabled ? "bg-indigo-600" : "bg-slate-200")}
+                  >
+                    <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", sfxEnabled ? "translate-x-4" : "translate-x-0")} />
+                  </button>
+                </div>
 
-        {/* ═══════════ 4. FLASHCARD GESTURE & INTERACTION ═══════════ */}
-        <div className="pt-2 border-t border-slate-100 space-y-3">
-          <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-            Flashcard Gestures & FSRS Rating
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Card Flip Trigger */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">
-                  Card Flip Trigger
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
-                <button
-                  type="button"
-                  onClick={() => setCardFlipTrigger('both')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardFlipTrigger === 'both' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Tap card body or swipe to flip"
-                >
-                  Tap & Swipe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCardFlipTrigger('tap')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardFlipTrigger === 'tap' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Tap card body to flip"
-                >
-                  Tap Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCardFlipTrigger('button_only')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardFlipTrigger === 'button_only' ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Strict button-only flipping"
-                >
-                  Button Only
-                </button>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
+                  <div className="flex items-center gap-2 min-w-0 mr-2">
+                    <Zap className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-700 truncate">Quick Learn (Auto)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                    className={cn("w-9 h-5 rounded-full transition-all relative p-0.5 shrink-0 cursor-pointer", quickLearnEnabled ? "bg-indigo-600" : "bg-slate-200")}
+                  >
+                    <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform", quickLearnEnabled ? "translate-x-4" : "translate-x-0")} />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* FSRS Rating Mode */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">
-                  FSRS Rating Mode
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/60">
+            {/* Advanced Mode Footer Actions */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              {isCustomized && (
                 <button
                   type="button"
-                  onClick={() => setCardRatingMode('both')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardRatingMode === 'both' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Both 4-directional swipe and 4 bottom buttons"
+                  disabled={isResetting}
+                  onClick={handleResetDefaults}
+                  className="px-3.5 h-9 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
                 >
-                  Hybrid (Both)
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset to Deck Default</span>
                 </button>
+              )}
+
+              <div className="ml-auto">
                 <button
-                  type="button"
-                  onClick={() => setCardRatingMode('swipe_4way')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardRatingMode === 'swipe_4way' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Swipe 4 directions: Left (Again), Down (Hard), Right (Good), Up (Easy)"
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  4-Way Swipe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCardRatingMode('swipe_2way')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardRatingMode === 'swipe_2way' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Fast 2-way swipe: Left (Again), Right (Good)"
-                >
-                  2-Way Swipe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCardRatingMode('buttons')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer active:scale-95",
-                    cardRatingMode === 'buttons' ? "bg-purple-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                  )}
-                  title="Traditional 4 Anki-style buttons"
-                >
-                  4 Buttons
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSaving ? 'SAVING...' : 'SAVE CUSTOM SETTINGS'}</span>
                 </button>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* ═══════════ ACTION BUTTONS ═══════════ */}
-        <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            disabled={isResetting || isSaving}
-            className="px-4 h-10 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Reset all settings to the creator original defaults"
-          >
-            <ResetIcon className={cn("w-3.5 h-3.5", isResetting && "animate-spin")} />
-            <span>{isResetting ? 'Resetting...' : 'Reset to Deck Defaults'}</span>
-          </button>
-
-          <button
-            type="submit"
-            disabled={isSaving || isResetting}
-            className="px-5 h-10 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'SAVING...' : 'SAVE PERSONAL SETTINGS'}</span>
-          </button>
-        </div>
+        )}
       </div>
     </form>
   )

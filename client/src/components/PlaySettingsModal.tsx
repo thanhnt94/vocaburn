@@ -15,12 +15,11 @@ import {
   VolumeX,
   Music, 
   Zap, 
-  Image, 
+  Image as ImageIcon, 
   ImageOff,
   Layers,
   Check, 
   X,
-  Globe,
   User,
   ShieldCheck,
   RotateCcw,
@@ -29,9 +28,8 @@ import {
   AlignLeft,
   AlignCenter,
   MousePointerClick,
-  ChevronDown,
   BookmarkPlus,
-  Trash2,
+  BookmarkCheck,
   Headphones,
   Book
 } from 'lucide-react'
@@ -100,9 +98,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setSfxEnabled,
   hapticEnabled,
   setHapticEnabled,
-  showFeedback = false,
   copyQuestionToClipboard,
-  currentQuestion,
   handleIgnoreQuestion,
   openEditModal,
   setIsQuitModalOpen,
@@ -120,7 +116,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   activeProfileId = null,
   onApplyProfile,
   onCreateCustomProfile,
-  onDeleteCustomProfile,
   onResetToCreatorDefaults,
   onSaveAsCreatorDefaults,
   frontHalign = 'left',
@@ -139,14 +134,15 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+
+  // View Mode: Simple Mode (Templates) vs Advanced Mode (Detailed Tabs)
+  const [modalViewMode, setModalViewMode] = useState<'simple' | 'advanced'>('simple')
   const [activeTab, setActiveTab] = useState<'modes' | 'audio' | 'display' | 'gestures'>('modes')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
-  const [selectedProfileId, setSelectedProfileId] = useState<string>(activeProfileId || studyProfiles[0]?.id || '')
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState<string>('')
 
-  // Deduplicate profiles strictly by id to guarantee no duplicates appear in dropdown
+  // Deduplicate profiles strictly by id
   const systemProfilesList = React.useMemo(() => {
     const seen = new Set<string>()
     return (studyProfiles || []).filter(p => {
@@ -165,14 +161,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     })
   }, [studyProfiles])
 
-  React.useEffect(() => {
-    if (activeProfileId) {
-      setSelectedProfileId(activeProfileId)
-    } else if (systemProfilesList.length > 0 && !selectedProfileId) {
-      setSelectedProfileId(systemProfilesList[0].id)
-    }
-  }, [activeProfileId, systemProfilesList, selectedProfileId])
-
   // Parse audio mode
   const currentAudioMode: 'always' | 'front' | 'back' | 'none' = autoPlayAudio || 'none'
   
@@ -184,28 +172,59 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     return 'none'
   })()
 
-  // Determine current active profile name
-  const currentProfile = studyProfiles.find(p => p.id === activeProfileId) || 
-    (settingOrigin.startsWith('profile:') ? {
-      name: settingOrigin.split(':')[2] || 'Hồ sơ đã áp dụng',
-      icon: 'sparkles'
-    } : null)
-
   const MODES_LIST = [
-    { id: 'fsrs', label: 'FSRS v6', desc: 'Lặp lại ngắt quãng', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
-    { id: 'roadmap', label: 'Lộ trình', desc: 'Theo từng chặng', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
-    { id: 'new', label: 'Học mới', desc: 'Thẻ chưa từng học', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
-    { id: 'review', label: 'Ôn tập', desc: 'Thẻ đến hạn ôn', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
-    { id: 'hardest', label: 'Khó nhất', desc: 'Thẻ hay quên', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
-    { id: 'flip', label: 'Lật nhanh', desc: 'Lướt thẻ tự do', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
+    { id: 'fsrs', label: 'FSRS v6', desc: 'Spaced repetition algorithm', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
+    { id: 'roadmap', label: 'Roadmap', desc: 'Step-by-step daily journey', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
+    { id: 'new', label: 'New Cards', desc: 'Cards never studied before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
+    { id: 'review', label: 'Review', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
+    { id: 'hardest', label: 'Hardest', desc: 'Frequently forgotten cards', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
+    { id: 'flip', label: 'Quick Flip', desc: 'Free-form flashcard flip', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
   ]
 
-  const getProfileIcon = (iconName?: string) => {
-    switch (iconName) {
-      case 'zap': return Zap
-      case 'headphones': return Headphones
-      case 'book': return Book
-      default: return Sparkles
+  const handleApplyTemplateInstant = async (profileId: string) => {
+    if (!onApplyProfile) return
+    setIsSyncing(true)
+    try {
+      await onApplyProfile(profileId)
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!onCreateCustomProfile || !newProfileName.trim()) return
+    setIsSyncing(true)
+    try {
+      await onCreateCustomProfile(newProfileName.trim())
+      setIsSaveModalOpen(false)
+      setNewProfileName('')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleResetToCreator = async () => {
+    if (!onResetToCreatorDefaults) return
+    if (window.confirm("Reset all study preferences for this deck back to the creator's default?")) {
+      setIsSyncing(true)
+      try {
+        await onResetToCreatorDefaults()
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+  }
+
+  const handleSaveAsCreator = async () => {
+    if (!onSaveAsCreatorDefaults) return
+    if (window.confirm("Save the current study configuration as the OFFICIAL DECK DEFAULT for all learners?")) {
+      setIsSyncing(true)
+      try {
+        await onSaveAsCreatorDefaults()
+        alert("Saved as default deck configuration!")
+      } finally {
+        setIsSyncing(false)
+      }
     }
   }
 
@@ -291,74 +310,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     </div>
   )
 
-  const handleLoadSelectedTemplate = async () => {
-    if (!onApplyProfile || !selectedProfileId) return
-    const target = studyProfiles.find(p => p.id === selectedProfileId)
-    setIsSyncing(true)
-    try {
-      await onApplyProfile(selectedProfileId)
-      setToastMessage({
-        type: 'success',
-        text: `Đã nạp mẫu "${target?.name || 'Cấu hình'}" thành công!`
-      })
-      setTimeout(() => setToastMessage(null), 3500)
-    } catch (err) {
-      console.error('Failed to load template', err)
-      setToastMessage({
-        type: 'error',
-        text: 'Không thể nạp mẫu. Vui lòng thử lại!'
-      })
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
-  const handleApplyProfile = async (profileId: string) => {
-    if (!onApplyProfile) return
-    setIsSyncing(true)
-    try {
-      await onApplyProfile(profileId)
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
-  const handleSaveProfile = async () => {
-    if (!onCreateCustomProfile || !newProfileName.trim()) return
-    setIsSyncing(true)
-    try {
-      await onCreateCustomProfile(newProfileName.trim())
-      setIsSaveModalOpen(false)
-      setNewProfileName('')
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
-  const handleResetToCreator = async () => {
-    if (!onResetToCreatorDefaults) return
-    if (window.confirm("Khôi phục toàn bộ cài đặt học của bộ thẻ này về mặc định ban đầu của người tạo?")) {
-      setIsSyncing(true)
-      try {
-        await onResetToCreatorDefaults()
-      } finally {
-        setIsSyncing(false)
-      }
-    }
-  }
-
-  const handleSaveAsCreator = async () => {
-    if (!onSaveAsCreatorDefaults) return
-    if (window.confirm("Lưu cấu hình học hiện tại làm MẶC ĐỊNH GỐC của bộ thẻ này cho tất cả người học?")) {
-      setIsSyncing(true)
-      try {
-        await onSaveAsCreatorDefaults()
-        alert("Đã lưu làm mặc định của bộ thẻ thành công!")
-      } finally {
-        setIsSyncing(false)
-      }
-    }
-  }
+  const isDeckDefaultActive = !isCustomized && settingOrigin === 'deck_default'
 
   return (
     <AnimatePresence>
@@ -381,7 +333,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             className="relative w-full max-w-lg bg-[#F8FAFC] rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden text-slate-800 max-h-[88vh] flex flex-col"
           >
             {/* Top Accent Line */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-500"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-500" />
             
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-slate-100 shrink-0">
@@ -392,598 +344,678 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
-                      Cấu hình học tập
+                      Study Settings
                     </h3>
-                    {settingOrigin.startsWith('profile:') ? (
-                      <span 
-                        title="Đang áp dụng từ Hồ sơ mẫu / Template"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80"
-                      >
-                        <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
-                        {settingOrigin.split(':')[2] || 'Hồ sơ mẫu'}
-                      </span>
-                    ) : isCustomized ? (
-                      <span 
-                        title="Đang áp dụng cấu hình tùy biến riêng cho bộ thẻ này"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/80"
-                      >
-                        <User className="w-2.5 h-2.5 text-purple-600" />
-                        Tùy chỉnh riêng
+                    {isDeckDefaultActive ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                        <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                        Deck Default
                       </span>
                     ) : (
-                      <span 
-                        title="Đang dùng cấu hình mặc định gốc của người tạo bộ thẻ"
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80"
-                      >
-                        <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
-                        Mặc định bộ thẻ
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                        <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
+                        Customized
                       </span>
                     )}
                   </div>
                   <p className="text-[9.5px] font-bold text-slate-400 leading-none mt-0.5">
-                    Tùy biến thuật toán, hiển thị & công cụ cho phiên học này
+                    Configure gestures, display & flow for this session
                   </p>
                 </div>
               </div>
-              <button 
-                type="button" 
-                onClick={onClose}
-                className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer border border-slate-100 active:scale-95"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Smart Profile Quick Bar with Explicit "Load Mẫu" Action */}
-            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-                <div className="flex items-center gap-1 shrink-0 text-slate-500">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="text-[10.5px] font-black uppercase text-slate-400">Mẫu:</span>
+              <div className="flex items-center gap-2">
+                {/* Simple / Advanced Switch */}
+                <div className="flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/70">
+                  <button
+                    type="button"
+                    onClick={() => setModalViewMode('simple')}
+                    className={cn(
+                      "py-1 px-2.5 rounded-lg text-[10.5px] font-black transition-all flex items-center gap-1 cursor-pointer",
+                      modalViewMode === 'simple'
+                        ? "bg-white text-orange-600 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <BookmarkCheck className="w-3 h-3" />
+                    <span>Simple</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalViewMode('advanced')}
+                    className={cn(
+                      "py-1 px-2.5 rounded-lg text-[10.5px] font-black transition-all flex items-center gap-1 cursor-pointer",
+                      modalViewMode === 'advanced'
+                        ? "bg-white text-indigo-600 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <Sliders className="w-3 h-3" />
+                    <span>Advanced</span>
+                  </button>
                 </div>
-                <select
-                  value={selectedProfileId}
-                  onChange={(e) => setSelectedProfileId(e.target.value)}
-                  className="bg-white border border-slate-200 text-xs font-bold text-slate-800 rounded-xl px-2.5 py-1.5 outline-none focus:border-indigo-500 shadow-2xs cursor-pointer flex-1 truncate"
-                >
-                  <optgroup label="Mẫu hệ thống (System Presets)">
-                    {systemProfilesList.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.id === activeProfileId ? '★ (Đang dùng)' : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                  {customProfilesList.length > 0 && (
-                    <optgroup label="Mẫu cá nhân của tôi (My Templates)">
-                      {customProfilesList.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} {p.id === activeProfileId ? '★ (Đang dùng)' : ''}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
 
-                <button
-                  type="button"
-                  disabled={isSyncing || !selectedProfileId}
-                  onClick={handleLoadSelectedTemplate}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50"
-                  title="Nạp và áp dụng cấu hình mẫu đã chọn"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Load mẫu</span>
-                </button>
-              </div>
-
-              {onCreateCustomProfile && (
-                <button
-                  type="button"
-                  onClick={() => setIsSaveModalOpen(true)}
-                  className="px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-black uppercase tracking-wider shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
-                  title="Lưu cấu hình hiện tại thành mẫu cá nhân mới"
-                >
-                  <BookmarkPlus className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Lưu mẫu</span>
-                </button>
-              )}
-            </div>
-
-            {/* Notification Toast */}
-            {toastMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className={cn(
-                  "mx-4 mt-2 p-2.5 rounded-xl text-xs font-bold flex items-center justify-between shadow-2xs border shrink-0",
-                  toastMessage.type === 'success' 
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
-                    : "bg-rose-50 text-rose-800 border-rose-200"
-                )}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="truncate">{toastMessage.text}</span>
-                </div>
                 <button 
                   type="button" 
-                  onClick={() => setToastMessage(null)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer shrink-0 ml-2"
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer border border-slate-100 active:scale-95"
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-            )}
-
-            {/* Segmented Top Tabs (4 Tabs) */}
-            <div className="px-4 pt-2.5 pb-2 bg-white shrink-0 border-b border-slate-100">
-              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('modes')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
-                    activeTab === 'modes' 
-                      ? "bg-white text-orange-600 shadow-sm shadow-slate-200/50" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  <Brain className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Chế độ học</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('audio')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
-                    activeTab === 'audio' 
-                      ? "bg-white text-indigo-600 shadow-sm shadow-slate-200/50" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  <Volume2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Âm thanh</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('display')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
-                    activeTab === 'display' 
-                      ? "bg-white text-blue-600 shadow-sm shadow-slate-200/50" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  <Layers className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Hiển thị</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('gestures')}
-                  className={cn(
-                    "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex flex-col sm:flex-row items-center justify-center gap-1 active:scale-95 cursor-pointer",
-                    activeTab === 'gestures' 
-                      ? "bg-white text-rose-600 shadow-sm shadow-slate-200/50" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  <MousePointerClick className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Thao tác</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Modal Body - Tab Contents */}
+            {/* MODAL BODY */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-              {/* TAB 1: CHẾ ĐỘ HỌC */}
-              {activeTab === 'modes' && (
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Chọn thuật toán & tiến trình
+              {/* ═══════════ VIEW A: SIMPLE MODE (CIRCULAR RADIO TEMPLATES) ═══════════ */}
+              {modalViewMode === 'simple' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                      Choose a study template (instant apply)
                     </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {MODES_LIST.map((mode) => {
-                        const Icon = mode.icon
-                        const isSelected = activeMode === mode.id
-                        return (
-                          <button
-                            key={mode.id}
-                            type="button"
-                            onClick={() => applyLearningMode(mode.id)}
-                            className={cn(
-                              "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between relative group cursor-pointer active:scale-95 shadow-2xs",
-                              isSelected 
-                                ? cn("bg-white border-2 shadow-sm ring-1 ring-orange-400/30", mode.border) 
-                                : "bg-white/80 border-slate-100 hover:border-slate-200 hover:bg-white"
-                            )}
-                          >
-                            <div className="flex items-center justify-between w-full mb-1.5">
-                              <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border border-slate-100", mode.bg)}>
-                                <Icon className={cn("w-3.5 h-3.5", mode.color)} />
-                              </div>
-                              {isSelected && (
-                                <span className="w-2 h-2 rounded-full bg-orange-500 ring-4 ring-orange-100 shrink-0" />
+                    {onCreateCustomProfile && (
+                      <button
+                        type="button"
+                        onClick={() => setIsSaveModalOpen(true)}
+                        className="text-[10.5px] font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                      >
+                        <BookmarkPlus className="w-3 h-3" />
+                        <span>Save Current as New Template</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 1. Deck Creator Default Card */}
+                  <div
+                    onClick={() => {
+                      if (onResetToCreatorDefaults) onResetToCreatorDefaults()
+                    }}
+                    className={cn(
+                      "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
+                      isDeckDefaultActive
+                        ? "bg-emerald-50/50 border-emerald-500 shadow-xs ring-1 ring-emerald-400/30"
+                        : "bg-white border-slate-200/80 hover:border-slate-300"
+                    )}
+                  >
+                    <div className="pt-0.5 shrink-0">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                        isDeckDefaultActive ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
+                      )}>
+                        {isDeckDefaultActive && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={cn("text-xs font-black truncate", isDeckDefaultActive ? "text-emerald-950" : "text-slate-800")}>
+                          Deck Creator Default
+                        </span>
+                        <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Original
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed">
+                        Original baseline settings designed specifically for this deck by the author.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 2. System Presets */}
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block px-1">
+                      System Presets
+                    </span>
+                    {systemProfilesList.map((p) => {
+                      const isSelected = activeProfileId === p.id
+                      const s = p.settings || {}
+                      const flipText = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Only' : 'Tap & Swipe'
+                      const ratingText = s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : 'Both'
+                      const audioText = s.autoplay_audio === 'always' ? 'Always' : s.autoplay_audio === 'back' ? 'Back' : s.autoplay_audio === 'front' ? 'Front' : 'Off'
+
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => handleApplyTemplateInstant(p.id)}
+                          className={cn(
+                            "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
+                            isSelected
+                              ? "bg-orange-50/50 border-orange-500 shadow-xs ring-1 ring-orange-400/30"
+                              : "bg-white border-slate-200/80 hover:border-slate-300"
+                          )}
+                        >
+                          <div className="pt-0.5 shrink-0">
+                            <div className={cn(
+                              "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                              isSelected ? "border-orange-500 bg-orange-500" : "border-slate-300 bg-white"
+                            )}>
+                              {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className={cn("text-xs font-black truncate", isSelected ? "text-orange-950" : "text-slate-800")}>
+                                {p.name}
+                              </span>
+                              {p.badge && (
+                                <span className={cn(
+                                  "px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                  isSelected ? "bg-orange-100 text-orange-800 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                                )}>
+                                  {p.badge}
+                                </span>
                               )}
                             </div>
-                            <div>
-                              <span className={cn("text-xs font-black block truncate", isSelected ? "text-slate-900" : "text-slate-700")}>
-                                {mode.label}
+                            <p className="text-[10.5px] text-slate-500 font-medium leading-relaxed mb-1.5">
+                              {p.description}
+                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
+                                Flip: {flipText}
                               </span>
-                              <span className="text-[9.5px] font-bold text-slate-400 block truncate">
-                                {mode.desc}
+                              <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
+                                Rating: {ratingText}
+                              </span>
+                              <span className="px-1.5 py-0.5 bg-slate-100/80 rounded-md text-[9px] font-bold text-slate-600">
+                                Audio: {audioText}
                               </span>
                             </div>
-                          </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* 3. My Custom Templates */}
+                  {customProfilesList.length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block px-1">
+                        My Saved Templates
+                      </span>
+                      {customProfilesList.map((p) => {
+                        const isSelected = activeProfileId === p.id
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => handleApplyTemplateInstant(p.id)}
+                            className={cn(
+                              "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none",
+                              isSelected
+                                ? "bg-indigo-50/50 border-indigo-500 shadow-xs ring-1 ring-indigo-400/30"
+                                : "bg-white border-slate-200/80 hover:border-slate-300"
+                            )}
+                          >
+                            <div className="pt-0.5 shrink-0">
+                              <div className={cn(
+                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                isSelected ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+                              )}>
+                                {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className={cn("text-xs font-black truncate block", isSelected ? "text-indigo-950" : "text-slate-800")}>
+                                {p.name}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">User custom profile</span>
+                            </div>
+                          </div>
                         )
                       })}
                     </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Tùy chọn học tập
-                    </span>
-
-                    {setRandomEnabled && (
-                      <ToggleSwitch 
-                        checked={randomEnabled}
-                        onChange={() => setRandomEnabled(!randomEnabled)}
-                        label="Xáo trộn câu hỏi ngẫu nhiên"
-                        sub="Đảo thứ tự các thẻ xuất hiện trong phiên"
-                        icon={Shuffle}
-                        color="text-amber-600"
-                        bg="bg-amber-50"
-                      />
-                    )}
-
-
-
-                    {setQuickLearnEnabled && (
-                      <ToggleSwitch 
-                        checked={quickLearnEnabled}
-                        onChange={() => setQuickLearnEnabled(!quickLearnEnabled)}
-                        label="Chế độ học nhanh"
-                        sub="Tự động ghi nhận Good, lướt nhanh nội dung"
-                        icon={Zap}
-                        color="text-orange-600"
-                        bg="bg-orange-50"
-                      />
-                    )}
-                  </div>
+                  )}
                 </div>
-              )}
-
-              {/* TAB 2: ÂM THANH & TTS */}
-              {activeTab === 'audio' && (
+              ) : (
+                /* ═══════════ VIEW B: ADVANCED MODE (DETAILED TABS) ═══════════ */
                 <div className="space-y-4">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Tự động phát âm thanh (TTS / Audio)
-                    </span>
-                    <SegmentedGroup 
-                      sub="Tự động phát giọng đọc khi chuyển mặt thẻ"
-                      value={currentAudioMode}
-                      onChange={(val) => setAutoPlayAudio(val)}
-                      options={[
-                        { id: 'none', label: 'Tắt', icon: VolumeX },
-                        { id: 'front', label: 'Mặt trước', icon: Volume2 },
-                        { id: 'back', label: 'Mặt sau', icon: Volume2 },
-                        { id: 'always', label: 'Cả hai', icon: Volume2 }
-                      ]}
-                    />
+                  {/* Segmented Top Tabs */}
+                  <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('modes')}
+                      className={cn(
+                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
+                        activeTab === 'modes' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      <span>Modes</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('audio')}
+                      className={cn(
+                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
+                        activeTab === 'audio' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Audio</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('display')}
+                      className={cn(
+                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
+                        activeTab === 'display' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Display</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('gestures')}
+                      className={cn(
+                        "py-1.5 px-1 rounded-xl text-[10px] font-black tracking-tight transition-all flex items-center justify-center gap-1 cursor-pointer",
+                        activeTab === 'gestures' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <MousePointerClick className="w-3.5 h-3.5" />
+                      <span>Gestures</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Phản hồi cảm giác & Hiệu ứng
-                    </span>
+                  {/* TAB 1: MODES */}
+                  {activeTab === 'modes' && (
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          Learning Mode & Queue Flow
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {MODES_LIST.map((mode) => {
+                            const Icon = mode.icon
+                            const isSelected = activeMode === mode.id
+                            return (
+                              <button
+                                key={mode.id}
+                                type="button"
+                                onClick={() => applyLearningMode(mode.id)}
+                                className={cn(
+                                  "p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95 shadow-2xs",
+                                  isSelected 
+                                    ? cn("bg-white border-2 shadow-sm ring-1 ring-orange-400/30", mode.border) 
+                                    : "bg-white border-slate-100 hover:border-slate-200"
+                                )}
+                              >
+                                <div className="flex items-center justify-between w-full mb-1.5">
+                                  <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border border-slate-100", mode.bg)}>
+                                    <Icon className={cn("w-3.5 h-3.5", mode.color)} />
+                                  </div>
+                                  {isSelected && <span className="w-2 h-2 rounded-full bg-orange-500 ring-4 ring-orange-100" />}
+                                </div>
+                                <div>
+                                  <span className={cn("text-xs font-black block truncate", isSelected ? "text-slate-900" : "text-slate-700")}>
+                                    {mode.label}
+                                  </span>
+                                  <span className="text-[9.5px] font-bold text-slate-400 block truncate">
+                                    {mode.desc}
+                                  </span>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
 
-                    <ToggleSwitch 
-                      checked={sfxEnabled}
-                      onChange={() => setSfxEnabled(!sfxEnabled)}
-                      label="Hiệu ứng âm thanh (SFX)"
-                      sub="Âm thanh khi lật thẻ, chấm điểm đúng / sai"
-                      icon={Music}
-                      color="text-indigo-600"
-                      bg="bg-indigo-50"
-                    />
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                          Queue Controls
+                        </span>
 
-                    <ToggleSwitch 
-                      checked={hapticEnabled}
-                      onChange={() => setHapticEnabled(!hapticEnabled)}
-                      label="Rung phản hồi cảm ứng (Haptic)"
-                      sub="Rung nhẹ trên điện thoại khi bấm nút hoặc lật thẻ"
-                      icon={Zap}
-                      color="text-emerald-600"
-                      bg="bg-emerald-50"
-                    />
-                  </div>
-                </div>
-              )}
+                        {setRandomEnabled && (
+                          <ToggleSwitch 
+                            checked={randomEnabled}
+                            onChange={() => setRandomEnabled(!randomEnabled)}
+                            label="Shuffle Questions"
+                            sub="Randomize order of cards in this study session"
+                            icon={Shuffle}
+                            color="text-amber-600"
+                            bg="bg-amber-50"
+                          />
+                        )}
 
-              {/* TAB 3: HIỂN THỊ & CĂN LỀ */}
-              {activeTab === 'display' && (
-                <div className="space-y-4">
-                  {/* FSRS Metrics badge toggle moved to Display tab */}
-                  {setShowFsrs && (
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                        Chỉ số ghi nhớ trên mặt thẻ
-                      </span>
-                      <ToggleSwitch 
-                        checked={showFsrs}
-                        onChange={() => setShowFsrs(!showFsrs)}
-                        label="Chỉ số ghi nhớ FSRS v6"
-                        sub="Hiện độ ổn định (S), độ khó (D) và khoảng cách ngày trên mặt thẻ"
-                        icon={Brain}
-                        color="text-indigo-600"
-                        bg="bg-indigo-50"
-                      />
+                        {setQuickLearnEnabled && (
+                          <ToggleSwitch 
+                            checked={quickLearnEnabled}
+                            onChange={() => setQuickLearnEnabled(!quickLearnEnabled)}
+                            label="Quick Learn Mode"
+                            sub="Automatically score Good and advance quickly"
+                            icon={Zap}
+                            color="text-orange-600"
+                            bg="bg-orange-50"
+                          />
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Căn lề nội dung mặt trước
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {setFrontValign && (
+                  {/* TAB 2: AUDIO */}
+                  {activeTab === 'audio' && (
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          TTS Audio Autoplay
+                        </span>
                         <SegmentedGroup 
-                          label="Căn dọc"
-                          value={frontValign}
-                          onChange={(v) => setFrontValign(v)}
+                          sub="Automatically pronounce text on card flip"
+                          value={currentAudioMode}
+                          onChange={(val) => setAutoPlayAudio(val)}
                           options={[
-                            { id: 'center', label: 'Giữa' },
-                            { id: 'top', label: 'Trên cùng' }
+                            { id: 'none', label: 'Off', icon: VolumeX },
+                            { id: 'front', label: 'Front', icon: Volume2 },
+                            { id: 'back', label: 'Back', icon: Volume2 },
+                            { id: 'always', label: 'Both', icon: Volume2 }
                           ]}
                         />
-                      )}
-                      {setFrontHalign && (
-                        <SegmentedGroup 
-                          label="Căn ngang"
-                          value={frontHalign}
-                          onChange={(v) => setFrontHalign(v)}
-                          options={[
-                            { id: 'left', label: 'Căn trái', icon: AlignLeft },
-                            { id: 'center', label: 'Căn giữa', icon: AlignCenter }
-                          ]}
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Căn lề nội dung mặt sau
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {setBackValign && (
-                        <SegmentedGroup 
-                          label="Căn dọc"
-                          value={backValign}
-                          onChange={(v) => setBackValign(v)}
-                          options={[
-                            { id: 'center', label: 'Giữa' },
-                            { id: 'top', label: 'Trên cùng' }
-                          ]}
-                        />
-                      )}
-                      {setBackHalign && (
-                        <SegmentedGroup 
-                          label="Căn ngang"
-                          value={backHalign}
-                          onChange={(v) => setBackHalign(v)}
-                          options={[
-                            { id: 'left', label: 'Căn trái', icon: AlignLeft },
-                            { id: 'center', label: 'Căn giữa', icon: AlignCenter }
-                          ]}
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Hiển thị hình ảnh minh họa
-                    </span>
-                    <SegmentedGroup 
-                      sub="Tùy chọn mặt thẻ hiển thị hình minh họa"
-                      value={currentImageMode}
-                      onChange={(val) => setShowImages(val)}
-                      options={[
-                        { id: 'none', label: 'Tắt', icon: ImageOff },
-                        { id: 'front', label: 'Mặt trước', icon: Image },
-                        { id: 'back', label: 'Mặt sau', icon: Image },
-                        { id: 'always', label: 'Cả hai', icon: Image }
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: THAO TÁC & CỬ CHỈ */}
-              {activeTab === 'gestures' && (
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Thao tác lật thẻ
-                    </span>
-                    {setCardFlipTrigger && (
-                      <SegmentedGroup 
-                        sub="Cách thức kích hoạt lật mặt thẻ"
-                        value={cardFlipTrigger}
-                        onChange={(v) => setCardFlipTrigger(v)}
-                        options={[
-                          { id: 'both', label: 'Cả hai', sub: 'Chạm / Nút' },
-                          { id: 'tap', label: 'Chạm thẻ', sub: 'Tap vùng thẻ' },
-                          { id: 'button_only', label: 'Chỉ nút', sub: 'Nút Lật' }
-                        ]}
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                      Phương thức đánh giá kết quả
-                    </span>
-                    {setCardRatingMode && (
-                      <SegmentedGroup 
-                        sub="Giao diện chấm điểm độ nhớ"
-                        value={cardRatingMode}
-                        onChange={(v) => setCardRatingMode(v)}
-                        options={[
-                          { id: 'both', label: 'Cả hai', sub: 'Nút & Vuốt' },
-                          { id: 'buttons', label: '4 Nút', sub: 'Thanh nút' },
-                          { id: 'swipe_4way', label: 'Vuốt 4 hướng', sub: '4 chiều' },
-                          { id: 'swipe_2way', label: 'Vuốt 2 hướng', sub: 'Trái / Phải' }
-                        ]}
-                      />
-                    )}
-                  </div>
-
-                  {/* Quick in-session tools */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Thao tác trên thẻ hiện tại
-                    </span>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {copyQuestionToClipboard && (
-                        <button
-                          type="button"
-                          onClick={copyQuestionToClipboard}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Sao chép câu</span>
-                        </button>
-                      )}
-
-                      {handleIgnoreQuestion && (
-                        <button
-                          type="button"
-                          onClick={handleIgnoreQuestion}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-amber-50/50 border border-slate-100 hover:border-amber-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Bỏ qua câu này</span>
-                        </button>
-                      )}
-
-                      {openEditModal && (
-                        <button
-                          type="button"
-                          onClick={openEditModal}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left col-span-2"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Chỉnh sửa nhanh nội dung thẻ này</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {id && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            navigate(`/decks/${id}?tab=settings`)
-                          }}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Cài đặt bộ thẻ</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            navigate(`/decks/${id}?tab=cards`)
-                          }}
-                          className="flex items-center gap-2 p-2.5 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
-                        >
-                          <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Quản lý thẻ</span>
-                        </button>
                       </div>
-                    )}
 
-                    {setIsQuitModalOpen && (
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            setIsQuitModalOpen(true)
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span>Rời phiên học</span>
-                        </button>
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                          Sensory Feedback
+                        </span>
+
+                        <ToggleSwitch 
+                          checked={sfxEnabled}
+                          onChange={() => setSfxEnabled(!sfxEnabled)}
+                          label="Sound Effects (SFX)"
+                          sub="Audio feedback on flip and grading"
+                          icon={Music}
+                          color="text-indigo-600"
+                          bg="bg-indigo-50"
+                        />
+
+                        <ToggleSwitch 
+                          checked={hapticEnabled}
+                          onChange={() => setHapticEnabled(!hapticEnabled)}
+                          label="Haptic Touch Feedback"
+                          sub="Vibration response on tap and swipe"
+                          icon={Zap}
+                          color="text-emerald-600"
+                          bg="bg-emerald-50"
+                        />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: DISPLAY & ALIGNMENT */}
+                  {activeTab === 'display' && (
+                    <div className="space-y-4">
+                      {setShowFsrs && (
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                            Card Metrics Indicator
+                          </span>
+                          <ToggleSwitch 
+                            checked={showFsrs}
+                            onChange={() => setShowFsrs(!showFsrs)}
+                            label="FSRS v6 Metrics Badge"
+                            sub="Show Stability (S), Difficulty (D), and Days due on card"
+                            icon={Brain}
+                            color="text-indigo-600"
+                            bg="bg-indigo-50"
+                          />
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          Front Card Alignment
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {setFrontValign && (
+                            <SegmentedGroup 
+                              label="Vertical"
+                              value={frontValign}
+                              onChange={(v) => setFrontValign(v)}
+                              options={[
+                                { id: 'center', label: 'Center' },
+                                { id: 'top', label: 'Top' }
+                              ]}
+                            />
+                          )}
+                          {setFrontHalign && (
+                            <SegmentedGroup 
+                              label="Horizontal"
+                              value={frontHalign}
+                              onChange={(v) => setFrontHalign(v)}
+                              options={[
+                                { id: 'left', label: 'Left', icon: AlignLeft },
+                                { id: 'center', label: 'Center', icon: AlignCenter }
+                              ]}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          Back Card Alignment
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {setBackValign && (
+                            <SegmentedGroup 
+                              label="Vertical"
+                              value={backValign}
+                              onChange={(v) => setBackValign(v)}
+                              options={[
+                                { id: 'center', label: 'Center' },
+                                { id: 'top', label: 'Top' }
+                              ]}
+                            />
+                          )}
+                          {setBackHalign && (
+                            <SegmentedGroup 
+                              label="Horizontal"
+                              value={backHalign}
+                              onChange={(v) => setBackHalign(v)}
+                              options={[
+                                { id: 'left', label: 'Left', icon: AlignLeft },
+                                { id: 'center', label: 'Center', icon: AlignCenter }
+                              ]}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          Illustrations & Images
+                        </span>
+                        <SegmentedGroup 
+                          sub="Card sides where illustrations are displayed"
+                          value={currentImageMode}
+                          onChange={(val) => setShowImages(val)}
+                          options={[
+                            { id: 'none', label: 'Off', icon: ImageOff },
+                            { id: 'front', label: 'Front', icon: ImageIcon },
+                            { id: 'back', label: 'Back', icon: ImageIcon },
+                            { id: 'always', label: 'Both', icon: ImageIcon }
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: GESTURES */}
+                  {activeTab === 'gestures' && (
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          Card Flip Trigger
+                        </span>
+                        {setCardFlipTrigger && (
+                          <SegmentedGroup 
+                            sub="How to reveal the back of the card"
+                            value={cardFlipTrigger}
+                            onChange={(v) => setCardFlipTrigger(v)}
+                            options={[
+                              { id: 'both', label: 'Both', sub: 'Tap & Button' },
+                              { id: 'tap', label: 'Tap Only', sub: 'Card area' },
+                              { id: 'button_only', label: 'Button Only', sub: 'Flip button' }
+                            ]}
+                          />
+                        )}
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                          FSRS Recall Rating Mode
+                        </span>
+                        {setCardRatingMode && (
+                          <SegmentedGroup 
+                            sub="Recall evaluation interaction"
+                            value={cardRatingMode}
+                            onChange={(v) => setCardRatingMode(v)}
+                            options={[
+                              { id: 'both', label: 'Both', sub: 'Buttons & Swipe' },
+                              { id: 'buttons', label: '4 Buttons', sub: 'Button bar' },
+                              { id: 'swipe_4way', label: '4-Way Swipe', sub: '4 directions' },
+                              { id: 'swipe_2way', label: '2-Way Swipe', sub: 'Left / Right' }
+                            ]}
+                          />
+                        )}
+                      </div>
+
+                      {/* Quick in-session tools */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                          Current Card Actions
+                        </span>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {copyQuestionToClipboard && (
+                            <button
+                              type="button"
+                              onClick={copyQuestionToClipboard}
+                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                            >
+                              <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span className="text-xs font-black truncate">Copy Question</span>
+                            </button>
+                          )}
+
+                          {handleIgnoreQuestion && (
+                            <button
+                              type="button"
+                              onClick={handleIgnoreQuestion}
+                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-amber-50/50 border border-slate-100 hover:border-amber-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                            >
+                              <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span className="text-xs font-black truncate">Skip Question</span>
+                            </button>
+                          )}
+
+                          {openEditModal && (
+                            <button
+                              type="button"
+                              onClick={openEditModal}
+                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left col-span-2"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className="text-xs font-black truncate">Quick Edit This Card</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {id && (
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose()
+                                navigate(`/decks/${id}?tab=settings`)
+                              }}
+                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                            >
+                              <Settings className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className="text-xs font-black truncate">Deck Settings</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose()
+                                navigate(`/decks/${id}?tab=cards`)
+                              }}
+                              className="flex items-center gap-2 p-2.5 bg-white hover:bg-emerald-50/50 border border-slate-100 hover:border-emerald-200 rounded-xl text-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer text-left"
+                            >
+                              <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span className="text-xs font-black truncate">Card Manager</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {setIsQuitModalOpen && (
+                          <div className="pt-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose()
+                                setIsQuitModalOpen(true)
+                              }}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                            >
+                              <LogOut className="w-3.5 h-3.5" />
+                              <span>Quit Session</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Clean, Minimalist Footer */}
+            {/* Footer */}
             <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2">
-                {/* Reset to creator baseline: ONLY shown if customized away from creator default */}
                 {onResetToCreatorDefaults && (isCustomized || settingOrigin !== 'deck_default') && (
                   <button
                     type="button"
                     disabled={isSyncing}
                     onClick={handleResetToCreator}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Khôi phục cấu hình học của bộ thẻ về mặc định ban đầu của người tạo"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Khôi phục gốc</span>
+                    <span>Reset to Deck Default</span>
                   </button>
                 )}
 
-                {/* Save as creator deck defaults: ONLY visible for deck creator / editor */}
                 {onSaveAsCreatorDefaults && isCreator && (
                   <button
                     type="button"
                     disabled={isSyncing}
                     onClick={handleSaveAsCreator}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Chỉ dành cho người tạo: Lưu cấu hình này làm mặc định chung của bộ thẻ cho tất cả người học"
                   >
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Lưu làm mặc định bộ thẻ</span>
+                    <span>Save as Deck Default</span>
                   </button>
                 )}
               </div>
 
-              {/* Close Button */}
               <button 
                 type="button"
                 onClick={onClose}
                 className="px-6 py-2 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
               >
-                <span>Xong / Đóng</span>
+                <span>Done</span>
               </button>
             </div>
 
-            {/* Save New Template Modal Dialog */}
+            {/* Save New Template Modal */}
             {isSaveModalOpen && (
               <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
                 <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                      Lưu thành Template mới
+                      Save as New Template
                     </span>
                     <button 
                       type="button" 
@@ -994,13 +1026,13 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-500 font-medium">
-                    Toàn bộ 14 thiết lập hiện tại sẽ được lưu thành một hồ sơ mẫu để áp dụng nhanh cho mọi bộ thẻ.
+                    Save current configuration into a reusable template accessible across all decks.
                   </p>
                   <input
                     type="text"
                     value={newProfileName}
                     onChange={(e) => setNewProfileName(e.target.value)}
-                    placeholder="Ví dụ: Luyện nghe tiếng Nhật, Cày N2..."
+                    placeholder="e.g., Japanese Listening, Speedy Review..."
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium"
                     autoFocus
                     onKeyDown={(e) => {
@@ -1013,7 +1045,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       onClick={() => setIsSaveModalOpen(false)}
                       className="px-3 py-1.5 text-[10.5px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
                     >
-                      Hủy
+                      Cancel
                     </button>
                     <button
                       type="button"
@@ -1021,7 +1053,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       onClick={handleSaveProfile}
                       className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-sm"
                     >
-                      {isSyncing ? 'Đang lưu...' : 'Lưu Template'}
+                      {isSyncing ? 'Saving...' : 'Save Template'}
                     </button>
                   </div>
                 </div>

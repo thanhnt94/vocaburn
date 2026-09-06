@@ -301,47 +301,47 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   const modesConfig = [
     {
       key: 'mcq' as const,
-      label: 'Trắc Nghiệm',
+      label: 'Multiple Choice',
       sublabel: 'MCQ',
       icon: Trophy,
       color: 'text-amber-500',
       activeBorder: 'border-amber-500',
       activeBg: 'bg-amber-50',
       activeText: 'text-amber-700',
-      desc: 'Hỏi 1 cột và tạo các phương án lựa chọn ngẫu nhiên từ các thẻ khác'
+      desc: 'Prompt one column and generate multiple choices from other cards'
     },
     {
       key: 'typing' as const,
-      label: 'Gõ Từ Vựng',
+      label: 'Typing Drill',
       sublabel: 'Typing',
       icon: Keyboard,
       color: 'text-indigo-600',
       activeBorder: 'border-indigo-500',
       activeBg: 'bg-indigo-50',
       activeText: 'text-indigo-700',
-      desc: 'Hiển thị câu hỏi gợi ý và bắt buộc gõ chính xác từng ký tự của cột đáp án'
+      desc: 'Show prompt question and require typing exact answer characters'
     },
     {
       key: 'listening' as const,
-      label: 'Luyện Nghe',
+      label: 'Listening Drill',
       sublabel: 'Listening',
       icon: Headphones,
       color: 'text-sky-600',
       activeBorder: 'border-sky-500',
       activeBg: 'bg-sky-50',
       activeText: 'text-sky-700',
-      desc: 'Phát âm thanh/giọng đọc TTS và chọn đáp án dịch nghĩa đúng'
+      desc: 'Play TTS audio pronunciation and select matching translation'
     },
     {
       key: 'flip' as const,
-      label: 'Lật Thẻ',
+      label: 'Quick Flip',
       sublabel: 'Flip Card',
       icon: RotateCcw,
       color: 'text-emerald-600',
       activeBorder: 'border-emerald-500',
       activeBg: 'bg-emerald-50',
       activeText: 'text-emerald-700',
-      desc: 'Chế độ lật mặt trước ➜ mặt sau phản xạ truyền thống'
+      desc: 'Traditional 2-sided flashcard flip for rapid recall'
     },
   ]
 
@@ -357,14 +357,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div className="space-y-0.5">
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
               <Sliders className="w-4 h-4 text-indigo-600" />
-              <span>Cài Đặt Học Mặc Định Đầu Vào (Creator Study Defaults)</span>
+              <span>Deck Study Defaults (Creator Baseline)</span>
             </h3>
             <p className="text-[11px] text-slate-400 font-medium">
-              Thiết lập cấu hình khởi đầu cho tất cả người học khi mở bộ thẻ này (người học có thể tự chỉnh lại sau trên tài khoản của họ)
+              Initial baseline configuration applied to all learners opening this deck (learners can customize their personal settings).
             </p>
           </div>
           <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100">
-            Tác giả bộ thẻ
+            Deck Creator
           </span>
         </div>
 
@@ -374,16 +374,16 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
                 <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
-                Âm thanh đọc TTS
+                TTS Audio Autoplay
               </span>
-              <span className="text-[9px] font-bold text-slate-400">Mặc định</span>
+              <span className="text-[9px] font-bold text-slate-400">Default</span>
             </div>
             <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
               {[
-                { id: 'none', label: 'Tắt', icon: VolumeX },
-                { id: 'front', label: 'Mặt trước', icon: Volume2 },
-                { id: 'back', label: 'Mặt sau', icon: Volume2 },
-                { id: 'always', label: 'Cả hai', icon: Volume2 }
+                { id: 'none', label: 'Off', icon: VolumeX },
+                { id: 'front', label: 'Front', icon: Volume2 },
+                { id: 'back', label: 'Back', icon: Volume2 },
+                { id: 'always', label: 'Both', icon: Volume2 }
               ].map(opt => {
                 const active = studyAutoplayAudio === opt.id
                 const Icon = opt.icon
@@ -412,16 +412,16 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
                 <Image className="w-3.5 h-3.5 text-indigo-600" />
-                Hình ảnh minh họa
+                Image Illustrations
               </span>
-              <span className="text-[9px] font-bold text-slate-400">Mặc định</span>
+              <span className="text-[9px] font-bold text-slate-400">Default</span>
             </div>
             <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
               {[
-                { id: 'always', label: 'Cả hai', icon: Image },
-                { id: 'front', label: 'Mặt trước', icon: Image },
-                { id: 'back', label: 'Mặt sau', icon: Image },
-                { id: 'none', label: 'Tắt', icon: ImageOff }
+                { id: 'always', label: 'Both', icon: Image },
+                { id: 'front', label: 'Front', icon: Image },
+                { id: 'back', label: 'Back', icon: Image },
+                { id: 'none', label: 'Off', icon: ImageOff }
               ].map(opt => {
                 const active = studyShowImages === opt.id
                 const Icon = opt.icon
@@ -450,23 +450,23 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
                 <Brain className="w-3.5 h-3.5 text-indigo-600" />
-                Chế độ học ban đầu
+                Default Learning Mode
               </span>
-              <span className="text-[9px] font-bold text-slate-400">Khởi đầu</span>
+              <span className="text-[9px] font-bold text-slate-400">Startup</span>
             </div>
             <select
               value={studyLearningMode}
               onChange={(e) => setStudyLearningMode(e.target.value)}
               className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
             >
-              <option value="fsrs">Flashcard FSRS (Lặp lại ngắt quãng)</option>
-              <option value="roadmap">Flashcard Lộ trình (Roadmap)</option>
-              <option value="flip">Lật nhanh (Flip Cards)</option>
-              <option value="mcq">Trắc nghiệm (MCQ Quiz)</option>
-              <option value="typing">Gõ từ vựng (Typing Practice)</option>
-              <option value="listening">Luyện nghe (Listening Practice)</option>
-              <option value="new">Học từ mới (New Cards)</option>
-              <option value="review">Ôn tập thẻ đến hạn (Review)</option>
+              <option value="fsrs">Flashcard FSRS (Spaced Repetition)</option>
+              <option value="roadmap">Daily Roadmap</option>
+              <option value="flip">Quick Flip (Flip Cards)</option>
+              <option value="mcq">Multiple Choice (MCQ Quiz)</option>
+              <option value="typing">Typing Drill</option>
+              <option value="listening">Listening Drill</option>
+              <option value="new">New Cards</option>
+              <option value="review">Review Due Cards</option>
             </select>
           </div>
         </div>
@@ -477,7 +477,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
             <div className="flex items-center gap-2 min-w-0 mr-2">
               <Shuffle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span className="text-xs font-bold text-slate-700 truncate">Mặc định xáo trộn (Shuffle)</span>
+              <span className="text-xs font-bold text-slate-700 truncate">Shuffle Questions</span>
             </div>
             <button
               type="button"
@@ -495,7 +495,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
             <div className="flex items-center gap-2 min-w-0 mr-2">
               <Music className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="text-xs font-bold text-slate-700 truncate">Âm thanh hiệu ứng (SFX)</span>
+              <span className="text-xs font-bold text-slate-700 truncate">Sound FX (SFX)</span>
             </div>
             <button
               type="button"
@@ -513,7 +513,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 border border-slate-200/50">
             <div className="flex items-center gap-2 min-w-0 mr-2">
               <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-              <span className="text-xs font-bold text-slate-700 truncate">Tự động chuyển câu</span>
+              <span className="text-xs font-bold text-slate-700 truncate">Auto Advance (Quick Learn)</span>
             </div>
             <button
               type="button"
@@ -533,9 +533,9 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
               <Move className="w-3.5 h-3.5 text-purple-600" />
-              Cử Chỉ Flashcard Mặc Định (Gestures)
+              Default Flashcard Gestures
             </span>
-            <span className="text-[9px] font-bold text-slate-400">Áp dụng cho người học</span>
+            <span className="text-[9px] font-bold text-slate-400">Applied to learners</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -544,14 +544,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <MousePointer className="w-3.5 h-3.5 text-indigo-600" />
-                  Thao tác lật thẻ (Flip Trigger)
+                  Card Flip Trigger
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
                 {[
-                  { id: 'both', label: 'Chạm & Vuốt' },
-                  { id: 'tap', label: 'Chỉ Chạm' },
-                  { id: 'button_only', label: 'Chỉ Nút' }
+                  { id: 'both', label: 'Touch & Swipe' },
+                  { id: 'tap', label: 'Touch Only' },
+                  { id: 'button_only', label: 'Button Only' }
                 ].map(opt => (
                   <button
                     key={opt.id}
@@ -575,15 +575,15 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <Compass className="w-3.5 h-3.5 text-purple-600" />
-                  Đánh giá FSRS (Rating Mode)
+                  FSRS Recall Rating Mode
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
                 {[
-                  { id: 'both', label: 'Hỗn hợp' },
-                  { id: 'swipe_4way', label: '4 hướng' },
-                  { id: 'swipe_2way', label: '2 chiều' },
-                  { id: 'buttons', label: '4 Nút' }
+                  { id: 'both', label: 'Both' },
+                  { id: 'swipe_4way', label: '4-Way' },
+                  { id: 'swipe_2way', label: '2-Way' },
+                  { id: 'buttons', label: '4 Buttons' }
                 ].map(opt => (
                   <button
                     key={opt.id}
@@ -609,17 +609,17 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-              Căn Lề Nội Dung Thẻ Mặc Định (Card Alignment)
+              Default Card Alignment (2-Axis)
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Front Card Alignment */}
             <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
-              <span className="text-xs font-bold text-slate-800 block">🎴 Mặt trước (Front Card)</span>
+              <span className="text-xs font-bold text-slate-800 block">Front Card Alignment</span>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
                     {(['center', 'top'] as const).map(v => (
                       <button
@@ -631,13 +631,13 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                           studyFrontValign === v ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
                         )}
                       >
-                        {v === 'center' ? 'Giữa' : 'Trên'}
+                        {v === 'center' ? 'Center' : 'Top'}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
                     {(['left', 'center'] as const).map(h => (
                       <button
@@ -649,7 +649,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                           studyFrontHalign === h ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
                         )}
                       >
-                        {h === 'left' ? 'Trái' : 'Giữa'}
+                        {h === 'left' ? 'Left' : 'Center'}
                       </button>
                     ))}
                   </div>
@@ -659,10 +659,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
             {/* Back Card Alignment */}
             <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 space-y-2">
-              <span className="text-xs font-bold text-slate-800 block">📖 Mặt sau (Back Card)</span>
+              <span className="text-xs font-bold text-slate-800 block">Back Card Alignment</span>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Dọc:</span>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Vertical:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
                     {(['center', 'top'] as const).map(v => (
                       <button
@@ -674,13 +674,13 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                           studyBackValign === v ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
                         )}
                       >
-                        {v === 'center' ? 'Giữa' : 'Trên'}
+                        {v === 'center' ? 'Center' : 'Top'}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Ngang:</span>
+                  <span className="text-[9.5px] font-bold text-slate-400 block mb-1">Horizontal:</span>
                   <div className="grid grid-cols-2 gap-1 p-1 bg-white rounded-xl border border-slate-200/50">
                     {(['left', 'center'] as const).map(h => (
                       <button
@@ -692,7 +692,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                           studyBackHalign === h ? "bg-indigo-600 text-white shadow-xs" : "text-slate-500 hover:text-slate-800"
                         )}
                       >
-                        {h === 'left' ? 'Trái' : 'Giữa'}
+                        {h === 'left' ? 'Left' : 'Center'}
                       </button>
                     ))}
                   </div>
@@ -709,17 +709,17 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Sliders className="w-4 h-4 text-indigo-600" />
-              <span>Cấu Hình Từng Chế Độ Luyện Tập (Per-Mode Settings)</span>
+              <span>Per-Mode Practice Configurations</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Chọn từng chế độ bên dưới để cài đặt riêng biệt cặp câu hỏi - đáp án và tùy chọn
+              Configure active question-answer columns and options for each practice mode
             </p>
           </div>
         </div>
 
         {saveSuccess && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <Check className="w-4 h-4" /> Đã lưu cấu hình luyện tập thành công cho tất cả các chế độ!
+            <Check className="w-4 h-4" /> Practice configurations saved successfully for all modes!
           </div>
         )}
 
@@ -754,7 +754,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                     "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
                     isEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"
                   )}>
-                    {isEnabled ? 'Bật' : 'Tắt'}
+                    {isEnabled ? 'Active' : 'Disabled'}
                   </span>
                 </div>
 
@@ -785,7 +785,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             </span>
             <div>
               <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">
-                Cài Đặt Riêng: {activeModeConfig.label} ({activeModeConfig.sublabel})
+                Mode Settings: {activeModeConfig.label} ({activeModeConfig.sublabel})
               </h4>
               <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                 {activeModeConfig.desc}
@@ -796,7 +796,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           {/* Toggle Switch */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-600">
-              {isCurrentModeEnabled ? 'Đang kích hoạt' : 'Đã vô hiệu hóa'}
+              {isCurrentModeEnabled ? 'Active' : 'Disabled'}
             </span>
             <div
               onClick={() => toggleModeDisabled(activeModeTab)}
@@ -819,8 +819,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
         {activeModeTab === 'mcq' && (
           <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <span className="text-xs font-black text-slate-800 block">Số lượng phương án trắc nghiệm:</span>
-              <span className="text-[10px] text-slate-400 font-medium">Số nút đáp án người học cần chọn</span>
+              <span className="text-xs font-black text-slate-800 block">Multiple Choice Options Count:</span>
+              <span className="text-[10px] text-slate-400 font-medium">Number of answer choices presented to the learner</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -846,8 +846,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
         {activeModeTab === 'listening' && (
           <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <span className="text-xs font-black text-slate-800 block">Số lượng phương án trắc nghiệm nghe:</span>
-              <span className="text-[10px] text-slate-400 font-medium">Số nút đáp án hiển thị sau khi nghe âm thanh</span>
+              <span className="text-xs font-black text-slate-800 block">Listening Drill Options Count:</span>
+              <span className="text-[10px] text-slate-400 font-medium">Number of answer choices displayed after audio plays</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -876,14 +876,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-black text-slate-800 block">
-                  Danh Sách Cặp Ghép Cột Dành Riêng Cho {activeModeConfig.sublabel}:
+                  Active Column Pairs for {activeModeConfig.sublabel}:
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">
                   {activeModeTab === 'typing'
-                    ? 'Chỉ định cột làm đề bài gợi ý và cột từ vựng mục tiêu cần gõ'
+                    ? 'Designate prompt question column and target vocabulary column to type'
                     : activeModeTab === 'listening'
-                    ? 'Chỉ định cột file nghe / phát âm và cột đáp án đúng'
-                    : 'Chỉ định cột hiển thị câu hỏi và cột đáp án đúng'}
+                    ? 'Designate audio script/voice column and target correct answer column'
+                    : 'Designate question display column and correct answer column'}
                 </span>
               </div>
 
@@ -893,7 +893,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                 className="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Thêm Cặp Mới</span>
+                <span>Add New Pair</span>
               </button>
             </div>
 
@@ -901,7 +901,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             <div className="space-y-2.5">
               {currentPairs.length === 0 ? (
                 <div className="py-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
-                  Chưa có cặp cột nào được thiết lập. Nhấn "+ Thêm Cặp Mới" để tạo.
+                  No column pairs configured. Click "+ Add New Pair" to create one.
                 </div>
               ) : (
                 currentPairs.map((pair, idx) => {
@@ -926,7 +926,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                             type="button"
                             onClick={() => handleRemovePair(idx)}
                             className="w-6.5 h-6.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                            title="Xóa cặp này"
+                            title="Delete pair"
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -938,10 +938,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         <div>
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
                             {activeModeTab === 'typing'
-                              ? '1. Cột Đề Bài Gợi Ý (Prompt):'
+                              ? '1. Prompt Column (Question):'
                               : activeModeTab === 'listening'
-                              ? '1. Cột Kịch Bản/Giọng Đọc Phát Âm (Audio TTS):'
-                              : '1. Cột Hiển Thị Câu Hỏi (Question):'}
+                              ? '1. Audio TTS Column:'
+                              : '1. Question Column (Prompt):'}
                           </label>
                           <select
                             value={pair.q}
@@ -961,10 +961,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                                2. Các Cột Đáp Án Được Chấp Nhận Khi Gõ (Chọn 1 hoặc nhiều):
+                                2. Accepted Answer Columns (Select 1 or more):
                               </label>
                               <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded border", activeModeTab === 'listening' ? "text-sky-600 bg-sky-50 border-sky-200/60" : "text-amber-600 bg-amber-50 border-amber-200/60")}>
-                                Cho phép gõ bất kỳ cột nào
+                                Any column matches as correct
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-1.5 p-2 bg-white rounded-xl border border-slate-200">
@@ -1001,7 +1001,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         ) : (
                           <div>
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                              2. Cột Chứa Đáp Án Đúng (Answer):
+                              2. Target Answer Column:
                             </label>
                             <select
                               value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}
@@ -1027,9 +1027,9 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
         {activeModeTab === 'flip' && (
           <div className="py-6 px-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-center space-y-1">
-            <span className="text-xs font-black text-slate-800 block">Chế Độ Lật Thẻ Phản Xạ Nhanh</span>
+            <span className="text-xs font-black text-slate-800 block">Quick Flip Mode</span>
             <p className="text-[11px] text-slate-500 font-medium max-w-md mx-auto">
-              Chế độ này tự động sử dụng cột Mặt trước (Front) làm mặt mở đầu và cột Mặt sau (Back) làm mặt giải nghĩa kèm âm thanh phát âm.
+              Automatically uses Front column for initial prompt and Back column for revelation with audio pronunciation.
             </p>
           </div>
         )}
@@ -1041,7 +1041,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             className="px-6 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'ĐANG LƯU...' : 'LƯU TẤT CẢ CẤU HÌNH LUYỆN TẬP'}</span>
+            <span>{isSaving ? 'SAVING...' : 'SAVE PRACTICE CONFIG'}</span>
           </button>
         </div>
       </div>
