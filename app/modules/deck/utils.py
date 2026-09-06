@@ -209,8 +209,19 @@ SYSTEM_STUDY_PROFILES = [
     }
 ]
 
+CACHED_SYSTEM_STUDY_PROFILES: list[dict] = list(SYSTEM_STUDY_PROFILES)
+
+def get_system_study_profiles() -> list[dict]:
+    global CACHED_SYSTEM_STUDY_PROFILES
+    return CACHED_SYSTEM_STUDY_PROFILES if CACHED_SYSTEM_STUDY_PROFILES else list(SYSTEM_STUDY_PROFILES)
+
+def set_cached_system_study_profiles(profiles: list[dict]) -> None:
+    global CACHED_SYSTEM_STUDY_PROFILES
+    if profiles and isinstance(profiles, list):
+        CACHED_SYSTEM_STUDY_PROFILES = list(profiles)
+
 def get_all_study_profiles(custom_profiles: Optional[list] = None) -> list[dict]:
-    profiles = [dict(p) for p in SYSTEM_STUDY_PROFILES]
+    profiles = [dict(p) for p in get_system_study_profiles()]
     if custom_profiles and isinstance(custom_profiles, list):
         for cp in custom_profiles:
             if isinstance(cp, dict) and cp.get("id"):

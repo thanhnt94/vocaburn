@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -216,10 +216,42 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+const getPresetDetails = (preset: any) => {
+  const s = preset.settings || {}
+  const flip = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Body' : 'Tap & Swipe'
+  const rating = s.card_rating_mode === 'buttons' ? '4 Buttons' : s.card_rating_mode === 'swipe_4way' ? '4-Way Swipe' : s.card_rating_mode === 'swipe_2way' ? '2-Way Swipe' : 'Swipe & 4 Buttons'
+  const audio = s.autoplay_audio === 'always' ? 'Always Play' : s.autoplay_audio === 'back' ? 'Back Only' : s.autoplay_audio === 'front' ? 'Front Only' : 'Off'
+  const img = s.show_images === 'none' ? 'Hidden' : s.show_images === 'back_only' || s.show_images === 'back' ? 'Back Only' : s.show_images === 'front' ? 'Front Only' : 'Both Sides'
+  return [
+    { label: 'Flip', val: flip },
+    { label: 'Rating', val: rating },
+    { label: 'Audio', val: audio },
+    { label: 'Images', val: img },
+  ]
+}
+
 export const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const { user, userSettings, updateUserSettings, authConfig } = useAppStore()
+
+  // Dynamic system presets loaded from database with fallback to defaults
+  const systemProfiles = useMemo(() => {
+    const fromBackend = (userSettings.study_profiles || []).filter((p: any) => p.is_system)
+    if (fromBackend.length > 0) {
+      return fromBackend.map((bp: any) => {
+        const matchingFallback = SYSTEM_PROFILES.find(sp => sp.id === bp.id)
+        return {
+          ...bp,
+          icon: bp.icon || matchingFallback?.icon || 'sparkles',
+          badge: bp.badge || matchingFallback?.badge || 'System',
+          desc: bp.description || matchingFallback?.desc || '',
+          details: getPresetDetails(bp)
+        }
+      })
+    }
+    return SYSTEM_PROFILES
+  }, [userSettings.study_profiles])
 
   // Read initial tab from URL query param, default to 'deck_template'
   const tabFromUrl = searchParams.get('tab') as SettingsTab | null
@@ -297,7 +329,7 @@ export const Settings = () => {
         random_enabled: userSettings.random_enabled ?? false
       })
     } else {
-      const preset = SYSTEM_PROFILES.find(p => p.id === baseId) || SYSTEM_PROFILES[0]
+      const preset = systemProfiles.find(p => p.id === baseId) || systemProfiles[0]
       const s = preset.settings as any
       setTemplateSettings({
         card_flip_trigger: s.card_flip_trigger || 'both',
@@ -355,9 +387,9 @@ export const Settings = () => {
     } as any)
   }
 
-  const handleClonePreset = (preset: typeof SYSTEM_PROFILES[0]) => {
+  const handleClonePreset = (preset: any) => {
     setEditingProfileId(null)
-    setNewProfileName(`${preset.name} (Tùy biến)`)
+    setNewProfileName(`${preset.name} (Customized)`)
     setNewProfileIcon(preset.icon || 'sparkles')
     setTemplateSettings({
       card_flip_trigger: (preset.settings.card_flip_trigger as any) || 'both',
@@ -414,7 +446,7 @@ export const Settings = () => {
 
   const handleSetActiveProfile = async (profileId: string) => {
     const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
-    const targetProf = [...SYSTEM_PROFILES, ...customProfiles].find(p => p.id === profileId)
+    const targetProf = [...systemProfiles, ...customProfiles].find(p => p.id === profileId)
     const profSettings = targetProf?.settings || {}
 
     // Apply BOTH active profile ID AND all study + gesture settings to user's global settings
@@ -629,7 +661,7 @@ export const Settings = () => {
   const renderDeckTemplateTab = () => {
     const customProfiles: StudyProfile[] = (userSettings.study_profiles || []).filter((p: any) => !p.is_system)
     const activeId = userSettings.active_profile_id || 'preset-standard'
-    const allProfiles = [...SYSTEM_PROFILES, ...customProfiles]
+    const allProfiles = [...systemProfiles, ...customProfiles]
     const activeProfileObj = allProfiles.find(p => p.id === activeId)
 
     // Current gesture labels for summary
@@ -747,22 +779,22 @@ export const Settings = () => {
         {/* ══════════ TAB 1: SYSTEM PRESETS ══════════ */}
         {templateTab === 'system' && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  System Deck Presets
+                <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                  System Preset Library
                 </h3>
-                <p className="text-[10px] text-slate-400 font-medium">
-                  Carefully balanced presets for common study styles, gesture preferences, and media configurations.
+                <p className="text-xs text-slate-400 font-medium">
+                  Optimized, battle-tested templates pre-configured for every learning scenario
                 </p>
               </div>
-              <span className="text-[9.5px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full shrink-0">
-                4 Optimized Presets
+              <span className="text-[10px] font-black px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 uppercase border border-indigo-100/50">
+                {systemProfiles.length} Optimized Presets
               </span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {SYSTEM_PROFILES.map((preset) => {
+              {systemProfiles.map((preset: any) => {
                 const isDefaultActive = activeId === preset.id
                 const IconComp = preset.icon === 'zap' ? Zap : (preset.icon === 'headphones' ? Headphones : (preset.icon === 'book' ? BookOpen : Sparkles))
                 const sett = preset.settings as any
@@ -2480,7 +2512,7 @@ export const Settings = () => {
                   if (!newProfileName.trim()) return
                   setIsSavingProfile(true)
                   try {
-                    const basePreset = SYSTEM_PROFILES.find(p => p.id === newProfileBase) || SYSTEM_PROFILES[0]
+                    const basePreset = systemProfiles.find(p => p.id === newProfileBase) || systemProfiles[0]
                     const finalSettings = {
                       ...basePreset.settings,
                       ...templateSettings

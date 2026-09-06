@@ -76,3 +76,54 @@ class AdminInterface:
         db.add(log)
         await db.commit()
         return True
+
+    @staticmethod
+    async def get_study_templates(db: AsyncSession) -> list[dict]:
+        from app.modules.deck.utils import SYSTEM_STUDY_PROFILES, set_cached_system_study_profiles
+        result = await db.execute(select(SystemConfig).where(SystemConfig.id == "study_templates"))
+        config = result.scalar_one_or_none()
+        if not config or not config.value:
+            set_cached_system_study_profiles(SYSTEM_STUDY_PROFILES)
+            return [dict(p) for p in SYSTEM_STUDY_PROFILES]
+        set_cached_system_study_profiles(config.value)
+        return [dict(p) for p in config.value]
+
+    @staticmethod
+    async def update_study_templates(db: AsyncSession, templates: list[dict], admin_id: int):
+        from app.modules.deck.utils import set_cached_system_study_profiles
+        result = await db.execute(select(SystemConfig).where(SystemConfig.id == "study_templates"))
+        config = result.scalar_one_or_none()
+        if not config:
+            config = SystemConfig(id="study_templates")
+            db.add(config)
+        
+        config.value = templates
+        set_cached_system_study_profiles(templates)
+        
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(config, "value")
+        
+        log = AdminLog(admin_id=admin_id, action="UPDATE_TEMPLATES", details=f"Updated {len(templates)} study templates")
+        db.add(log)
+        await db.commit()
+        return True
+
+    @staticmethod
+    async def reset_study_templates(db: AsyncSession, admin_id: int):
+        from app.modules.deck.utils import SYSTEM_STUDY_PROFILES, set_cached_system_study_profiles
+        result = await db.execute(select(SystemConfig).where(SystemConfig.id == "study_templates"))
+        config = result.scalar_one_or_none()
+        if not config:
+            config = SystemConfig(id="study_templates")
+            db.add(config)
+            
+        config.value = SYSTEM_STUDY_PROFILES
+        set_cached_system_study_profiles(SYSTEM_STUDY_PROFILES)
+        
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(config, "value")
+        
+        log = AdminLog(admin_id=admin_id, action="RESET_TEMPLATES", details="Reset study templates to system defaults")
+        db.add(log)
+        await db.commit()
+        return [dict(p) for p in SYSTEM_STUDY_PROFILES]

@@ -423,3 +423,114 @@ async def get_admin_decks(request: Request, db: AsyncSession = Depends(get_db)):
         }
         for d in decks
     ]
+
+@router.get("/templates")
+async def get_admin_study_templates(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+    
+    templates = await AdminInterface.get_study_templates(db)
+    return templates
+
+@router.post("/templates")
+async def create_admin_study_template(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+    
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JSONResponse(status_code=400, content={"error": "Template name is required."})
+    
+    from app.modules.deck.utils import SYSTEM_STUDY_DEFAULTS
+    templates = await AdminInterface.get_study_templates(db)
+    
+    template_id = data.get("id") or f"template-{int(time.time() * 1000)}"
+    # Ensure ID uniqueness
+    existing_ids = {t.get("id") for t in templates}
+    if template_id in existing_ids:
+        template_id = f"{template_id}-{int(time.time() * 1000)}"
+
+    raw_settings = data.get("settings") or {}
+    merged_settings = {**SYSTEM_STUDY_DEFAULTS, **raw_settings}
+
+    new_template = {
+        "id": template_id,
+        "name": name,
+        "description": (data.get("description") or "").strip(),
+        "icon": data.get("icon") or "sparkles",
+        "badge": (data.get("badge") or "").strip() or None,
+        "is_system": True,
+        "settings": merged_settings
+    }
+    
+    updated_templates = list(templates) + [new_template]
+    await AdminInterface.update_study_templates(db, updated_templates, user.id)
+    return {"status": "success", "message": "Study template created successfully.", "template": new_template}
+
+@router.put("/templates/{template_id}")
+async def update_admin_study_template(template_id: str, request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+    
+    templates = await AdminInterface.get_study_templates(db)
+    target_idx = None
+    for idx, t in enumerate(templates):
+        if t.get("id") == template_id:
+            target_idx = idx
+            break
+            
+    if target_idx is None:
+        return JSONResponse(status_code=404, content={"error": f"Template with id '{template_id}' not found."})
+        
+    current = templates[target_idx]
+    name = (data.get("name") or current.get("name", "")).strip()
+    if not name:
+        return JSONResponse(status_code=400, content={"error": "Template name cannot be empty."})
+
+    from app.modules.deck.utils import SYSTEM_STUDY_DEFAULTS
+    current_settings = current.get("settings") or SYSTEM_STUDY_DEFAULTS
+    new_settings = data.get("settings") or {}
+    merged_settings = {**current_settings, **new_settings}
+
+    updated_template = {
+        **current,
+        "name": name,
+        "description": data.get("description", current.get("description", "")),
+        "icon": data.get("icon", current.get("icon", "sparkles")),
+        "badge": data.get("badge", current.get("badge")),
+        "is_system": True,
+        "settings": merged_settings
+    }
+
+    updated_templates = list(templates)
+    updated_templates[target_idx] = updated_template
+    await AdminInterface.update_study_templates(db, updated_templates, user.id)
+    return {"status": "success", "message": "Study template updated successfully.", "template": updated_template}
+
+@router.delete("/templates/{template_id}")
+async def delete_admin_study_template(template_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    templates = await AdminInterface.get_study_templates(db)
+    updated_templates = [t for t in templates if t.get("id") != template_id]
+    
+    if len(updated_templates) == len(templates):
+        return JSONResponse(status_code=404, content={"error": f"Template with id '{template_id}' not found."})
+        
+    await AdminInterface.update_study_templates(db, updated_templates, user.id)
+    return {"status": "success", "message": f"Template '{template_id}' deleted successfully."}
+
+@router.post("/templates/reset")
+async def reset_admin_study_templates(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user or user.role != "admin":
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        
+    reset_templates = await AdminInterface.reset_study_templates(db, user.id)
+    return {"status": "success", "message": "Study templates reset to system defaults.", "templates": reset_templates}
+

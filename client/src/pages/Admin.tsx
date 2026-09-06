@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAppStore } from '../store/useAppStore';
+import { 
+  Sparkles, Zap, BookOpen, Plus, Edit2, Trash2, RotateCcw, X, Check, 
+  Sliders, Volume2, Eye, EyeOff, CheckCircle2, Award, Star, Flame, Feather, Move, Layout 
+} from 'lucide-react';
 
 const CardListSelector = ({ 
   cards, 
@@ -121,10 +125,41 @@ export default function Admin() {
   const { tab } = useParams();
   const { user, isLoggedIn, isLoading } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch' | 'image-batch' | 'furigana-batch'>('sso');
+  const [activeTab, setActiveTab] = useState<'sso' | 'ai' | 'telegram' | 'users' | 'maintenance' | 'tts' | 'ai-batch' | 'image-batch' | 'furigana-batch' | 'templates'>('sso');
   const [globalLoading, setGlobalLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Tab: Study Templates state
+  const [studyTemplates, setStudyTemplates] = useState<any[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [templateModalTab, setTemplateModalTab] = useState<'general' | 'gestures' | 'display' | 'media' | 'algorithm'>('general');
+  const [templateFormData, setTemplateFormData] = useState({
+    id: '',
+    name: '',
+    description: '',
+    icon: 'sparkles',
+    badge: '',
+    settings: {
+      card_flip_trigger: 'both',
+      card_rating_mode: 'both',
+      quiz_learning_mode: 'fsrs',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      autoplay_audio: 'always',
+      show_images: 'both',
+      show_fsrs: true,
+      sfx_enabled: true,
+      haptic_enabled: true,
+      random_enabled: false,
+      quick_learn_enabled: false,
+    }
+  });
 
   // Tab: Telegram Config state
   const [tgBotToken, setTgBotToken] = useState('');
@@ -143,7 +178,7 @@ export default function Admin() {
 
   // Sync activeTab with URL sub-route and handle SSO-dependent tabs visibility
   useEffect(() => {
-    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch', 'furigana-batch'].includes(tab)) {
+    if (tab && ['sso', 'ai', 'telegram', 'users', 'maintenance', 'tts', 'ai-batch', 'image-batch', 'furigana-batch', 'templates'].includes(tab)) {
       if (ssoEnabled && (tab === 'ai' || tab === 'telegram')) {
         navigate('/admin/sso', { replace: true });
       } else if (!ssoEnabled && ['tts', 'ai-batch', 'image-batch', 'furigana-batch'].includes(tab)) {
@@ -476,8 +511,160 @@ export default function Admin() {
       loadUsersList();
       loadMaintenanceMode();
       loadAdminDecks();
+      loadStudyTemplates();
     }
   }, [isLoggedIn, user]);
+
+  useEffect(() => {
+    if (activeTab === 'templates') {
+      loadStudyTemplates();
+    }
+  }, [activeTab]);
+
+  const loadStudyTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const res = await axios.get('/api/v1/admin/templates');
+      setStudyTemplates(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Failed to load study templates", e);
+      setErrorMsg("Failed to load study templates.");
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  const handleOpenCreateTemplate = () => {
+    setEditingTemplateId(null);
+    setTemplateFormData({
+      id: '',
+      name: '',
+      description: '',
+      icon: 'sparkles',
+      badge: '',
+      settings: {
+        card_flip_trigger: 'both',
+        card_rating_mode: 'both',
+        quiz_learning_mode: 'fsrs',
+        front_valign: 'center',
+        front_halign: 'left',
+        back_valign: 'center',
+        back_halign: 'left',
+        autoplay_audio: 'always',
+        show_images: 'both',
+        show_fsrs: true,
+        sfx_enabled: true,
+        haptic_enabled: true,
+        random_enabled: false,
+        quick_learn_enabled: false,
+      }
+    });
+    setTemplateModalTab('general');
+    setTemplateModalOpen(true);
+  };
+
+  const handleOpenEditTemplate = (tpl: any) => {
+    setEditingTemplateId(tpl.id);
+    const s = tpl.settings || {};
+    setTemplateFormData({
+      id: tpl.id,
+      name: tpl.name || '',
+      description: tpl.description || '',
+      icon: tpl.icon || 'sparkles',
+      badge: tpl.badge || '',
+      settings: {
+        card_flip_trigger: s.card_flip_trigger || 'both',
+        card_rating_mode: s.card_rating_mode || 'both',
+        quiz_learning_mode: s.quiz_learning_mode || s.learning_mode || 'fsrs',
+        front_valign: s.front_valign || 'center',
+        front_halign: s.front_halign || 'left',
+        back_valign: s.back_valign || 'center',
+        back_halign: s.back_halign || 'left',
+        autoplay_audio: s.autoplay_audio || 'always',
+        show_images: s.show_images || 'both',
+        show_fsrs: s.show_fsrs ?? true,
+        sfx_enabled: s.sfx_enabled ?? true,
+        haptic_enabled: s.haptic_enabled ?? true,
+        random_enabled: s.random_enabled ?? false,
+        quick_learn_enabled: s.quick_learn_enabled ?? false,
+      }
+    });
+    setTemplateModalTab('general');
+    setTemplateModalOpen(true);
+  };
+
+  const handleSaveTemplateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateFormData.name.trim()) {
+      setErrorMsg("Template name cannot be empty.");
+      return;
+    }
+    setIsSavingTemplate(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      if (editingTemplateId) {
+        await axios.put(`/api/v1/admin/templates/${editingTemplateId}`, {
+          name: templateFormData.name.trim(),
+          description: templateFormData.description.trim(),
+          icon: templateFormData.icon,
+          badge: templateFormData.badge.trim() || null,
+          settings: templateFormData.settings
+        });
+        setSuccessMsg(`Template "${templateFormData.name}" updated successfully!`);
+      } else {
+        await axios.post('/api/v1/admin/templates', {
+          name: templateFormData.name.trim(),
+          description: templateFormData.description.trim(),
+          icon: templateFormData.icon,
+          badge: templateFormData.badge.trim() || null,
+          settings: templateFormData.settings
+        });
+        setSuccessMsg(`Template "${templateFormData.name}" created successfully!`);
+      }
+      setTemplateModalOpen(false);
+      await loadStudyTemplates();
+    } catch (e: any) {
+      console.error("Failed to save template", e);
+      setErrorMsg(e.response?.data?.error || "Failed to save template.");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string, templateName: string) => {
+    if (!window.confirm(`Are you sure you want to delete template "${templateName}"?`)) return;
+    setGlobalLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      await axios.delete(`/api/v1/admin/templates/${templateId}`);
+      setSuccessMsg(`Template "${templateName}" deleted.`);
+      await loadStudyTemplates();
+    } catch (e: any) {
+      console.error("Failed to delete template", e);
+      setErrorMsg(e.response?.data?.error || "Failed to delete template.");
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const handleResetTemplates = async () => {
+    if (!window.confirm("Are you sure you want to reset all system study templates to default presets? Any custom modifications to system templates will be restored.")) return;
+    setGlobalLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      await axios.post('/api/v1/admin/templates/reset');
+      setSuccessMsg("System study templates have been reset to factory defaults!");
+      await loadStudyTemplates();
+    } catch (e: any) {
+      console.error("Failed to reset templates", e);
+      setErrorMsg(e.response?.data?.error || "Failed to reset templates.");
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
 
   const loadSSOConfig = async () => {
     try {
@@ -780,6 +967,12 @@ export default function Admin() {
               className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'maintenance' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
             >
               ⚙️ System Control
+            </button>
+            <button
+              onClick={() => navigate('/admin/templates')}
+              className={`p-4 rounded-xl font-bold flex items-center gap-3 transition-all text-left ${activeTab === 'templates' ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-gray-400'}`}
+            >
+              📑 Study Templates
             </button>
             {ssoEnabled && (
               <>
@@ -1708,6 +1901,563 @@ export default function Admin() {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Tab: Study Templates Management */}
+            {activeTab === 'templates' && (
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
+                  <div>
+                    <h3 className="text-2xl font-black mb-1.5 flex items-center gap-3 text-white">
+                      <span>📑 Study Templates Management</span>
+                      <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {studyTemplates.length} Presets
+                      </span>
+                    </h3>
+                    <p className="text-slate-400 text-sm">
+                      Manage system study templates available to all users across study modes.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleResetTemplates}
+                      className="px-4 py-2.5 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-2 transition-all active:scale-95"
+                    >
+                      <RotateCcw className="w-4 h-4 text-slate-400" />
+                      Reset Defaults
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateTemplate}
+                      className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" />
+                      New Template
+                    </button>
+                  </div>
+                </div>
+
+                {isLoadingTemplates ? (
+                  <div className="py-20 flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading templates...</span>
+                  </div>
+                ) : studyTemplates.length === 0 ? (
+                  <div className="p-12 text-center border border-white/5 rounded-3xl bg-white/[0.01]">
+                    <Sparkles className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                    <h4 className="text-base font-bold text-white mb-1">No Study Templates Found</h4>
+                    <p className="text-xs text-slate-400 mb-5">Click below to restore default presets or create your first template.</p>
+                    <button
+                      type="button"
+                      onClick={handleResetTemplates}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 transition-all"
+                    >
+                      Restore Factory Defaults
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {studyTemplates.map((tpl) => {
+                      const s = tpl.settings || {};
+                      const flipLabel = s.card_flip_trigger === 'button_only' ? 'Button Only' : s.card_flip_trigger === 'tap' ? 'Tap Only' : 'Tap & Button';
+                      const ratingLabel = s.card_rating_mode === 'buttons' ? '4 Buttons Only' : s.card_rating_mode === 'swipe_4way' ? 'Swipe 4-way' : s.card_rating_mode === 'swipe_2way' ? 'Swipe 2-way' : 'Swipe & Buttons';
+                      const audioLabel = s.autoplay_audio === 'always' ? 'Always Play' : s.autoplay_audio === 'back' ? 'Back Only' : s.autoplay_audio === 'front' ? 'Front Only' : 'Muted';
+                      const imgLabel = s.show_images === 'none' ? 'Hidden' : s.show_images === 'back_only' || s.show_images === 'back' ? 'Back Only' : s.show_images === 'front' ? 'Front Only' : 'Both Sides';
+                      
+                      const IconComponent = tpl.icon === 'zap' ? Zap : (tpl.icon === 'book' ? BookOpen : Sparkles);
+
+                      return (
+                        <div
+                          key={tpl.id}
+                          className="p-5 rounded-3xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all flex flex-col justify-between relative group"
+                        >
+                          <div>
+                            {/* Card Top */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                                  <IconComponent className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="text-sm font-black text-white tracking-tight">{tpl.name}</h4>
+                                    {tpl.badge && (
+                                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                                        {tpl.badge}
+                                      </span>
+                                    )}
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-slate-400 uppercase">
+                                      System
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-slate-500">{tpl.id}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditTemplate(tpl)}
+                                  className="p-2 rounded-xl bg-white/5 hover:bg-indigo-600 hover:text-white text-slate-300 transition-all active:scale-95"
+                                  title="Edit Template"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTemplate(tpl.id, tpl.name)}
+                                  disabled={studyTemplates.length <= 1}
+                                  className="p-2 rounded-xl bg-white/5 hover:bg-red-600 hover:text-white text-slate-400 hover:text-red-200 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                                  title="Delete Template"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Description */}
+                            <p className="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-2">
+                              {tpl.description || 'No description provided.'}
+                            </p>
+
+                            {/* 2x2 Chips Grid */}
+                            <div className="grid grid-cols-2 gap-2 bg-[#0d1321]/60 border border-white/5 rounded-2xl p-3 mb-3">
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Flip</span>
+                                <span className="text-xs font-bold text-slate-200 truncate">{flipLabel}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Rating</span>
+                                <span className="text-xs font-bold text-slate-200 truncate">{ratingLabel}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Audio</span>
+                                <span className="text-xs font-bold text-slate-200 truncate">{audioLabel}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Images</span>
+                                <span className="text-xs font-bold text-slate-200 truncate">{imgLabel}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Extra info footer */}
+                          <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-slate-500 font-bold">
+                            <span className="uppercase">Mode: {s.quiz_learning_mode || s.learning_mode || 'fsrs'}</span>
+                            <span>Front: {s.front_valign || 'center'}/{s.front_halign || 'left'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Create / Edit Template Modal */}
+                {templateModalOpen && (
+                  <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-[#0e1626] border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                      {/* Modal Header */}
+                      <div className="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
+                        <div>
+                          <h4 className="text-lg font-black text-white flex items-center gap-2">
+                            {editingTemplateId ? <Edit2 className="w-5 h-5 text-indigo-400" /> : <Plus className="w-5 h-5 text-indigo-400" />}
+                            {editingTemplateId ? 'Edit Study Template' : 'Create New Study Template'}
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Customize interaction triggers, card alignment, media feedback, and learning algorithm.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setTemplateModalOpen(false)}
+                          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Modal Tab Switcher */}
+                      <div className="flex border-b border-white/5 px-6 pt-3 gap-2 overflow-x-auto shrink-0 bg-[#0d1321]/50 custom-scrollbar">
+                        {[
+                          { id: 'general', label: 'General', icon: Sliders },
+                          { id: 'gestures', label: 'Gestures', icon: Move },
+                          { id: 'display', label: 'Display', icon: Eye },
+                          { id: 'media', label: 'Media', icon: Volume2 },
+                          { id: 'algorithm', label: 'Algorithm', icon: Sparkles },
+                        ].map((t) => {
+                          const Icon = t.icon;
+                          const isActive = templateModalTab === t.id;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setTemplateModalTab(t.id as any)}
+                              className={`px-4 py-2.5 rounded-t-xl text-xs font-bold flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+                                isActive
+                                  ? 'border-indigo-500 text-indigo-300 bg-indigo-500/10'
+                                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                              }`}
+                            >
+                              <Icon className="w-3.5 h-3.5" />
+                              {t.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Modal Form Content */}
+                      <form onSubmit={handleSaveTemplateSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+                        {/* Tab 1: General */}
+                        {templateModalTab === 'general' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Template Name *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={templateFormData.name}
+                                onChange={(e) => setTemplateFormData({ ...templateFormData, name: e.target.value })}
+                                placeholder="e.g. Speed Recall, Minimalist, Classic..."
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                  Icon
+                                </label>
+                                <select
+                                  value={templateFormData.icon}
+                                  onChange={(e) => setTemplateFormData({ ...templateFormData, icon: e.target.value })}
+                                  className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                >
+                                  <option value="sparkles">✨ Sparkles (Clean / Recommended)</option>
+                                  <option value="zap">⚡ Zap (Power / Full)</option>
+                                  <option value="book">📖 Book (Classic / Reading)</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                  Badge Label (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={templateFormData.badge}
+                                  onChange={(e) => setTemplateFormData({ ...templateFormData, badge: e.target.value })}
+                                  placeholder="e.g. Recommended, Distraction Free..."
+                                  className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Description
+                              </label>
+                              <textarea
+                                rows={3}
+                                value={templateFormData.description}
+                                onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value })}
+                                placeholder="Describe who this study preset is ideal for..."
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 resize-none"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tab 2: Gestures */}
+                        {templateModalTab === 'gestures' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Card Flip Trigger
+                              </label>
+                              <select
+                                value={templateFormData.settings.card_flip_trigger}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, card_flip_trigger: e.target.value as any }
+                                })}
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                              >
+                                <option value="both">Tap Surface & Button (Flexible)</option>
+                                <option value="tap">Tap Card Surface Only</option>
+                                <option value="button_only">Flip Button Only (Selectable Text without Flips)</option>
+                              </select>
+                              <p className="text-[11px] text-slate-500 mt-1">
+                                'Button Only' prevents accidental card flipping when highlighting or copying text.
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Card Rating Mode
+                              </label>
+                              <select
+                                value={templateFormData.settings.card_rating_mode}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, card_rating_mode: e.target.value as any }
+                                })}
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                              >
+                                <option value="both">Both (Swipe 4-Way & 4 Rating Buttons)</option>
+                                <option value="buttons">4 Rating Buttons Only (No Swipe Clutter)</option>
+                                <option value="swipe_4way">Swipe 4-Way (Again, Hard, Good, Easy)</option>
+                                <option value="swipe_2way">Swipe 2-Way (Again / Good)</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tab 3: Display */}
+                        {templateModalTab === 'display' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Image Visibility
+                              </label>
+                              <select
+                                value={templateFormData.settings.show_images}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, show_images: e.target.value as any }
+                                })}
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                              >
+                                <option value="both">Both Sides (Show on Front & Back)</option>
+                                <option value="front">Front Side Only</option>
+                                <option value="back_only">Back Side Only (Reveal on Flip)</option>
+                                <option value="none">Hide All Images (Clean Text Only)</option>
+                              </select>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-[#0d1321] border border-white/10 p-4 rounded-2xl">
+                              <input
+                                type="checkbox"
+                                id="tpl_show_fsrs"
+                                checked={templateFormData.settings.show_fsrs}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, show_fsrs: e.target.checked }
+                                })}
+                                className="w-5 h-5 text-indigo-600 bg-[#0d1321] border-white/10 rounded"
+                              />
+                              <label htmlFor="tpl_show_fsrs" className="text-xs font-bold text-slate-200 cursor-pointer select-none">
+                                Show FSRS Metrics (Difficulty rating & due review interval badges)
+                              </label>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="p-4 bg-[#0d1321] border border-white/5 rounded-2xl space-y-3">
+                                <h5 className="text-xs font-black text-indigo-400 uppercase">Front Card Alignment</h5>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Vertical</span>
+                                  <select
+                                    value={templateFormData.settings.front_valign}
+                                    onChange={(e) => setTemplateFormData({
+                                      ...templateFormData,
+                                      settings: { ...templateFormData.settings, front_valign: e.target.value as any }
+                                    })}
+                                    className="w-full bg-[#141d30] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                                  >
+                                    <option value="center">Center</option>
+                                    <option value="top">Top</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Horizontal</span>
+                                  <select
+                                    value={templateFormData.settings.front_halign}
+                                    onChange={(e) => setTemplateFormData({
+                                      ...templateFormData,
+                                      settings: { ...templateFormData.settings, front_halign: e.target.value as any }
+                                    })}
+                                    className="w-full bg-[#141d30] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                                  >
+                                    <option value="left">Left Align</option>
+                                    <option value="center">Center Align</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="p-4 bg-[#0d1321] border border-white/5 rounded-2xl space-y-3">
+                                <h5 className="text-xs font-black text-indigo-400 uppercase">Back Card Alignment</h5>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Vertical</span>
+                                  <select
+                                    value={templateFormData.settings.back_valign}
+                                    onChange={(e) => setTemplateFormData({
+                                      ...templateFormData,
+                                      settings: { ...templateFormData.settings, back_valign: e.target.value as any }
+                                    })}
+                                    className="w-full bg-[#141d30] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                                  >
+                                    <option value="center">Center</option>
+                                    <option value="top">Top</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Horizontal</span>
+                                  <select
+                                    value={templateFormData.settings.back_halign}
+                                    onChange={(e) => setTemplateFormData({
+                                      ...templateFormData,
+                                      settings: { ...templateFormData.settings, back_halign: e.target.value as any }
+                                    })}
+                                    className="w-full bg-[#141d30] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                                  >
+                                    <option value="left">Left Align</option>
+                                    <option value="center">Center Align</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tab 4: Media */}
+                        {templateModalTab === 'media' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Audio Autoplay Mode
+                              </label>
+                              <select
+                                value={templateFormData.settings.autoplay_audio}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, autoplay_audio: e.target.value as any }
+                                })}
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                              >
+                                <option value="always">Always Autoplay (Both Front & Back)</option>
+                                <option value="back">Back Side Only (Upon Answer Reveal)</option>
+                                <option value="front">Front Side Only</option>
+                                <option value="none">Muted / Off (Play manually)</option>
+                              </select>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-[#0d1321] border border-white/10 p-4 rounded-2xl">
+                              <input
+                                type="checkbox"
+                                id="tpl_sfx"
+                                checked={templateFormData.settings.sfx_enabled}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, sfx_enabled: e.target.checked }
+                                })}
+                                className="w-5 h-5 text-indigo-600 bg-[#0d1321] border-white/10 rounded"
+                              />
+                              <label htmlFor="tpl_sfx" className="text-xs font-bold text-slate-200 cursor-pointer select-none">
+                                Sound Effects (SFX audio feedback on rating, flipping, and streaks)
+                              </label>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-[#0d1321] border border-white/10 p-4 rounded-2xl">
+                              <input
+                                type="checkbox"
+                                id="tpl_haptic"
+                                checked={templateFormData.settings.haptic_enabled}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, haptic_enabled: e.target.checked }
+                                })}
+                                className="w-5 h-5 text-indigo-600 bg-[#0d1321] border-white/10 rounded"
+                              />
+                              <label htmlFor="tpl_haptic" className="text-xs font-bold text-slate-200 cursor-pointer select-none">
+                                Haptic Vibration Feedback (Vibrate mobile device on gestures)
+                              </label>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tab 5: Algorithm */}
+                        {templateModalTab === 'algorithm' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                                Learning Order & Algorithm
+                              </label>
+                              <select
+                                value={templateFormData.settings.quiz_learning_mode}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, quiz_learning_mode: e.target.value as any }
+                                })}
+                                className="w-full bg-[#0d1321] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                              >
+                                <option value="fsrs">FSRS Spaced Repetition (Recommended)</option>
+                                <option value="roadmap">Roadmap Fixed Sequence</option>
+                                <option value="new">New Unlearned Cards First</option>
+                                <option value="review">Due Reviews First</option>
+                                <option value="hardest">Hardest Cards First</option>
+                                <option value="flip">Reverse Front & Back</option>
+                              </select>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-[#0d1321] border border-white/10 p-4 rounded-2xl">
+                              <input
+                                type="checkbox"
+                                id="tpl_random"
+                                checked={templateFormData.settings.random_enabled}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, random_enabled: e.target.checked }
+                                })}
+                                className="w-5 h-5 text-indigo-600 bg-[#0d1321] border-white/10 rounded"
+                              />
+                              <label htmlFor="tpl_random" className="text-xs font-bold text-slate-200 cursor-pointer select-none">
+                                Randomize Card Order (Shuffle deck order)
+                              </label>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-[#0d1321] border border-white/10 p-4 rounded-2xl">
+                              <input
+                                type="checkbox"
+                                id="tpl_quick"
+                                checked={templateFormData.settings.quick_learn_enabled}
+                                onChange={(e) => setTemplateFormData({
+                                  ...templateFormData,
+                                  settings: { ...templateFormData.settings, quick_learn_enabled: e.target.checked }
+                                })}
+                                className="w-5 h-5 text-indigo-600 bg-[#0d1321] border-white/10 rounded"
+                              />
+                              <label htmlFor="tpl_quick" className="text-xs font-bold text-slate-200 cursor-pointer select-none">
+                                Quick Learn Mode (Fast review session)
+                              </label>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Modal Footer */}
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setTemplateModalOpen(false)}
+                            className="px-5 py-2.5 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10 text-slate-300 transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSavingTemplate}
+                            className="px-6 py-2.5 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            {isSavingTemplate ? 'Saving...' : editingTemplateId ? 'Save Changes' : 'Create Template'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

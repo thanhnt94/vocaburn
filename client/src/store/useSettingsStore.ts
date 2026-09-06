@@ -34,6 +34,7 @@ export interface StudyProfile {
   name: string
   description?: string
   icon?: string
+  badge?: string
   is_system?: boolean
   settings: Record<string, any>
 }

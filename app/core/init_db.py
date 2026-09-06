@@ -74,6 +74,19 @@ async def init_db():
                 await db.commit()
                 logger.info("Default achievements seeded.")
 
+            # Seed / Prime Study Templates in system_configs
+            from app.modules.deck.utils import SYSTEM_STUDY_PROFILES, set_cached_system_study_profiles
+            result = await db.execute(select(SystemConfig).where(SystemConfig.id == "study_templates"))
+            template_cfg = result.scalar_one_or_none()
+            if not template_cfg:
+                template_cfg = SystemConfig(id="study_templates", value=SYSTEM_STUDY_PROFILES)
+                db.add(template_cfg)
+                await db.commit()
+                set_cached_system_study_profiles(SYSTEM_STUDY_PROFILES)
+                logger.info("Default study templates seeded into system_configs.")
+            else:
+                set_cached_system_study_profiles(template_cfg.value or SYSTEM_STUDY_PROFILES)
+
     except Exception as e:
         logger.error(f"Error during init_db: {e}")
 
