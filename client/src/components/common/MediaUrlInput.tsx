@@ -9,9 +9,11 @@ import {
   X,
   Play,
   Pause,
-  Maximize2
+  Maximize2,
+  Crop
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { ImageCropModal } from './ImageCropModal'
 
 export interface MediaUrlInputProps {
   value: string
@@ -63,6 +65,11 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [isZoomOpen, setIsZoomOpen] = useState(false)
 
+  // Staged Image Preview & Crop Modal state
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false)
+  const [stagedImageSrc, setStagedImageSrc] = useState<string>('')
+  const [stagedFileName, setStagedFileName] = useState<string>('')
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
 
@@ -76,10 +83,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const defaultPlaceholder =
     placeholder ||
     (mediaType === 'image'
-      ? 'Dán link hoặc Ctrl+V để upload ảnh...'
+      ? 'Paste URL or Ctrl+V image...'
       : mediaType === 'audio'
-      ? 'Dán link hoặc bấm nút upload file âm thanh...'
-      : 'Dán link hoặc upload media...')
+      ? 'Paste URL or upload audio...'
+      : 'Paste URL or upload media...')
 
   // Upload function to Vocaburn -> CentralAuth Vault
   const uploadFile = useCallback(
@@ -89,20 +96,20 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
       // Validate file type
       if (mediaType === 'image' && !file.type.startsWith('image/')) {
         setUploadStatus('error')
-        setStatusMessage('Vui lòng chọn tệp hình ảnh (.png, .jpg, .webp...)')
+        setStatusMessage('Please select an image file (.png, .jpg, .webp...)')
         setTimeout(() => setUploadStatus('idle'), 3500)
         return
       }
       if (mediaType === 'audio' && !file.type.startsWith('audio/')) {
         setUploadStatus('error')
-        setStatusMessage('Vui lòng chọn tệp âm thanh (.mp3, .wav, .m4a...)')
+        setStatusMessage('Please select an audio file (.mp3, .wav, .m4a...)')
         setTimeout(() => setUploadStatus('idle'), 3500)
         return
       }
 
       setIsUploading(true)
       setUploadStatus('idle')
-      setStatusMessage('Đang tải lên CentralAuth...')
+      setStatusMessage('Uploading to CentralAuth...')
 
       try {
         const formData = new FormData()
@@ -115,10 +122,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
         if (res.data?.url) {
           onChange(res.data.url)
           setUploadStatus('success')
-          setStatusMessage('Đã tải lên CentralAuth!')
+          setStatusMessage('Uploaded to CentralAuth!')
           setTimeout(() => setUploadStatus('idle'), 3000)
         } else {
-          throw new Error('Máy chủ không trả về link tệp')
+          throw new Error('Server returned no file URL')
         }
       } catch (err: any) {
         console.error('[MediaUrlInput] Upload error:', err)
@@ -127,7 +134,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
           err?.response?.data?.detail ||
           err?.response?.data?.error ||
           err?.message ||
-          'Tải lên thất bại'
+          'Upload failed'
         setStatusMessage(errMsg)
         setTimeout(() => setUploadStatus('idle'), 4000)
       } finally {
@@ -140,6 +147,36 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
     [mediaType, onChange]
   )
 
+  // Stage image for preview & crop instead of uploading immediately
+  const stageImage = useCallback(
+    (file: File) => {
+      if (mediaType === 'audio') return
+      const objectUrl = URL.createObjectURL(file)
+      setStagedImageSrc(objectUrl)
+      setStagedFileName(file.name || 'pasted-image.png')
+      setIsCropModalOpen(true)
+    },
+    [mediaType]
+  )
+
+  // Confirm crop & upload
+  const handleCropConfirm = async (file: File) => {
+    await uploadFile(file)
+  }
+
+  // Close crop modal & clean up object URLs
+  const handleCropClose = () => {
+    setIsCropModalOpen(false)
+    if (stagedImageSrc && stagedImageSrc.startsWith('blob:')) {
+      URL.revokeObjectURL(stagedImageSrc)
+    }
+    setStagedImageSrc('')
+    setStagedFileName('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   // Trigger file selection dialog
   const handleTriggerUpload = () => {
     if (disabled || isUploading) return
@@ -149,7 +186,11 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   // Handle native file input change
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
+    if (!file) return
+
+    if (file.type.startsWith('image/') && (mediaType === 'image' || mediaType === 'all')) {
+      stageImage(file)
+    } else {
       uploadFile(file)
     }
   }
@@ -162,12 +203,12 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
 
-      // Check for image from clipboard
+      // Check for image from clipboard: open preview & crop instead of uploading immediately
       if (item.type.startsWith('image/') && (mediaType === 'image' || mediaType === 'all')) {
         e.preventDefault()
         const file = item.getAsFile()
         if (file) {
-          uploadFile(file)
+          stageImage(file)
           return
         }
       }
@@ -208,7 +249,11 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
 
     const file = e.dataTransfer.files?.[0]
     if (file) {
-      uploadFile(file)
+      if (file.type.startsWith('image/') && (mediaType === 'image' || mediaType === 'all')) {
+        stageImage(file)
+      } else {
+        uploadFile(file)
+      }
     }
   }
 
@@ -283,7 +328,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
           onChange={(e) => onChange(e.target.value)}
           onPaste={handlePaste}
           disabled={disabled || isUploading}
-          placeholder={isUploading ? 'Đang tải tệp lên CentralAuth...' : defaultPlaceholder}
+          placeholder={isUploading ? 'Uploading file...' : defaultPlaceholder}
           className={cn(
             "w-full py-2.5 px-2 bg-transparent text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400 placeholder:font-normal truncate",
             inputClassName
@@ -296,7 +341,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
             type="button"
             onClick={() => onChange('')}
             className="p-1.5 mr-1 text-slate-400 hover:text-slate-600 rounded-lg transition-colors cursor-pointer"
-            title="Xóa link"
+            title="Clear URL"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -319,19 +364,19 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
           )}
           title={
             mediaType === 'image'
-              ? 'Tải ảnh lên CentralAuth (hoặc Ctrl+V)'
-              : 'Tải audio lên CentralAuth'
+              ? 'Upload image (or Ctrl+V)'
+              : 'Upload audio file'
           }
         >
           {isUploading ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin text-indigo-600" />
-              <span className="hidden sm:inline">Đang tải...</span>
+              <span className="hidden sm:inline">Uploading...</span>
             </>
           ) : uploadStatus === 'success' ? (
             <>
               <Check className="w-3 h-3 text-emerald-600" />
-              <span className="hidden sm:inline">Đã up</span>
+              <span className="hidden sm:inline">Uploaded</span>
             </>
           ) : (
             <>
@@ -384,14 +429,29 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
                     (e.target as HTMLElement).style.display = 'none'
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setIsZoomOpen(true)}
-                  className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white rounded-2xl cursor-pointer"
-                  title="Xem ảnh phóng to"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
+                {/* Hover Action Overlay */}
+                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setIsZoomOpen(true)}
+                    className="p-1.5 rounded-xl bg-black/60 hover:bg-black/90 text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Zoom preview"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStagedImageSrc(resolvedUrl)
+                      setStagedFileName(value.split('/').pop() || 'image.webp')
+                      setIsCropModalOpen(true)
+                    }}
+                    className="p-1.5 rounded-xl bg-indigo-600/90 hover:bg-indigo-600 text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Crop & Edit Image"
+                  >
+                    <Crop className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -403,7 +463,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
                 type="button"
                 onClick={toggleAudio}
                 className="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0"
-                title={isPlayingAudio ? 'Tạm dừng' : 'Nghe thử'}
+                title={isPlayingAudio ? 'Pause' : 'Play'}
               >
                 {isPlayingAudio ? (
                   <Pause className="w-3.5 h-3.5" />
@@ -413,10 +473,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
               </button>
               <div className="min-w-0 flex-1">
                 <span className="text-[10px] font-bold text-slate-700 block truncate">
-                  {value.split('/').pop() || 'File âm thanh'}
+                  {value.split('/').pop() || 'Audio file'}
                 </span>
                 <span className="text-[8.5px] font-medium text-slate-400 block truncate">
-                  Bấm để nghe thử
+                  Click to preview
                 </span>
               </div>
               <audio
@@ -456,6 +516,16 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
           </div>
         </div>
       )}
+
+      {/* Staged Image Preview, Crop & Rotate Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={stagedImageSrc}
+        originalFileName={stagedFileName}
+        onClose={handleCropClose}
+        onConfirm={handleCropConfirm}
+        isUploading={isUploading}
+      />
     </div>
   )
 }
