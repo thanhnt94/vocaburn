@@ -74,7 +74,7 @@ export function DeckPersonalSettings({
   const [autoplayAudio, setAutoplayAudio] = useState<AudioChoice>('none')
   const [showImages, setShowImages] = useState<ImageChoice>('always')
   const [frontValign, setFrontValign] = useState<'center' | 'top'>('center')
-  const [frontHalign, setFrontHalign] = useState<'center' | 'left'>('center')
+  const [frontHalign, setFrontHalign] = useState<'center' | 'left'>('left')
   const [backValign, setBackValign] = useState<'center' | 'top'>('center')
   const [backHalign, setBackHalign] = useState<'left' | 'center'>('left')
   const [randomEnabled, setRandomEnabled] = useState<boolean>(false)
@@ -94,7 +94,7 @@ export function DeckPersonalSettings({
       const initialAudio = (userOverrides.autoplay_audio || creatorDefs.autoplay_audio || 'none') as AudioChoice
       const initialImages = (userOverrides.show_images || creatorDefs.show_images || 'always') as ImageChoice
       const initialFrontValign = (userOverrides.front_valign || creatorDefs.front_valign || 'center') as 'center' | 'top'
-      const initialFrontHalign = (userOverrides.front_halign || creatorDefs.front_halign || 'center') as 'center' | 'left'
+      const initialFrontHalign = (userOverrides.front_halign || creatorDefs.front_halign || 'left') as 'center' | 'left'
       const initialBackValign = (userOverrides.back_valign || creatorDefs.back_valign || 'center') as 'center' | 'top'
       const initialBackHalign = (userOverrides.back_halign || creatorDefs.back_halign || 'left') as 'left' | 'center'
       const initialRandom = userOverrides.random_enabled !== undefined
@@ -242,7 +242,7 @@ export function DeckPersonalSettings({
     const creatorAudio = (creatorDefs.autoplay_audio || 'none') as AudioChoice
     const creatorImages = (creatorDefs.show_images || 'always') as ImageChoice
     const creatorFrontValign = (creatorDefs.front_valign || 'center') as 'center' | 'top'
-    const creatorFrontHalign = (creatorDefs.front_halign || 'center') as 'center' | 'left'
+    const creatorFrontHalign = (creatorDefs.front_halign || 'left') as 'center' | 'left'
     const creatorBackValign = (creatorDefs.back_valign || 'center') as 'center' | 'top'
     const creatorBackHalign = (creatorDefs.back_halign || 'left') as 'left' | 'center'
     const creatorRandom = Boolean(creatorDefs.random_enabled ?? false)
@@ -506,7 +506,7 @@ export function DeckPersonalSettings({
                   🎴 Mặt trước (Front Card)
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">
-                  Gốc: {creatorDefs.front_valign === 'top' ? 'Trên' : 'Giữa'} / {creatorDefs.front_halign === 'left' ? 'Trái' : 'Giữa'}
+                  Gốc: {creatorDefs.front_valign === 'top' ? 'Trên' : 'Giữa'} / {creatorDefs.front_halign === 'center' ? 'Giữa' : 'Trái'}
                 </span>
               </div>
               

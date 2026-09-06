@@ -30,7 +30,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   show_images: 'always',
   learning_mode: 'fsrs',
   front_valign: 'center',
-  front_halign: 'center',
+  front_halign: 'left',
   back_valign: 'center',
   back_halign: 'left',
   random_enabled: false,
@@ -127,7 +127,7 @@ export function usePlaySettings(
         setFrontValignState(effectiveSettings.front_valign === 'top' ? 'top' : 'center')
       }
       if (effectiveSettings.front_halign !== undefined) {
-        setFrontHalignState(effectiveSettings.front_halign === 'left' ? 'left' : 'center')
+        setFrontHalignState(effectiveSettings.front_halign === 'center' ? 'center' : 'left')
       }
       if (effectiveSettings.back_valign !== undefined) {
         setBackValignState(effectiveSettings.back_valign === 'top' ? 'top' : 'center')

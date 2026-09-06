@@ -45,7 +45,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
   const [autoplayAudio, setAutoplayAudio] = useState<'none' | 'front' | 'back' | 'always'>('none')
   const [showImages, setShowImages] = useState<'always' | 'front' | 'back' | 'none'>('always')
   const [frontValign, setFrontValign] = useState<'center' | 'top'>('center')
-  const [frontHalign, setFrontHalign] = useState<'center' | 'left'>('center')
+  const [frontHalign, setFrontHalign] = useState<'center' | 'left'>('left')
   const [backValign, setBackValign] = useState<'center' | 'top'>('center')
   const [backHalign, setBackHalign] = useState<'left' | 'center'>('left')
   const [randomEnabled, setRandomEnabled] = useState(false)

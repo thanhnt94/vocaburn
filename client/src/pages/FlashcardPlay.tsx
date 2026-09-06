@@ -457,12 +457,16 @@ export default function FlashcardPlay() {
     const diffX = touch.clientX - touchStartXRef.current;
     const diffY = touch.clientY - touchStartYRef.current;
     
-    // Swipe horizontal to flip card (only if not flipped and flip trigger allows swipe)
-    if (!isFlipped && effectiveCardFlipTrigger === 'both') {
-      if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
-        setIsFlipped(true);
-        setShowFeedback(true);
-        setJustAnswered(true);
+    // Swipe horizontal to flip card
+    if (effectiveCardFlipTrigger === 'both') {
+      if (Math.abs(diffX) > 50 && Math.abs(diffY) < 60) {
+        if (!isFlipped) {
+          setIsFlipped(true);
+          setShowFeedback(true);
+          setJustAnswered(true);
+        } else if (!canDragRate) {
+          setIsFlipped(false);
+        }
       }
     }
     
@@ -3646,8 +3650,8 @@ export default function FlashcardPlay() {
                     animate={cardDragControls}
                     style={{
                       touchAction: canDragRate 
-                        ? (effectiveCardRatingMode === 'swipe_2way' || hasBackOverflow ? 'pan-y' : 'none') 
-                        : 'auto',
+                        ? (hasBackOverflow ? 'pan-y' : 'none') 
+                        : 'pan-y',
                     }}
                   >
                     <div
@@ -3723,7 +3727,7 @@ export default function FlashcardPlay() {
                       <div className={cn(
                         "w-full flex flex-col gap-6",
                         frontValign === 'top' ? "mt-0 mb-auto" : "my-auto",
-                        frontHalign === 'left' ? "items-start text-left" : "items-center text-center"
+                        frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
                       )}>
                         {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                           <img 
@@ -3735,7 +3739,7 @@ export default function FlashcardPlay() {
                         )}
                         <div className={cn(
                           "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col",
-                          frontHalign === 'left' ? "items-start text-left" : "items-center text-center"
+                          frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
                         )}>
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]} 
@@ -3754,8 +3758,21 @@ export default function FlashcardPlay() {
 
                   {/* BACK SIDE */}
                   <div
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
+                        return;
+                      }
+                      if (window.getSelection() && window.getSelection()!.toString().length > 0) {
+                        return;
+                      }
+                      if (effectiveCardFlipTrigger !== 'button_only') {
+                        setIsFlipped(false);
+                      }
+                    }}
                     className={cn(
                       "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
+                      effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
                       activeDragGrade?.direction === 'again' ? "border-rose-400 shadow-rose-200/60 ring-2 ring-rose-400/20" :
                       activeDragGrade?.direction === 'good' ? "border-indigo-400 shadow-indigo-200/60 ring-2 ring-indigo-400/20" :
                       activeDragGrade?.direction === 'hard' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
@@ -3814,7 +3831,7 @@ export default function FlashcardPlay() {
                       ref={backScrollRef}
                       className="flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2"
                       style={{
-                        touchAction: hasBackOverflow ? 'pan-y' : 'auto',
+                        touchAction: hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y'),
                         WebkitOverflowScrolling: 'touch',
                         overscrollBehavior: 'contain'
                       }}

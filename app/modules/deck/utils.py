@@ -112,7 +112,7 @@ SYSTEM_STUDY_DEFAULTS = {
     "show_images": "always",        # 'always' | 'front' | 'back' | 'none'
     "learning_mode": "fsrs",        # 'fsrs' | 'roadmap' | 'new' | 'review' | 'hardest' | 'flip'
     "front_valign": "center",       # 'center' | 'top'
-    "front_halign": "center",       # 'center' | 'left'
+    "front_halign": "left",         # 'left' | 'center'
     "back_valign": "center",        # 'center' | 'top'
     "back_halign": "left",          # 'left' | 'center'
     "random_enabled": False,        # boolean
@@ -146,9 +146,9 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         return "center"
     if key in ("front_halign", "back_halign"):
         val_str = str(val).lower().strip()
-        if val_str in ("left", "trái", "trai", "start"):
-            return "left"
-        return "center"
+        if val_str in ("center", "giữa", "giua", "centre"):
+            return "center"
+        return "left"
     if key == "autoplay_audio":
         val_str = str(val).lower().strip()
         if val_str in ("never", "off", "disabled", "none", "false", "tắt", "không", "ko"):

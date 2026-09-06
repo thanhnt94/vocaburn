@@ -4513,7 +4513,7 @@ export default function PracticePlay() {
                           <div className={cn(
                             "w-full flex flex-col gap-6",
                             frontValign === 'top' ? "mt-0 mb-auto" : "my-auto",
-                            frontHalign === 'left' ? "items-start text-left" : "items-center text-center"
+                            frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
                           )}>
                             {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
                               <img
@@ -4525,7 +4525,7 @@ export default function PracticePlay() {
                             )}
                             <div className={cn(
                               "text-3xl md:text-4xl font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col",
-                              frontHalign === 'left' ? "items-start text-left" : "items-center text-center"
+                              frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
                             )}>
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
@@ -4556,7 +4556,17 @@ export default function PracticePlay() {
 
                       {/* BACK SIDE */}
                       <div
-                        className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                        onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
+                            return;
+                          }
+                          if (window.getSelection() && window.getSelection()!.toString().length > 0) {
+                            return;
+                          }
+                          setIsFlipped(false);
+                        }}
+                        className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-200 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40 cursor-pointer"
                         style={{
                           backfaceVisibility: 'hidden',
                           transform: 'rotateY(180deg)',

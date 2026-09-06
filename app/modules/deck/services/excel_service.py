@@ -237,7 +237,11 @@ class ExcelDeckService:
                         "study_sfx_enabled", "sfx_enabled", "âm thanh hiệu ứng", "hiệu ứng âm thanh",
                         "study_haptic_enabled", "haptic_enabled", "rung phản hồi", "haptic",
                         "study_quick_learn_enabled", "quick_learn_enabled", "học nhanh", "chế độ học nhanh",
-                        "study_show_fsrs", "show_fsrs", "hiển thị nút fsrs", "nút đánh giá fsrs"
+                        "study_show_fsrs", "show_fsrs", "hiển thị nút fsrs", "nút đánh giá fsrs",
+                        "study_front_valign", "front_valign", "căn lề dọc mặt trước", "căn dọc mặt trước",
+                        "study_front_halign", "front_halign", "căn lề ngang mặt trước", "căn ngang mặt trước",
+                        "study_back_valign", "back_valign", "căn lề dọc mặt sau", "căn dọc mặt sau",
+                        "study_back_halign", "back_halign", "căn lề ngang mặt sau", "căn ngang mặt sau"
                     ):
                         from app.modules.deck.utils import normalize_study_setting_value
                         clean_key = key[6:] if key.startswith("study_") else key
@@ -258,6 +262,14 @@ class ExcelDeckService:
                             "chế độ học nhanh": "quick_learn_enabled",
                             "hiển thị nút fsrs": "show_fsrs",
                             "nút đánh giá fsrs": "show_fsrs",
+                            "căn lề dọc mặt trước": "front_valign",
+                            "căn dọc mặt trước": "front_valign",
+                            "căn lề ngang mặt trước": "front_halign",
+                            "căn ngang mặt trước": "front_halign",
+                            "căn lề dọc mặt sau": "back_valign",
+                            "căn dọc mặt sau": "back_valign",
+                            "căn lề ngang mặt sau": "back_halign",
+                            "căn ngang mặt sau": "back_halign",
                         }
                         target_key = key_aliases.get(clean_key, clean_key)
                         norm_val = normalize_study_setting_value(target_key, value)
