@@ -1878,77 +1878,6 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
-
-          {/* Bottom Bar: Minimalist Studio Navigation Tabs */}
-          <div className="px-4 flex items-center gap-6 relative w-full max-w-[1700px] mx-auto">
-            {/* Tab 1: Roadmap */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveHomeTab('roadmap')
-                if (navigator.vibrate) navigator.vibrate(6)
-                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
-              }}
-              className={cn(
-                "relative pt-1.5 pb-2.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer select-none",
-                activeHomeTab === 'roadmap' ? "text-slate-900 font-black" : "text-slate-400 hover:text-slate-600 font-semibold"
-              )}
-            >
-              <Layers className={cn("w-4 h-4 transition-colors", activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.5]" : "text-slate-400")} />
-              <span className="text-[13px] tracking-tight">Roadmap</span>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-black leading-none tabular-nums transition-all",
-                activeHomeTab === 'roadmap'
-                  ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
-                  : "bg-slate-100 text-slate-500"
-              )}>
-                {sortedRoadmapDecks.length}
-              </span>
-
-              {/* Animated underline indicator */}
-              {activeHomeTab === 'roadmap' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 inset-x-0 h-[2.5px] bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 rounded-full"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                />
-              )}
-            </button>
-
-            {/* Tab 2: Learning */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveHomeTab('learning')
-                if (navigator.vibrate) navigator.vibrate(6)
-                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
-              }}
-              className={cn(
-                "relative pt-1.5 pb-2.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer select-none",
-                activeHomeTab === 'learning' ? "text-slate-900 font-black" : "text-slate-400 hover:text-slate-600 font-semibold"
-              )}
-            >
-              <BookOpen className={cn("w-4 h-4 transition-colors", activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.5]" : "text-slate-400")} />
-              <span className="text-[13px] tracking-tight">Learning</span>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-black leading-none tabular-nums transition-all",
-                activeHomeTab === 'learning'
-                  ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
-                  : "bg-slate-100 text-slate-500"
-              )}>
-                {sortedActiveDecks.length}
-              </span>
-
-              {/* Animated underline indicator */}
-              {activeHomeTab === 'learning' && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 inset-x-0 h-[2.5px] bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 rounded-full"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                />
-              )}
-            </button>
-          </div>
         </div>
 
         {/* MOBILE MAIN CONTENT */}
@@ -1966,7 +1895,7 @@ export default function Dashboard() {
               onOpenCustomize={() => setIsCustomizeModalOpen(true)}
             />
           ) : (
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+            <div className="flex-1 overflow-hidden p-2.5 sm:p-3 flex flex-col min-h-0">
               <DashboardQuickDecksWidget
                 todayReview={todayReview}
                 activeDecks={sortedActiveDecks}
@@ -1978,6 +1907,57 @@ export default function Dashboard() {
               />
             </div>
           )}
+
+          {/* ═══════════ THUMB-FRIENDLY BOTTOM SUB-TAB SWITCHER (DOCK-STYLE) ═══════════ */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center bg-slate-900/90 backdrop-blur-md p-1 rounded-full shadow-[0_6px_25px_rgba(0,0,0,0.35)] border border-slate-700/60 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHomeTab('roadmap')
+                if (navigator.vibrate) navigator.vibrate(6)
+                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer",
+                activeHomeTab === 'roadmap'
+                  ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Roadmap</span>
+              <span className={cn(
+                "px-1.5 py-0.2 rounded-full text-[9px] font-black",
+                activeHomeTab === 'roadmap' ? "bg-black/25 text-white" : "bg-slate-800 text-slate-400"
+              )}>
+                {sortedRoadmapDecks.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHomeTab('learning')
+                if (navigator.vibrate) navigator.vibrate(6)
+                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer",
+                activeHomeTab === 'learning'
+                  ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Learning</span>
+              <span className={cn(
+                "px-1.5 py-0.2 rounded-full text-[9px] font-black",
+                activeHomeTab === 'learning' ? "bg-black/25 text-white" : "bg-slate-800 text-slate-400"
+              )}>
+                {sortedActiveDecks.length}
+              </span>
+            </button>
+          </div>
         </div>
 
       </div>
