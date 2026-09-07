@@ -52,7 +52,9 @@ async def upload_media_file(
 
     sso_config = await SSOService.get_config(db)
     queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
-    central_server_url = (sso_config.server_url if sso_config and sso_config.server_url else "https://auth.inmind.site").rstrip("/")
+    central_server_url = (sso_config.server_url if sso_config and sso_config.server_url else "https://inmind.site").rstrip("/")
+    if "auth.inmind.site" in central_server_url or "centralauth.inmind.site" in central_server_url:
+        central_server_url = "https://inmind.site"
 
     # 1. Forward directly to CentralAuth Media Vault
     try:

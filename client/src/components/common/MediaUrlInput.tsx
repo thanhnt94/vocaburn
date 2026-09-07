@@ -32,8 +32,14 @@ export interface MediaUrlInputProps {
 // Helper to resolve CentralAuth URLs (supports dynamic SSO URL, legacy mindstack.click and inmind.site)
 export const resolveMediaUrl = (url: string | null | undefined): string => {
   if (!url) return ''
-  const trimmed = url.trim()
-  const ssoUrl = ((import.meta as any).env?.VITE_SSO_SERVER_URL || 'https://auth.inmind.site').replace(/\/$/, '')
+  let trimmed = url.trim()
+  const ssoUrl = ((import.meta as any).env?.VITE_SSO_SERVER_URL || 'https://inmind.site').replace(/\/$/, '')
+
+  // Correct any wrong or legacy subdomains pointing to auth.inmind.site or centralauth.inmind.site
+  if (trimmed.includes('auth.inmind.site') || trimmed.includes('centralauth.inmind.site')) {
+    trimmed = trimmed.replace(/https?:\/\/(?:auth|centralauth)\.inmind\.site/g, ssoUrl)
+  }
+
   if (trimmed.startsWith('central-media://')) {
     return `${ssoUrl}/static/uploads/media/` + trimmed.slice('central-media://'.length)
   }
@@ -299,6 +305,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
       audioRef.current.pause()
       setIsPlayingAudio(false)
     } else {
+      if (audioRef.current.src !== resolvedUrl) {
+        audioRef.current.src = resolvedUrl
+      }
+      audioRef.current.load()
       audioRef.current
         .play()
         .then(() => setIsPlayingAudio(true))
@@ -517,8 +527,13 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
               <audio
                 ref={audioRef}
                 src={resolvedUrl}
+                onPlay={() => setIsPlayingAudio(true)}
+                onPause={() => setIsPlayingAudio(false)}
                 onEnded={() => setIsPlayingAudio(false)}
-                onError={() => setIsPlayingAudio(false)}
+                onError={(e) => {
+                  console.warn('Audio preview error for URL:', resolvedUrl, e)
+                  setIsPlayingAudio(false)
+                }}
                 className="hidden"
               />
             </div>

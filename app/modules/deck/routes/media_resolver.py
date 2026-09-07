@@ -7,21 +7,33 @@ async def get_sso_server_url(db) -> str:
         res = await db.execute(select(SSOConfig))
         config = res.scalar_one_or_none()
         if config and config.is_enabled and config.server_url:
-            return config.server_url.rstrip("/")
+            s_url = config.server_url.rstrip("/")
+            if "auth.inmind.site" in s_url or "centralauth.inmind.site" in s_url:
+                return "https://inmind.site"
+            return s_url
     except Exception:
         pass
-    return ""
+    return "https://inmind.site"
 
-def resolve_central_url(url: str, sso_url: str) -> str:
+def resolve_central_url(url: str, sso_url: str = "") -> str:
     if not url or not isinstance(url, str):
         return url
     trimmed = url.strip()
+    base_sso = (sso_url or "https://inmind.site").rstrip("/")
+    if "auth.inmind.site" in base_sso or "centralauth.inmind.site" in base_sso:
+        base_sso = "https://inmind.site"
+
+    if "auth.inmind.site" in trimmed or "centralauth.inmind.site" in trimmed:
+        trimmed = re.sub(r"https?://(?:auth|centralauth)\.inmind\.site", base_sso, trimmed)
+
     if trimmed.startswith("central-media://"):
         filename = trimmed[len("central-media://"):]
-        return f"{sso_url}/static/uploads/media/{filename}" if sso_url else f"/static/uploads/media/{filename}"
+        return f"{base_sso}/static/uploads/media/{filename}"
     if trimmed.startswith("central-tts://"):
         filename = trimmed[len("central-tts://"):]
-        return f"{sso_url}/static/uploads/tts/{filename}" if sso_url else f"/static/uploads/tts/{filename}"
+        return f"{base_sso}/static/uploads/tts/{filename}"
+    if trimmed.startswith("/static/uploads/"):
+        return f"{base_sso}{trimmed}"
     return trimmed
 
 def resolve_card_dict(c_dict: dict, sso_url: str) -> dict:
