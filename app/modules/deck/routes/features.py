@@ -1439,7 +1439,7 @@ async def stream_dynamic_tts(text: str, lang: Optional[str] = None):
             
     return {"url": url}
 
-async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: bool, base_url: str, card_ids: list = None, custom_source: str = None, custom_target: str = None, voice_name: str = None):
+async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: bool, base_url: str, card_ids: list = None, custom_source: str = None, custom_target: str = None, voice_name: str = None, custom_voice_mapping: dict = None):
     from app.core.db import SessionLocal
     async with SessionLocal() as db:
         from app.modules.deck.models import Flashcard, FlashcardDeck
@@ -1448,11 +1448,23 @@ async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: 
         if card_ids is not None:
             cards = [c for c in cards if c.id in card_ids]
 
+        DEFAULT_VOICE_MAPPING = {
+            'ja': 'ja-JP-NanamiNeural',
+            'vi': 'vi-VN-HoaiMyNeural',
+            'en': 'en-US-AriaNeural',
+            'zh': 'zh-CN-XiaoxiaoNeural',
+            'ko': 'ko-KR-SunHiNeural'
+        }
+
         deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
         deck = deck_res.scalar_one_or_none()
 
         ps = deck.practice_settings if (deck and deck.practice_settings and isinstance(deck.practice_settings, dict)) else {}
-        voice_mapping = ps.get("voice_mapping", {})
+        voice_mapping = dict(DEFAULT_VOICE_MAPPING)
+        if ps.get("voice_mapping") and isinstance(ps["voice_mapping"], dict):
+            voice_mapping.update(ps["voice_mapping"])
+        if custom_voice_mapping and isinstance(custom_voice_mapping, dict):
+            voice_mapping.update(custom_voice_mapping)
         
         # Get CentralAuth configuration
         from app.modules.sso_module.service import SSOService
@@ -1568,8 +1580,8 @@ async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: 
                     has_audio = bool(c.others.get(tgt_col) and str(c.others.get(tgt_col)).strip())
 
                 if force or not has_audio:
-                    clean_lang = (face_lang or "auto").replace("gtts:", "") if face_lang else "auto"
-                    selected_voice = voice_mapping.get(clean_lang) if (voice_mapping and clean_lang) else None
+                    clean_lang = (face_lang or "multi").replace("gtts:", "") if face_lang else "multi"
+                    selected_voice = voice_mapping.get(clean_lang) if (voice_mapping and clean_lang != "multi") else None
                     task_item = {
                         "satellite_source": "vocaburn",
                         "prompt": text,
@@ -1647,7 +1659,8 @@ async def generate_all_deck_audio(
         source_field = payload.get("source_field")
         target_field = payload.get("target_field")
         card_ids = payload.get("card_ids")
-        voice_name = payload.get("voice_name")
+        voice_name = payload.get("voice_name") or payload.get("lang")
+        voice_mapping = payload.get("voice_mapping")
         
     # Detect scheme dynamically (e.g. support HTTPS behind Nginx reverse proxy)
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
@@ -1659,7 +1672,7 @@ async def generate_all_deck_audio(
         
     base_url = f"{scheme}://{netloc}"
     
-    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, target_face, force, base_url, card_ids, source_field, target_field, voice_name)
+    background_tasks.add_task(_bulk_generate_deck_audio_task, deck_id, target_face, force, base_url, card_ids, source_field, target_field, voice_name, voice_mapping)
     return {"status": "ok", "message": "Bulk TTS audio generation queue submission started."}
 
 @router.get("/{deck_id}/tts-status")

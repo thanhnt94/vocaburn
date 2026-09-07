@@ -9,42 +9,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def detect_language(text: str, default: str = "en") -> str:
-    """
-    Detects language based on character script features:
-    - Japanese: Hiragana / Katakana
-    - Korean: Hangul
-    - Vietnamese: Latin characters with Vietnamese tone diacritics
-    - Chinese: CJK Unified Ideographs without Japanese kana
-    - English / Latin: Latin characters without Vietnamese diacritics
-    """
-    if not text or not text.strip():
-        return default
-
-    # Japanese Kana
-    if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
-        return "ja"
-
-    # Korean Hangul
-    if re.search(r'[\uac00-\ud7af\u1100-\u11ff]', text):
-        return "ko"
-
-    # Vietnamese diacritics (both lower and upper)
-    vi_diacritics_pattern = r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]'
-    if re.search(vi_diacritics_pattern, text):
-        return "vi"
-
-    # Chinese Hanzi (CJK Ideographs) without Kana
-    if re.search(r'[\u4e00-\u9fff]', text):
-        return "zh"
-
-    # Latin letters
-    if re.search(r'[a-zA-Z]', text):
-        return "en"
-
-    return default
-
-
 class AudioGenerator:
     PROMPT_REGEX = re.compile(r'^\s*([a-z]{2})(?:\(([mf])\))?:\s*(.+)$', re.MULTILINE)
     
@@ -63,7 +27,7 @@ class AudioGenerator:
     }
 
     @staticmethod
-    def parse_segments(text: str, default_lang: str = "auto"):
+    def parse_segments(text: str, default_lang: str = "vi"):
         if not text:
             return []
             
@@ -81,6 +45,7 @@ class AudioGenerator:
             
         # Fallback to line-by-line format
         lines = text.split('\n')
+        current_lang = default_lang if default_lang not in ("multi", "auto") else "vi"
         
         for line in lines:
             line_str = line.strip()
@@ -91,18 +56,15 @@ class AudioGenerator:
             if match:
                 lang = match.group(1).strip().lower()
                 content = match.group(3).strip()
+                current_lang = lang
                 segments.append({
                     'text': content,
                     'lang': lang
                 })
             else:
-                if not default_lang or default_lang in ("auto", "multi"):
-                    seg_lang = detect_language(line_str, default="en")
-                else:
-                    seg_lang = default_lang
                 segments.append({
                     'text': line_str,
-                    'lang': seg_lang
+                    'lang': current_lang
                 })
                 
         return segments
@@ -127,7 +89,7 @@ class AudioGenerator:
             if lang and lang not in ('multi', 'auto'):
                 segments = [{'text': text.strip(), 'lang': lang.strip().lower()}]
             else:
-                segments = cls.parse_segments(text, default_lang=lang or "auto")
+                segments = cls.parse_segments(text, default_lang=lang or "multi")
                 
             if not segments:
                 return False

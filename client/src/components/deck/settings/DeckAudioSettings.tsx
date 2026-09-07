@@ -308,6 +308,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
       const payload: any = {
         target_face: selectedBulkTarget,
         force: forceAudio,
+        voice_mapping: voiceMapping,
       }
 
       if (selectedBulkTarget !== 'all') {
@@ -316,6 +317,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           payload.source_field = targetCfg.source_col
           payload.target_field = targetCfg.url_col
           payload.voice_name = targetCfg.lang
+          payload.lang = targetCfg.lang
         }
       }
 
