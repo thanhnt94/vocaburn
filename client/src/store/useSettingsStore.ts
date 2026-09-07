@@ -31,6 +31,7 @@ export interface UserSettings {
   roadmap_display_mode?: 'carousel' | 'vertical' | 'compact'
   roadmap_deck_order?: number[]
   learning_deck_order?: number[]
+  learning_display_mode?: 'shortcuts' | 'grid' | 'compact'
 }
 
 export interface StudyProfile {
@@ -73,6 +74,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   roadmap_display_mode: 'carousel',
   roadmap_deck_order: [],
   learning_deck_order: [],
+  learning_display_mode: 'shortcuts',
 }
 
 interface SettingsState {

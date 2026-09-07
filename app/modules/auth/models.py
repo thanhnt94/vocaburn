@@ -60,6 +60,7 @@ class UserGlobalSettings(Base):
     roadmap_display_mode = Column(String(20), default="carousel") # 'carousel' | 'vertical' | 'compact'
     roadmap_deck_order = Column(JSON, nullable=True, default=list)
     learning_deck_order = Column(JSON, nullable=True, default=list)
+    learning_display_mode = Column(String(20), default="shortcuts") # 'shortcuts' | 'grid' | 'compact'
 
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

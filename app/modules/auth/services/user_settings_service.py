@@ -30,7 +30,8 @@ class UserSettingsService:
             "card_flip_trigger", "card_rating_mode",
             "front_valign", "front_halign", "front_font_size", "back_valign", "back_halign",
             "study_profiles", "active_profile_id",
-            "home_active_tab", "roadmap_display_mode", "roadmap_deck_order", "learning_deck_order"
+            "home_active_tab", "roadmap_display_mode", "roadmap_deck_order", "learning_deck_order",
+            "learning_display_mode"
         }
         
         updated = False
@@ -100,4 +101,5 @@ class UserSettingsService:
             "roadmap_display_mode": getattr(settings_obj, 'roadmap_display_mode', 'carousel') or "carousel",
             "roadmap_deck_order": getattr(settings_obj, 'roadmap_deck_order', None) or [],
             "learning_deck_order": getattr(settings_obj, 'learning_deck_order', None) or [],
+            "learning_display_mode": getattr(settings_obj, 'learning_display_mode', 'shortcuts') or "shortcuts",
         }

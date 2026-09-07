@@ -1816,6 +1816,8 @@ export default function Dashboard() {
             activeDecks={sortedActiveDecks}
             onOpenStudyModal={handleOpenStudyModal}
             navigate={navigate}
+            displayMode={userSettings?.learning_display_mode || 'shortcuts'}
+            onOpenCustomize={() => setIsCustomizeModalOpen(true)}
           />
         </section>
       </div>
@@ -1973,6 +1975,8 @@ export default function Dashboard() {
                 activeDecks={sortedActiveDecks}
                 onOpenStudyModal={handleOpenStudyModal}
                 navigate={navigate}
+                displayMode={userSettings?.learning_display_mode || 'shortcuts'}
+                onOpenCustomize={() => setIsCustomizeModalOpen(true)}
               />
             </div>
           )}

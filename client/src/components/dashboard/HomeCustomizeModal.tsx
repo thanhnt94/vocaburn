@@ -37,6 +37,7 @@ export function HomeCustomizeModal({
   const [activeTab, setActiveTab] = useState<'display' | 'roadmap_order' | 'learning_order'>('display')
   const [defaultTab, setDefaultTab] = useState<'roadmap' | 'learning'>('roadmap')
   const [displayMode, setDisplayMode] = useState<'carousel' | 'vertical' | 'compact'>('carousel')
+  const [learningDisplayMode, setLearningDisplayMode] = useState<'shortcuts' | 'grid' | 'compact'>('shortcuts')
   const [orderedRoadmapDecks, setOrderedRoadmapDecks] = useState<any[]>([])
   const [orderedLearningDecks, setOrderedLearningDecks] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -47,6 +48,7 @@ export function HomeCustomizeModal({
     if (isOpen) {
       setDefaultTab(userSettings.home_active_tab || 'roadmap')
       setDisplayMode(userSettings.roadmap_display_mode || 'carousel')
+      setLearningDisplayMode(userSettings.learning_display_mode || 'shortcuts')
 
       // Order roadmap decks
       const rmOrder = (userSettings.roadmap_deck_order || []).map((x: any) => String(x))
@@ -109,6 +111,7 @@ export function HomeCustomizeModal({
   const handleResetDefaults = () => {
     setDefaultTab('roadmap')
     setDisplayMode('carousel')
+    setLearningDisplayMode('shortcuts')
     setOrderedRoadmapDecks([...roadmapDecks])
     setOrderedLearningDecks([...activeDecks])
   }
@@ -126,6 +129,7 @@ export function HomeCustomizeModal({
       await updateUserSettings({
         home_active_tab: defaultTab,
         roadmap_display_mode: displayMode,
+        learning_display_mode: learningDisplayMode,
         roadmap_deck_order: roadmapIds,
         learning_deck_order: learningIds
       })
@@ -394,6 +398,110 @@ export function HomeCustomizeModal({
                           displayMode === 'compact' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
                         )}>
                           {displayMode === 'compact' && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section C: Learning Display Style */}
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
+                      Learning Display Style
+                    </label>
+                    <div className="space-y-2">
+                      {/* 1. Shortcuts (Recommended) */}
+                      <div
+                        onClick={() => setLearningDisplayMode('shortcuts')}
+                        className={cn(
+                          "p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
+                          learningDisplayMode === 'shortcuts'
+                            ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-orange-100/70 border border-orange-200 flex items-center justify-center text-orange-600 shrink-0 text-base">
+                            🎴
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                              <span>Tactile Shortcut Cards</span>
+                              <span className="text-[9px] font-black text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
+                                Recommended
+                              </span>
+                            </h4>
+                            <p className="text-[10px] font-medium text-slate-500">
+                              Prominent cards with large 1-tap Flashcard & Practice mode launchers, progress bar, and due counters
+                            </p>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
+                          learningDisplayMode === 'shortcuts' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
+                        )}>
+                          {learningDisplayMode === 'shortcuts' && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </div>
+
+                      {/* 2. Grid */}
+                      <div
+                        onClick={() => setLearningDisplayMode('grid')}
+                        className={cn(
+                          "p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
+                          learningDisplayMode === 'grid'
+                            ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-100/70 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0 text-base">
+                            📱
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-900">
+                              App Grid (2-Column Tiles)
+                            </h4>
+                            <p className="text-[10px] font-medium text-slate-500">
+                              High-density visual tiles for rapid scanning on mobile and desktop
+                            </p>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
+                          learningDisplayMode === 'grid' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
+                        )}>
+                          {learningDisplayMode === 'grid' && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </div>
+
+                      {/* 3. Compact */}
+                      <div
+                        onClick={() => setLearningDisplayMode('compact')}
+                        className={cn(
+                          "p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
+                          learningDisplayMode === 'compact'
+                            ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100/70 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0 text-base">
+                            ⚡
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-900">
+                              Compact Rows
+                            </h4>
+                            <p className="text-[10px] font-medium text-slate-500">
+                              Streamlined horizontal rows with quick action buttons
+                            </p>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
+                          learningDisplayMode === 'compact' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
+                        )}>
+                          {learningDisplayMode === 'compact' && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                       </div>
                     </div>

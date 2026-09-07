@@ -139,6 +139,7 @@ class UserSettingsUpdateRequest(BaseModel):
     roadmap_display_mode: Optional[str] = None
     roadmap_deck_order: Optional[List[Any]] = None
     learning_deck_order: Optional[List[Any]] = None
+    learning_display_mode: Optional[str] = None
 
     class Config:
         extra = "allow"
