@@ -21,7 +21,7 @@ interface DashboardQuickDecksWidgetProps {
   todayReview: any
   activeDecks: any[]
   onOpenStudyModal: (deck: any, tab: 'flashcard' | 'practice') => void
-  onJoinRoom: (code: string) => void
+  onJoinRoom?: (code: string) => void
   isJoiningRoom?: boolean
   navigate: (url: string) => void
 }
@@ -30,24 +30,15 @@ export function DashboardQuickDecksWidget({
   todayReview,
   activeDecks,
   onOpenStudyModal,
-  onJoinRoom,
-  isJoiningRoom = false,
   navigate
 }: DashboardQuickDecksWidgetProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [roomCode, setRoomCode] = useState('')
 
   const filteredDecks = useMemo(() => {
     if (!searchTerm.trim()) return activeDecks
     const q = searchTerm.toLowerCase()
     return activeDecks.filter(d => d.title?.toLowerCase().includes(q))
   }, [activeDecks, searchTerm])
-
-  const handleRoomSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!roomCode.trim()) return
-    onJoinRoom(roomCode.trim().toUpperCase())
-  }
 
   const dueCount = todayReview?.due_cards_count || 0
   const estMinutes = todayReview?.estimated_minutes || 0
@@ -268,46 +259,6 @@ export function DashboardQuickDecksWidget({
             })
           )}
         </div>
-      </div>
-
-      {/* ═══════════ CARD 3: MULTIPLAYER ARENA ═══════════ */}
-      <div className="rounded-2xl p-3 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/5 border border-purple-200/60 shadow-2xs flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-              <Swords className="w-3.5 h-3.5" />
-            </div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-900">
-              Multiplayer Arena
-            </span>
-          </div>
-          <span className="text-[9px] font-bold text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full">
-            Realtime
-          </span>
-        </div>
-
-        <form onSubmit={handleRoomSubmit} className="flex items-center gap-2">
-          <input
-            type="text"
-            maxLength={6}
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-            placeholder="ENTER ROOM CODE..."
-            className="flex-1 h-8 bg-white border border-purple-200 rounded-xl px-2.5 text-[11px] font-black text-slate-800 placeholder:text-slate-400 placeholder:font-bold focus:border-purple-500 outline-none uppercase tracking-wider"
-          />
-          <button
-            type="submit"
-            disabled={!roomCode.trim() || isJoiningRoom}
-            className={cn(
-              "h-8 px-3.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-xs",
-              roomCode.trim()
-                ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-200"
-                : "bg-slate-200 text-slate-400 cursor-not-allowed"
-            )}
-          >
-            {isJoiningRoom ? "..." : "Join"}
-          </button>
-        </form>
       </div>
     </div>
   )

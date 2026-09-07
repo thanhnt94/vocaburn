@@ -9,7 +9,6 @@ import axios from 'axios'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { VocaburnLogo } from '@/components/VocaburnLogo'
-import { JoinRoomModal } from '@/components/dashboard/JoinRoomModal'
 import { PracticeModeModal } from '@/components/dashboard/PracticeModeModal'
 import { StudyModeModal } from '@/components/dashboard/StudyModeModal'
 import { DashboardRoadmapSection } from '@/components/dashboard/DashboardRoadmapSection'
@@ -1810,14 +1809,12 @@ export default function Dashboard() {
           />
         </section>
 
-        {/* COLUMN 3: Option C - Quick Decks Hub & Multiplayer Arena (Col 4 of 12) */}
+        {/* COLUMN 3: Quick Decks Hub (Col 4 of 12) */}
         <section className="col-span-4 h-full overflow-hidden flex flex-col">
           <DashboardQuickDecksWidget
             todayReview={todayReview}
             activeDecks={sortedActiveDecks}
             onOpenStudyModal={handleOpenStudyModal}
-            onJoinRoom={handleJoinRoom}
-            isJoiningRoom={isJoining}
             navigate={navigate}
           />
         </section>
@@ -1975,8 +1972,6 @@ export default function Dashboard() {
                 todayReview={todayReview}
                 activeDecks={sortedActiveDecks}
                 onOpenStudyModal={handleOpenStudyModal}
-                onJoinRoom={handleJoinRoom}
-                isJoiningRoom={isJoining}
                 navigate={navigate}
               />
             </div>
@@ -1986,14 +1981,6 @@ export default function Dashboard() {
       </div>
       {/* MODALS */}
       <AnimatePresence>
-        <JoinRoomModal
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-          roomCode={roomCode}
-          setRoomCode={setRoomCode}
-          onJoin={handleJoinRoom}
-          isJoining={isJoining}
-        />
 
         <PracticeModeModal
           isOpen={isPracticeModalOpen}
