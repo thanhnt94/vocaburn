@@ -29,7 +29,8 @@ class UserSettingsService:
             "last_deck_id", "paste_columns", "quick_add_columns",
             "card_flip_trigger", "card_rating_mode",
             "front_valign", "front_halign", "front_font_size", "back_valign", "back_halign",
-            "study_profiles", "active_profile_id"
+            "study_profiles", "active_profile_id",
+            "home_active_tab", "roadmap_display_mode", "roadmap_deck_order", "learning_deck_order"
         }
         
         updated = False
@@ -48,6 +49,10 @@ class UserSettingsService:
             from sqlalchemy.orm.attributes import flag_modified
             if "study_profiles" in data:
                 flag_modified(settings_obj, "study_profiles")
+            if "roadmap_deck_order" in data:
+                flag_modified(settings_obj, "roadmap_deck_order")
+            if "learning_deck_order" in data:
+                flag_modified(settings_obj, "learning_deck_order")
             await db.commit()
             await db.refresh(settings_obj)
             
@@ -91,4 +96,8 @@ class UserSettingsService:
             "study_profiles": get_all_study_profiles(custom_profiles),
             "custom_study_profiles": custom_profiles,
             "active_profile_id": getattr(settings_obj, 'active_profile_id', None),
+            "home_active_tab": getattr(settings_obj, 'home_active_tab', 'roadmap') or "roadmap",
+            "roadmap_display_mode": getattr(settings_obj, 'roadmap_display_mode', 'carousel') or "carousel",
+            "roadmap_deck_order": getattr(settings_obj, 'roadmap_deck_order', None) or [],
+            "learning_deck_order": getattr(settings_obj, 'learning_deck_order', None) or [],
         }

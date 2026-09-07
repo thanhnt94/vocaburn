@@ -55,6 +55,12 @@ class UserGlobalSettings(Base):
     study_profiles = Column(JSON, nullable=True, default=list)
     active_profile_id = Column(String(50), nullable=True, default=None)
     
+    # Home & Dashboard Display Preferences
+    home_active_tab = Column(String(20), default="roadmap") # 'roadmap' | 'learning'
+    roadmap_display_mode = Column(String(20), default="carousel") # 'carousel' | 'vertical' | 'compact'
+    roadmap_deck_order = Column(JSON, nullable=True, default=list)
+    learning_deck_order = Column(JSON, nullable=True, default=list)
+
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User")

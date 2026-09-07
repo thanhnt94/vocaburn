@@ -27,6 +27,10 @@ export interface UserSettings {
   back_halign?: 'left' | 'center'
   study_profiles?: StudyProfile[]
   active_profile_id?: string | null
+  home_active_tab?: 'roadmap' | 'learning'
+  roadmap_display_mode?: 'carousel' | 'vertical' | 'compact'
+  roadmap_deck_order?: number[]
+  learning_deck_order?: number[]
 }
 
 export interface StudyProfile {
@@ -65,6 +69,10 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   back_halign: 'left',
   study_profiles: [],
   active_profile_id: 'preset-standard',
+  home_active_tab: 'roadmap',
+  roadmap_display_mode: 'carousel',
+  roadmap_deck_order: [],
+  learning_deck_order: [],
 }
 
 interface SettingsState {
