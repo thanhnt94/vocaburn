@@ -7,14 +7,32 @@ class AdminInterface:
     async def get_sso_config(db: AsyncSession):
         result = await db.execute(select(SystemConfig).where(SystemConfig.id == "sso_config"))
         config = result.scalar_one_or_none()
-        if not config:
-            return {
-                "central_auth_url": "http://centralauth.mindstack.local",
-                "client_id": "quizmind_client",
-                "client_secret": "****************",
-                "enabled": False
-            }
-        return config.value
+        if config and isinstance(config.value, dict):
+            return config.value
+
+        # Fallback to SSOConfig table if exists
+        try:
+            from app.modules.sso_module.models import SSOConfig
+            sso_res = await db.execute(select(SSOConfig))
+            sso_obj = sso_res.scalar_one_or_none()
+            if sso_obj and sso_obj.server_url:
+                return {
+                    "central_auth_url": sso_obj.server_url,
+                    "client_id": sso_obj.client_id or "",
+                    "client_secret": sso_obj.client_secret or "",
+                    "enabled": bool(sso_obj.is_enabled)
+                }
+        except Exception:
+            pass
+
+        from app.core.config import settings
+        default_url = getattr(settings, "CENTRAL_AUTH_URL", "") or ""
+        return {
+            "central_auth_url": default_url,
+            "client_id": getattr(settings, "CLIENT_ID", "") or "",
+            "client_secret": getattr(settings, "CLIENT_SECRET", "") or "",
+            "enabled": False
+        }
 
     @staticmethod
     async def update_sso_config(db: AsyncSession, config_data: dict, admin_id: int):

@@ -35,17 +35,21 @@ def _check_host(host: str, port: int) -> bool:
 @router.get("/api/v1/auth/config")
 async def get_auth_config(db: AsyncSession = Depends(get_db)):
     """Public authentication configuration endpoint for pure SPA."""
+    from app.modules.deck.routes.media_resolver import get_sso_server_url
+    central_url = await get_sso_server_url(db)
+
     config = await SSOService.get_config(db)
+    server_url = central_url or (config.server_url.rstrip("/") if config and config.server_url else "")
     
     sso_active = config.is_enabled
-    if sso_active and config.server_url:
+    if sso_active and server_url:
         now = time.time()
         if now - _HEALTH_CACHE["ts"] < 30:
             sso_active = _HEALTH_CACHE["status"]
         else:
             import urllib.parse
             try:
-                parsed = urllib.parse.urlparse(config.server_url)
+                parsed = urllib.parse.urlparse(server_url)
                 host = parsed.hostname
                 port = parsed.port or (443 if parsed.scheme == "https" else 80)
                 if not host:
@@ -60,7 +64,8 @@ async def get_auth_config(db: AsyncSession = Depends(get_db)):
     return {
         "auth_provider": "central" if sso_active else "local",
         "sso_enabled": sso_active,
-        "jump_url": f"{config.server_url.rstrip('/')}/api/auth/jump/{config.client_id}" if sso_active else None
+        "central_auth_url": server_url,
+        "jump_url": f"{server_url}/api/auth/jump/{config.client_id}" if sso_active and server_url else None
     }
 
 

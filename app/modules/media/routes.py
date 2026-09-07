@@ -50,11 +50,12 @@ async def upload_media_file(
     if len(content) > 25 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Tệp quá lớn. Giới hạn tối đa là 25MB.")
 
-    sso_config = await SSOService.get_config(db)
+    from app.modules.deck.routes.media_resolver import get_sso_server_url
+    central_server_url = await get_sso_server_url(db)
+    if not central_server_url:
+        sso_config = await SSOService.get_config(db)
+        central_server_url = (sso_config.server_url if sso_config and sso_config.server_url else "").rstrip("/")
     queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
-    central_server_url = (sso_config.server_url if sso_config and sso_config.server_url else "https://inmind.site").rstrip("/")
-    if "auth.inmind.site" in central_server_url or "centralauth.inmind.site" in central_server_url:
-        central_server_url = "https://inmind.site"
 
     # 1. Forward directly to CentralAuth Media Vault
     try:

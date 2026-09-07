@@ -3,37 +3,50 @@ from sqlalchemy import select
 from app.modules.sso_module.models import SSOConfig
 
 async def get_sso_server_url(db) -> str:
+    # 1. Check Admin settings in DB (SystemConfig: sso_config)
+    try:
+        from app.modules.admin.interface import AdminInterface
+        admin_cfg = await AdminInterface.get_sso_config(db)
+        if isinstance(admin_cfg, dict) and admin_cfg.get("central_auth_url"):
+            url = admin_cfg["central_auth_url"].strip().rstrip("/")
+            if url and not url.startswith("http://centralauth.mindstack.local"):
+                return url
+    except Exception:
+        pass
+
+    # 2. Check SSOConfig (sso_settings table)
     try:
         res = await db.execute(select(SSOConfig))
         config = res.scalar_one_or_none()
-        if config and config.is_enabled and config.server_url:
-            s_url = config.server_url.rstrip("/")
-            if "auth.inmind.site" in s_url or "centralauth.inmind.site" in s_url:
-                return "https://inmind.site"
-            return s_url
+        if config and config.server_url:
+            url = config.server_url.strip().rstrip("/")
+            if url:
+                return url
     except Exception:
         pass
-    return "https://inmind.site"
+
+    # 3. Check environment settings
+    from app.core.config import settings
+    env_url = getattr(settings, "CENTRAL_AUTH_URL", "")
+    if env_url:
+        return env_url.strip().rstrip("/")
+
+    return ""
 
 def resolve_central_url(url: str, sso_url: str = "") -> str:
     if not url or not isinstance(url, str):
         return url
     trimmed = url.strip()
-    base_sso = (sso_url or "https://inmind.site").rstrip("/")
-    if "auth.inmind.site" in base_sso or "centralauth.inmind.site" in base_sso:
-        base_sso = "https://inmind.site"
-
-    if "auth.inmind.site" in trimmed or "centralauth.inmind.site" in trimmed:
-        trimmed = re.sub(r"https?://(?:auth|centralauth)\.inmind\.site", base_sso, trimmed)
+    base_sso = (sso_url or "").rstrip("/")
 
     if trimmed.startswith("central-media://"):
         filename = trimmed[len("central-media://"):]
-        return f"{base_sso}/static/uploads/media/{filename}"
+        return f"{base_sso}/static/uploads/media/{filename}" if base_sso else f"/static/uploads/media/{filename}"
     if trimmed.startswith("central-tts://"):
         filename = trimmed[len("central-tts://"):]
-        return f"{base_sso}/static/uploads/tts/{filename}"
+        return f"{base_sso}/static/uploads/tts/{filename}" if base_sso else f"/static/uploads/tts/{filename}"
     if trimmed.startswith("/static/uploads/"):
-        return f"{base_sso}{trimmed}"
+        return f"{base_sso}{trimmed}" if base_sso else trimmed
     return trimmed
 
 def resolve_card_dict(c_dict: dict, sso_url: str) -> dict:

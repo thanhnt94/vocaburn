@@ -24,6 +24,7 @@ interface Gamify {
 interface AuthConfig {
   auth_provider: string;
   sso_enabled: boolean;
+  central_auth_url?: string;
   jump_url?: string | null;
 }
 

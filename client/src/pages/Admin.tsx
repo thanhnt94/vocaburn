@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAppStore } from '../store/useAppStore';
+import { setCentralAuthUrl } from '../components/common/MediaUrlInput';
 import { 
   Sparkles, Zap, BookOpen, Plus, Edit2, Trash2, RotateCcw, X, Check, 
   Sliders, Volume2, Eye, EyeOff, CheckCircle2, Award, Star, Flame, Feather, Move, Layout 
@@ -669,10 +670,14 @@ export default function Admin() {
   const loadSSOConfig = async () => {
     try {
       const res = await axios.get('/api/v1/admin/sso');
-      setSsoUrl(res.data.central_auth_url || '');
+      const url = (res.data.central_auth_url || '').trim();
+      setSsoUrl(url);
       setSsoClientId(res.data.client_id || '');
       setSsoClientSecret(res.data.client_secret || '');
       setSsoEnabled(res.data.enabled || false);
+      if (url) {
+        setCentralAuthUrl(url);
+      }
     } catch (e) {
       console.error("Failed to load SSO configuration", e);
     }
@@ -726,12 +731,17 @@ export default function Admin() {
     setGlobalLoading(true);
 
     try {
+      const trimmedUrl = ssoUrl.trim();
       await axios.post('/api/v1/admin/sso', {
-        central_auth_url: ssoUrl.trim(),
+        central_auth_url: trimmedUrl,
         client_id: ssoClientId.trim(),
         client_secret: ssoClientSecret.trim(),
         enabled: ssoEnabled
       });
+      if (trimmedUrl) {
+        setCentralAuthUrl(trimmedUrl);
+      }
+      await useAppStore.getState().fetchAuthConfig();
       setSuccessMsg("SSO configuration updated successfully!");
     } catch (e) {
       setErrorMsg("Failed to save SSO configuration.");

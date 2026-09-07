@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { ImageCropModal } from './ImageCropModal'
+import { useAppStore } from '../../store/useAppStore'
+import { useAuthStore } from '../../store/useAuthStore'
 
 export interface MediaUrlInputProps {
   value: string
@@ -29,25 +31,80 @@ export interface MediaUrlInputProps {
   showPreview?: boolean
 }
 
-// Helper to resolve CentralAuth URLs (supports dynamic SSO URL, legacy mindstack.click and inmind.site)
-export const resolveMediaUrl = (url: string | null | undefined): string => {
+let cachedCentralAuthUrl: string = ''
+
+export const setCentralAuthUrl = (url: string) => {
+  if (url && typeof url === 'string') {
+    cachedCentralAuthUrl = url.trim().replace(/\/$/, '')
+  }
+}
+
+export const getCentralAuthUrl = (): string => {
+  if (cachedCentralAuthUrl) return cachedCentralAuthUrl
+
+  // 1. Check useAppStore
+  try {
+    const appCfg = useAppStore.getState().authConfig
+    if (appCfg?.central_auth_url) {
+      cachedCentralAuthUrl = appCfg.central_auth_url.trim().replace(/\/$/, '')
+      return cachedCentralAuthUrl
+    }
+    if (appCfg?.jump_url) {
+      try {
+        const u = new URL(appCfg.jump_url)
+        cachedCentralAuthUrl = u.origin
+        return cachedCentralAuthUrl
+      } catch {}
+    }
+  } catch {}
+
+  // 2. Check useAuthStore
+  try {
+    const authCfg = useAuthStore.getState().authConfig
+    if (authCfg?.central_auth_url) {
+      cachedCentralAuthUrl = authCfg.central_auth_url.trim().replace(/\/$/, '')
+      return cachedCentralAuthUrl
+    }
+    if (authCfg?.jump_url) {
+      try {
+        const u = new URL(authCfg.jump_url)
+        cachedCentralAuthUrl = u.origin
+        return cachedCentralAuthUrl
+      } catch {}
+    }
+  } catch {}
+
+  // 3. Fallback to Vite environment variable if provided
+  const envUrl = ((import.meta as any).env?.VITE_SSO_SERVER_URL || '').trim().replace(/\/$/, '')
+  if (envUrl) {
+    return envUrl
+  }
+
+  return ''
+}
+
+// Helper to resolve CentralAuth URLs dynamically from Admin SSO settings
+export const resolveMediaUrl = (url: string | null | undefined, customBaseUrl?: string): string => {
   if (!url) return ''
   let trimmed = url.trim()
-  const ssoUrl = ((import.meta as any).env?.VITE_SSO_SERVER_URL || 'https://inmind.site').replace(/\/$/, '')
+  const ssoUrl = (customBaseUrl || getCentralAuthUrl()).replace(/\/$/, '')
 
-  // Correct any wrong or legacy subdomains pointing to auth.inmind.site or centralauth.inmind.site
-  if (trimmed.includes('auth.inmind.site') || trimmed.includes('centralauth.inmind.site')) {
+  // Correct any legacy/mismatched domains pointing to old subdomains
+  if (ssoUrl && (trimmed.includes('auth.inmind.site') || trimmed.includes('centralauth.inmind.site') || trimmed.includes('centralauth.mindstack.local'))) {
     trimmed = trimmed.replace(/https?:\/\/(?:auth|centralauth)\.inmind\.site/g, ssoUrl)
+    trimmed = trimmed.replace(/http:\/\/centralauth\.mindstack\.local/g, ssoUrl)
   }
 
   if (trimmed.startsWith('central-media://')) {
-    return `${ssoUrl}/static/uploads/media/` + trimmed.slice('central-media://'.length)
+    const filename = trimmed.slice('central-media://'.length)
+    return ssoUrl ? `${ssoUrl}/static/uploads/media/${filename}` : `/static/uploads/media/${filename}`
   }
   if (trimmed.startsWith('central-tts://')) {
-    return `${ssoUrl}/static/uploads/tts/` + trimmed.slice('central-tts://'.length)
+    const filename = trimmed.slice('central-tts://'.length)
+    return ssoUrl ? `${ssoUrl}/static/uploads/tts/${filename}` : `/static/uploads/tts/${filename}`
   }
   if (trimmed.startsWith('/static/uploads/')) {
-    return `${ssoUrl}${trimmed}`
+    return ssoUrl ? `${ssoUrl}${trimmed}` : trimmed
   }
   return trimmed
 }
@@ -88,6 +145,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   required = false,
   showPreview = true,
 }) => {
+  const centralAuthUrl = useAppStore((state) => state.authConfig?.central_auth_url)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [statusMessage, setStatusMessage] = useState<string>('')
@@ -301,12 +359,13 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   // Toggle audio preview
   const toggleAudio = () => {
     if (!audioRef.current) return
+    const currentResolved = resolveMediaUrl(value, centralAuthUrl)
     if (isPlayingAudio) {
       audioRef.current.pause()
       setIsPlayingAudio(false)
     } else {
-      if (audioRef.current.src !== resolvedUrl) {
-        audioRef.current.src = resolvedUrl
+      if (audioRef.current.src !== currentResolved) {
+        audioRef.current.src = currentResolved
       }
       audioRef.current.load()
       audioRef.current
@@ -319,7 +378,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
     }
   }
 
-  const resolvedUrl = resolveMediaUrl(value)
+  const resolvedUrl = resolveMediaUrl(value, centralAuthUrl)
   const isImage =
     mediaType === 'image' ||
     (mediaType === 'all' && (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(value) || value.includes('/static/uploads/media/') || value.startsWith('central-media://')))
