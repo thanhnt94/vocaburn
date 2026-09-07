@@ -1873,16 +1873,6 @@ export default function Dashboard() {
                 {data?.gamify?.streak || 0}d
               </span>
 
-              {/* ⚙️ Customize / Options Button (Sleek Rounded Button) */}
-              <button
-                type="button"
-                onClick={() => setIsCustomizeModalOpen(true)}
-                className="w-8.5 h-8.5 rounded-full bg-slate-100/80 hover:bg-orange-50 text-slate-600 hover:text-orange-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
-                title="Customize Home display mode & deck order"
-              >
-                <SlidersHorizontal className="w-4 h-4 stroke-[2.2]" />
-              </button>
-
               <Link 
                 to="/profile" 
                 className="w-8.5 h-8.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
@@ -1892,9 +1882,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* VS Code Style Square Tabs Bar (Light Theme) */}
-          <div className="bg-[#edf0f4] border-t border-slate-200/80 flex items-stretch px-0 w-full overflow-x-auto select-none flex-shrink-0">
-            {/* Tab 1: Roadmap */}
+          {/* VS Code Style Full-Width Square Tabs Bar with Setting Button at End */}
+          <div className="bg-[#edf0f4] border-t border-slate-200/80 flex items-stretch w-full select-none flex-shrink-0">
+            {/* Tab 1: Roadmap (Full-size / flex-1) */}
             <button
               type="button"
               onClick={() => {
@@ -1903,7 +1893,7 @@ export default function Dashboard() {
                 updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
               }}
               className={cn(
-                "h-9 px-4 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none shrink-0",
+                "flex-1 h-9.5 px-3 flex items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none",
                 activeHomeTab === 'roadmap'
                   ? "bg-white text-slate-900 border-t-2 border-t-orange-500 font-black shadow-2xs"
                   : "bg-[#edf0f4] hover:bg-[#e4e7ec] text-slate-500 border-t-2 border-t-transparent border-b border-b-slate-200/90"
@@ -1913,7 +1903,7 @@ export default function Dashboard() {
                 "w-3.5 h-3.5",
                 activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
               )} />
-              <span className="tracking-tight text-[12px]">Roadmap</span>
+              <span className="tracking-tight text-[12.5px]">Roadmap</span>
               <span className={cn(
                 "px-1.5 py-0.2 rounded text-[9px] font-black leading-none",
                 activeHomeTab === 'roadmap'
@@ -1924,7 +1914,7 @@ export default function Dashboard() {
               </span>
             </button>
 
-            {/* Tab 2: Learning */}
+            {/* Tab 2: Learning (Full-size / flex-1) */}
             <button
               type="button"
               onClick={() => {
@@ -1933,7 +1923,7 @@ export default function Dashboard() {
                 updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
               }}
               className={cn(
-                "h-9 px-4 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none shrink-0",
+                "flex-1 h-9.5 px-3 flex items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none",
                 activeHomeTab === 'learning'
                   ? "bg-white text-slate-900 border-t-2 border-t-orange-500 font-black shadow-2xs"
                   : "bg-[#edf0f4] hover:bg-[#e4e7ec] text-slate-500 border-t-2 border-t-transparent border-b border-b-slate-200/90"
@@ -1943,7 +1933,7 @@ export default function Dashboard() {
                 "w-3.5 h-3.5",
                 activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
               )} />
-              <span className="tracking-tight text-[12px]">Learning</span>
+              <span className="tracking-tight text-[12.5px]">Learning</span>
               <span className={cn(
                 "px-1.5 py-0.2 rounded text-[9px] font-black leading-none",
                 activeHomeTab === 'learning'
@@ -1954,8 +1944,18 @@ export default function Dashboard() {
               </span>
             </button>
 
-            {/* Empty filler tab line to right */}
-            <div className="flex-1 h-9 border-b border-slate-200/90 bg-[#edf0f4]" />
+            {/* ⚙️ Small Setting Button at the End of the Tab Bar */}
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(6)
+                setIsCustomizeModalOpen(true)
+              }}
+              className="h-9.5 px-3.5 flex items-center justify-center bg-[#edf0f4] hover:bg-white text-slate-500 hover:text-orange-600 border-b border-b-slate-200/90 transition-all cursor-pointer shrink-0 active:scale-95"
+              title="Customize Home display mode & deck order"
+            >
+              <SlidersHorizontal className="w-4 h-4 stroke-[2.2]" />
+            </button>
           </div>
         </div>
 
