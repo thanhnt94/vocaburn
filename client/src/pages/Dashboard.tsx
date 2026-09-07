@@ -9,7 +9,6 @@ import axios from 'axios'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { VocaburnLogo } from '@/components/VocaburnLogo'
-import { TelegramRoadmapReminderToggle } from '@/components/TelegramRoadmapReminderToggle'
 import { JoinRoomModal } from '@/components/dashboard/JoinRoomModal'
 import { PracticeModeModal } from '@/components/dashboard/PracticeModeModal'
 import { StudyModeModal } from '@/components/dashboard/StudyModeModal'
@@ -1857,8 +1856,6 @@ export default function Dashboard() {
             </Link>
             
             <div className="flex items-center gap-2">
-              <TelegramRoadmapReminderToggle />
-
               <span 
                 className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-black shadow-md shadow-orange-500/20"
                 title="Daily Streak"
