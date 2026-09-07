@@ -1160,56 +1160,73 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     deck = deck_res.scalar_one_or_none()
 
     target_lang = None
+    voice_name = None
+    voice_mapping = {}
+    content_col = None
+
     if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
         ps = deck.practice_settings
-        if not is_custom:
-            cfg_key = "front_audio_config" if face == "front" else "back_audio_config"
-            cfg = ps.get(cfg_key, {})
-            if isinstance(cfg, dict):
-                target_lang = cfg.get("lang")
+        voice_mapping = ps.get("voice_mapping", {})
+        audio_configs = ps.get("audio_configs", [])
+
+        matched_cfg = None
+        if audio_configs:
+            matched_cfg = next((
+                cfg for cfg in audio_configs
+                if cfg.get("id") == face or cfg.get("url_col") == face or cfg.get("audio_url_col") == face
+                or cfg.get("source_col") == face or cfg.get("audio_content_col") == face or cfg.get("data_col") == face
+            ), None)
+            if not matched_cfg:
+                if face == "front" and len(audio_configs) > 0:
+                    matched_cfg = audio_configs[0]
+                elif face == "back" and len(audio_configs) > 1:
+                    matched_cfg = audio_configs[1]
+
+        if matched_cfg:
+            target_lang = matched_cfg.get("lang")
+            content_col = matched_cfg.get("source_col") or matched_cfg.get("audio_content_col")
+            target_url_col = matched_cfg.get("url_col") or matched_cfg.get("audio_url_col")
         else:
-            pairs = ps.get("audio_pairs", [])
-            pair = next((p for p in pairs if p.get("text_col") == face), None)
-            if pair:
-                target_lang = pair.get("lang")
+            if not is_custom:
+                cfg_key = "front_audio_config" if face == "front" else "back_audio_config"
+                cfg = ps.get(cfg_key, {})
+                if isinstance(cfg, dict):
+                    target_lang = cfg.get("lang")
+                    content_col = cfg.get("audio_content_col")
+            else:
+                pairs = ps.get("audio_pairs", [])
+                pair = next((p for p in pairs if p.get("text_col") == face), None)
+                if pair:
+                    target_lang = pair.get("lang")
+                    content_col = pair.get("audio_content_col")
+                    target_url_col = pair.get("audio_url_col")
+
+        if target_lang and voice_mapping:
+            clean_l = target_lang.replace("gtts:", "")
+            voice_name = voice_mapping.get(clean_l)
 
     if target_lang == "none":
         return None
 
-    if not is_custom:
-        content_col = None
-        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
-            cfg_key = "front_audio_config" if face == "front" else "back_audio_config"
-            cfg = deck.practice_settings.get(cfg_key, {})
-            if isinstance(cfg, dict):
-                content_col = cfg.get("audio_content_col")
-                
-        if content_col:
-            if hasattr(c, content_col):
-                text = getattr(c, content_col)
-            elif c.others:
-                text = c.others.get(content_col)
-                
-        if not text:
-            if face == "front":
-                text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None) or c.content
-            else:
-                text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.explanation
-    else:
-        if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
-            pairs = deck.practice_settings.get("audio_pairs", [])
-            pair = next((p for p in pairs if p.get("text_col") == face), None)
-            if pair:
-                content_col = pair.get("audio_content_col")
-                target_url_col = pair.get("audio_url_col")
-                if content_col and c.others:
-                    text = c.others.get(content_col)
-                if not text and c.others:
-                    text = c.others.get(face)
-                if not text:
-                    text = getattr(c, face, None)
-            elif c.others:
-                text = c.others.get(face)
+    if content_col:
+        if content_col == "front":
+            text = c.content
+        elif content_col == "back":
+            text = c.explanation
+        elif hasattr(c, content_col):
+            text = getattr(c, content_col)
+        elif c.others and content_col in c.others:
+            text = c.others.get(content_col)
+
+    if not text:
+        if face == "front":
+            text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None) or c.content
+        elif face == "back":
+            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.explanation
+        elif c.others and face in c.others:
+            text = c.others.get(face)
+        elif hasattr(c, face):
+            text = getattr(c, face, None)
 
     if not text or not str(text).strip():
         return None
@@ -1274,9 +1291,16 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             import httpx
             logger.info(f"[TTS CENTRAL] SSO is enabled. Requesting centralized TTS from {sso_config.server_url} for text: '{text[:30]}...'")
             async with httpx.AsyncClient() as client:
+                tts_payload = {"text": text}
+                if target_lang:
+                    tts_payload["lang"] = target_lang
+                if voice_name:
+                    tts_payload["voice_name"] = voice_name
+                if voice_mapping:
+                    tts_payload["voice_mapping"] = voice_mapping
                 response = await client.post(
                      f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
-                     json={"text": text, "lang": target_lang},
+                     json=tts_payload,
                      timeout=20.0
                 )
                 if response.status_code == 200:
@@ -1544,21 +1568,25 @@ async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: 
                     has_audio = bool(c.others.get(tgt_col) and str(c.others.get(tgt_col)).strip())
 
                 if force or not has_audio:
+                    clean_lang = (face_lang or "auto").replace("gtts:", "") if face_lang else "auto"
+                    selected_voice = voice_mapping.get(clean_lang) if (voice_mapping and clean_lang) else None
                     task_item = {
                         "satellite_source": "vocaburn",
                         "prompt": text,
                         "callback_url": callback_url,
+                        "lang": clean_lang,
+                        "voice_name": selected_voice,
                         "extra_data": json.dumps({
                             "task_type": "tts",
                             "card_id": c.id,
                             "face": tgt_col,
                             "deck_id": deck_id,
+                            "lang": clean_lang,
+                            "voice_name": selected_voice,
                             "voice_mapping": voice_mapping
                         }),
                         "max_retries": 3
                     }
-                    if face_lang and face_lang != "multi" and face_lang != "auto":
-                        task_item["lang"] = face_lang.replace("gtts:", "")
                     tasks_to_submit.append(task_item)
 
         if not tasks_to_submit:

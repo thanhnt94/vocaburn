@@ -9,6 +9,42 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def detect_language(text: str, default: str = "en") -> str:
+    """
+    Detects language based on character script features:
+    - Japanese: Hiragana / Katakana
+    - Korean: Hangul
+    - Vietnamese: Latin characters with Vietnamese tone diacritics
+    - Chinese: CJK Unified Ideographs without Japanese kana
+    - English / Latin: Latin characters without Vietnamese diacritics
+    """
+    if not text or not text.strip():
+        return default
+
+    # Japanese Kana
+    if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
+        return "ja"
+
+    # Korean Hangul
+    if re.search(r'[\uac00-\ud7af\u1100-\u11ff]', text):
+        return "ko"
+
+    # Vietnamese diacritics (both lower and upper)
+    vi_diacritics_pattern = r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]'
+    if re.search(vi_diacritics_pattern, text):
+        return "vi"
+
+    # Chinese Hanzi (CJK Ideographs) without Kana
+    if re.search(r'[\u4e00-\u9fff]', text):
+        return "zh"
+
+    # Latin letters
+    if re.search(r'[a-zA-Z]', text):
+        return "en"
+
+    return default
+
+
 class AudioGenerator:
     PROMPT_REGEX = re.compile(r'^\s*([a-z]{2})(?:\(([mf])\))?:\s*(.+)$', re.MULTILINE)
     
@@ -27,7 +63,7 @@ class AudioGenerator:
     }
 
     @staticmethod
-    def parse_segments(text: str):
+    def parse_segments(text: str, default_lang: str = "auto"):
         if not text:
             return []
             
@@ -45,25 +81,28 @@ class AudioGenerator:
             
         # Fallback to line-by-line format
         lines = text.split('\n')
-        current_lang = 'en'
         
         for line in lines:
-            if not line.strip():
+            line_str = line.strip()
+            if not line_str:
                 continue 
                 
             match = AudioGenerator.PROMPT_REGEX.match(line)
             if match:
-                lang = match.group(1)
-                content = match.group(3)
-                current_lang = lang
+                lang = match.group(1).strip().lower()
+                content = match.group(3).strip()
                 segments.append({
-                    'text': content.strip(),
+                    'text': content,
                     'lang': lang
                 })
             else:
+                if not default_lang or default_lang in ("auto", "multi"):
+                    seg_lang = detect_language(line_str, default="en")
+                else:
+                    seg_lang = default_lang
                 segments.append({
-                    'text': line.strip(),
-                    'lang': current_lang
+                    'text': line_str,
+                    'lang': seg_lang
                 })
                 
         return segments
@@ -85,10 +124,10 @@ class AudioGenerator:
                     current_path += os.pathsep + p
             os.environ["PATH"] = current_path
 
-            if lang and lang != 'multi':
+            if lang and lang not in ('multi', 'auto'):
                 segments = [{'text': text.strip(), 'lang': lang.strip().lower()}]
             else:
-                segments = cls.parse_segments(text)
+                segments = cls.parse_segments(text, default_lang=lang or "auto")
                 
             if not segments:
                 return False
