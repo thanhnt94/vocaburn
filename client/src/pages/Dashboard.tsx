@@ -1467,17 +1467,13 @@ export default function Dashboard() {
   const sortedActiveDecks = useMemo(() => {
     if (!activeDecks || activeDecks.length === 0) return []
     const order = (userSettings?.learning_deck_order || []).map((x: any) => String(x))
-    if (order.length === 0) return activeDecks
-    return [...activeDecks].sort((a, b) => {
-      const idA = String(a.deck_id ?? a.id ?? '')
-      const idB = String(b.deck_id ?? b.id ?? '')
-      const idxA = order.indexOf(idA)
-      const idxB = order.indexOf(idB)
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB
-      if (idxA !== -1) return -1
-      if (idxB !== -1) return 1
-      return 0
-    })
+    if (order.length > 0) {
+      // User explicitly selected which decks to pin as shortcuts!
+      const deckMap = new Map(activeDecks.map(d => [String(d.deck_id ?? d.id), d]))
+      return order.map(id => deckMap.get(id)).filter(Boolean)
+    }
+    // Default fallback: top 4 active decks if user has not yet customized their shortcuts
+    return activeDecks.slice(0, 4)
   }, [activeDecks, userSettings?.learning_deck_order]);
 
   const { data: weeklyReport } = useQuery({
@@ -1814,6 +1810,7 @@ export default function Dashboard() {
           <DashboardQuickDecksWidget
             todayReview={todayReview}
             activeDecks={sortedActiveDecks}
+            allDecksCount={activeDecks?.length || 0}
             onOpenStudyModal={handleOpenStudyModal}
             navigate={navigate}
             displayMode={userSettings?.learning_display_mode || 'shortcuts'}
@@ -1973,6 +1970,7 @@ export default function Dashboard() {
               <DashboardQuickDecksWidget
                 todayReview={todayReview}
                 activeDecks={sortedActiveDecks}
+                allDecksCount={activeDecks?.length || 0}
                 onOpenStudyModal={handleOpenStudyModal}
                 navigate={navigate}
                 displayMode={userSettings?.learning_display_mode || 'shortcuts'}

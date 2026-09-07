@@ -14,7 +14,10 @@ import {
   LayoutGrid,
   SlidersHorizontal,
   Flame,
-  CheckCircle2
+  CheckCircle2,
+  CheckSquare,
+  Square,
+  Plus
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -40,6 +43,7 @@ export function HomeCustomizeModal({
   const [learningDisplayMode, setLearningDisplayMode] = useState<'shortcuts' | 'grid' | 'compact'>('shortcuts')
   const [orderedRoadmapDecks, setOrderedRoadmapDecks] = useState<any[]>([])
   const [orderedLearningDecks, setOrderedLearningDecks] = useState<any[]>([])
+  const [selectedLearningIds, setSelectedLearningIds] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
@@ -64,11 +68,23 @@ export function HomeCustomizeModal({
       })
       setOrderedRoadmapDecks(sortedRm)
 
-      // Order learning decks
+      // Order learning decks & selection
       const lnOrder = (userSettings.learning_deck_order || []).map((x: any) => String(x))
+      const hasPriorSelection = Array.isArray(userSettings.learning_deck_order) && userSettings.learning_deck_order.length > 0
+      const initialSelected = new Set(
+        hasPriorSelection
+          ? lnOrder
+          : activeDecks.slice(0, 4).map(d => String(d.deck_id ?? d.id ?? ''))
+      )
+      setSelectedLearningIds(initialSelected)
+
       const sortedLn = [...activeDecks].sort((a, b) => {
         const idA = String(a.deck_id ?? a.id ?? '')
         const idB = String(b.deck_id ?? b.id ?? '')
+        const isSelA = initialSelected.has(idA)
+        const isSelB = initialSelected.has(idB)
+        if (isSelA && !isSelB) return -1
+        if (!isSelA && isSelB) return 1
         const idxA = lnOrder.indexOf(idA)
         const idxB = lnOrder.indexOf(idB)
         if (idxA !== -1 && idxB !== -1) return idxA - idxB
@@ -95,17 +111,55 @@ export function HomeCustomizeModal({
     }
   }
 
+  // Partitioned decks
+  const pinnedLearningDecks = orderedLearningDecks.filter(d => selectedLearningIds.has(String(d.deck_id ?? d.id)))
+  const unpinnedLearningDecks = orderedLearningDecks.filter(d => !selectedLearningIds.has(String(d.deck_id ?? d.id)))
+
+  const toggleLearningDeck = (deckId: string | number) => {
+    const idStr = String(deckId)
+    setSelectedLearningIds(prev => {
+      const next = new Set(prev)
+      if (next.has(idStr)) {
+        next.delete(idStr)
+      } else {
+        next.add(idStr)
+      }
+      return next
+    })
+    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+      window.navigator.vibrate(8)
+    }
+  }
+
+  const selectAllLearningDecks = () => {
+    const allIds = activeDecks.map(d => String(d.deck_id ?? d.id))
+    setSelectedLearningIds(new Set(allIds))
+  }
+
+  const clearAllLearningDecks = () => {
+    setSelectedLearningIds(new Set())
+  }
+
+  const selectTop4LearningDecks = () => {
+    const top4 = activeDecks.slice(0, 4).map(d => String(d.deck_id ?? d.id))
+    setSelectedLearningIds(new Set(top4))
+  }
+
   const moveLearningDeck = (index: number, direction: 'up' | 'down') => {
     const targetIdx = direction === 'up' ? index - 1 : index + 1
-    if (targetIdx < 0 || targetIdx >= orderedLearningDecks.length) return
-    const next = [...orderedLearningDecks]
-    const temp = next[index]
-    next[index] = next[targetIdx]
-    next[targetIdx] = temp
-    setOrderedLearningDecks(next)
+    if (targetIdx < 0 || targetIdx >= pinnedLearningDecks.length) return
+    const nextPinned = [...pinnedLearningDecks]
+    const temp = nextPinned[index]
+    nextPinned[index] = nextPinned[targetIdx]
+    nextPinned[targetIdx] = temp
+    setOrderedLearningDecks([...nextPinned, ...unpinnedLearningDecks])
     if (typeof window !== 'undefined' && window.navigator?.vibrate) {
       window.navigator.vibrate(6)
     }
+  }
+
+  const handleReorderPinned = (newPinned: any[]) => {
+    setOrderedLearningDecks([...newPinned, ...unpinnedLearningDecks])
   }
 
   const handleResetDefaults = () => {
@@ -114,6 +168,7 @@ export function HomeCustomizeModal({
     setLearningDisplayMode('shortcuts')
     setOrderedRoadmapDecks([...roadmapDecks])
     setOrderedLearningDecks([...activeDecks])
+    setSelectedLearningIds(new Set(activeDecks.slice(0, 4).map(d => String(d.deck_id ?? d.id))))
   }
 
   const handleSave = async () => {
@@ -123,6 +178,7 @@ export function HomeCustomizeModal({
         .map(d => d.deck_id ?? d.id)
         .filter(id => id !== null && id !== undefined)
       const learningIds = orderedLearningDecks
+        .filter(d => selectedLearningIds.has(String(d.deck_id ?? d.id)))
         .map(d => d.deck_id ?? d.id)
         .filter(id => id !== null && id !== undefined)
 
@@ -236,7 +292,7 @@ export function HomeCustomizeModal({
                   )}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Learning ({orderedLearningDecks.length})</span>
+                  <span>Shortcuts ({selectedLearningIds.size})</span>
                 </button>
               </div>
             </div>
@@ -614,101 +670,211 @@ export function HomeCustomizeModal({
                 </div>
               )}
 
-              {/* ══════════════ TAB 3: LEARNING DECK ORDER ══════════════ */}
+              {/* ══════════════ TAB 3: SHORTCUT DECKS SELECTION & ORDER ══════════════ */}
               {activeTab === 'learning_order' && (
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      Drag or use arrows to change sequence
-                    </span>
-                    <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md">
-                      {orderedLearningDecks.length} Decks
-                    </span>
+                <div className="space-y-4">
+                  {/* Top Toolbar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 bg-slate-50/90 rounded-2xl border border-slate-200/80">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                        <span>Pinned Shortcuts ({pinnedLearningDecks.length} of {activeDecks.length})</span>
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-bold">
+                        Only checked decks will appear as shortcuts on Home
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={selectAllLearningDecks}
+                        className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-[10px] font-black hover:bg-slate-100 transition-all cursor-pointer shadow-2xs"
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={selectTop4LearningDecks}
+                        className="px-2 py-1 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-[10px] font-black hover:bg-orange-100 transition-all cursor-pointer shadow-2xs"
+                      >
+                        Top 4
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearAllLearningDecks}
+                        className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-rose-600 text-[10px] font-black hover:bg-rose-50 transition-all cursor-pointer shadow-2xs"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   </div>
 
-                  {orderedLearningDecks.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      No active learning decks found.
+                  {/* Section 1: Pinned Shortcuts (Reorderable) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        Pinned Shortcuts (Drag or use arrows to order)
+                      </span>
+                      <span className="text-[10px] font-extrabold text-orange-600">
+                        {pinnedLearningDecks.length} Pinned
+                      </span>
                     </div>
-                  ) : (
-                    <Reorder.Group
-                      axis="y"
-                      values={orderedLearningDecks}
-                      onReorder={setOrderedLearningDecks}
-                      className="space-y-2"
-                    >
-                      {orderedLearningDecks.map((deck, idx) => {
-                        const id = deck.deck_id || deck.id
-                        const total = deck.total_cards || 0
-                        const learned = deck.learned_cards || 0
-                        const pct = deck.total_pct !== undefined 
-                          ? deck.total_pct 
-                          : (total > 0 ? Math.round((learned / total) * 100) : 0)
 
-                        return (
-                          <Reorder.Item
-                            key={id}
-                            value={deck}
-                            className="bg-white border border-slate-200/90 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2.5 touch-none"
-                          >
-                            {/* Drag Handle */}
-                            <div className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing shrink-0">
-                              <GripVertical className="w-4 h-4" />
-                            </div>
+                    {pinnedLearningDecks.length === 0 ? (
+                      <div className="py-6 text-center text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-4">
+                        No decks pinned to shortcuts. Tap "+ Add" on any deck below to pin!
+                      </div>
+                    ) : (
+                      <Reorder.Group
+                        axis="y"
+                        values={pinnedLearningDecks}
+                        onReorder={handleReorderPinned}
+                        className="space-y-2"
+                      >
+                        {pinnedLearningDecks.map((deck, idx) => {
+                          const id = deck.deck_id || deck.id
+                          const total = deck.total_cards || deck.questions_count || 0
+                          const learned = deck.learned_cards || 0
+                          const pct = deck.total_pct !== undefined 
+                            ? deck.total_pct 
+                            : (total > 0 ? Math.round((learned / total) * 100) : 0)
 
-                            {/* Position Index */}
-                            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-black shrink-0">
-                              #{idx + 1}
-                            </div>
+                          return (
+                            <Reorder.Item
+                              key={id}
+                              value={deck}
+                              className="bg-white border border-orange-200/90 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2.5 touch-none group hover:border-orange-300 transition-colors"
+                            >
+                              {/* Checkbox to toggle pin */}
+                              <button
+                                type="button"
+                                onClick={() => toggleLearningDeck(id)}
+                                className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-2xs hover:bg-rose-500 transition-colors cursor-pointer"
+                                title="Click to unpin from shortcuts"
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              </button>
 
-                            {/* Deck Details */}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-black text-slate-900 truncate">
-                                {deck.title}
-                              </h4>
-                              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 mt-0.5">
-                                <span>{learned}/{total} words</span>
-                                <span>•</span>
-                                <span className="text-emerald-600 font-black">{pct}%</span>
+                              {/* Drag Handle */}
+                              <div className="p-0.5 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing shrink-0">
+                                <GripVertical className="w-4 h-4" />
                               </div>
-                            </div>
 
-                            {/* Up / Down Arrow Controls */}
-                            <div className="flex items-center gap-1 shrink-0">
+                              {/* Position Index */}
+                              <div className="w-6 h-6 rounded-lg bg-orange-50 text-orange-700 flex items-center justify-center text-[10px] font-black shrink-0 border border-orange-200/60">
+                                #{idx + 1}
+                              </div>
+
+                              {/* Deck Details */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-xs font-black text-slate-900 truncate">
+                                  {deck.title}
+                                </h4>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 mt-0.5">
+                                  <span>{learned}/{total} words</span>
+                                  <span>•</span>
+                                  <span className="text-emerald-600 font-black">{pct}%</span>
+                                </div>
+                              </div>
+
+                              {/* Up / Down Arrow Controls */}
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => moveLearningDeck(idx, 'up')}
+                                  disabled={idx === 0}
+                                  className={cn(
+                                    "w-7 h-7 rounded-xl flex items-center justify-center transition-colors",
+                                    idx === 0
+                                      ? "text-slate-300 cursor-not-allowed"
+                                      : "text-slate-700 bg-slate-100 hover:bg-orange-100 hover:text-orange-700 cursor-pointer shadow-2xs active:scale-95"
+                                  )}
+                                  title="Move up"
+                                >
+                                  <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => moveLearningDeck(idx, 'down')}
+                                  disabled={idx === pinnedLearningDecks.length - 1}
+                                  className={cn(
+                                    "w-7 h-7 rounded-xl flex items-center justify-center transition-colors",
+                                    idx === pinnedLearningDecks.length - 1
+                                      ? "text-slate-300 cursor-not-allowed"
+                                      : "text-slate-700 bg-slate-100 hover:bg-orange-100 hover:text-orange-700 cursor-pointer shadow-2xs active:scale-95"
+                                  )}
+                                  title="Move down"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </button>
+                              </div>
+                            </Reorder.Item>
+                          )
+                        })}
+                      </Reorder.Group>
+                    )}
+                  </div>
+
+                  {/* Section 2: Other Available Decks (Unpinned) */}
+                  {unpinnedLearningDecks.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          Available Decks ({unpinnedLearningDecks.length})
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          Click + to pin to shortcuts
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {unpinnedLearningDecks.map((deck) => {
+                          const id = deck.deck_id || deck.id
+                          const total = deck.total_cards || deck.questions_count || 0
+                          const learned = deck.learned_cards || 0
+                          const pct = deck.total_pct !== undefined 
+                            ? deck.total_pct 
+                            : (total > 0 ? Math.round((learned / total) * 100) : 0)
+
+                          return (
+                            <div
+                              key={id}
+                              className="bg-slate-50/70 border border-slate-200/70 rounded-2xl p-2 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleLearningDeck(id)}
+                                  className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-400 hover:border-orange-400 hover:text-orange-500 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                                  title="Click to pin"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-xs font-bold text-slate-700 truncate">
+                                    {deck.title}
+                                  </h4>
+                                  <p className="text-[9px] font-medium text-slate-400">
+                                    {learned}/{total} words • {pct}%
+                                  </p>
+                                </div>
+                              </div>
+
                               <button
                                 type="button"
-                                onClick={() => moveLearningDeck(idx, 'up')}
-                                disabled={idx === 0}
-                                className={cn(
-                                  "w-7 h-7 rounded-xl flex items-center justify-center transition-colors",
-                                  idx === 0
-                                    ? "text-slate-300 cursor-not-allowed"
-                                    : "text-slate-700 bg-slate-100 hover:bg-orange-100 hover:text-orange-700 cursor-pointer shadow-2xs active:scale-95"
-                                )}
-                                title="Move up"
+                                onClick={() => toggleLearningDeck(id)}
+                                className="px-2.5 py-1 rounded-xl bg-white hover:bg-orange-500 hover:text-white border border-slate-200 text-slate-600 text-[10px] font-black transition-all cursor-pointer shadow-2xs shrink-0 active:scale-95"
                               >
-                                <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => moveLearningDeck(idx, 'down')}
-                                disabled={idx === orderedLearningDecks.length - 1}
-                                className={cn(
-                                  "w-7 h-7 rounded-xl flex items-center justify-center transition-colors",
-                                  idx === orderedLearningDecks.length - 1
-                                    ? "text-slate-300 cursor-not-allowed"
-                                    : "text-slate-700 bg-slate-100 hover:bg-orange-100 hover:text-orange-700 cursor-pointer shadow-2xs active:scale-95"
-                                )}
-                                title="Move down"
-                              >
-                                <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                                + Add
                               </button>
                             </div>
-                          </Reorder.Item>
-                        )
-                      })}
-                    </Reorder.Group>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
