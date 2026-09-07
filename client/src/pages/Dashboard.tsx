@@ -1841,12 +1841,25 @@ export default function Dashboard() {
             queryClient.invalidateQueries();
             return;
           }
+
+          // Horizontal Swipe detection (Swipe left to Learning, Swipe right to Roadmap)
+          if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+            if (diffX < -40 && activeHomeTab !== 'learning') {
+              setActiveHomeTab('learning')
+              if (navigator.vibrate) navigator.vibrate(8)
+              updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+            } else if (diffX > 40 && activeHomeTab !== 'roadmap') {
+              setActiveHomeTab('roadmap')
+              if (navigator.vibrate) navigator.vibrate(8)
+              updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+            }
+          }
         }}
       >
-        {/* UNIFIED TOP APP HEADER (Sleek, Modern, High-End Studio Bar) */}
+        {/* UNIFIED TOP APP HEADER (VS Code Light Studio Tabs) */}
         <div className="bg-white border-b border-slate-200/70 flex flex-col flex-shrink-0 z-30 shadow-xs">
           {/* Top Bar: Brand Logo + Utility Cluster */}
-          <div className="flex items-center justify-between px-3.5 pt-2.5 pb-1 w-full max-w-[1700px] mx-auto">
+          <div className="flex items-center justify-between px-3.5 pt-2.5 pb-2 w-full max-w-[1700px] mx-auto">
             <Link to="/" className="active:scale-95 transition-transform flex items-center">
               <VocaburnLogo height="md" />
             </Link>
@@ -1878,6 +1891,72 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
+
+          {/* VS Code Style Square Tabs Bar (Light Theme) */}
+          <div className="bg-[#edf0f4] border-t border-slate-200/80 flex items-stretch px-0 w-full overflow-x-auto select-none flex-shrink-0">
+            {/* Tab 1: Roadmap */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHomeTab('roadmap')
+                if (navigator.vibrate) navigator.vibrate(6)
+                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+              }}
+              className={cn(
+                "h-9 px-4 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none shrink-0",
+                activeHomeTab === 'roadmap'
+                  ? "bg-white text-slate-900 border-t-2 border-t-orange-500 font-black shadow-2xs"
+                  : "bg-[#edf0f4] hover:bg-[#e4e7ec] text-slate-500 border-t-2 border-t-transparent border-b border-b-slate-200/90"
+              )}
+            >
+              <Layers className={cn(
+                "w-3.5 h-3.5",
+                activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
+              )} />
+              <span className="tracking-tight text-[12px]">Roadmap</span>
+              <span className={cn(
+                "px-1.5 py-0.2 rounded text-[9px] font-black leading-none",
+                activeHomeTab === 'roadmap'
+                  ? "bg-orange-100 text-orange-700"
+                  : "bg-slate-200 text-slate-500"
+              )}>
+                {sortedRoadmapDecks.length}
+              </span>
+            </button>
+
+            {/* Tab 2: Learning */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHomeTab('learning')
+                if (navigator.vibrate) navigator.vibrate(6)
+                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+              }}
+              className={cn(
+                "h-9 px-4 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none shrink-0",
+                activeHomeTab === 'learning'
+                  ? "bg-white text-slate-900 border-t-2 border-t-orange-500 font-black shadow-2xs"
+                  : "bg-[#edf0f4] hover:bg-[#e4e7ec] text-slate-500 border-t-2 border-t-transparent border-b border-b-slate-200/90"
+              )}
+            >
+              <BookOpen className={cn(
+                "w-3.5 h-3.5",
+                activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
+              )} />
+              <span className="tracking-tight text-[12px]">Learning</span>
+              <span className={cn(
+                "px-1.5 py-0.2 rounded text-[9px] font-black leading-none",
+                activeHomeTab === 'learning'
+                  ? "bg-orange-100 text-orange-700"
+                  : "bg-slate-200 text-slate-500"
+              )}>
+                {sortedActiveDecks.length}
+              </span>
+            </button>
+
+            {/* Empty filler tab line to right */}
+            <div className="flex-1 h-9 border-b border-slate-200/90 bg-[#edf0f4]" />
+          </div>
         </div>
 
         {/* MOBILE MAIN CONTENT */}
@@ -1907,57 +1986,6 @@ export default function Dashboard() {
               />
             </div>
           )}
-
-          {/* ═══════════ THUMB-FRIENDLY BOTTOM SUB-TAB SWITCHER (DOCK-STYLE) ═══════════ */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center bg-slate-900/90 backdrop-blur-md p-1 rounded-full shadow-[0_6px_25px_rgba(0,0,0,0.35)] border border-slate-700/60 select-none">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveHomeTab('roadmap')
-                if (navigator.vibrate) navigator.vibrate(6)
-                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer",
-                activeHomeTab === 'roadmap'
-                  ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30"
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Roadmap</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-full text-[9px] font-black",
-                activeHomeTab === 'roadmap' ? "bg-black/25 text-white" : "bg-slate-800 text-slate-400"
-              )}>
-                {sortedRoadmapDecks.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveHomeTab('learning')
-                if (navigator.vibrate) navigator.vibrate(6)
-                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer",
-                activeHomeTab === 'learning'
-                  ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30"
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Learning</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-full text-[9px] font-black",
-                activeHomeTab === 'learning' ? "bg-black/25 text-white" : "bg-slate-800 text-slate-400"
-              )}>
-                {sortedActiveDecks.length}
-              </span>
-            </button>
-          </div>
         </div>
 
       </div>

@@ -56,7 +56,7 @@ export function DashboardQuickDecksWidget({
   return (
     <div className="h-full w-full flex flex-col overflow-hidden text-left select-none">
       {/* ═══════════ MAIN CONTENT: PLAYFUL COLORFUL STUDY DECKS ═══════════ */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pb-20 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pb-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
         {activeDecks.length === 0 ? (
           <div className="py-10 text-center bg-white/80 backdrop-blur-xs rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center gap-2.5 p-5 shadow-xs">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-200 via-orange-300 to-rose-300 text-white flex items-center justify-center text-2xl shadow-sm animate-bounce">
