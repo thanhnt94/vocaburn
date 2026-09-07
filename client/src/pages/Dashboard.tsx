@@ -1821,7 +1821,7 @@ export default function Dashboard() {
 
       {/* MOBILE FEED — Exact Mockup Design with Unified Header & Flame Logo */}
       <div 
-        className="md:hidden flex flex-col bg-[#f3f5f8] fixed inset-0 top-0 bottom-[60px] z-[100] overflow-hidden select-none font-sans"
+        className="md:hidden flex flex-col bg-[#f8fafc] fixed inset-0 top-0 bottom-[68px] z-[100] overflow-hidden select-none font-sans"
         onTouchStart={(e) => {
           (window as any)._touchStartX = e.touches[0].clientX;
           (window as any)._touchStartY = e.touches[0].clientY;
@@ -1859,31 +1859,31 @@ export default function Dashboard() {
         {/* UNIFIED TOP APP HEADER (VS Code Light Studio Tabs) */}
         <div className="bg-white border-b border-slate-200/70 flex flex-col flex-shrink-0 z-30 shadow-xs">
           {/* Top Bar: Brand Logo + Utility Cluster */}
-          <div className="flex items-center justify-between px-3.5 pt-2.5 pb-2 w-full max-w-[1700px] mx-auto">
+          <div className="flex items-center justify-between px-3.5 pt-2 pb-1.5 w-full max-w-[1700px] mx-auto">
             <Link to="/" className="active:scale-95 transition-transform flex items-center">
               <VocaburnLogo height="md" />
             </Link>
             
             <div className="flex items-center gap-2">
               <span 
-                className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-black shadow-md shadow-orange-500/20"
+                className="flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-black shadow-xs"
                 title="Daily Streak"
               >
-                <Zap className="w-3.5 h-3.5 fill-white text-white animate-pulse" />
+                <Zap className="w-3 h-3 fill-white text-white animate-pulse" />
                 {data?.gamify?.streak || 0}d
               </span>
 
               <Link 
                 to="/profile" 
-                className="w-8.5 h-8.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
+                className="w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
               >
-                <User className="w-4.5 h-4.5" />
+                <User className="w-4 h-4" />
               </Link>
             </div>
           </div>
 
           {/* VS Code Style Full-Width Square Tabs Bar with Setting Button at End */}
-          <div className="bg-[#edf0f4] border-t border-slate-200/80 flex items-stretch w-full select-none flex-shrink-0">
+          <div className="bg-[#e8ebef] border-t border-slate-200/80 flex items-stretch w-full select-none flex-shrink-0 h-9">
             {/* Tab 1: Roadmap (Full-size / flex-1) */}
             <button
               type="button"
@@ -1893,10 +1893,10 @@ export default function Dashboard() {
                 updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
               }}
               className={cn(
-                "flex-1 h-9.5 px-3 flex items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none",
+                "flex-1 h-full px-3 flex items-center justify-center gap-2 text-xs transition-colors cursor-pointer border-r border-slate-300/70 select-none",
                 activeHomeTab === 'roadmap'
-                  ? "bg-white text-slate-900 border-t-2 border-t-orange-500 font-black shadow-2xs"
-                  : "bg-[#edf0f4] hover:bg-[#e4e7ec] text-slate-500 border-t-2 border-t-transparent border-b border-b-slate-200/90"
+                  ? "bg-[#f8fafc] text-slate-900 border-t-2 border-t-orange-500 font-bold border-b-transparent shadow-none"
+                  : "bg-[#e8ebef] hover:bg-[#dfe3e8] text-slate-500 font-medium border-t-2 border-t-transparent border-b border-b-slate-300/80"
               )}
             >
               <Layers className={cn(
@@ -1904,14 +1904,6 @@ export default function Dashboard() {
                 activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
               )} />
               <span className="tracking-tight text-[12.5px]">Roadmap</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded text-[9px] font-black leading-none",
-                activeHomeTab === 'roadmap'
-                  ? "bg-orange-100 text-orange-700"
-                  : "bg-slate-200 text-slate-500"
-              )}>
-                {sortedRoadmapDecks.length}
-              </span>
             </button>
 
             {/* Tab 2: Learning (Full-size / flex-1) */}
@@ -1923,10 +1915,10 @@ export default function Dashboard() {
                 updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
               }}
               className={cn(
-                "flex-1 h-9.5 px-3 flex items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer border-r border-slate-200/90 relative select-none",
+                "flex-1 h-full px-3 flex items-center justify-center gap-2 text-xs transition-colors cursor-pointer border-r border-slate-300/70 select-none",
                 activeHomeTab === 'learning'
-                  ? "bg-white text-slate-900 border-t-2 border-t-orange-500 font-black shadow-2xs"
-                  : "bg-[#edf0f4] hover:bg-[#e4e7ec] text-slate-500 border-t-2 border-t-transparent border-b border-b-slate-200/90"
+                  ? "bg-[#f8fafc] text-slate-900 border-t-2 border-t-orange-500 font-bold border-b-transparent shadow-none"
+                  : "bg-[#e8ebef] hover:bg-[#dfe3e8] text-slate-500 font-medium border-t-2 border-t-transparent border-b border-b-slate-300/80"
               )}
             >
               <BookOpen className={cn(
@@ -1934,14 +1926,6 @@ export default function Dashboard() {
                 activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
               )} />
               <span className="tracking-tight text-[12.5px]">Learning</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded text-[9px] font-black leading-none",
-                activeHomeTab === 'learning'
-                  ? "bg-orange-100 text-orange-700"
-                  : "bg-slate-200 text-slate-500"
-              )}>
-                {sortedActiveDecks.length}
-              </span>
             </button>
 
             {/* ⚙️ Small Setting Button at the End of the Tab Bar */}
@@ -1951,16 +1935,16 @@ export default function Dashboard() {
                 if (navigator.vibrate) navigator.vibrate(6)
                 setIsCustomizeModalOpen(true)
               }}
-              className="h-9.5 px-3.5 flex items-center justify-center bg-[#edf0f4] hover:bg-white text-slate-500 hover:text-orange-600 border-b border-b-slate-200/90 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="h-full w-9.5 flex items-center justify-center bg-[#e8ebef] hover:bg-white text-slate-500 hover:text-orange-600 border-b border-b-slate-300/80 transition-all cursor-pointer shrink-0 active:scale-95"
               title="Customize Home display mode & deck order"
             >
-              <SlidersHorizontal className="w-4 h-4 stroke-[2.2]" />
+              <SlidersHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
             </button>
           </div>
         </div>
 
         {/* MOBILE MAIN CONTENT */}
-        <div className="flex-1 bg-[#f3f5f8] overflow-hidden relative flex flex-col min-h-0">
+        <div className="flex-1 bg-[#f8fafc] overflow-hidden relative flex flex-col min-h-0">
           {activeHomeTab === 'roadmap' ? (
             <DashboardRoadmapSection
               roadmapDecks={sortedRoadmapDecks}

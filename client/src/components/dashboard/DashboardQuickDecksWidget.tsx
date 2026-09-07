@@ -25,47 +25,43 @@ interface DashboardQuickDecksWidgetProps {
 const DECK_PALETTES = [
   {
     theme: 'orange',
-    avatarBg: 'bg-[#FFE6D9]',
-    cardBorder: 'border-orange-200/90',
-    cardBg: 'bg-gradient-to-r from-orange-50/50 via-white to-amber-50/30',
-    barTrack: 'bg-orange-100/70',
-    barFill: 'bg-gradient-to-r from-orange-400 to-amber-500',
-    badgeBg: 'bg-orange-50 text-orange-600 border-orange-200/70',
-    pctText: 'text-orange-600',
-    emoji: '🌸'
+    avatarBg: 'bg-gradient-to-br from-orange-100 to-amber-100',
+    cardBorder: 'border-orange-500',
+    cardBg: 'bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50',
+    barTrack: 'bg-orange-100',
+    barFill: 'bg-gradient-to-r from-orange-400 to-[#FF7A00]',
+    mascotImage: '/mascot/mascot_flame_sakura.jpg',
+    accentColor: '#FF7A00'
   },
   {
     theme: 'purple',
-    avatarBg: 'bg-[#EDE9FE]',
-    cardBorder: 'border-indigo-100/90',
-    cardBg: 'bg-gradient-to-r from-indigo-50/40 via-white to-purple-50/25',
+    avatarBg: 'bg-gradient-to-br from-indigo-100 to-purple-100',
+    cardBorder: 'border-indigo-200/90',
+    cardBg: 'bg-gradient-to-r from-[#FAF8FF] via-white to-[#F5F3FF]',
     barTrack: 'bg-indigo-100/70',
     barFill: 'bg-gradient-to-r from-indigo-400 to-purple-500',
-    badgeBg: 'bg-indigo-50 text-indigo-600 border-indigo-200/70',
-    pctText: 'text-indigo-600',
-    emoji: '🦊'
+    mascotImage: '/mascot/mascot_fox_reading.jpg',
+    accentColor: '#7C3AED'
   },
   {
     theme: 'green',
-    avatarBg: 'bg-[#D1FAE5]',
-    cardBorder: 'border-emerald-100/90',
-    cardBg: 'bg-gradient-to-r from-emerald-50/40 via-white to-teal-50/25',
+    avatarBg: 'bg-gradient-to-br from-emerald-100 to-teal-100',
+    cardBorder: 'border-emerald-200/90',
+    cardBg: 'bg-gradient-to-r from-[#F4FBF7] via-white to-[#ECFDF5]',
     barTrack: 'bg-emerald-100/70',
     barFill: 'bg-gradient-to-r from-emerald-400 to-teal-500',
-    badgeBg: 'bg-emerald-50 text-emerald-600 border-emerald-200/70',
-    pctText: 'text-emerald-600',
-    emoji: '🍃'
+    mascotImage: '/mascot/mascot_leaf_spirit.jpg',
+    accentColor: '#059669'
   },
   {
     theme: 'blue',
-    avatarBg: 'bg-[#E0F2FE]',
-    cardBorder: 'border-sky-100/90',
-    cardBg: 'bg-gradient-to-r from-sky-50/40 via-white to-blue-50/25',
+    avatarBg: 'bg-gradient-to-br from-sky-100 to-blue-100',
+    cardBorder: 'border-sky-200/90',
+    cardBg: 'bg-gradient-to-r from-[#F0F9FF] via-white to-[#E0F2FE]',
     barTrack: 'bg-sky-100/70',
     barFill: 'bg-gradient-to-r from-sky-400 to-blue-500',
-    badgeBg: 'bg-sky-50 text-sky-600 border-sky-200/70',
-    pctText: 'text-sky-600',
-    emoji: '⚡'
+    mascotImage: '/mascot/mascot_flame_sakura.jpg',
+    accentColor: '#0284C7'
   }
 ]
 
@@ -123,7 +119,7 @@ export function DashboardQuickDecksWidget({
       </div>
 
       {/* ═══════════ SCROLLABLE DECK SELECTION LIST ═══════════ */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
         {activeDecks.length === 0 ? (
           <div className="py-12 text-center bg-white/90 backdrop-blur-xs rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center gap-2.5 p-5 shadow-xs">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-200 via-orange-300 to-rose-300 text-white flex items-center justify-center text-2xl shadow-sm animate-bounce">
@@ -159,9 +155,8 @@ export function DashboardQuickDecksWidget({
             
             const newRem = deck.new_remaining || 0
             const revRem = deck.review_remaining || 0
-            const totalDue = revRem + newRem
-            const hasDue = deck.has_due || totalDue > 0
             const palette = DECK_PALETTES[idx % DECK_PALETTES.length]
+            const mascotSrc = deck.cover_image || palette.mascotImage
 
             return (
               <div
@@ -171,71 +166,50 @@ export function DashboardQuickDecksWidget({
                   setSelectedDeckId(deckId)
                 }}
                 className={cn(
-                  "relative rounded-[26px] p-3 sm:p-3.5 flex items-center gap-3 transition-all duration-200 cursor-pointer select-none",
+                  "relative rounded-[26px] p-3.5 sm:p-4 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
                   isSelected
-                    ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/80 via-white to-amber-50/40 shadow-sm ring-1 ring-orange-400/20"
+                    ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50 shadow-sm ring-1 ring-orange-400/25"
                     : cn("border border-slate-200/80 hover:border-slate-300 shadow-2xs", palette.cardBg)
                 )}
               >
                 {/* Deck Mascot / Avatar */}
                 <div className="relative shrink-0">
                   <div className={cn(
-                    "w-13 h-13 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center p-0.5 overflow-hidden shadow-2xs border-2 border-white",
-                    isSelected ? "bg-[#FFE6D9]" : palette.avatarBg
+                    "w-16 h-16 sm:w-17 sm:h-17 rounded-[22px] flex items-center justify-center overflow-hidden shadow-xs border-2 border-white",
+                    palette.avatarBg
                   )}>
-                    {deck.cover_image ? (
-                      <img
-                        src={deck.cover_image}
-                        alt={deck.title}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = 'none';
-                          const fallback = (e.currentTarget.parentElement?.querySelector('.emoji-fallback') as HTMLElement);
-                          if (fallback) fallback.style.display = 'block';
-                        }}
-                        className="w-full h-full rounded-[14px] object-cover"
-                      />
-                    ) : null}
-                    <span className={cn(
-                      "text-2xl select-none emoji-fallback",
-                      deck.cover_image ? "hidden" : "block"
-                    )}>
-                      {palette.emoji}
-                    </span>
+                    <img
+                      src={mascotSrc}
+                      alt={deck.title}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = palette.mascotImage;
+                      }}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </div>
 
                 {/* Deck Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1.5">
-                    <h4 className="text-sm sm:text-[14.5px] font-black text-slate-900 tracking-tight leading-tight truncate">
+                    <h4 className="text-sm sm:text-[15px] font-black text-slate-900 tracking-tight leading-tight truncate">
                       {deck.title}
                     </h4>
 
-                    {/* Right Indicator: Checkmark if selected, or Due Badge / Chevron if not */}
+                    {/* Right Indicator: Checkmark if selected, Chevron if not */}
                     {isSelected ? (
-                      <div className="w-5.5 h-5.5 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <Check className="w-4 h-4 stroke-[3]" />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 shrink-0">
-                        {hasDue ? (
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full border text-[9.5px] font-black flex items-center gap-0.5",
-                            palette.badgeBg
-                          )}>
-                            <Flame className="w-3 h-3 fill-current" />
-                            <span>{totalDue} due</span>
-                          </span>
-                        ) : null}
-                        <ChevronRight className="w-4 h-4 text-slate-300 stroke-[2.5]" />
-                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 stroke-[2.5] shrink-0" />
                     )}
                   </div>
 
                   {/* Progress Bar with Percentage */}
-                  <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex items-center gap-2 mt-2">
                     <div className={cn(
-                      "flex-1 h-1.5 rounded-full overflow-hidden p-0.2 shadow-inner",
+                      "flex-1 h-2 rounded-full overflow-hidden p-0.5 shadow-inner",
                       isSelected ? "bg-orange-100" : palette.barTrack
                     )}>
                       <div
@@ -247,16 +221,16 @@ export function DashboardQuickDecksWidget({
                       />
                     </div>
                     {isSelected && (
-                      <span className="text-[11px] font-black text-orange-600 shrink-0 leading-none">
+                      <span className="text-xs font-black text-orange-600 shrink-0 leading-none">
                         {pct}%
                       </span>
                     )}
                   </div>
 
                   {/* High-density inline metrics */}
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 mt-1 flex-wrap">
+                  <div className="flex items-center gap-2 text-[10.5px] font-bold text-slate-500 mt-1.5 flex-wrap">
                     <span className="flex items-center gap-1">
-                      <BookOpen className="w-3 h-3 text-slate-400" />
+                      <BookOpen className="w-3.5 h-3.5 text-slate-400" />
                       <span>{learned}/{total} words</span>
                     </span>
                     <span className="text-slate-300">•</span>
@@ -273,20 +247,24 @@ export function DashboardQuickDecksWidget({
 
       {/* ═══════════ BOTTOM ACTION PANEL: "BẮT ĐẦU HỌC NGAY!" ═══════════ */}
       {currentSelectedDeck && (
-        <div className="relative z-20 pt-3.5 pb-2 bg-gradient-to-b from-white/95 to-white/100 backdrop-blur-md rounded-t-[30px] border-t border-orange-100 shadow-[0_-10px_35px_rgba(255,145,50,0.1)] flex flex-col gap-2.5 -mx-2.5 -mb-2.5 px-3 sm:px-4 flex-shrink-0">
+        <div className="relative z-20 pt-3 pb-2.5 bg-gradient-to-b from-white/95 via-white to-white backdrop-blur-md rounded-t-[28px] border-t border-orange-100 shadow-[0_-10px_30px_rgba(255,145,50,0.08)] flex flex-col gap-2 -mx-1 px-3 sm:px-4 flex-shrink-0">
           {/* Peeking Mascot & Decorative Sparkles */}
-          <div className="absolute -top-7 left-5 z-30 flex items-end select-none pointer-events-none">
+          <div className="absolute -top-8 left-4 z-30 flex items-end select-none pointer-events-none">
             <div className="relative">
-              <span className="text-3xl leading-none drop-shadow-sm">🔥</span>
-              <span className="absolute -top-1 -right-2 text-xs text-amber-400 animate-pulse">✨</span>
+              <img
+                src="/mascot/vocaburn_mascot_clean.png"
+                alt="Vocaburn Mascot"
+                className="w-12 h-12 object-contain drop-shadow-md -rotate-6"
+              />
+              <span className="absolute -top-1 -right-2 text-xs text-amber-400 animate-pulse select-none">✨</span>
             </div>
           </div>
 
           {/* Section Header */}
-          <div className="flex items-center justify-center gap-2 text-xs font-black text-slate-800 tracking-wide">
-            <span className="text-orange-500 font-extrabold text-sm">≥</span>
+          <div className="flex items-center justify-center gap-1.5 text-xs font-black text-slate-800 tracking-wide select-none">
+            <span className="text-orange-500 font-black text-sm">≥</span>
             <span>Bắt đầu học ngay!</span>
-            <span className="text-orange-500 font-extrabold text-sm">≤</span>
+            <span className="text-orange-500 font-black text-sm">≤</span>
           </div>
 
           {/* 2 Big Action Launch Buttons */}
@@ -302,8 +280,8 @@ export function DashboardQuickDecksWidget({
               className="h-14 px-3.5 rounded-[22px] bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/25 active:scale-[0.97] transition-all flex items-center justify-between cursor-pointer border-b-[3px] border-[#c44e00]"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8.5 h-8.5 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-lg shadow-inner shrink-0">
-                  🎴
+                <div className="w-8.5 h-8.5 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/30 text-white">
+                  <Layers className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div className="text-left min-w-0">
                   <span className="block text-xs font-black text-white leading-tight truncate">
@@ -328,8 +306,8 @@ export function DashboardQuickDecksWidget({
               className="h-14 px-3.5 rounded-[22px] bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.97] transition-all flex items-center justify-between cursor-pointer border-b-[3px] border-orange-200"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 flex items-center justify-center text-lg shadow-inner shrink-0 border border-orange-200/60 text-orange-500">
-                  🎯
+                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 flex items-center justify-center shrink-0 border border-orange-200/60 text-orange-500">
+                  <span className="text-base select-none">🎯</span>
                 </div>
                 <div className="text-left min-w-0">
                   <span className="block text-xs font-black text-slate-900 leading-tight truncate">
