@@ -130,7 +130,17 @@ class UserSettingsUpdateRequest(BaseModel):
     card_rating_mode: Optional[str] = None
     front_valign: Optional[str] = None
     front_halign: Optional[str] = None
+    front_font_size: Optional[str] = None
     back_valign: Optional[str] = None
     back_halign: Optional[str] = None
+    study_profiles: Optional[List[Any]] = None
+    active_profile_id: Optional[str] = None
+    home_active_tab: Optional[str] = None
+    roadmap_display_mode: Optional[str] = None
+    roadmap_deck_order: Optional[List[Any]] = None
+    learning_deck_order: Optional[List[Any]] = None
+
+    class Config:
+        extra = "allow"
 
 

@@ -49,10 +49,10 @@ export function HomeCustomizeModal({
       setDisplayMode(userSettings.roadmap_display_mode || 'carousel')
 
       // Order roadmap decks
-      const rmOrder = userSettings.roadmap_deck_order || []
+      const rmOrder = (userSettings.roadmap_deck_order || []).map((x: any) => String(x))
       const sortedRm = [...roadmapDecks].sort((a, b) => {
-        const idA = a.deck_id || a.id
-        const idB = b.deck_id || b.id
+        const idA = String(a.deck_id ?? a.id ?? '')
+        const idB = String(b.deck_id ?? b.id ?? '')
         const idxA = rmOrder.indexOf(idA)
         const idxB = rmOrder.indexOf(idB)
         if (idxA !== -1 && idxB !== -1) return idxA - idxB
@@ -63,10 +63,10 @@ export function HomeCustomizeModal({
       setOrderedRoadmapDecks(sortedRm)
 
       // Order learning decks
-      const lnOrder = userSettings.learning_deck_order || []
+      const lnOrder = (userSettings.learning_deck_order || []).map((x: any) => String(x))
       const sortedLn = [...activeDecks].sort((a, b) => {
-        const idA = a.deck_id || a.id
-        const idB = b.deck_id || b.id
+        const idA = String(a.deck_id ?? a.id ?? '')
+        const idB = String(b.deck_id ?? b.id ?? '')
         const idxA = lnOrder.indexOf(idA)
         const idxB = lnOrder.indexOf(idB)
         if (idxA !== -1 && idxB !== -1) return idxA - idxB
@@ -116,8 +116,12 @@ export function HomeCustomizeModal({
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      const roadmapIds = orderedRoadmapDecks.map(d => d.deck_id || d.id).filter(Boolean)
-      const learningIds = orderedLearningDecks.map(d => d.deck_id || d.id).filter(Boolean)
+      const roadmapIds = orderedRoadmapDecks
+        .map(d => d.deck_id ?? d.id)
+        .filter(id => id !== null && id !== undefined)
+      const learningIds = orderedLearningDecks
+        .map(d => d.deck_id ?? d.id)
+        .filter(id => id !== null && id !== undefined)
 
       await updateUserSettings({
         home_active_tab: defaultTab,
@@ -159,12 +163,12 @@ export function HomeCustomizeModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="w-full max-w-lg bg-white rounded-3xl sm:rounded-[2rem] shadow-2xl relative z-10 border border-slate-200/80 flex flex-col max-h-[88vh] overflow-hidden text-left"
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl relative z-10 border border-slate-200/90 flex flex-col max-h-[88vh] overflow-hidden text-left"
           >
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-white">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-500/25">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 via-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-500/25">
                   <SlidersHorizontal className="w-4.5 h-4.5" />
                 </div>
                 <div>
@@ -180,55 +184,57 @@ export function HomeCustomizeModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all cursor-pointer active:scale-95"
               >
                 <X className="w-4 h-4 stroke-[2.5]" />
               </button>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="px-4 pt-3 pb-2 bg-slate-50/80 border-b border-slate-100 flex items-center gap-1.5 flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setActiveTab('display')}
-                className={cn(
-                  "flex-1 py-2 px-2.5 rounded-xl text-xs font-black tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                  activeTab === 'display'
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-200/70"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Display & Tab</span>
-              </button>
+            {/* Navigation Tabs (Crisp Squared Segmented Bar) */}
+            <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 flex-shrink-0">
+              <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200/70 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('display')}
+                  className={cn(
+                    "flex-1 py-1.5 px-2.5 rounded-md text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer border select-none",
+                    activeTab === 'display'
+                      ? "bg-white text-orange-600 shadow-xs border-slate-200/80"
+                      : "bg-transparent text-slate-500 border-transparent hover:text-slate-800"
+                  )}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Display & Tab</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('roadmap_order')}
-                className={cn(
-                  "flex-1 py-2 px-2.5 rounded-xl text-xs font-black tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer relative",
-                  activeTab === 'roadmap_order'
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-200/70"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Roadmap ({orderedRoadmapDecks.length})</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('roadmap_order')}
+                  className={cn(
+                    "flex-1 py-1.5 px-2.5 rounded-md text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer border select-none relative",
+                    activeTab === 'roadmap_order'
+                      ? "bg-white text-orange-600 shadow-xs border-slate-200/80"
+                      : "bg-transparent text-slate-500 border-transparent hover:text-slate-800"
+                  )}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Roadmap ({orderedRoadmapDecks.length})</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('learning_order')}
-                className={cn(
-                  "flex-1 py-2 px-2.5 rounded-xl text-xs font-black tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer relative",
-                  activeTab === 'learning_order'
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-200/70"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Learning ({orderedLearningDecks.length})</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('learning_order')}
+                  className={cn(
+                    "flex-1 py-1.5 px-2.5 rounded-md text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer border select-none relative",
+                    activeTab === 'learning_order'
+                      ? "bg-white text-orange-600 shadow-xs border-slate-200/80"
+                      : "bg-transparent text-slate-500 border-transparent hover:text-slate-800"
+                  )}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Learning ({orderedLearningDecks.length})</span>
+                </button>
+              </div>
             </div>
 
             {/* Tab Body */}
@@ -615,7 +621,7 @@ export function HomeCustomizeModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-black transition-all cursor-pointer active:scale-95"
+                  className="px-4 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-black transition-all cursor-pointer active:scale-95 shadow-2xs"
                 >
                   Cancel
                 </button>
@@ -625,10 +631,10 @@ export function HomeCustomizeModal({
                   onClick={handleSave}
                   disabled={isSaving}
                   className={cn(
-                    "px-5 py-2.5 rounded-2xl text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95",
+                    "px-4 py-2 rounded-lg text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95",
                     saveSuccess
                       ? "bg-emerald-600 shadow-emerald-500/20"
-                      : "bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/25"
+                      : "bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/20"
                   )}
                 >
                   {saveSuccess ? (

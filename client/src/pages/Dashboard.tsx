@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2 } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2, SlidersHorizontal } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1452,11 +1452,11 @@ export default function Dashboard() {
 
   const sortedRoadmapDecks = useMemo(() => {
     if (!roadmapDecks || roadmapDecks.length === 0) return []
-    const order = userSettings?.roadmap_deck_order || []
+    const order = (userSettings?.roadmap_deck_order || []).map((x: any) => String(x))
     if (order.length === 0) return roadmapDecks
     return [...roadmapDecks].sort((a, b) => {
-      const idA = a.deck_id || a.id
-      const idB = b.deck_id || b.id
+      const idA = String(a.deck_id ?? a.id ?? '')
+      const idB = String(b.deck_id ?? b.id ?? '')
       const idxA = order.indexOf(idA)
       const idxB = order.indexOf(idB)
       if (idxA !== -1 && idxB !== -1) return idxA - idxB
@@ -1468,11 +1468,11 @@ export default function Dashboard() {
 
   const sortedActiveDecks = useMemo(() => {
     if (!activeDecks || activeDecks.length === 0) return []
-    const order = userSettings?.learning_deck_order || []
+    const order = (userSettings?.learning_deck_order || []).map((x: any) => String(x))
     if (order.length === 0) return activeDecks
     return [...activeDecks].sort((a, b) => {
-      const idA = a.deck_id || a.id
-      const idB = b.deck_id || b.id
+      const idA = String(a.deck_id ?? a.id ?? '')
+      const idB = String(b.deck_id ?? b.id ?? '')
       const idxA = order.indexOf(idA)
       const idxB = order.indexOf(idB)
       if (idxA !== -1 && idxB !== -1) return idxA - idxB
@@ -1874,51 +1874,68 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* MOBILE SUB-TAB SWITCHER & CUSTOMIZE BUTTON */}
-        <div className="bg-white px-3 sm:px-4 py-1.5 border-b border-slate-100 flex items-center justify-between gap-2 flex-shrink-0 shadow-2xs z-20">
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-2xl flex-1 max-w-xs">
+        {/* MOBILE SUB-TAB SWITCHER & OPTIONS (Crisp, Modern, Vuông vức) */}
+        <div className="bg-white px-3 sm:px-4 py-2 border-b border-slate-200/90 flex items-center justify-between gap-2.5 flex-shrink-0 z-20 shadow-2xs">
+          {/* Segmented Control with Crisp Squared Structure */}
+          <div className="flex items-center p-1 bg-slate-100/90 rounded-lg flex-1 border border-slate-200/80 gap-1">
             <button
               type="button"
               onClick={() => {
                 setActiveHomeTab('roadmap')
                 if (navigator.vibrate) navigator.vibrate(6)
+                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
               }}
               className={cn(
-                "flex-1 py-1.5 px-2 rounded-xl text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                "flex-1 py-1.5 px-3 rounded-md text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer border select-none",
                 activeHomeTab === 'roadmap'
-                  ? "bg-white text-orange-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-slate-900 border-slate-200/90 shadow-xs"
+                  : "bg-transparent text-slate-500 border-transparent hover:text-slate-800"
               )}
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Roadmap ({sortedRoadmapDecks.length})</span>
+              <Layers className={cn("w-3.5 h-3.5 stroke-[2.5]", activeHomeTab === 'roadmap' ? "text-orange-500" : "text-slate-400")} />
+              <span>Roadmap</span>
+              <span className={cn(
+                "px-1.5 py-0.5 rounded text-[10px] font-black leading-none",
+                activeHomeTab === 'roadmap' ? "bg-orange-500 text-white" : "bg-slate-200 text-slate-600"
+              )}>
+                {sortedRoadmapDecks.length}
+              </span>
             </button>
+
             <button
               type="button"
               onClick={() => {
                 setActiveHomeTab('learning')
                 if (navigator.vibrate) navigator.vibrate(6)
+                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
               }}
               className={cn(
-                "flex-1 py-1.5 px-2 rounded-xl text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                "flex-1 py-1.5 px-3 rounded-md text-xs font-black tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer border select-none",
                 activeHomeTab === 'learning'
-                  ? "bg-white text-orange-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white text-slate-900 border-slate-200/90 shadow-xs"
+                  : "bg-transparent text-slate-500 border-transparent hover:text-slate-800"
               )}
             >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Learning ({sortedActiveDecks.length})</span>
+              <BookOpen className={cn("w-3.5 h-3.5 stroke-[2.5]", activeHomeTab === 'learning' ? "text-orange-500" : "text-slate-400")} />
+              <span>Learning</span>
+              <span className={cn(
+                "px-1.5 py-0.5 rounded text-[10px] font-black leading-none",
+                activeHomeTab === 'learning' ? "bg-orange-500 text-white" : "bg-slate-200 text-slate-600"
+              )}>
+                {sortedActiveDecks.length}
+              </span>
             </button>
           </div>
 
-          {/* ⚙️ Customize Home Button */}
+          {/* ⚙️ Options Button (Matching Height & Crisp Squared Corners) */}
           <button
             type="button"
             onClick={() => setIsCustomizeModalOpen(true)}
-            className="w-8 h-8 rounded-2xl bg-slate-100 hover:bg-orange-50 hover:text-orange-600 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs active:scale-95"
-            title="Customize Home & Order"
+            className="h-[38px] px-3 rounded-lg bg-white hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300 border border-slate-200/90 text-slate-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95 text-xs font-black"
+            title="Customize Home display mode and deck ordering"
           >
-            <Settings className="w-4 h-4" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+            <span className="hidden xs:inline">Options</span>
           </button>
         </div>
 

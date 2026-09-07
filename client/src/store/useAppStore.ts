@@ -67,7 +67,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       userSettings: { ...state.userSettings, ...partialSettings }
     }))
     try {
-      await authApi.updateUserSettings(partialSettings)
+      const res = await authApi.updateUserSettings(partialSettings)
+      if (res?.settings) {
+        set((state) => ({
+          userSettings: { ...state.userSettings, ...res.settings }
+        }))
+      }
     } catch (e) {
       console.error("Failed to persist user settings to DB", e)
     }
