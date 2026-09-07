@@ -2006,8 +2006,8 @@ export default function Dashboard() {
         <HomeCustomizeModal
           isOpen={isCustomizeModalOpen}
           onClose={() => setIsCustomizeModalOpen(false)}
-          roadmapDecks={sortedRoadmapDecks}
-          activeDecks={sortedActiveDecks}
+          roadmapDecks={roadmapDecks || []}
+          activeDecks={activeDecks || []}
         />
 
       </AnimatePresence>

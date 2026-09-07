@@ -292,7 +292,7 @@ export function HomeCustomizeModal({
                   )}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Shortcuts ({selectedLearningIds.size})</span>
+                  <span>Learning ({selectedLearningIds.size})</span>
                 </button>
               </div>
             </div>
@@ -670,7 +670,7 @@ export function HomeCustomizeModal({
                 </div>
               )}
 
-              {/* ══════════════ TAB 3: SHORTCUT DECKS SELECTION & ORDER ══════════════ */}
+              {/* ══════════════ TAB 3: LEARNING DECKS SELECTION & ORDER ══════════════ */}
               {activeTab === 'learning_order' && (
                 <div className="space-y-4">
                   {/* Top Toolbar */}
@@ -678,10 +678,10 @@ export function HomeCustomizeModal({
                     <div>
                       <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-                        <span>Pinned Shortcuts ({pinnedLearningDecks.length} of {activeDecks.length})</span>
+                        <span>Pinned Decks ({pinnedLearningDecks.length} of {activeDecks.length})</span>
                       </h4>
                       <p className="text-[10px] text-slate-500 font-bold">
-                        Only checked decks will appear as shortcuts on Home
+                        Only checked decks will appear on the Learning tab
                       </p>
                     </div>
 
@@ -714,7 +714,7 @@ export function HomeCustomizeModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        Pinned Shortcuts (Drag or use arrows to order)
+                        Pinned Decks (Drag or use arrows to order)
                       </span>
                       <span className="text-[10px] font-extrabold text-orange-600">
                         {pinnedLearningDecks.length} Pinned
@@ -723,7 +723,7 @@ export function HomeCustomizeModal({
 
                     {pinnedLearningDecks.length === 0 ? (
                       <div className="py-6 text-center text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-4">
-                        No decks pinned to shortcuts. Tap "+ Add" on any deck below to pin!
+                        No decks pinned yet. Tap "+ Add" on any deck below to pin!
                       </div>
                     ) : (
                       <Reorder.Group
@@ -744,14 +744,14 @@ export function HomeCustomizeModal({
                             <Reorder.Item
                               key={id}
                               value={deck}
-                              className="bg-white border border-orange-200/90 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2.5 touch-none group hover:border-orange-300 transition-colors"
+                              className="bg-white border-2 border-orange-400/80 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2.5 touch-none group hover:border-orange-500 transition-colors"
                             >
                               {/* Checkbox to toggle pin */}
                               <button
                                 type="button"
                                 onClick={() => toggleLearningDeck(id)}
                                 className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-2xs hover:bg-rose-500 transition-colors cursor-pointer"
-                                title="Click to unpin from shortcuts"
+                                title="Click to unpin from Home"
                               >
                                 <Check className="w-3.5 h-3.5 stroke-[3]" />
                               </button>
@@ -825,7 +825,7 @@ export function HomeCustomizeModal({
                           Available Decks ({unpinnedLearningDecks.length})
                         </span>
                         <span className="text-[10px] font-bold text-slate-400">
-                          Click + to pin to shortcuts
+                          Click to pin to Learning
                         </span>
                       </div>
 
@@ -841,35 +841,30 @@ export function HomeCustomizeModal({
                           return (
                             <div
                               key={id}
-                              className="bg-slate-50/70 border border-slate-200/70 rounded-2xl p-2 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-colors"
+                              onClick={() => toggleLearningDeck(id)}
+                              className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-2.5 flex items-center justify-between gap-2.5 hover:bg-white hover:border-orange-300 transition-all cursor-pointer select-none group"
                             >
                               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleLearningDeck(id)}
-                                  className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-400 hover:border-orange-400 hover:text-orange-500 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                                <div
+                                  className="w-6 h-6 rounded-lg bg-white border-2 border-slate-300 group-hover:border-orange-400 flex items-center justify-center shrink-0 transition-colors"
                                   title="Click to pin"
                                 >
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
+                                  <Plus className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-500" />
+                                </div>
 
                                 <div className="min-w-0 flex-1">
-                                  <h4 className="text-xs font-bold text-slate-700 truncate">
+                                  <h4 className="text-xs font-black text-slate-800 truncate">
                                     {deck.title}
                                   </h4>
-                                  <p className="text-[9px] font-medium text-slate-400">
+                                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">
                                     {learned}/{total} words • {pct}%
                                   </p>
                                 </div>
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => toggleLearningDeck(id)}
-                                className="px-2.5 py-1 rounded-xl bg-white hover:bg-orange-500 hover:text-white border border-slate-200 text-slate-600 text-[10px] font-black transition-all cursor-pointer shadow-2xs shrink-0 active:scale-95"
-                              >
+                              <span className="px-2.5 py-1 rounded-xl bg-white group-hover:bg-orange-500 group-hover:text-white border border-slate-200 text-slate-600 text-[10px] font-black transition-all shadow-2xs shrink-0">
                                 + Add
-                              </button>
+                              </span>
                             </div>
                           )
                         })}

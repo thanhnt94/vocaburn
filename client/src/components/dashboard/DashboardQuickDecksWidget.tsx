@@ -89,37 +89,26 @@ export function DashboardQuickDecksWidget({
 
   return (
     <div className="h-full w-full flex flex-col justify-between overflow-hidden text-left select-none relative">
-      {/* ═══════════ TOP HEADER: LEARNING TITLE + SORT BUTTON ═══════════ */}
+      {/* ═══════════ TOP HEADER: LEARNING TITLE (Sort button removed as requested) ═══════════ */}
       <div className="flex items-center justify-between px-1 pt-1 pb-2 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8.5 h-8.5 rounded-2xl bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center shadow-2xs">
-            <BookOpen className="w-4.5 h-4.5 stroke-[2.4]" />
+          <div className="w-9 h-9 rounded-2xl bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center shadow-2xs">
+            <BookOpen className="w-5 h-5 stroke-[2.4]" />
           </div>
           <div>
-            <h3 className="text-base font-black text-slate-900 tracking-tight leading-none">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
               Learning
             </h3>
-            <p className="text-[11px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
+            <p className="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1">
               <span>Chọn bộ thẻ bạn muốn học</span>
               <span className="text-amber-500">✨</span>
             </p>
           </div>
         </div>
-
-        {onOpenCustomize && (
-          <button
-            type="button"
-            onClick={onOpenCustomize}
-            className="px-3.5 py-1.5 rounded-full bg-white border border-slate-200/80 hover:border-orange-300 text-slate-700 hover:text-orange-600 text-xs font-bold flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all cursor-pointer"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
-            <span>Sort</span>
-          </button>
-        )}
       </div>
 
-      {/* ═══════════ SCROLLABLE DECK SELECTION LIST ═══════════ */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
+      {/* ═══════════ SCROLLABLE DECK SELECTION LIST (Enlarged Card Proportions) ═══════════ */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-0.5 pb-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
         {activeDecks.length === 0 ? (
           <div className="py-12 text-center bg-white/90 backdrop-blur-xs rounded-3xl border-2 border-dashed border-orange-200 flex flex-col items-center justify-center gap-2.5 p-5 shadow-xs">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-200 via-orange-300 to-rose-300 text-white flex items-center justify-center text-2xl shadow-sm animate-bounce">
@@ -130,18 +119,9 @@ export function DashboardQuickDecksWidget({
                 Chưa có bộ thẻ nào được ghim ✨
               </h4>
               <p className="text-xs text-slate-400 font-medium max-w-xs mt-1">
-                Bấm nút Sort ở trên để chọn các bộ thẻ bạn muốn học nhé!
+                Vào cài đặt để chọn các bộ thẻ bạn muốn học nhé!
               </p>
             </div>
-            {onOpenCustomize && (
-              <button
-                type="button"
-                onClick={onOpenCustomize}
-                className="mt-1 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-md shadow-orange-500/25 active:scale-95 transition-all cursor-pointer border-b-2 border-orange-700"
-              >
-                Chọn bộ thẻ học
-              </button>
-            )}
           </div>
         ) : (
           activeDecks.map((deck, idx) => {
@@ -166,16 +146,16 @@ export function DashboardQuickDecksWidget({
                   setSelectedDeckId(deckId)
                 }}
                 className={cn(
-                  "relative rounded-[26px] p-3.5 sm:p-4 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
+                  "relative rounded-[28px] p-4 sm:p-4.5 flex items-center gap-4 transition-all duration-200 cursor-pointer select-none",
                   isSelected
-                    ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50 shadow-sm ring-1 ring-orange-400/25"
-                    : cn("border border-slate-200/80 hover:border-slate-300 shadow-2xs", palette.cardBg)
+                    ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/95 via-white to-amber-50/60 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/25"
+                    : cn("border border-slate-200/90 hover:border-slate-300 shadow-xs", palette.cardBg)
                 )}
               >
                 {/* Deck Mascot / Avatar */}
                 <div className="relative shrink-0">
                   <div className={cn(
-                    "w-16 h-16 sm:w-17 sm:h-17 rounded-[22px] flex items-center justify-center overflow-hidden shadow-xs border-2 border-white",
+                    "w-18 h-18 sm:w-20 sm:h-20 rounded-[24px] flex items-center justify-center overflow-hidden shadow-xs border-2 border-white",
                     palette.avatarBg
                   )}>
                     <img
@@ -191,14 +171,14 @@ export function DashboardQuickDecksWidget({
 
                 {/* Deck Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <h4 className="text-sm sm:text-[15px] font-black text-slate-900 tracking-tight leading-tight truncate">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-[15px] sm:text-base font-black text-slate-900 tracking-tight leading-tight truncate">
                       {deck.title}
                     </h4>
 
                     {/* Right Indicator: Checkmark if selected, Chevron if not */}
                     {isSelected ? (
-                      <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <div className="w-6.5 h-6.5 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
                         <Check className="w-4 h-4 stroke-[3]" />
                       </div>
                     ) : (
@@ -206,8 +186,20 @@ export function DashboardQuickDecksWidget({
                     )}
                   </div>
 
+                  {/* High-density inline metrics */}
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mt-2 flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{learned}/{total} words</span>
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span>Review: <strong className={cn("font-black", isSelected ? "text-orange-600" : "text-slate-700")}>{revRem}</strong></span>
+                    <span className="text-slate-300">•</span>
+                    <span>New: <strong className={cn("font-black", isSelected ? "text-amber-600" : "text-slate-700")}>{newRem}</strong></span>
+                  </div>
+
                   {/* Progress Bar with Percentage */}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2.5 mt-2">
                     <div className={cn(
                       "flex-1 h-2 rounded-full overflow-hidden p-0.5 shadow-inner",
                       isSelected ? "bg-orange-100" : palette.barTrack
@@ -221,22 +213,10 @@ export function DashboardQuickDecksWidget({
                       />
                     </div>
                     {isSelected && (
-                      <span className="text-xs font-black text-orange-600 shrink-0 leading-none">
+                      <span className="text-xs sm:text-[13px] font-black text-orange-600 shrink-0 leading-none">
                         {pct}%
                       </span>
                     )}
-                  </div>
-
-                  {/* High-density inline metrics */}
-                  <div className="flex items-center gap-2 text-[10.5px] font-bold text-slate-500 mt-1.5 flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{learned}/{total} words</span>
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span>Review: <strong className={cn("font-black", isSelected ? "text-orange-600" : "text-slate-700")}>{revRem}</strong></span>
-                    <span className="text-slate-300">•</span>
-                    <span>New: <strong className={cn("font-black", isSelected ? "text-amber-600" : "text-slate-700")}>{newRem}</strong></span>
                   </div>
                 </div>
               </div>
