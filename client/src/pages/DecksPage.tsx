@@ -110,6 +110,7 @@ export default function DecksPage() {
   
   // Selection State (Master-Detail matching Home Learning)
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null)
+  const [roadmapMode, setRoadmapMode] = useState<'roadmap' | 'classic'>('roadmap')
 
   // Modals State
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<Quiz | null>(null)
@@ -207,7 +208,9 @@ export default function DecksPage() {
   useEffect(() => {
     if (paginatedData.length > 0) {
       if (!selectedDeckId || !paginatedData.some(q => q.id === selectedDeckId)) {
-        setSelectedDeckId(paginatedData[0].id)
+        const first = paginatedData[0]
+        setSelectedDeckId(first.id)
+        if (first.has_roadmap) setRoadmapMode('roadmap')
       }
     } else {
       setSelectedDeckId(null)
@@ -265,11 +268,11 @@ export default function DecksPage() {
 
   return (
     <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
-      {/* ═══════════ TOP WARM & FRIENDLY HEADER ═══════════ */}
+      {/* ═══════════ TOP UNIFIED HEADER (BRAND + TABS + FILTERS) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 md:bg-[#F8FAFC]/95 md:backdrop-blur-md border-b border-slate-200/80 shadow-2xs md:shadow-none">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
-          {/* Row 1: Header Brand & Quick Actions */}
-          <div className="flex items-center justify-between pt-3 pb-2.5 md:py-2.5">
+          {/* Row 1: Header Brand, Desktop Tabs, and Quick Actions */}
+          <div className="flex items-center justify-between pt-3 pb-2 md:py-2.5">
             {/* Left: Warm Branding with Mascot / Orange Badge */}
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-2xs shrink-0">
@@ -283,6 +286,31 @@ export default function DecksPage() {
                   <span className="px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/70 text-orange-700 text-[10px] font-black shrink-0 leading-none">
                     {filteredData.length}
                   </span>
+
+                  {/* Compact Header Stepper Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-0.5 bg-slate-100/90 rounded-xl p-0.5 border border-slate-200/70 shrink-0">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        className="w-5.5 h-5.5 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white disabled:opacity-25 cursor-pointer transition-all"
+                        title="Previous page"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </button>
+                      <span className="px-1 text-[9.5px] font-black font-mono text-slate-700 leading-none">
+                        {currentPage}/{totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="w-5.5 h-5.5 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white disabled:opacity-25 cursor-pointer transition-all"
+                        title="Next page"
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1 leading-none truncate">
                   <span>Choose a deck to study</span>
@@ -335,7 +363,7 @@ export default function DecksPage() {
             </div>
 
             {/* Right: Quick actions (Desktop & Mobile) */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Quick Search on Desktop */}
               <div className="relative hidden md:block w-48 lg:w-64">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -392,6 +420,40 @@ export default function DecksPage() {
             </div>
           </div>
 
+          {/* Row 2 on Mobile: Modern Sub-Tabs (My Decks, Discover, Archived moved to top!) */}
+          <div className="md:hidden flex items-center justify-start gap-6 border-t border-slate-100 pt-2 pb-1.5">
+            {tabsConfig.map((tab) => {
+              const isActive = activeTab === tab.id
+              const TabIcon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative flex items-center gap-1.5 pb-1 text-xs transition-all select-none cursor-pointer",
+                    isActive ? "text-slate-900 font-extrabold" : "text-slate-500 hover:text-slate-800 font-semibold"
+                  )}
+                >
+                  <TabIcon className={cn("w-3.5 h-3.5", isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400")} />
+                  <span>{tab.label}</span>
+                  <span className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[10px] font-black leading-none",
+                    isActive ? "bg-orange-500 text-white shadow-xs" : "bg-slate-100 text-slate-500"
+                  )}>
+                    {tab.count}
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="mobileDecksHeaderUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
           {/* Collapsible Search Input for Mobile */}
           <AnimatePresence>
             {isSearchOpen && (
@@ -424,8 +486,8 @@ export default function DecksPage() {
             )}
           </AnimatePresence>
 
-          {/* Row 2: Horizontal Scrollable Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-0.5 md:border-t md:border-slate-100 md:pt-1.5 md:pb-2">
+          {/* Row 3: Horizontal Scrollable Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-1 md:border-t md:border-slate-100 md:pt-1.5 md:pb-2">
             {activeTab === 'my' && (
               <>
                 {[
@@ -441,7 +503,7 @@ export default function DecksPage() {
                       key={st.id}
                       onClick={() => setStatusFilter(st.id)}
                       className={cn(
-                        "px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 border cursor-pointer select-none",
+                        "px-3 py-1 rounded-xl text-xs font-black transition-all shrink-0 border cursor-pointer select-none",
                         isSelected
                           ? st.id === 'roadmap'
                             ? "bg-teal-600 border-teal-600 text-white shadow-xs"
@@ -461,7 +523,7 @@ export default function DecksPage() {
             <button 
               onClick={() => setActiveTag(null)}
               className={cn(
-                "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
+                "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
                 !activeTag 
                   ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20" 
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -477,7 +539,7 @@ export default function DecksPage() {
                   key={tag}
                   onClick={() => setActiveTag(isActive ? null : tag)}
                   className={cn(
-                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
+                    "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
                     isActive
                       ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20"
                       : "bg-white border-slate-200 text-slate-600 hover:border-orange-200 hover:bg-orange-50/40 hover:text-orange-600"
@@ -515,351 +577,362 @@ export default function DecksPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-3.5">
-              <AnimatePresence mode="popLayout">
-                {paginatedData.map((quiz, idx) => {
-                  const isSelected = (selectedDeck?.id ?? null) === quiz.id
-                  const learned = quiz.learned_count || 0
-                  const total = quiz.questions_count || 1
-                  const progressPct = quiz.progress_percent ?? Math.min(100, Math.round((learned / total) * 100))
-                  const formattedDate = formatDate(quiz.created_at)
-                  const palette = DECK_PALETTES[idx % DECK_PALETTES.length]
-                  const mascotSrc = quiz.cover_image ? resolveMediaUrl(quiz.cover_image) : palette.mascotImage
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-3.5">
+                <AnimatePresence mode="popLayout">
+                  {paginatedData.map((quiz, idx) => {
+                    const isSelected = (selectedDeck?.id ?? null) === quiz.id
+                    const learned = quiz.learned_count || 0
+                    const total = quiz.questions_count || 1
+                    const progressPct = quiz.progress_percent ?? Math.min(100, Math.round((learned / total) * 100))
+                    const formattedDate = formatDate(quiz.created_at)
+                    const palette = DECK_PALETTES[idx % DECK_PALETTES.length]
+                    const mascotSrc = quiz.cover_image ? resolveMediaUrl(quiz.cover_image) : palette.mascotImage
 
-                  return (
-                    <motion.div
-                      key={quiz.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: idx * 0.02 }}
-                      onClick={() => {
-                        if (navigator.vibrate) navigator.vibrate(6)
-                        setSelectedDeckId(quiz.id)
-                      }}
-                      className={cn(
-                        "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
-                        isSelected
-                          ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/95 via-white to-amber-50/60 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/25"
-                          : cn("border border-slate-200/90 hover:border-slate-300 shadow-xs", palette.cardBg)
-                      )}
-                    >
-                      {/* Deck Mascot / Avatar */}
-                      <div className="relative shrink-0">
-                        <div className={cn(
-                          "w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] flex items-center justify-center overflow-hidden shadow-xs border-2 border-white",
-                          palette.avatarBg
-                        )}>
-                          <img
-                            src={mascotSrc}
-                            alt={quiz.title}
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = palette.mascotImage
-                            }}
-                            className="w-full h-full object-cover"
-                          />
+                    return (
+                      <motion.div
+                        key={quiz.id}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ delay: idx * 0.02 }}
+                        onClick={() => {
+                          if (navigator.vibrate) navigator.vibrate(6)
+                          if (selectedDeckId === quiz.id) {
+                            navigate(`/decks/${quiz.id}`)
+                          } else {
+                            setSelectedDeckId(quiz.id)
+                            if (quiz.has_roadmap) setRoadmapMode('roadmap')
+                          }
+                        }}
+                        className={cn(
+                          "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
+                          isSelected
+                            ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/95 via-white to-amber-50/60 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/25"
+                            : cn("border border-slate-200/90 hover:border-slate-300 shadow-xs", palette.cardBg)
+                        )}
+                      >
+                        {/* Deck Mascot / Avatar */}
+                        <div className="relative shrink-0">
+                          <div className={cn(
+                            "w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] flex items-center justify-center overflow-hidden shadow-xs border-2 border-white",
+                            palette.avatarBg
+                          )}>
+                            <img
+                              src={mascotSrc}
+                              alt={quiz.title}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = palette.mascotImage
+                              }}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Deck Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight truncate">
-                              {quiz.title}
-                            </h4>
-                            {quiz.has_roadmap && (
-                              <span 
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-extrabold text-[9.5px] shrink-0"
-                                title="Smart daily roadmap enabled"
-                              >
-                                <Compass className="w-2.5 h-2.5 text-teal-600 animate-spin-slow" />
-                                <span>Roadmap</span>
-                              </span>
+                        {/* Deck Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight truncate">
+                                {quiz.title}
+                              </h4>
+                              {quiz.has_roadmap && (
+                                <span 
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-extrabold text-[9.5px] shrink-0"
+                                  title="Smart daily roadmap enabled"
+                                >
+                                  <Compass className="w-2.5 h-2.5 text-teal-600 animate-spin-slow" />
+                                  <span>Roadmap</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Right Indicator: Checkmark if selected, subtle Chevron if not */}
+                            {isSelected ? (
+                              <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              </div>
+                            ) : (
+                              <ChevronRight className="w-4.5 h-4.5 text-slate-300 stroke-[2.5] shrink-0" />
                             )}
                           </div>
 
-                          {/* Right Indicator: Checkmark if selected, subtle Chevron if not */}
-                          {isSelected ? (
-                            <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            </div>
-                          ) : (
-                            <ChevronRight className="w-4.5 h-4.5 text-slate-300 stroke-[2.5] shrink-0" />
-                          )}
-                        </div>
-
-                        {/* Meta Badges: Cards count, creator, compact date */}
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-1.5 flex-wrap">
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/60 text-slate-700 text-[10px] font-bold">
-                            📚 {quiz.questions_count} cards
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span className="text-slate-600 font-bold truncate max-w-[120px]">
-                            @{quiz.creator_name || 'Vocaburn'}
-                          </span>
-                          {formattedDate && (
-                            <>
-                              <span className="text-slate-300">•</span>
-                              <span className="text-slate-400 font-medium text-[10px]">
-                                {formattedDate}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Progress Bar (if not in discover tab) */}
-                        {activeTab !== 'discover' && (
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <div className={cn(
-                              "flex-1 h-1.5 rounded-full overflow-hidden p-0.5 shadow-inner",
-                              isSelected ? "bg-orange-100" : palette.barTrack
-                            )}>
-                              <div
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-500",
-                                  isSelected ? "bg-gradient-to-r from-orange-400 to-amber-500" : palette.barFill
-                                )}
-                                style={{ width: `${Math.max(progressPct, total > 0 ? 3 : 0)}%` }}
-                              />
-                            </div>
-                            <span className={cn(
-                              "text-[10.5px] font-black shrink-0 leading-none font-mono",
-                              isSelected ? "text-orange-600" : "text-slate-500"
-                            )}>
-                              {progressPct}%
+                          {/* Meta Badges: Cards count, creator, compact date */}
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-1.5 flex-wrap">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/60 text-slate-700 text-[10px] font-bold">
+                              📚 {quiz.questions_count} cards
                             </span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-slate-600 font-bold truncate max-w-[120px]">
+                              @{quiz.creator_name || 'Vocaburn'}
+                            </span>
+                            {formattedDate && (
+                              <>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-400 font-medium text-[10px]">
+                                  {formattedDate}
+                                </span>
+                              </>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* ═══════════ SELECTED DECK ACTION DOCK (FIXED AT BOTTOM ABOVE TABS) ═══════════ */}
-      {selectedDeck && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2.5">
-          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col gap-2">
-            {/* Top Bar in Dock: Selected deck preview + Pagination Stepper + Details */}
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              {/* Left: Active Deck Info */}
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-lg overflow-hidden bg-orange-100 shrink-0 border border-orange-200/60 flex items-center justify-center">
-                  {selectedDeck.cover_image ? (
-                    <img src={resolveMediaUrl(selectedDeck.cover_image)} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xs">🎴</span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h5 className="text-xs font-black text-slate-800 truncate leading-none">
-                    {selectedDeck.title}
-                  </h5>
-                  <span className="text-[10px] font-bold text-slate-400 mt-0.5 block truncate">
-                    {selectedDeck.questions_count} cards • {selectedDeck.learned_count || 0} learned
-                  </span>
-                </div>
+                          {/* Progress Bar (if not in discover tab) */}
+                          {activeTab !== 'discover' && (
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <div className={cn(
+                                "flex-1 h-1.5 rounded-full overflow-hidden p-0.5 shadow-inner",
+                                isSelected ? "bg-orange-100" : palette.barTrack
+                              )}>
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-500",
+                                    isSelected ? "bg-gradient-to-r from-orange-400 to-amber-500" : palette.barFill
+                                  )}
+                                  style={{ width: `${Math.max(progressPct, total > 0 ? 3 : 0)}%` }}
+                                />
+                              </div>
+                              <span className={cn(
+                                "text-[10.5px] font-black shrink-0 leading-none font-mono",
+                                isSelected ? "text-orange-600" : "text-slate-500"
+                              )}>
+                                {progressPct}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
               </div>
 
-              {/* Right: Stepper Pagination + Details button */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                {/* Details Button */}
-                <button
-                  onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                  className="h-7.5 px-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-[11px] flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-2xs"
-                  title="Open full deck details"
-                >
-                  <Eye className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="hidden xs:inline sm:inline">Details</span>
-                </button>
-
-                {/* Compact Pagination Stepper */}
-                <div className="flex items-center gap-1 bg-slate-100/90 rounded-xl p-0.5 border border-slate-200/60">
+              {/* Bottom In-List Pagination Bar */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 pt-6 pb-2">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage <= 1}
-                    className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all"
-                    title="Previous page"
+                    className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-35 cursor-pointer shadow-2xs flex items-center gap-1 transition-all"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
                   </button>
-                  <span className="px-1.5 text-[10.5px] font-black text-slate-700 font-mono">
-                    {currentPage}/{totalPages}
+                  <span className="text-xs font-bold text-slate-500 font-mono">
+                    Page <strong className="text-slate-800 font-black">{currentPage}</strong> of <strong className="text-slate-800 font-black">{totalPages}</strong>
                   </span>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage >= totalPages}
-                    className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all"
-                    title="Next page"
+                    className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-35 cursor-pointer shadow-2xs flex items-center gap-1 transition-all"
                   >
+                    <span>Next</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              </div>
-            </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
-            {/* Bottom Bar in Dock: Dynamic Action Buttons based on Active Tab */}
+      {/* ═══════════ STRICTLY SINGLE-ROW BOTTOM ACTION DOCK (H-[54PX]) ═══════════ */}
+      {selectedDeck && (
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2">
             {activeTab === 'my' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {/* Button 1: Study Flashcards (Split: Direct Launch + Mode Selector) */}
-                <div className="flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
-                  <button
-                    onClick={() => handleLaunchDefaultStudy(selectedDeck)}
-                    className="flex-1 h-11 sm:h-12 pl-3 pr-2 flex items-center gap-2 cursor-pointer active:scale-[0.98] transition-all min-w-0"
-                    title="Launch default study mode"
-                  >
-                    <div className="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                    </div>
-                    <div className="text-left min-w-0 truncate">
-                      <span className="block text-xs font-black leading-tight truncate">Study Flashcards</span>
-                      <span className="block text-[9.5px] font-bold text-amber-100 leading-tight truncate">FSRS Algorithm</span>
-                    </div>
-                  </button>
-
-                  <div className="w-[1px] h-6 bg-white/25 shrink-0" />
-
-                  <button
-                    onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
-                    className="h-11 sm:h-12 px-2 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                    title="Choose study mode (Roadmap, Flip, Review, New)"
-                  >
-                    <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                </div>
-
-                {/* Button 2: Practice Quiz */}
+              <>
+                {/* Small Compact Archive Button */}
                 <button
-                  onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                  className="h-11 sm:h-12 px-3 rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.98] transition-all flex items-center justify-between cursor-pointer border-b-[3px] border-orange-200 min-w-0"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (window.confirm(`Archive deck "${selectedDeck.title}"?`)) {
+                      archiveMutation.mutate(selectedDeck.id)
+                    }
+                  }}
+                  className="w-11 h-11 rounded-2xl bg-slate-100/90 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 text-slate-400 hover:text-rose-600 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs"
+                  title="Archive deck"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-xl bg-orange-50 border border-orange-200/60 text-orange-500 flex items-center justify-center shrink-0">
-                      <Trophy className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="text-left min-w-0 truncate">
-                      <span className="block text-xs font-black text-slate-900 leading-tight truncate">Practice Test</span>
-                      <span className="block text-[9.5px] font-bold text-slate-400 leading-tight truncate">MCQ, Typing & Audio</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-orange-500 stroke-[2.5] shrink-0" />
+                  <Archive className="w-4 h-4" />
                 </button>
 
-                {/* Button 3: Tertiary actions (Roadmap & Archive) */}
-                <div className="col-span-2 sm:col-span-1 flex items-center gap-1.5">
-                  {selectedDeck.has_roadmap && (
+                {/* Single Row Actions: If roadmap is enabled, support swipe/toggle between Roadmap and Study/Practice */}
+                {selectedDeck.has_roadmap ? (
+                  <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      {roadmapMode === 'roadmap' ? (
+                        <motion.div
+                          key="roadmap-action"
+                          initial={{ opacity: 0, x: -15 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 15 }}
+                          transition={{ duration: 0.15 }}
+                          drag="x"
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={0.2}
+                          onDragEnd={(_, info) => {
+                            if (Math.abs(info.offset.x) > 35) {
+                              setRoadmapMode('classic')
+                            }
+                          }}
+                          className="flex-1 flex items-center gap-2 min-w-0"
+                        >
+                          {/* Main Roadmap Hero Button */}
+                          <button
+                            onClick={() => navigate(`/decks/${selectedDeck.id}?tab=roadmap`)}
+                            className="flex-1 h-11 px-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-black text-xs shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-teal-700 min-w-0 select-none"
+                            title="Continue daily roadmap"
+                          >
+                            <Compass className="w-4.5 h-4.5 animate-spin-slow shrink-0" />
+                            <span className="truncate">Continue Daily Roadmap</span>
+                            <span className="hidden xs:inline text-teal-200 text-[10px] font-bold">↔</span>
+                          </button>
+
+                          {/* Toggle Switcher to Classic Study & Practice */}
+                          <button
+                            onClick={() => setRoadmapMode('classic')}
+                            className="w-11 h-11 rounded-2xl bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-orange-600 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0 shadow-2xs"
+                            title="Switch to Free Study & Practice (or swipe)"
+                          >
+                            <Layers className="w-4 h-4 stroke-[2.4]" />
+                          </button>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="classic-action"
+                          initial={{ opacity: 0, x: 15 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -15 }}
+                          transition={{ duration: 0.15 }}
+                          drag="x"
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={0.2}
+                          onDragEnd={(_, info) => {
+                            if (Math.abs(info.offset.x) > 35) {
+                              setRoadmapMode('roadmap')
+                            }
+                          }}
+                          className="flex-1 flex items-center gap-2 min-w-0"
+                        >
+                          {/* Study Flashcards */}
+                          <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
+                            <button
+                              onClick={() => handleLaunchDefaultStudy(selectedDeck)}
+                              className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                              title="Launch default study mode"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                              <span className="text-xs font-black truncate">Study</span>
+                            </button>
+                            <div className="w-[1px] h-5 bg-white/25 shrink-0" />
+                            <button
+                              onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
+                              className="h-11 px-2.5 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                              title="Choose study mode (FSRS, Flip, Review, New)"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
+
+                          {/* Practice Quiz Button */}
+                          <button
+                            onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                            className="flex-1 min-w-0 h-11 px-3 rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-[3px] border-orange-200 select-none"
+                            title="Practice Quiz (MCQ, Typing, Listening)"
+                          >
+                            <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                            <span className="text-xs font-black truncate">Practice</span>
+                          </button>
+
+                          {/* Switch back to Roadmap */}
+                          <button
+                            onClick={() => setRoadmapMode('roadmap')}
+                            className="w-11 h-11 rounded-2xl bg-teal-50 hover:bg-teal-100 border border-teal-200/80 text-teal-700 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0 shadow-2xs"
+                            title="Switch back to Roadmap (or swipe)"
+                          >
+                            <Compass className="w-4 h-4 animate-spin-slow" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  /* Decks without roadmap: Directly display Study Flashcard & Practice */
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    {/* Study Flashcards */}
+                    <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
+                      <button
+                        onClick={() => handleLaunchDefaultStudy(selectedDeck)}
+                        className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                        title="Launch default study mode"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                        <span className="text-xs font-black truncate">Study Flashcards</span>
+                      </button>
+                      <div className="w-[1px] h-5 bg-white/25 shrink-0" />
+                      <button
+                        onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
+                        className="h-11 px-2.5 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                        title="Choose study mode (FSRS, Flip, Review, New)"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
+
+                    {/* Practice Quiz */}
                     <button
-                      onClick={() => navigate(`/decks/${selectedDeck.id}?tab=roadmap`)}
-                      className="flex-1 h-11 sm:h-12 px-3 rounded-2xl bg-teal-50 hover:bg-teal-100/80 border border-teal-200 text-teal-800 font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 border-b-[2px] border-teal-300"
-                      title="Open daily roadmap"
+                      onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                      className="flex-1 min-w-0 h-11 px-3 rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-[3px] border-orange-200 select-none"
+                      title="Practice Quiz (MCQ, Typing, Listening)"
                     >
-                      <Compass className="w-4 h-4 text-teal-600 animate-spin-slow" />
-                      <span>Roadmap</span>
+                      <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                      <span className="text-xs font-black truncate">Practice Test</span>
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`Archive deck "${selectedDeck.title}"?`)) {
-                        archiveMutation.mutate(selectedDeck.id)
-                      }
-                    }}
-                    className={cn(
-                      "h-11 sm:h-12 rounded-2xl bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-400 hover:text-rose-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 border-b-[2px] border-slate-200",
-                      selectedDeck.has_roadmap ? "w-11 sm:w-12 shrink-0" : "flex-1 px-3"
-                    )}
-                    title="Archive deck"
-                  >
-                    <Archive className="w-4 h-4" />
-                    {!selectedDeck.has_roadmap && <span>Archive</span>}
-                  </button>
-                </div>
-              </div>
+                  </div>
+                )}
+              </>
             )}
 
             {activeTab === 'discover' && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex-1 min-w-0 flex items-center gap-2">
                 <button
                   onClick={() => enrollMutation.mutate(selectedDeck.id)}
-                  className="h-11 sm:h-12 px-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-[#c44e00]"
+                  className="flex-1 h-11 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
                   <span>Add to My Decks</span>
                 </button>
                 <button
                   onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                  className="h-11 sm:h-12 px-3 rounded-2xl bg-white hover:bg-orange-50/30 border-2 border-orange-100 hover:border-orange-300 text-slate-800 font-black text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-orange-200"
+                  className="h-11 px-4 rounded-2xl bg-white hover:bg-orange-50/30 border-2 border-orange-100 hover:border-orange-300 text-slate-800 font-black text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-orange-200 select-none"
                 >
                   <Eye className="w-4 h-4 text-orange-500" />
-                  <span>View Deck Details</span>
+                  <span>View Details</span>
                 </button>
               </div>
             )}
 
             {activeTab === 'archived' && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex-1 min-w-0 flex items-center gap-2">
                 <button
                   onClick={() => archiveMutation.mutate(selectedDeck.id)}
-                  className="h-11 sm:h-12 px-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-md shadow-slate-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-slate-950"
+                  className="flex-1 h-11 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-md shadow-slate-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-slate-950 select-none"
                 >
                   <RotateCcw className="w-4 h-4 stroke-[2.5]" />
-                  <span>Restore to My Decks</span>
+                  <span>Restore Deck</span>
                 </button>
                 <button
                   onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                  className="h-11 sm:h-12 px-3 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-200 text-slate-800 font-black text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-slate-300"
+                  className="h-11 px-4 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-200 text-slate-800 font-black text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-slate-300 select-none"
                 >
                   <Eye className="w-4 h-4 text-slate-500" />
-                  <span>View Deck Details</span>
+                  <span>View Details</span>
                 </button>
               </div>
             )}
           </div>
         </div>
       )}
-
-      {/* ═══════════ MOBILE BOTTOM DOCKED TAB BAR (MY DECKS / DISCOVER / ARCHIVED) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-center">
-          <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
-            {tabsConfig.map((tab) => {
-              const isActive = activeTab === tab.id
-              const TabIcon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "relative flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                    isActive ? "text-orange-600" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeDecksBottomTabPill"
-                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                    />
-                  )}
-                  <TabIcon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? "text-orange-600" : "text-slate-400")} />
-                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
-                  <span className={cn(
-                    "relative z-10 px-1.5 py-0.2 rounded-md text-[9px] font-black leading-none",
-                    isActive ? "bg-orange-50 text-orange-700" : "bg-slate-200 text-slate-600"
-                  )}>
-                    {tab.count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
 
       {/* ═══════════ MODALS ═══════════ */}
       <DeckJoinRoomModal
