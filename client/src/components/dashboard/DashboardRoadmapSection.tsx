@@ -909,8 +909,8 @@ export function DashboardRoadmapSection({
               <span>{totalDecks} Roadmap Decks</span>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-900 border border-amber-500/20 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
-              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-600 shrink-0" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-orange-50/90 text-orange-700 border border-orange-200/70 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
+              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
               <span className="tabular-nums font-extrabold">{remainingTime} left</span>
             </div>
           </div>
@@ -960,8 +960,8 @@ export function DashboardRoadmapSection({
               <span>{totalDecks} Roadmap Decks</span>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-900 border border-amber-500/20 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
-              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-600 shrink-0" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-orange-50/90 text-orange-700 border border-orange-200/70 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
+              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
               <span className="tabular-nums font-extrabold">{remainingTime} left</span>
             </div>
           </div>
@@ -1011,7 +1011,7 @@ export function DashboardRoadmapSection({
         <div className="flex items-center gap-2 min-w-0">
           {/* Deck Switcher */}
           {totalDecks > 1 ? (
-            <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded-full border border-slate-200/70 shadow-2xs">
+            <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
               <button
                 type="button"
                 onClick={() => onSelectRoadmapIdx(Math.max(0, safeIdx - 1))}
@@ -1041,26 +1041,19 @@ export function DashboardRoadmapSection({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-slate-900 font-black tracking-tight text-xs shrink-0 bg-white/80 backdrop-blur-xs px-2.5 py-1 rounded-full border border-slate-200/60 shadow-2xs">
+            <div className="flex items-center gap-1.5 text-slate-900 font-black tracking-tight text-xs shrink-0 bg-white px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
               <Layers className="w-3.5 h-3.5 text-orange-500" />
               <span>Daily Roadmap</span>
             </div>
           )}
 
-          {totalDecks > 1 && (
-            <span className="text-[9px] font-bold text-slate-400 bg-white/80 px-2 py-0.5 rounded-full border border-slate-200/60 hidden sm:inline-flex items-center gap-1" title="Roll mouse wheel over roadmap to switch">
-              <span>Scroll</span>
-              <span>🖱️</span>
-            </span>
-          )}
-
           {!st.all_done ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-900 border border-amber-500/20 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
-              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-600 shrink-0" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-orange-50/90 text-orange-700 border border-orange-200/70 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
+              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
               <span className="tabular-nums font-extrabold">{remainingTime} left</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-900 border border-emerald-500/20 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/70 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
               <span className="text-xs">✓</span>
               <span>Completed today</span>
             </div>
@@ -1081,7 +1074,7 @@ export function DashboardRoadmapSection({
 
           <Link 
             to={`/decks/${deck.deck_id}`}
-            className="text-xs font-black text-orange-600 hover:text-orange-700 bg-white/90 hover:bg-white border border-slate-200/70 hover:border-orange-200 px-2.5 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
+            className="text-xs font-black text-orange-600 hover:text-orange-700 bg-white hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
           >
             <span>Details</span>
             <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />

@@ -1882,61 +1882,92 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* VS Code Style Full-Width Square Tabs Bar with Setting Button at End */}
-          <div className="bg-[#e8ebef] border-t border-slate-200/80 flex items-stretch w-full select-none flex-shrink-0 h-9">
-            {/* Tab 1: Roadmap (Full-size / flex-1) */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveHomeTab('roadmap')
-                if (navigator.vibrate) navigator.vibrate(6)
-                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
-              }}
-              className={cn(
-                "flex-1 h-full px-3 flex items-center justify-center gap-2 text-xs transition-colors cursor-pointer border-r border-slate-300/70 select-none",
-                activeHomeTab === 'roadmap'
-                  ? "bg-[#f8fafc] text-slate-900 border-t-2 border-t-orange-500 font-bold border-b-transparent shadow-none"
-                  : "bg-[#e8ebef] hover:bg-[#dfe3e8] text-slate-500 font-medium border-t-2 border-t-transparent border-b border-b-slate-300/80"
-              )}
-            >
-              <Layers className={cn(
-                "w-3.5 h-3.5",
-                activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
-              )} />
-              <span className="tracking-tight text-[12.5px]">Roadmap</span>
-            </button>
+          {/* ═══════════ MINIMAL BORDERLESS FULL-WIDTH TABS ═══════════ */}
+          <div className="bg-white border-t border-slate-100/90 px-3.5 flex items-center justify-between w-full select-none flex-shrink-0 h-10">
+            {/* Tabs Group */}
+            <div className="flex items-center gap-6 h-full">
+              {/* Tab 1: Roadmap */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveHomeTab('roadmap')
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+                }}
+                className={cn(
+                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
+                  activeHomeTab === 'roadmap' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <Layers className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                )} />
+                <span className="text-[13px]">Roadmap</span>
+                {sortedRoadmapDecks.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.2 rounded-full tabular-nums transition-colors",
+                    activeHomeTab === 'roadmap' ? "bg-orange-50 text-orange-600 border border-orange-200/60" : "bg-slate-100 text-slate-400"
+                  )}>
+                    {sortedRoadmapDecks.length}
+                  </span>
+                )}
+                {/* Clean Animated Orange Underline Indicator */}
+                {activeHomeTab === 'roadmap' && (
+                  <motion.div
+                    layoutId="homeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                  />
+                )}
+              </button>
 
-            {/* Tab 2: Learning (Full-size / flex-1) */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveHomeTab('learning')
-                if (navigator.vibrate) navigator.vibrate(6)
-                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
-              }}
-              className={cn(
-                "flex-1 h-full px-3 flex items-center justify-center gap-2 text-xs transition-colors cursor-pointer border-r border-slate-300/70 select-none",
-                activeHomeTab === 'learning'
-                  ? "bg-[#f8fafc] text-slate-900 border-t-2 border-t-orange-500 font-bold border-b-transparent shadow-none"
-                  : "bg-[#e8ebef] hover:bg-[#dfe3e8] text-slate-500 font-medium border-t-2 border-t-transparent border-b border-b-slate-300/80"
-              )}
-            >
-              <BookOpen className={cn(
-                "w-3.5 h-3.5",
-                activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.5]" : "text-slate-400"
-              )} />
-              <span className="tracking-tight text-[12.5px]">Learning</span>
-            </button>
+              {/* Tab 2: Learning */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveHomeTab('learning')
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+                }}
+                className={cn(
+                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
+                  activeHomeTab === 'learning' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <BookOpen className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                )} />
+                <span className="text-[13px]">Learning</span>
+                {sortedActiveDecks.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.2 rounded-full tabular-nums transition-colors",
+                    activeHomeTab === 'learning' ? "bg-orange-50 text-orange-600 border border-orange-200/60" : "bg-slate-100 text-slate-400"
+                  )}>
+                    {sortedActiveDecks.length}
+                  </span>
+                )}
+                {/* Clean Animated Orange Underline Indicator */}
+                {activeHomeTab === 'learning' && (
+                  <motion.div
+                    layoutId="homeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                  />
+                )}
+              </button>
+            </div>
 
-            {/* ⚙️ Small Setting Button at the End of the Tab Bar */}
+            {/* Subtle Customize Button on Far Right */}
             <button
               type="button"
               onClick={() => {
                 if (navigator.vibrate) navigator.vibrate(6)
                 setIsCustomizeModalOpen(true)
               }}
-              className="h-full w-9.5 flex items-center justify-center bg-[#e8ebef] hover:bg-white text-slate-500 hover:text-orange-600 border-b border-b-slate-300/80 transition-all cursor-pointer shrink-0 active:scale-95"
-              title="Customize Home display mode & deck order"
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-orange-600 hover:bg-orange-50/70 transition-all cursor-pointer active:scale-95"
+              title="Customize display mode & deck order"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
             </button>
