@@ -185,10 +185,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Reference-Styled Mobile Bottom Nav (Flat rectangular, Clean, Top Active Indicator Line) */}
+      {/* Reference-Styled Mobile Bottom Nav (Clean, Filled Active Icon, Soft Pill Background) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white border-t border-slate-200/80 shadow-[0_-4px_25px_rgba(0,0,0,0.04)] px-2 pt-0 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
-          <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] px-3 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
+          <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto gap-1">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -199,31 +199,25 @@ export default function Layout() {
                 <Link 
                   key={item.path}
                   to={item.path} 
-                  className="relative flex flex-col items-center justify-center pt-2.5 pb-1 select-none transition-colors duration-200 cursor-pointer"
-                >
-                  {/* Top Active Line Indicator (Smooth Animated) */}
-                  {isActive && (
-                    <motion.div 
-                      layoutId="navTopIndicator"
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[3px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
+                  className={cn(
+                    "relative flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl select-none transition-all duration-200 cursor-pointer active:scale-95",
+                    isActive ? "bg-orange-50/90 text-orange-600" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
                   )}
-
+                >
                   {/* Clean Icon (Filled when Active) */}
                   <Icon className={cn(
-                    "w-5.5 h-5.5 transition-all duration-200",
+                    "w-5 h-5 transition-all duration-200",
                     isActive 
-                      ? "text-orange-500 fill-orange-500 stroke-[1.5]" 
+                      ? "text-orange-600 fill-orange-500 stroke-[1.8] scale-105" 
                       : "text-slate-400 stroke-[1.75]"
                   )} />
 
                   {/* Website-Synchronized Font & Typography */}
                   <span className={cn(
-                    "text-[11px] tracking-tight mt-1 transition-colors duration-200 leading-none",
+                    "text-[10.5px] tracking-tight mt-1 transition-colors duration-200 leading-none",
                     isActive 
-                      ? "font-black text-orange-500" 
-                      : "font-bold text-slate-400"
+                      ? "font-black text-orange-600" 
+                      : "font-semibold text-slate-400"
                   )}>
                     {item.label}
                   </span>
