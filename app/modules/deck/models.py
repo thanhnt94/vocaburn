@@ -324,3 +324,35 @@ class RoadmapPipelineHistory(Base):
     effective_until = Column(Date, nullable=True)  # NULL = currently active
 
     deck = relationship("FlashcardDeck")
+
+
+class Folder(Base):
+    __tablename__ = "folders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    cover_image = Column(String(512), nullable=True)
+    color = Column(String(50), default="orange")
+    is_public = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    folder_decks = relationship("FolderDeck", back_populates="folder", cascade="all, delete-orphan", order_by="FolderDeck.order_index.asc()")
+
+
+class FolderDeck(Base):
+    __tablename__ = "folder_decks"
+    __table_args__ = (
+        UniqueConstraint("folder_id", "deck_id", name="uq_folder_deck"),
+        Index("ix_folder_decks_folder", "folder_id"),
+        Index("ix_folder_decks_deck", "deck_id"),
+    )
+    id = Column(Integer, primary_key=True, index=True)
+    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), index=True)
+    deck_id = Column(Integer, ForeignKey("flashcard_decks.id", ondelete="CASCADE"), index=True)
+    order_index = Column(Integer, default=0)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    folder = relationship("Folder", back_populates="folder_decks")
+    deck = relationship("FlashcardDeck")

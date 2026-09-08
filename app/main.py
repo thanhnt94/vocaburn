@@ -121,6 +121,7 @@ async def clean_user_id_cookie(request: Request, call_next):
 
 from app.modules.deck.routes.api import router as deck_api_router
 from app.modules.deck.routes.room import router as deck_room_router
+from app.modules.deck.routes.folder_routes import router as folder_router, folder_play_router
 from app.modules.sso_module.routes import router as sso_api_router
 from app.modules.admin import router as admin_router
 from app.modules.auth import router as auth_router
@@ -131,6 +132,8 @@ from app.modules.media.routes import router as media_router
 
 app.include_router(deck_api_router, prefix=settings.API_V1_STR)
 app.include_router(deck_room_router, prefix=settings.API_V1_STR)
+app.include_router(folder_router, prefix=settings.API_V1_STR)
+app.include_router(folder_play_router, prefix=settings.API_V1_STR)
 app.include_router(sso_api_router)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix="/api")

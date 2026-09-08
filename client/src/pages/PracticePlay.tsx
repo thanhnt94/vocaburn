@@ -1315,20 +1315,27 @@ export default function PracticePlay() {
       fetchRoadmapStatus()
 
       const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
+      const isFolder = typeof id === 'string' && id.startsWith('folder_')
+      const folderId = isFolder ? id.replace('folder_', '') : null
+      const playDataUrl = isFolder
+        ? `/api/v1/folder/${folderId}/play-data${modeParam}`
+        : (isRoadmapTestMode ? `/api/v1/deck/${id}/roadmap-test-questions` : `/api/v1/deck/${id}/play-data${modeParam}`)
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
       const fetchPromises: Promise<any>[] = [
-        (isRoadmapTestMode ? axios.get(`/api/v1/deck/${id}/roadmap-test-questions`) : axios.get(`/api/v1/deck/${id}/play-data${modeParam}`))
+        axios.get(playDataUrl)
       ]
 
       if (isPractice) {
         // Merge practice-settings into the parallel batch instead of waterfall
         fetchPromises.push(
-          axios.get(`/api/v1/deck/${id}/practice-settings`).catch(e => {
-            console.error("Failed to load practice settings", e)
-            return { data: null }
-          })
+          isFolder
+            ? Promise.resolve({ data: null })
+            : axios.get(`/api/v1/deck/${id}/practice-settings`).catch(e => {
+                console.error("Failed to load practice settings", e)
+                return { data: null }
+              })
         )
         fetchPromises.push(Promise.resolve({ data: [] }))
         fetchPromises.push(Promise.resolve({ data: null }))

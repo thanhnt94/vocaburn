@@ -5,7 +5,7 @@ import {
   Search, Plus, ChevronRight, ChevronLeft, Archive, 
   RotateCcw, Users, Trophy, X,
   Play, Sparkles, Layers, Eye, Check,
-  Compass, ChevronDown, BookOpen
+  Compass, ChevronDown, BookOpen, Folder as FolderIcon
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -14,7 +14,10 @@ import axios from 'axios'
 import { 
   DeckStudyModal, 
   DeckJoinRoomModal, 
-  DeckCreateModal 
+  DeckCreateModal,
+  FolderModal,
+  FolderDetailModal,
+  type FolderData
 } from '@/components/deck'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 
@@ -112,6 +115,13 @@ export default function DecksPage() {
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null)
   const [roadmapMode, setRoadmapMode] = useState<'roadmap' | 'classic'>('roadmap')
 
+  // Folder states
+  const [activeFolderId, setActiveFolderId] = useState<number | null>(null)
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false)
+  const [editingFolder, setEditingFolder] = useState<FolderData | null>(null)
+  const [isFolderDetailOpen, setIsFolderDetailOpen] = useState(false)
+  const [folderForDetail, setFolderForDetail] = useState<FolderData | null>(null)
+
   // Modals State
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<Quiz | null>(null)
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
@@ -136,14 +146,30 @@ export default function DecksPage() {
     staleTime: 30 * 1000,
   })
 
+  const { data: folders = [], refetch: refetchFolders } = useQuery<FolderData[]>({
+    queryKey: ['deck_folders'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/folders')
+      return res.data || []
+    },
+    staleTime: 30 * 1000
+  })
+
+  const activeFolder = useMemo(() => {
+    return folders.find(f => f.id === activeFolderId) || null
+  }, [folders, activeFolderId])
+
   const setActiveTab = (tab: DecksTab) => {
     setSearchParams({ tab }, { replace: true })
     setCurrentPage(1)
+    if (tab !== 'my') {
+      setActiveFolderId(null)
+    }
   }
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [activeTab, searchQuery, activeTag, statusFilter])
+  }, [activeTab, searchQuery, activeTag, statusFilter, activeFolderId])
 
   const archiveMutation = useMutation({
     mutationFn: (quizId: number) => axios.post(`/api/v1/deck/${quizId}/archive`),
@@ -191,9 +217,17 @@ export default function DecksPage() {
         matchesStatus = pct === 100 || (q.mastered_count || 0) > 0
       }
 
-      return matchesSearch && matchesTag && matchesStatus
+      let matchesFolder = true
+      if (activeFolderId && activeTab === 'my') {
+        const curFolder = folders.find(f => f.id === activeFolderId)
+        if (curFolder) {
+          matchesFolder = curFolder.deck_ids.includes(q.id)
+        }
+      }
+
+      return matchesSearch && matchesTag && matchesStatus && matchesFolder
     })
-  }, [data, activeTab, searchQuery, activeTag, statusFilter])
+  }, [data, activeTab, searchQuery, activeTag, statusFilter, activeFolderId, folders])
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filteredData.length / itemsPerPage))
@@ -408,6 +442,21 @@ export default function DecksPage() {
                 <span className="hidden sm:inline">Room</span>
               </button>
 
+              {/* Folder Button (My Decks tab) */}
+              {activeTab === 'my' && (
+                <button
+                  onClick={() => {
+                    setEditingFolder(null)
+                    setIsFolderModalOpen(true)
+                  }}
+                  className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-amber-50/80 border border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  title="Create new folder"
+                >
+                  <FolderIcon className="w-4 h-4 text-amber-500" />
+                  <span className="hidden sm:inline">Folder</span>
+                </button>
+              )}
+
               {/* New Deck */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
@@ -516,6 +565,58 @@ export default function DecksPage() {
                   )
                 })}
                 <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
+
+                {/* Folder Pills in My Decks tab */}
+                {folders.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {folders.map(folder => {
+                        const isFolderSelected = activeFolderId === folder.id
+                        return (
+                          <div
+                            key={folder.id}
+                            className={cn(
+                              "flex items-center rounded-xl border text-xs font-black transition-all shrink-0 cursor-pointer select-none",
+                              isFolderSelected
+                                ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-orange-300 hover:bg-orange-50/40"
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveFolderId(isFolderSelected ? null : folder.id)}
+                              className="flex items-center gap-1.5 px-2.5 py-1"
+                            >
+                              <FolderIcon className={cn("w-3.5 h-3.5", isFolderSelected ? "text-white" : "text-amber-500")} />
+                              <span className="max-w-[120px] truncate">{folder.title}</span>
+                              <span className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[9.5px] font-black leading-none",
+                                isFolderSelected ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500"
+                              )}>
+                                {folder.deck_ids.length}
+                              </span>
+                            </button>
+                            {isFolderSelected && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setFolderForDetail(folder)
+                                  setIsFolderDetailOpen(true)
+                                }}
+                                title="Folder Info & Actions"
+                                className="pr-2 pl-0.5 py-1 text-white/80 hover:text-white"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
+                  </>
+                )}
               </>
             )}
 
@@ -556,6 +657,92 @@ export default function DecksPage() {
       {/* ═══════════ MAIN DECK SELECTION LIST (SCROLLABLE - NO BUTTONS INSIDE CARDS) ═══════════ */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3.5">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
+          {/* Active Folder Banner (if filtering by folder) */}
+          {activeFolder && (
+            <div className={cn(
+              "mb-4 p-3.5 sm:p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm transition-all",
+              activeFolder.color === 'purple' 
+                ? 'bg-purple-50/70 border-purple-200/80' 
+                : activeFolder.color === 'emerald'
+                ? 'bg-emerald-50/70 border-emerald-200/80'
+                : activeFolder.color === 'sky'
+                ? 'bg-sky-50/70 border-sky-200/80'
+                : 'bg-amber-50/70 border-amber-200/80'
+            )}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={cn(
+                  "w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0 bg-gradient-to-tr",
+                  activeFolder.color === 'purple' 
+                    ? 'from-purple-500 to-indigo-500' 
+                    : activeFolder.color === 'emerald'
+                    ? 'from-emerald-500 to-teal-500'
+                    : activeFolder.color === 'sky'
+                    ? 'from-sky-500 to-blue-500'
+                    : 'from-amber-500 to-orange-500'
+                )}>
+                  <FolderIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-black text-slate-800 tracking-tight truncate">
+                      {activeFolder.title}
+                    </h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/90 border border-slate-200/80 text-slate-600 shrink-0">
+                      {activeFolder.deck_ids.length} decks • {activeFolder.total_cards || activeFolder.cards_count || 0} cards
+                    </span>
+                  </div>
+                  {activeFolder.description && (
+                    <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                      {activeFolder.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Folder Quick Actions */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/flashcard/folder_${activeFolder.id}`)}
+                  className="h-8.5 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Study all cards in this folder"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Study Folder</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/practice/folder_${activeFolder.id}`)}
+                  className="h-8.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-black text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Practice all decks in this folder"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Practice</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFolderForDetail(activeFolder)
+                    setIsFolderDetailOpen(true)
+                  }}
+                  className="h-8.5 px-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 font-bold text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                  title="Folder details and settings"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Details</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFolderId(null)}
+                  className="h-8.5 px-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                  title="Clear folder filter"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {filteredData.length === 0 ? (
             <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-sm my-auto">
               <div className="w-16 h-16 rounded-3xl bg-orange-50 flex items-center justify-center text-3xl mb-3 shadow-inner">
@@ -950,6 +1137,43 @@ export default function DecksPage() {
         onClose={() => setIsStudyModalOpen(false)}
         deck={selectedStudyQuiz}
         initialTab={studyModalTab}
+      />
+
+      <FolderModal
+        isOpen={isFolderModalOpen}
+        onClose={() => {
+          setIsFolderModalOpen(false)
+          setEditingFolder(null)
+        }}
+        onSuccess={() => {
+          refetchFolders()
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        }}
+        folder={editingFolder}
+        availableDecks={data?.my_quizzes || []}
+      />
+
+      <FolderDetailModal
+        isOpen={isFolderDetailOpen}
+        onClose={() => {
+          setIsFolderDetailOpen(false)
+          setFolderForDetail(null)
+        }}
+        folder={folderForDetail}
+        memberDecks={(data?.my_quizzes || []).filter(d => folderForDetail?.deck_ids?.includes(d.id))}
+        onEdit={(f) => {
+          setEditingFolder(f)
+          setIsFolderModalOpen(true)
+        }}
+        onStudy={(folderId) => {
+          navigate(`/flashcard/folder_${folderId}`)
+        }}
+        onPractice={(folderId) => {
+          navigate(`/practice/folder_${folderId}`)
+        }}
+        onSelectDeck={(deckId) => {
+          setSelectedDeckId(deckId)
+        }}
       />
     </div>
   )
