@@ -129,7 +129,7 @@ export default function Layout() {
                 <button
                   onClick={() => setIsShopOpen(true)}
                   className="flex items-center gap-1.5 px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100/90 border border-pink-200/90 rounded-xl text-xs font-black text-pink-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
-                  title="Cửa hàng & Kho đồ"
+                  title="Shop & Inventory"
                 >
                   <ShoppingBag className="w-4 h-4 text-pink-500 stroke-[2.2]" />
                   <span>Shop</span>

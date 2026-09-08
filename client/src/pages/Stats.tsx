@@ -119,7 +119,7 @@ export default function Stats() {
           <Zap className="w-8 h-8 text-indigo-600 animate-pulse" />
         </div>
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
-          Đang đồng bộ dữ liệu thống kê...
+          Syncing stats data...
         </p>
       </div>
     )
@@ -130,10 +130,10 @@ export default function Stats() {
       <div className="min-h-[80vh] bg-[#F8FAFC] flex flex-col items-center justify-center p-8 text-center">
         <BrainCircuit className="w-12 h-12 text-slate-300 mb-4" />
         <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest italic">
-          Không thể tải dữ liệu thống kê
+          Unable to load stats
         </h3>
         <p className="text-[10px] font-medium text-slate-400 mt-2">
-          {(detailedStatsData as any)?.error || "Vui lòng làm mới lại trang."}
+          {(detailedStatsData as any)?.error || "Please refresh the page."}
         </p>
       </div>
     )
@@ -169,7 +169,7 @@ export default function Stats() {
   ]
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-3.5">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-3 text-left">

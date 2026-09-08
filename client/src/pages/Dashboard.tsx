@@ -122,7 +122,7 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
 
   if (!data || !data.daily || data.daily.length === 0) {
     return (
-      <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-48">
+      <div className="bg-white border border-slate-200/60 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-48">
         <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calculating review forecast data...</span>
       </div>
@@ -140,7 +140,7 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
     : 0
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
+    <div className="bg-white border border-slate-200/60 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4 text-left relative overflow-hidden flex-shrink-0">
       <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-50/20 blur-md pointer-events-none" />
 
       {/* Header */}
@@ -231,15 +231,15 @@ function ReviewForecastWidget({ data }: { data: ForecastResponse | undefined }) 
                   const d = payload[0].payload
                   let titleStr = d.date || ""
                   if (viewMode === 'hourly') {
-                    titleStr = `Giờ ${d.label} (UTC Today)`
+                    titleStr = `Hour ${d.label} (UTC Today)`
                   } else if (viewMode === 'weekly') {
                     titleStr = `${d.label} (${d.range})`
                   }
                   return (
                     <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 text-[10px] font-black uppercase tracking-wider shadow-xl flex flex-col gap-1.5">
                       <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">{titleStr}</p>
-                      <p className="text-orange-400">Đến hạn: <span className="text-white font-extrabold">{d.count} thẻ</span></p>
-                      <p className="text-indigo-400">Tích lũy: <span className="text-white font-extrabold">{d.cumulative} thẻ</span></p>
+                      <p className="text-orange-400">Due: <span className="text-white font-extrabold">{d.count} cards</span></p>
+                      <p className="text-indigo-400">Cumulative: <span className="text-white font-extrabold">{d.cumulative} cards</span></p>
                     </div>
                   )
                 }
@@ -655,8 +655,8 @@ function BadgeProgressWidget({ data }: { data: BadgeProgress[] }) {
             <Trophy className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-800 block">Thành Tích Đạt Được</span>
-            <span className="text-[9px] font-medium text-neutral-400 block mt-0.5">Tiến trình huy hiệu của bạn</span>
+            <span className="text-xs font-bold text-slate-800 block">Badge Achievements</span>
+            <span className="text-[9px] font-medium text-neutral-400 block mt-0.5">Your badge progress</span>
           </div>
         </div>
       </div>
@@ -717,14 +717,14 @@ function TodayFocusWidget({
           <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3 text-indigo-500 shadow-inner">
             <Compass className="w-6 h-6 animate-pulse" />
           </div>
-          <span className="text-xs font-black text-slate-700 block uppercase tracking-wider">Bạn chưa kích hoạt Lộ trình học nào.</span>
-          <p className="text-[10px] text-slate-400 mt-2 max-w-xs mx-auto font-bold uppercase tracking-wider leading-relaxed">Hãy chọn một bộ thẻ từ thư viện và bật "Lộ trình học" để hệ thống tự động thiết lập mục tiêu hàng ngày cho bạn.</p>
+          <span className="text-xs font-black text-slate-700 block uppercase tracking-wider">No active roadmaps yet.</span>
+          <p className="text-[10px] text-slate-400 mt-2 max-w-xs mx-auto font-bold uppercase tracking-wider leading-relaxed">Select a deck from the library and enable "Roadmap" to automatically set daily learning goals.</p>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/decks?tab=library')}
             className="mt-4 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-indigo-100 transition-all cursor-pointer"
           >
-            📚 Đi tới Thư viện
+            📚 Go to Library
           </motion.button>
         </div>
       ) : (
@@ -755,7 +755,7 @@ function TodayFocusWidget({
                   {/* Header Badge */}
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100/60 flex items-center gap-1.5 shadow-2xs">
-                      🎯 TIẾN ĐỘ LỘ TRÌNH
+                      🎯 ROADMAP PROGRESS
                     </span>
                     {streak > 0 && (
                       <span className="text-[9px] font-black text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100/60 flex items-center gap-1">
@@ -794,9 +794,9 @@ function TodayFocusWidget({
                         {deck.title}
                       </h3>
                       <div className="flex items-center gap-2 text-[11px] text-slate-500 font-bold mt-1 flex-wrap">
-                        <span>Học mới: <span className="text-orange-600 font-black">{newLearned}/{newTarget}</span></span>
+                        <span>New: <span className="text-orange-600 font-black">{newLearned}/{newTarget}</span></span>
                         <span className="text-slate-300">·</span>
-                        <span>Ôn tập: <span className="text-orange-600 font-black">{reviewDone}/{reviewDue}</span></span>
+                        <span>Review: <span className="text-orange-600 font-black">{reviewDone}/{reviewDue}</span></span>
                       </div>
 
                       {/* Step Badges with Direct Click Jumping */}
@@ -812,9 +812,9 @@ function TodayFocusWidget({
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" 
                               : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
                           )}
-                          title="Bước 1: Học từ mới & Ôn tập FSRS"
+                          title="Step 1: New Cards & FSRS Review"
                         >
-                          {isStage1Done ? "✓ Bước 1: Đạt chỉ tiêu" : "▶ Bước 1: Học từ mới"}
+                          {isStage1Done ? "✓ Step 1: Completed" : "▶ Step 1: New Cards"}
                         </button>
                         {status.has_stage_2 && (
                           <button
@@ -830,9 +830,9 @@ function TodayFocusWidget({
                                 ? "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 animate-pulse" 
                                 : "bg-slate-50 text-slate-400 border border-slate-200 opacity-80"
                             )}
-                            title="Bước 2: Bài test kiểm tra lộ trình"
+                            title="Step 2: Roadmap Quiz Test"
                           >
-                            {isStage2Done ? "✓ Bước 2: Đã đạt bài test" : "▶ Bước 2: Bài test"}
+                            {isStage2Done ? "✓ Step 2: Test Passed" : "▶ Step 2: Quiz Test"}
                           </button>
                         )}
                       </div>
@@ -855,18 +855,18 @@ function TodayFocusWidget({
                     <Play className="w-4 h-4 fill-current shrink-0" />
                     <span className="truncate">
                       {status.all_done
-                        ? '✓ HOÀN THÀNH LỘ TRÌNH HÔM NAY'
+                        ? '✓ ROADMAP COMPLETE TODAY'
                         : isStage1Done
-                        ? 'BẮT ĐẦU BÀI TEST LỘ TRÌNH'
-                        : 'BẮT ĐẦU HỌC LỘ TRÌNH'}
+                        ? 'START ROADMAP TEST'
+                        : 'START ROADMAP'}
                     </span>
                   </button>
                   <button
                     onClick={() => navigate(`/decks/${deck.deck_id}`)}
                     className="py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-200/80 transition-all active:scale-[0.98] cursor-pointer shrink-0"
-                    title="Xem chi tiết bộ thẻ"
+                    title="View deck details"
                   >
-                    Chi tiết
+                    Details
                   </button>
                 </div>
               </div>
@@ -915,7 +915,7 @@ function GoalSettingsModal({
       await onSave(timeTarget, cardTarget, newCardTarget)
       onClose()
     } catch (e) {
-      alert("Lỗi khi lưu mục tiêu")
+      alert("Failed to save goals")
     } finally {
       setIsSaving(false)
     }
@@ -936,7 +936,7 @@ function GoalSettingsModal({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left"
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl relative z-10 p-7 border border-slate-100 text-left"
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Learning Goal Settings</h3>
@@ -1116,7 +1116,7 @@ function DeckGoalSettingsModal({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl relative z-10 p-8 border border-slate-100 text-left"
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl relative z-10 p-7 border border-slate-100 text-left"
           >
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -1264,7 +1264,7 @@ export default function Dashboard() {
   const [deckSearchTerm, setDeckSearchTerm] = useState('')
   const deckListRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom of deck list by default on Slide 1 (Thẻ Học)
+  // Auto-scroll to bottom of deck list by default on Slide 1 (Study Cards)
   useEffect(() => {
     if (currentSlide === 1 && deckListRef.current) {
       const timer = setTimeout(() => {
@@ -1641,14 +1641,14 @@ export default function Dashboard() {
             }}
             className="w-full sm:w-auto h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0"
           >
-            <Brain className="w-3.5 h-3.5" /> Bắt đầu ôn tập
+            <Brain className="w-3.5 h-3.5" /> Start Review
           </button>
         </div>
 
         {hasMultipleDecks && (
           <div className="mt-3 pt-3 border-t border-slate-800 flex flex-col gap-1.5">
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
-              Chi tiết các bộ thẻ:
+              Deck breakdown:
             </span>
             <div className="flex flex-wrap gap-2">
               {decks_summary.map((deck: any) => (

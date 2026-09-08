@@ -446,7 +446,7 @@ export const Settings = () => {
       </AnimatePresence>
 
       {/* HEADER + SIMPLE/ADVANCED TOGGLE */}
-      <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
+      <section className="bg-white rounded-3xl md:rounded-[2rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
@@ -645,7 +645,7 @@ export const Settings = () => {
   const renderAlertsTab = () => (
     <div className="space-y-4 md:space-y-6">
       {/* Telegram Settings */}
-      <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
+      <section className="bg-white rounded-3xl md:rounded-[2rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
         <div className="flex items-center gap-2.5 mb-4 sm:mb-6 border-b border-slate-100 pb-3.5">
           <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
             <Send className="w-4 h-4" />
@@ -755,7 +755,7 @@ export const Settings = () => {
       </section>
 
       {/* Push Notification Toggle */}
-      <section className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
+      <section className="bg-white rounded-3xl md:rounded-[2rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
         <div className="flex items-center gap-2.5 mb-3 border-b border-slate-100 pb-3">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Bell className="w-4 h-4" />
@@ -780,7 +780,7 @@ export const Settings = () => {
   // ══════════════ TAB 3: GENERAL & SECURITY ══════════════
   const renderGeneralTab = () => (
     <div className="space-y-4 md:space-y-6">
-      <section id="preferences" className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
+      <section id="preferences" className="bg-white rounded-3xl md:rounded-[2rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
         <div className="flex items-center gap-2.5 mb-4 border-b border-slate-100 pb-3">
           <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-4 h-4" />
@@ -810,7 +810,7 @@ export const Settings = () => {
       </section>
 
       {/* Security / Password */}
-      <section id="security" className="bg-white rounded-3xl md:rounded-[2.5rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
+      <section id="security" className="bg-white rounded-3xl md:rounded-[2rem] border border-slate-100 p-4 sm:p-6 md:p-8 shadow-2xs">
         <div className="flex items-center gap-2.5 mb-4 border-b border-slate-100 pb-3">
           <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
             <Lock className="w-4 h-4" />
@@ -883,17 +883,17 @@ export const Settings = () => {
   return (
     <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="bg-white/90 md:bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 py-2.5 sm:py-3 shrink-0 z-30">
+      <div className="bg-white/90 md:bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-3.5 shrink-0 z-30">
         <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
-              <SettingsIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
+              <SettingsIcon className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-base md:text-lg font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+              <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
                 System Configuration
               </h1>
-              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5 truncate">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
                 {SETTINGS_TABS.find(t => t.id === activeTab)?.description || 'Optimize Your Neural Link'}
               </p>
             </div>
@@ -953,10 +953,10 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* ═══════════ MOBILE BOTTOM TAB BAR ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="w-full max-w-md mx-auto">
-          <div className="grid grid-cols-3 w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-1">
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto flex items-center justify-center">
+          <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
             {SETTINGS_TABS.map((tab) => {
               const isActive = activeTab === tab.id
               const TabIcon = tab.icon
@@ -965,8 +965,8 @@ export const Settings = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all select-none cursor-pointer",
-                    isActive ? "text-indigo-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
+                    "relative flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
                   )}
                 >
                   {isActive && (
@@ -976,13 +976,8 @@ export const Settings = () => {
                       transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                     />
                   )}
-                  <TabIcon className={cn(
-                    "w-4 h-4 relative z-10 shrink-0 mb-0.5 transition-colors",
-                    isActive ? "text-indigo-600 stroke-[2.3]" : "text-slate-400 stroke-[1.8]"
-                  )} />
-                  <span className="relative z-10 text-[10px] sm:text-xs tracking-tight truncate w-full text-center leading-tight font-black">
-                    {tab.shortLabel}
-                  </span>
+                  <TabIcon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? "text-indigo-600 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
+                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.shortLabel}</span>
                 </button>
               )
             })}

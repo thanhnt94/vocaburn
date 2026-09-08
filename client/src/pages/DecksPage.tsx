@@ -435,7 +435,7 @@ export default function DecksPage() {
                         icon: '🇬🇧'
                       }
                     }
-                    if (titleLower.includes('hội thoại') || titleLower.includes('công việc') || titleLower.includes('giao tiếp')) {
+                    if (titleLower.includes('hội thoại') || titleLower.includes('công việc') || titleLower.includes('giao tiếp') || titleLower.includes('conversation') || titleLower.includes('business') || titleLower.includes('communication')) {
                       return {
                         bg: 'from-amber-500 via-orange-500 to-rose-500',
                         accent: 'text-amber-700 bg-amber-50 border-amber-200/80',
