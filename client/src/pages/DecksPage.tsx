@@ -326,10 +326,10 @@ export default function DecksPage() {
       <div className="shrink-0 z-30 bg-white/95 md:bg-[#F8FAFC]/95 md:backdrop-blur-md border-b border-slate-200/80 shadow-2xs md:shadow-none">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
           {/* Row 1: Header Brand, Desktop Tabs, and Quick Actions */}
-          <div className="flex items-center justify-between pt-3 pb-2 md:py-2.5">
+          <div className="flex items-center justify-between pt-2.5 pb-2 md:py-2.5">
             {/* Left: Warm Branding with Mascot / Orange Badge */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-2xs shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-2xs shrink-0">
                 <Layers className="w-5 h-5 stroke-[2.4]" />
               </div>
               <div className="min-w-0">
@@ -341,9 +341,9 @@ export default function DecksPage() {
                     {activeTab === 'folders' ? filteredFolders.length : filteredData.length}
                   </span>
 
-                  {/* Compact Header Stepper Pagination */}
+                  {/* Desktop Stepper Pagination (Hidden on mobile to eliminate clutter) */}
                   {totalPages > 1 && activeTab !== 'folders' && (
-                    <div className="flex items-center gap-0.5 bg-slate-100/90 rounded-xl p-0.5 border border-slate-200/70 shrink-0">
+                    <div className="hidden md:flex items-center gap-0.5 bg-slate-100/90 rounded-xl p-0.5 border border-slate-200/70 shrink-0">
                       <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage <= 1}
@@ -416,10 +416,10 @@ export default function DecksPage() {
               })}
             </div>
 
-            {/* Right: Quick actions (Desktop & Mobile) */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Desktop Quick Actions */}
+            <div className="hidden md:flex items-center gap-2">
               {/* Quick Search on Desktop */}
-              <div className="relative hidden md:block w-48 lg:w-64">
+              <div className="relative w-48 lg:w-64">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -438,37 +438,23 @@ export default function DecksPage() {
                 )}
               </div>
 
-              {/* Search Toggle on Mobile */}
-              <button
-                onClick={() => setIsSearchOpen(prev => !prev)}
-                className={cn(
-                  "md:hidden h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
-                  isSearchOpen || searchQuery
-                    ? "bg-orange-50 border-orange-200 text-orange-600 font-bold"
-                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                )}
-                title="Search decks"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-
               {/* Room Match */}
               <button
                 onClick={() => setIsJoinModalOpen(true)}
-                className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-purple-50/80 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 rounded-xl bg-white hover:bg-purple-50/80 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                 title="Join study room"
               >
                 <Users className="w-4 h-4 text-purple-600" />
-                <span className="hidden sm:inline">Room</span>
+                <span>Room</span>
               </button>
 
-              {/* Folder Button - Always Visible & Accessible */}
+              {/* Folder Button */}
               <button
                 onClick={() => {
                   setEditingFolder(null)
                   setIsFolderModalOpen(true)
                 }}
-                className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-amber-50 hover:bg-amber-100/90 border border-amber-200 hover:border-amber-300 text-amber-800 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100/90 border border-amber-200 hover:border-amber-300 text-amber-800 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                 title="Manage & Create Folders"
               >
                 <FolderIcon className="w-4 h-4 text-amber-600 fill-amber-500/20" />
@@ -483,47 +469,86 @@ export default function DecksPage() {
               {/* New Deck */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8.5 px-3 sm:px-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1.5 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1.5 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                 title="Create new deck"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span className="hidden xs:inline sm:inline">New Deck</span>
+                <span>New Deck</span>
+              </button>
+            </div>
+
+            {/* Mobile Actions: Clean, Uncluttered & App-Like */}
+            <div className="flex md:hidden items-center gap-1.5">
+              {/* Search Toggle */}
+              <button
+                onClick={() => setIsSearchOpen(prev => !prev)}
+                className={cn(
+                  "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
+                  isSearchOpen || searchQuery
+                    ? "bg-orange-50 border-orange-200 text-orange-600 font-bold"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                )}
+                title="Search decks"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+
+              {/* Room Match (Icon-only on mobile) */}
+              <button
+                onClick={() => setIsJoinModalOpen(true)}
+                className="h-8.5 w-8.5 rounded-xl bg-white hover:bg-purple-50/80 border border-slate-200 text-purple-600 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Join study room"
+              >
+                <Users className="w-4 h-4" />
+              </button>
+
+              {/* New Deck Primary Action */}
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="h-8.5 px-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Create new deck"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>New</span>
               </button>
             </div>
           </div>
 
-          {/* Row 2 on Mobile: Modern Sub-Tabs (My Decks, My Folders, Discover, Archived) */}
-          <div className="md:hidden flex items-center justify-start gap-4 sm:gap-6 overflow-x-auto no-scrollbar border-t border-slate-100 pt-2 pb-1.5 px-0.5">
-            {tabsConfig.map((tab) => {
-              const isActive = activeTab === tab.id
-              const TabIcon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "relative flex items-center gap-1.5 pb-1 text-xs transition-all select-none cursor-pointer",
-                    isActive ? "text-slate-900 font-extrabold" : "text-slate-500 hover:text-slate-800 font-semibold"
-                  )}
-                >
-                  <TabIcon className={cn("w-3.5 h-3.5", isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400")} />
-                  <span>{tab.label}</span>
-                  <span className={cn(
-                    "px-1.5 py-0.2 rounded-full text-[10px] font-black leading-none",
-                    isActive ? "bg-orange-500 text-white shadow-xs" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {tab.count}
-                  </span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobileDecksHeaderUnderline"
-                      className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                </button>
-              )
-            })}
+          {/* Row 2 on Mobile: Modern iOS-Style Segmented Pill Bar */}
+          <div className="md:hidden pt-1 pb-2">
+            <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/70 shadow-inner">
+              {tabsConfig.map((tab) => {
+                const isActive = activeTab === tab.id
+                const TabIcon = tab.icon
+                const shortLabel = tab.id === 'my' ? 'My Decks' : tab.id === 'folders' ? 'Folders' : tab.id === 'discover' ? 'Discover' : 'Archived'
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "relative py-1.5 px-0.5 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1 min-w-0",
+                      isActive
+                        ? "text-slate-900 font-black shadow-xs bg-white"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    <TabIcon className={cn(
+                      "w-3.5 h-3.5 shrink-0 transition-colors",
+                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                    )} />
+                    <span className="truncate text-[10.5px] leading-tight">{shortLabel}</span>
+                    <span className={cn(
+                      "px-1 py-0.2 rounded-full text-[9px] font-black leading-none shrink-0",
+                      isActive 
+                        ? "bg-orange-50 text-orange-600 border border-orange-200/70" 
+                        : "bg-slate-200/80 text-slate-500"
+                    )}>
+                      {tab.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* Collapsible Search Input for Mobile */}
@@ -576,12 +601,12 @@ export default function DecksPage() {
                         key={st.id}
                         onClick={() => setStatusFilter(st.id)}
                         className={cn(
-                          "px-3 py-1 rounded-xl text-xs font-black transition-all shrink-0 border cursor-pointer select-none",
+                          "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none",
                           isSelected
                             ? st.id === 'roadmap'
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs"
-                              : "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20"
-                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                              ? "bg-teal-600 border-teal-600 text-white shadow-xs font-black"
+                              : "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20 font-black"
+                            : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
                         )}
                       >
                         {st.label}
