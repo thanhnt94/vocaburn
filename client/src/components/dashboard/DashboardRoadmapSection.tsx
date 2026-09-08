@@ -325,14 +325,11 @@ function DetailedRoadmapCard({
   const stepsCompletedCount = (s1 ? 1 : 0) + (s2 ? 1 : 0) + (st.all_done ? 1 : 0)
 
   return (
-    <div className="flex-1 flex flex-col justify-between gap-2.5 min-h-0 w-full">
-      {/* ═══════════ REFINED EXECUTIVE HERO CARD ═══════════ */}
-      <div className="bg-gradient-to-br from-orange-50/90 via-white to-amber-50/70 border border-orange-200/80 rounded-3xl p-3.5 sm:p-4 relative overflow-hidden shadow-xs flex flex-col gap-2.5 shrink-0">
-        {/* Ambient Top Glow */}
-        <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-orange-400/10 blur-xl pointer-events-none" />
-
-        {/* Header Row: Title, Level & Streak */}
-        <div className="flex items-center justify-between gap-2 relative z-10">
+    <div className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full">
+      {/* ═══════════ HERO MASCOT CARD ═══════════ */}
+      <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/70 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[195px] sm:min-h-[220px] shrink-0">
+        {/* Left Side: Title & Slogan */}
+        <div className="relative z-20 flex-1 max-w-[60%] sm:max-w-[62%] min-w-0 flex flex-col justify-center gap-2 sm:gap-2.5 py-1">
           <button
             type="button"
             onClick={() => {
@@ -343,255 +340,334 @@ function DetailedRoadmapCard({
                 practice_settings: deck.practice_settings
               }, 'flashcard')
             }}
-            className="inline-flex items-center gap-2 min-w-0 text-left group cursor-pointer"
+            className="inline-flex items-center gap-2 max-w-full text-left group cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
               <BookOpen className="w-4 h-4" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs sm:text-sm font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors uppercase tracking-tight">
-                  {deck.title}
-                </span>
-                {deck.level && (
-                  <span className="px-1.5 py-0.2 rounded-md bg-orange-100/80 text-orange-700 text-[10px] font-black shrink-0">
-                    {deck.level}
-                  </span>
-                )}
-              </div>
-            </div>
-          </button>
-
-          {/* Streak pill */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {deckStreak > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[11px] font-black shadow-2xs">
-                <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                <span>{deckStreak}d streak</span>
+            <span className="text-sm sm:text-base font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+              {deck.title}
+            </span>
+            {deck.level && (
+              <span className="px-2 py-0.5 rounded-lg bg-orange-500/15 text-orange-700 border border-orange-200/80 text-[11px] font-black shrink-0">
+                {deck.level}
               </span>
             )}
-            <span className="text-[10px] font-bold text-slate-500 bg-white/80 px-2 py-0.5 rounded-full border border-slate-200/60 shadow-2xs hidden sm:inline">
-              {isDeckAllLearned ? 'Mastered 🎉' : `Est: ${estimatedDateText}`}
-            </span>
+          </button>
+
+          {/* Prominent Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-xs font-black shadow-xs shrink-0">
+              <Flame className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
+              <span>{deckStreak} Day Streak</span>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 shrink-0">
+              <div className="relative h-6 sm:h-6.5 min-w-[130px] sm:min-w-[145px] bg-white/90 backdrop-blur-xs border border-orange-200/90 rounded-full p-0.5 shadow-2xs overflow-hidden flex items-center">
+                <div 
+                  className="absolute inset-y-0.5 left-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500 shadow-2xs"
+                  style={{ width: `${Math.max(0, Math.min(100, (learnedCards / (totalCards || 1)) * 100))}%` }}
+                />
+                <span className="relative z-10 font-black text-[11px] sm:text-xs text-slate-900 px-2.5 truncate">
+                  {learnedCards.toLocaleString()}/{totalCards.toLocaleString()} words
+                </span>
+              </div>
+              <span className="font-black text-xs sm:text-sm text-emerald-600 tabular-nums shrink-0">
+                {totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0}%
+              </span>
+            </div>
+
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/80 backdrop-blur-xs text-slate-600 border border-orange-200/70 rounded-full text-[11px] sm:text-xs font-semibold shadow-2xs shrink-0">
+              {isDeckAllLearned ? (
+                <span className="text-emerald-700 font-black">Mastered 🎉</span>
+              ) : (
+                <span>Est: {estimatedDateText}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-0.5 pt-0.5">
+            <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
+              {mascotLine1}
+            </h2>
+            <p className="text-xs sm:text-sm font-bold text-slate-600 leading-snug">
+              {mascotLine2}
+            </p>
           </div>
         </div>
 
-        {/* Content Row: Progress stats & Mascot */}
-        <div className="flex items-center justify-between gap-3 relative z-10 pt-0.5">
-          {/* Progress Details */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  {learnedCards.toLocaleString()}
-                </span>
-                <span className="text-xs font-bold text-slate-400">
-                  / {totalCards.toLocaleString()} words
-                </span>
-              </div>
-              <span className="text-xs sm:text-sm font-black text-emerald-600 tabular-nums">
-                {pct}%
-              </span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden w-full p-0.5 shadow-inner">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-orange-400 via-amber-400 to-emerald-500 transition-all duration-500 shadow-2xs"
-                style={{ width: `${Math.max(pct, totalCards > 0 ? 3 : 0)}%` }}
-              />
-            </div>
-
-            {/* Mascot message */}
-            <p className="text-[11px] font-bold text-slate-500 truncate mt-0.5">
-              <span className="text-slate-700 font-extrabold">{mascotLine1}</span> {mascotLine2}
-            </p>
-          </div>
-
-          {/* Tap-able Mascot Illustration */}
-          <div 
-            onClick={onMascotTap}
-            title="Tap mascot for encouragement! 🔥"
-            className="relative shrink-0 cursor-pointer active:scale-95 transition-transform"
-          >
-            <AnimatePresence>
-              {mascotCheer && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.85 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.85 }}
-                  className="absolute -top-10 right-0 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10px] font-black py-1 px-2 rounded-xl shadow-lg z-30 whitespace-nowrap pointer-events-none"
-                >
+        {/* Right Side: Mascot */}
+        <div 
+          onClick={onMascotTap}
+          title="Tap the mascot for extra motivation! 🔥"
+          className="w-[44%] max-w-[280px] absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
+        >
+          <AnimatePresence>
+            {mascotCheer && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[11px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[180px] pointer-events-none text-center"
+              >
+                <div className="relative">
                   {mascotCheer}
-                  <div className="absolute -bottom-1.5 right-4 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px] border-t-white" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <img
-              src={`${mascotImg}?v=exact_blackbg_v11`}
-              alt="Vocaburn Mascot"
-              className="w-16 h-16 sm:w-18 sm:h-18 object-contain drop-shadow-md select-none"
-            />
+                  <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <motion.img 
+            key={mascotImg}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            src={`${mascotImg}?v=exact_blackbg_v11`} 
+            alt="Vocaburn Mascot" 
+            className="h-[105%] max-h-[300px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
+          />
+        </div>
+
+        {/* 2 Action Buttons */}
+        {!st.all_done && (
+          <div className="absolute right-3 sm:right-4 bottom-3 sm:bottom-4 z-30 flex items-center gap-2 pointer-events-auto">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenStudyModal({
+                  id: deck.deck_id,
+                  title: deck.title,
+                  questions_count: st.total_cards || deck.questions_count || 0,
+                  practice_settings: deck.practice_settings
+                }, 'flashcard')
+              }}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+              title="Study Flashcards"
+            >
+              <Brain className="w-4.5 h-4.5 text-white" />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenStudyModal({
+                  id: deck.deck_id,
+                  title: deck.title,
+                  questions_count: st.total_cards || deck.questions_count || 0,
+                  practice_settings: deck.practice_settings
+                }, 'practice')
+              }}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+              title="Practice Quiz"
+            >
+              <Trophy className="w-4.5 h-4.5 text-white" />
+            </button>
           </div>
+        )}
+      </div>
+
+      {/* Section Title: Today's Steps */}
+      <div className="px-1 shrink-0 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+          <h3 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
+            Today's Steps
+          </h3>
+        </div>
+
+        <div className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 text-[10px] sm:text-[11px] font-bold">
+          <span>{stepsCompletedCount}/3 completed</span>
         </div>
       </div>
 
-      {/* ═══════════ CONNECTED 3-STEP PIPELINE ═══════════ */}
-      <div className="flex flex-col gap-2 shrink-0">
-        <div className="px-1 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide">
-              Today's Plan
-            </h3>
+      {/* 3 Steps Timeline Connectors */}
+      <div className="flex flex-col gap-2 relative pt-0.5 shrink-0">
+        {/* Step 1 */}
+        <div className="flex items-center gap-3.5 relative">
+          <div className={cn(
+            "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
+            s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500 scale-105 ring-2 ring-orange-200"
+          )}>
+            {s1 ? '✓' : '1'}
           </div>
-          <span className="px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 text-[10px] font-black">
-            {stepsCompletedCount}/3 completed
-          </span>
-        </div>
 
-        {/* Pipeline Steps List */}
-        <div className="flex flex-col gap-2 relative">
-          {/* Step 1: New Words */}
-          <div
+          <div 
             onClick={() => {
               if (window.navigator?.vibrate) window.navigator.vibrate(8)
               navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`)
             }}
+            title={s1 ? "Goal completed. Tap to review or learn more words!" : "Start learning new words today"}
             className={cn(
-              "p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 shadow-2xs active:scale-[0.99]",
-              s1
-                ? "bg-emerald-50/30 border-emerald-200/80"
-                : "bg-white border-orange-300 shadow-xs ring-2 ring-orange-400/20"
+              "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm active:scale-[0.99]",
+              s1 ? "border-emerald-200/90 bg-emerald-50/20" : "border-orange-300/90 bg-orange-50/20 hover:border-orange-400"
             )}
           >
             <div className={cn(
-              "w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
-              s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500"
-            )}>
-              {s1 ? '✓' : '1'}
+              "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+              s1 ? "border-r-emerald-100" : "border-r-orange-200"
+            )} />
+
+            <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center shrink-0 text-orange-500">
+              <BookOpen className="w-4.5 h-4.5" />
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1.5">
-                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                  1. Learn New Words
-                </span>
-                <span className={cn(
-                  "px-2 py-0.2 text-[10px] font-black rounded-full shrink-0",
-                  s1 ? "bg-emerald-100/80 text-emerald-700" : "bg-orange-100/80 text-orange-700"
-                )}>
-                  {s1 ? 'Done' : `${nL}/${nT}`}
-                </span>
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Learn New Words</span>
+                {s1 && (
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+                )}
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-1.5">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all"
-                  style={{ width: `${newPct}%` }}
-                />
+
+              <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                <span className={cn("text-xs sm:text-sm font-black", !s1 ? "text-orange-600" : "text-slate-500")}>{nL}</span>
+                <span className="text-slate-400 font-medium text-xs">/ {nT} new words</span>
+              </div>
+
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                <div className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
               </div>
             </div>
 
-            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 2 */}
+        <div className="flex items-center gap-3.5 relative">
+          <div className={cn(
+            "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
+            s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500 scale-105 ring-2 ring-amber-200" : "bg-slate-200 text-slate-400"
+          )}>
+            {s2 ? '✓' : '2'}
           </div>
 
-          {/* Step 2: MCQ Quiz */}
-          <div
+          <div 
             onClick={() => {
               if (!s1) return
               if (window.navigator?.vibrate) window.navigator.vibrate(8)
               const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
               navigate(testUrl)
             }}
+            title={!s1 ? "Complete Step 1 (Learn New Words) first" : s2 ? "Target achieved! Tap to review or retake test" : "Start MCQ test"}
             className={cn(
-              "p-2.5 sm:p-3 rounded-2xl border transition-all flex items-center gap-3 shadow-2xs",
-              !s1
-                ? "bg-slate-50/60 border-slate-200/60 opacity-60 cursor-not-allowed"
-                : s2
-                ? "bg-emerald-50/30 border-emerald-200/80 cursor-pointer active:scale-[0.99]"
-                : "bg-white border-amber-300 shadow-xs ring-2 ring-amber-400/20 cursor-pointer active:scale-[0.99]"
+              "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
+              !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
+              s2 ? "border-emerald-200/90 bg-emerald-50/20" : s1 ? "border-amber-300/90 bg-amber-50/20 hover:border-amber-400" : ""
             )}
           >
             <div className={cn(
-              "w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
-              s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500" : "bg-slate-300 text-slate-500"
+              "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+              s2 ? "border-r-emerald-100" : s1 ? "border-r-amber-200" : "border-r-slate-200/60"
+            )} />
+
+            <div className={cn(
+              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+              s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
             )}>
-              {s2 ? '✓' : '2'}
+              {mcqStep?.type === 'typing' ? (
+                <Keyboard className="w-4.5 h-4.5" />
+              ) : (
+                <FileText className="w-4.5 h-4.5" />
+              )}
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1.5">
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                  2. {mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz'}
+                  {mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz'}
                 </span>
-                <span className={cn(
-                  "px-2 py-0.2 text-[10px] font-black rounded-full shrink-0",
-                  s2 ? "bg-emerald-100/80 text-emerald-700" : s1 ? "bg-amber-100/80 text-amber-700" : "bg-slate-100 text-slate-400"
-                )}>
-                  {s2 ? 'Passed' : s1 ? `${mcqDone}/${mcqTarget}` : 'Locked'}
-                </span>
+                {s2 && (
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+                )}
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-1.5">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all"
-                  style={{ width: `${s1 ? mcqPct : 0}%` }}
-                />
+
+              <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                <span className={cn("text-xs sm:text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
+                <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} questions</span>
               </div>
+
+              {s1 && (
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                  <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                </div>
+              )}
             </div>
 
-            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3 */}
+        <div className="flex items-center gap-3.5 relative">
+          <div className={cn(
+            "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
+            st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-purple-500 to-indigo-600 scale-105 ring-2 ring-purple-200" : "bg-slate-200 text-slate-400"
+          )}>
+            {st.all_done ? '✓' : '3'}
           </div>
 
-          {/* Step 3: FSRS Review */}
-          <div
+          <div 
             onClick={() => {
               if (!s1 || !s2) return
               if (window.navigator?.vibrate) window.navigator.vibrate(8)
               navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)
             }}
+            title={!s1 || !s2 ? "Complete Steps 1 & 2 first" : st.all_done ? "All steps finished! Tap to review again" : "Start FSRS review"}
             className={cn(
-              "p-2.5 sm:p-3 rounded-2xl border transition-all flex items-center gap-3 shadow-2xs",
-              !s1 || !s2
-                ? "bg-slate-50/60 border-slate-200/60 opacity-60 cursor-not-allowed"
-                : st.all_done
-                ? "bg-emerald-50/30 border-emerald-200/80 cursor-pointer active:scale-[0.99]"
-                : "bg-white border-purple-300 shadow-xs ring-2 ring-purple-400/20 cursor-pointer active:scale-[0.99]"
+              "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
+              !s1 || !s2 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
+              st.all_done ? "border-emerald-200/90 bg-emerald-50/20" : s2 ? "border-purple-300/90 bg-purple-50/20 hover:border-purple-400" : ""
             )}
           >
             <div className={cn(
-              "w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white",
-              st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-purple-500 to-indigo-600" : "bg-slate-300 text-slate-500"
+              "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+              st.all_done ? "border-r-emerald-100" : s2 ? "border-r-purple-200" : "border-r-slate-200/60"
+            )} />
+
+            <div className={cn(
+              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+              st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
             )}>
-              {st.all_done ? '✓' : '3'}
+              <RotateCcw className="w-4.5 h-4.5" />
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1.5">
-                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                  3. FSRS Review
-                </span>
-                <span className={cn(
-                  "px-2 py-0.2 text-[10px] font-black rounded-full shrink-0",
-                  st.all_done ? "bg-emerald-100/80 text-emerald-700" : s2 ? "bg-purple-100/80 text-purple-700" : "bg-slate-100 text-slate-400"
-                )}>
-                  {st.all_done ? 'Done' : s2 ? `${rDn}/${rD}` : 'Locked'}
-                </span>
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">FSRS Review</span>
+                {st.all_done && (
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+                )}
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full mt-1.5">
-                <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all"
-                  style={{ width: `${s2 ? revPct : 0}%` }}
-                />
+
+              <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                <span className={cn("text-xs sm:text-sm font-black", s2 ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
+                <span className="text-slate-400 font-medium text-xs">/ {rD} cards</span>
               </div>
+
+              {s2 && (
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                  <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all" style={{ width: `${revPct}%` }} />
+                </div>
+              )}
             </div>
 
-            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+              <ChevronRight className="w-4 h-4" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ═══════════ SMART PRIMARY DOCKED CTA ═══════════ */}
-      <div className="pt-1 shrink-0">
+      {/* Bottom CTA Action Button */}
+      <div className="pt-0.5 shrink-0">
         {st.all_done ? (
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -605,10 +681,19 @@ function DetailedRoadmapCard({
                   practice_settings: deck.practice_settings
                 }, 'flashcard')
               }}
-              className="h-11 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl px-3 flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all cursor-pointer font-black text-xs uppercase tracking-wide"
+              className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
             >
-              <Brain className="w-4 h-4" />
-              <span>Continue FSRS</span>
+              <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                <Brain className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
+                  Continue FSRS
+                </span>
+                <span className="text-[10px] text-orange-100 font-medium block truncate">
+                  Review cards
+                </span>
+              </div>
             </button>
 
             <button
@@ -622,10 +707,19 @@ function DetailedRoadmapCard({
                   practice_settings: deck.practice_settings
                 }, 'practice')
               }}
-              className="h-11 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-2xl px-3 flex items-center justify-center gap-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer font-black text-xs uppercase tracking-wide"
+              className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
             >
-              <Trophy className="w-4 h-4 text-amber-500" />
-              <span>Practice Quiz</span>
+              <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
+                  Practice Quiz
+                </span>
+                <span className="text-[10px] text-emerald-100 font-medium block truncate">
+                  MCQ / Typing
+                </span>
+              </div>
             </button>
           </div>
         ) : (
@@ -635,30 +729,32 @@ function DetailedRoadmapCard({
               if (nUrl) navigate(nUrl)
               else navigate(`/decks/${deck.deck_id}`)
             }}
-            className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl px-4 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all duration-200 cursor-pointer group"
+            className="w-full relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all duration-200 cursor-pointer group"
           >
-            <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-white">
-              <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-white">
+              <Play className="w-4 h-4 fill-white ml-0.5" />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
-              <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white leading-tight">
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
+              <span className="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-white leading-tight">
                 {!s1
-                  ? 'Start Step 1: Learn New Words'
+                  ? 'LEARN NEW WORDS'
                   : !s2
-                  ? 'Start Step 2: Take MCQ Quiz'
-                  : 'Start Step 3: FSRS Review'}
+                  ? 'TAKE MCQ QUIZ'
+                  : 'FSRS REVIEW'}
               </span>
-              <span className="text-[10px] text-orange-100 font-medium">
+              <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium">
                 {!s1
-                  ? `${nT - nL} new words remaining today`
+                  ? `Step 1: ${nT - nL} new cards remaining`
                   : !s2
-                  ? 'Pass with score >= 80%'
-                  : `${dueRemaining} review cards due`}
+                  ? 'Step 2: Score >= 80% to pass'
+                  : `Step 3: ${dueRemaining} cards due for review`}
               </span>
             </div>
 
-            <ChevronRight className="w-4 h-4 stroke-[3] text-orange-100 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            <div className="text-xs font-black uppercase tracking-wider text-orange-100 group-hover:translate-x-0.5 transition-transform flex items-center gap-1 shrink-0">
+              <ChevronRight className="w-4 h-4 stroke-[3]" />
+            </div>
           </button>
         )}
       </div>
