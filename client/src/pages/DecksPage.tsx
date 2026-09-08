@@ -128,6 +128,11 @@ export default function DecksPage() {
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
   const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
 
+  // Filter dropdown & in-app confirmation modals
+  const [isTagMenuOpen, setIsTagMenuOpen] = useState(false)
+  const [deckToArchive, setDeckToArchive] = useState<Quiz | null>(null)
+  const [folderToDelete, setFolderToDelete] = useState<FolderData | null>(null)
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8 
@@ -564,7 +569,7 @@ export default function DecksPage() {
             )}
           </AnimatePresence>
 
-          {/* Row 3: Horizontal Scrollable Filter Chips */}
+          {/* Row 3: Pure Status Filter Chips & Smart Tag Dropdown */}
           {activeTab !== 'folders' ? (
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-1 md:border-t md:border-slate-100 md:pt-1.5 md:pb-2">
               {activeTab === 'my' && (
@@ -572,8 +577,8 @@ export default function DecksPage() {
                   {[
                     { id: 'all' as StatusFilter, label: 'All' },
                     { id: 'roadmap' as StatusFilter, label: '🧭 Roadmap' },
-                    { id: 'learning' as StatusFilter, label: '⚡ Learning' },
-                    { id: 'unlearned' as StatusFilter, label: '✨ Unlearned' },
+                    { id: 'learning' as StatusFilter, label: '⚡ In Progress' },
+                    { id: 'unlearned' as StatusFilter, label: '✨ New' },
                     { id: 'mastered' as StatusFilter, label: '🌟 Mastered' },
                   ].map(st => {
                     const isSelected = statusFilter === st.id
@@ -594,117 +599,82 @@ export default function DecksPage() {
                       </button>
                     )
                   })}
-                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
 
-                  {/* Folder Pills & Creation in My Decks tab */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {folders.length === 0 ? (
+                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
+
+                  {/* Smart Tag Dropdown Chip */}
+                  {allAvailableTags.length > 0 && (
+                    <div className="relative shrink-0">
                       <button
-                        type="button"
-                        onClick={() => {
-                          setEditingFolder(null)
-                          setIsFolderModalOpen(true)
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 hover:bg-amber-100 text-amber-800 text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs active:scale-95 select-none"
-                        title="Create your first folder to organize decks"
+                        onClick={() => setIsTagMenuOpen(prev => !prev)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
+                          activeTag
+                            ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
+                            : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60"
+                        )}
                       >
-                        <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
-                        <span>+ New Folder</span>
+                        <span>{activeTag ? `#${activeTag}` : '🏷️ Tags'}</span>
+                        {activeTag ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveTag(null)
+                            }}
+                            className="hover:bg-white/20 rounded p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </span>
+                        ) : (
+                          <ChevronDown className="w-3 h-3 opacity-60" />
+                        )}
                       </button>
-                    ) : (
-                      <>
-                        {folders.map(folder => {
-                          const isFolderSelected = activeFolderId === folder.id
-                          return (
-                            <div
-                              key={folder.id}
+
+                      {/* Popover Menu for Tags */}
+                      {isTagMenuOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setIsTagMenuOpen(false)}
+                          />
+                          <div className="absolute left-0 mt-1.5 w-48 max-h-56 overflow-y-auto custom-scrollbar bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                            <button
+                              onClick={() => {
+                                setActiveTag(null)
+                                setIsTagMenuOpen(false)
+                              }}
                               className={cn(
-                                "flex items-center rounded-xl border text-xs font-black transition-all shrink-0 cursor-pointer select-none",
-                                isFolderSelected
-                                  ? "bg-amber-500 border-amber-500 text-white shadow-xs shadow-amber-500/20"
-                                  : "bg-white border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/40"
+                                "w-full text-left px-3 py-1.5 text-xs font-bold transition-colors flex items-center justify-between cursor-pointer",
+                                !activeTag ? "bg-orange-50 text-orange-600 font-black" : "text-slate-700 hover:bg-slate-50"
                               )}
                             >
+                              <span>All Tags</span>
+                              {!activeTag && <Check className="w-3.5 h-3.5 text-orange-500" />}
+                            </button>
+                            <div className="h-[1px] bg-slate-100 my-1" />
+                            {allAvailableTags.map(tag => (
                               <button
-                                type="button"
-                                onClick={() => setActiveFolderId(isFolderSelected ? null : folder.id)}
-                                className="flex items-center gap-1.5 px-2.5 py-1"
+                                key={tag}
+                                onClick={() => {
+                                  setActiveTag(tag)
+                                  setIsTagMenuOpen(false)
+                                }}
+                                className={cn(
+                                  "w-full text-left px-3 py-1.5 text-xs font-bold transition-colors flex items-center justify-between truncate cursor-pointer",
+                                  activeTag === tag ? "bg-orange-50 text-orange-600 font-black" : "text-slate-700 hover:bg-slate-50"
+                                )}
                               >
-                                <FolderIcon className={cn("w-3.5 h-3.5", isFolderSelected ? "text-white fill-white" : "text-amber-500")} />
-                                <span className="max-w-[120px] truncate">{folder.title}</span>
-                                <span className={cn(
-                                  "px-1.5 py-0.2 rounded-full text-[9.5px] font-black leading-none",
-                                  isFolderSelected ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500"
-                                )}>
-                                  {folder.deck_ids.length}
-                                </span>
+                                <span className="truncate">#{tag}</span>
+                                {activeTag === tag && <Check className="w-3.5 h-3.5 text-orange-500 shrink-0" />}
                               </button>
-                              {isFolderSelected && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setFolderForDetail(folder)
-                                    setIsFolderDetailOpen(true)
-                                  }}
-                                  title="Folder Info & Actions"
-                                  className="pr-2 pl-0.5 py-1 text-white/80 hover:text-white"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          )
-                        })}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingFolder(null)
-                            setIsFolderModalOpen(true)
-                          }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-100/70 text-amber-700 text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs select-none"
-                          title="Create another folder"
-                        >
-                          <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
-                          <span>+ Folder</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
-
-              {/* Tag Pills */}
-              <button 
-                onClick={() => setActiveTag(null)}
-                className={cn(
-                  "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
-                  !activeTag 
-                    ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20" 
-                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                )}
-              >
-                All Tags
-              </button>
-
-              {allAvailableTags.map(tag => {
-                const isActive = activeTag === tag
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(isActive ? null : tag)}
-                    className={cn(
-                      "px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 border cursor-pointer select-none",
-                      isActive
-                        ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20"
-                        : "bg-white border-slate-200 text-slate-600 hover:border-orange-200 hover:bg-orange-50/40 hover:text-orange-600"
-                    )}
-                  >
-                    #{tag}
-                  </button>
-                )
-              })}
             </div>
           ) : (
             <div className="flex items-center justify-between gap-2 pb-2.5 pt-1 md:border-t md:border-slate-100 md:pt-1.5 md:pb-2">
@@ -964,9 +934,7 @@ export default function DecksPage() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  if (window.confirm(`Delete folder "${folder.title}"? The decks inside will not be deleted.`)) {
-                                    deleteFolderMutation.mutate(folder.id)
-                                  }
+                                  setFolderToDelete(folder)
                                 }}
                                 className="w-8 h-8 rounded-xl bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/80 hover:border-rose-200 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
                                 title="Delete Folder"
@@ -1275,9 +1243,7 @@ export default function DecksPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (window.confirm(`Archive deck "${selectedDeck.title}"?`)) {
-                      archiveMutation.mutate(selectedDeck.id)
-                    }
+                    setDeckToArchive(selectedDeck)
                   }}
                   className="w-11 h-11 rounded-2xl bg-slate-100/90 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 text-slate-400 hover:text-rose-600 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs"
                   title="Archive deck"
@@ -1298,118 +1264,41 @@ export default function DecksPage() {
                   <FolderPlus className="w-4 h-4 text-amber-600" />
                 </button>
 
-                {/* Single Row Actions: If roadmap is enabled, support swipe/toggle between Roadmap and Study/Practice */}
+                {/* Single Row Actions: If roadmap is enabled, show Roadmap Hero CTA + Study/Practice split */}
                 {selectedDeck.has_roadmap ? (
-                  <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
-                    <AnimatePresence mode="wait">
-                      {roadmapMode === 'roadmap' ? (
-                        <motion.div
-                          key="roadmap-action"
-                          initial={{ opacity: 0, x: -15 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 15 }}
-                          transition={{ duration: 0.15 }}
-                          drag="x"
-                          dragConstraints={{ left: 0, right: 0 }}
-                          dragElastic={0.2}
-                          onDragEnd={(_, info) => {
-                            if (Math.abs(info.offset.x) > 35) {
-                              setRoadmapMode('classic')
-                            }
-                          }}
-                          className="flex-1 flex items-center gap-2 min-w-0"
-                        >
-                          {/* Main Roadmap Hero Button */}
-                          <button
-                            onClick={() => navigate(`/decks/${selectedDeck.id}?tab=roadmap`)}
-                            className="flex-1 h-11 px-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-black text-xs shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-teal-700 min-w-0 select-none"
-                            title="Continue daily roadmap"
-                          >
-                            <Compass className="w-4.5 h-4.5 animate-spin-slow shrink-0" />
-                            <span className="truncate">Continue Daily Roadmap</span>
-                            <span className="hidden xs:inline text-teal-200 text-[10px] font-bold">↔</span>
-                          </button>
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    {/* Main Roadmap Hero Button */}
+                    <button
+                      onClick={() => navigate(`/decks/${selectedDeck.id}?tab=roadmap`)}
+                      className="flex-[1.15] min-w-0 h-11 px-3 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
+                      title="Continue daily roadmap"
+                    >
+                      <Compass className="w-4 h-4 animate-spin-slow shrink-0" />
+                      <span className="truncate">Continue Roadmap</span>
+                    </button>
 
-                          {/* Toggle Switcher to Classic Study & Practice */}
-                          <button
-                            onClick={() => setRoadmapMode('classic')}
-                            className="w-11 h-11 rounded-2xl bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-orange-600 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0 shadow-2xs"
-                            title="Switch to Free Study & Practice (or swipe)"
-                          >
-                            <Layers className="w-4 h-4 stroke-[2.4]" />
-                          </button>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="classic-action"
-                          initial={{ opacity: 0, x: 15 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -15 }}
-                          transition={{ duration: 0.15 }}
-                          drag="x"
-                          dragConstraints={{ left: 0, right: 0 }}
-                          dragElastic={0.2}
-                          onDragEnd={(_, info) => {
-                            if (Math.abs(info.offset.x) > 35) {
-                              setRoadmapMode('roadmap')
-                            }
-                          }}
-                          className="flex-1 flex items-center gap-2 min-w-0"
-                        >
-                          {/* Study Flashcards */}
-                          <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
-                            <button
-                              onClick={() => handleLaunchDefaultStudy(selectedDeck)}
-                              className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
-                              title="Launch default study mode"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-                              <span className="text-xs font-black truncate">Study</span>
-                            </button>
-                            <div className="w-[1px] h-5 bg-white/25 shrink-0" />
-                            <button
-                              onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
-                              className="h-11 px-2.5 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                              title="Choose study mode (FSRS, Flip, Review, New)"
-                            >
-                              <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                            </button>
-                          </div>
-
-                          {/* Practice Quiz Split Button */}
-                          <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
-                            <button
-                              onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
-                              className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
-                              title="Launch default Practice (MCQ)"
-                            >
-                              <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                              <span className="text-xs font-black truncate">Practice</span>
-                            </button>
-                            <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
-                            <button
-                              onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                              className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                              title="Choose practice mode (MCQ, Typing, Listening)"
-                            >
-                              <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                            </button>
-                          </div>
-
-                          {/* Switch back to Roadmap */}
-                          <button
-                            onClick={() => setRoadmapMode('roadmap')}
-                            className="w-11 h-11 rounded-2xl bg-teal-50 hover:bg-teal-100 border border-teal-200/80 text-teal-700 flex items-center justify-center cursor-pointer active:scale-95 transition-all shrink-0 shadow-2xs"
-                            title="Switch back to Roadmap (or swipe)"
-                          >
-                            <Compass className="w-4 h-4 animate-spin-slow" />
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {/* Quick Study / Practice Split Dropdown */}
+                    <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
+                      <button
+                        onClick={() => handleLaunchDefaultStudy(selectedDeck)}
+                        className="flex-1 h-11 pl-3 pr-1.5 flex items-center justify-center gap-1 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                        title="Launch default study mode"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current text-orange-500 shrink-0" />
+                        <span className="text-xs font-black truncate">Study</span>
+                      </button>
+                      <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
+                      <button
+                        onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                        className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                        title="Choose practice mode (MCQ, Typing, Listening)"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  /* Decks without roadmap: Directly display Study & Practice with split buttons */
+                  /* Standard Decks: Study & Practice */
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {/* Study */}
                     <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
@@ -1550,6 +1439,106 @@ export default function DecksPage() {
           setSelectedDeckId(deckId)
         }}
       />
+
+      {/* ═══════════ IN-APP ARCHIVE CONFIRMATION MODAL ═══════════ */}
+      <AnimatePresence>
+        {deckToArchive && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: "spring", duration: 0.25 }}
+              className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-200/80 text-center select-none"
+            >
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center shadow-inner">
+                <Archive className="w-7 h-7 stroke-[2.2]" />
+              </div>
+
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">
+                Archive Deck?
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                Are you sure you want to archive <strong className="text-slate-800">"{deckToArchive.title}"</strong>? It will be moved to the <strong>Archived</strong> tab. Your cards, progress, and FSRS memory data will remain 100% safe, and you can restore it anytime.
+              </p>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDeckToArchive(null)}
+                  className="flex-1 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={archiveMutation.isPending}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8)
+                    archiveMutation.mutate(deckToArchive.id, {
+                      onSettled: () => setDeckToArchive(null)
+                    })
+                  }}
+                  className="flex-1 h-11 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Archive className="w-4 h-4" />
+                  <span>{archiveMutation.isPending ? 'Archiving...' : 'Archive Deck'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ IN-APP FOLDER DELETE CONFIRMATION MODAL ═══════════ */}
+      <AnimatePresence>
+        {folderToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: "spring", duration: 0.25 }}
+              className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-200/80 text-center select-none"
+            >
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-600 flex items-center justify-center shadow-inner">
+                <Trash2 className="w-7 h-7 stroke-[2.2]" />
+              </div>
+
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">
+                Delete Folder?
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                Are you sure you want to delete folder <strong className="text-slate-800">"{folderToDelete.title}"</strong>? The flashcard decks inside will <strong className="text-emerald-700">NOT</strong> be deleted.
+              </p>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setFolderToDelete(null)}
+                  className="flex-1 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteFolderMutation.isPending}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8)
+                    deleteFolderMutation.mutate(folderToDelete.id, {
+                      onSettled: () => setFolderToDelete(null)
+                    })
+                  }}
+                  className="flex-1 h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md shadow-rose-600/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{deleteFolderMutation.isPending ? 'Deleting...' : 'Delete Folder'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
