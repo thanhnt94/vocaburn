@@ -6,7 +6,8 @@ import {
   RotateCcw, Users, Trophy, X,
   Play, Sparkles, Layers, Eye, Check,
   Compass, ChevronDown, BookOpen, Folder as FolderIcon, FolderPlus,
-  Edit3, Trash2, Settings
+  Edit3, Trash2, Settings,
+  Zap, Target, Flame, Globe, GraduationCap, Star, Award, Bookmark
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -58,48 +59,35 @@ interface DashboardData {
 export type DecksTab = 'my' | 'folders' | 'discover' | 'archived'
 export type StatusFilter = 'all' | 'roadmap' | 'learning' | 'unlearned' | 'mastered'
 
-const DECK_PALETTES = [
-  {
-    theme: 'orange',
-    avatarBg: 'bg-gradient-to-br from-orange-100 to-amber-100',
-    cardBorder: 'border-orange-500',
-    cardBg: 'bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50',
-    barTrack: 'bg-orange-100',
-    barFill: 'bg-gradient-to-r from-orange-400 to-[#FF7A00]',
-    mascotImage: '/mascot/mascot_flame_sakura.jpg',
-    accentColor: '#FF7A00'
-  },
-  {
-    theme: 'purple',
-    avatarBg: 'bg-gradient-to-br from-indigo-100 to-purple-100',
-    cardBorder: 'border-indigo-200/90',
-    cardBg: 'bg-gradient-to-r from-[#FAF8FF] via-white to-[#F5F3FF]',
-    barTrack: 'bg-indigo-100/70',
-    barFill: 'bg-gradient-to-r from-indigo-400 to-purple-500',
-    mascotImage: '/mascot/mascot_fox_reading.jpg',
-    accentColor: '#7C3AED'
-  },
-  {
-    theme: 'green',
-    avatarBg: 'bg-gradient-to-br from-emerald-100 to-teal-100',
-    cardBorder: 'border-emerald-200/90',
-    cardBg: 'bg-gradient-to-r from-[#F4FBF7] via-white to-[#ECFDF5]',
-    barTrack: 'bg-emerald-100/70',
-    barFill: 'bg-gradient-to-r from-emerald-400 to-teal-500',
-    mascotImage: '/mascot/mascot_leaf_spirit.jpg',
-    accentColor: '#059669'
-  },
-  {
-    theme: 'blue',
-    avatarBg: 'bg-gradient-to-br from-sky-100 to-blue-100',
-    cardBorder: 'border-sky-200/90',
-    cardBg: 'bg-gradient-to-r from-[#F0F9FF] via-white to-[#E0F2FE]',
-    barTrack: 'bg-sky-100/70',
-    barFill: 'bg-gradient-to-r from-sky-400 to-blue-500',
-    mascotImage: '/mascot/mascot_flame_sakura.jpg',
-    accentColor: '#0284C7'
-  }
+export interface DeckTheme {
+  icon: React.ComponentType<{ className?: string }>
+  gradient: string
+  iconColor: string
+  bgLight: string
+  accentColor: string
+}
+
+export const DECK_THEMES: DeckTheme[] = [
+  { icon: BookOpen, gradient: 'from-amber-500 to-orange-500', iconColor: 'text-white', bgLight: 'bg-amber-50', accentColor: '#F59E0B' },
+  { icon: Zap, gradient: 'from-violet-500 to-indigo-600', iconColor: 'text-white', bgLight: 'bg-indigo-50', accentColor: '#6366F1' },
+  { icon: Sparkles, gradient: 'from-rose-500 to-pink-500', iconColor: 'text-white', bgLight: 'bg-rose-50', accentColor: '#EC4899' },
+  { icon: Target, gradient: 'from-emerald-500 to-teal-600', iconColor: 'text-white', bgLight: 'bg-emerald-50', accentColor: '#10B981' },
+  { icon: Flame, gradient: 'from-orange-500 to-red-500', iconColor: 'text-white', bgLight: 'bg-orange-50', accentColor: '#EF4444' },
+  { icon: Compass, gradient: 'from-cyan-500 to-blue-600', iconColor: 'text-white', bgLight: 'bg-cyan-50', accentColor: '#06B6D4' },
+  { icon: Trophy, gradient: 'from-amber-400 to-yellow-600', iconColor: 'text-white', bgLight: 'bg-amber-50', accentColor: '#D97706' },
+  { icon: Globe, gradient: 'from-blue-500 to-indigo-500', iconColor: 'text-white', bgLight: 'bg-blue-50', accentColor: '#3B82F6' },
+  { icon: GraduationCap, gradient: 'from-purple-500 to-indigo-700', iconColor: 'text-white', bgLight: 'bg-purple-50', accentColor: '#8B5CF6' },
+  { icon: Star, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-white', bgLight: 'bg-yellow-50', accentColor: '#F59E0B' },
+  { icon: Award, gradient: 'from-teal-400 to-emerald-600', iconColor: 'text-white', bgLight: 'bg-teal-50', accentColor: '#14B8A6' },
+  { icon: Bookmark, gradient: 'from-pink-500 to-rose-600', iconColor: 'text-white', bgLight: 'bg-pink-50', accentColor: '#F43F5E' }
 ]
+
+export function getDeckTheme(quiz: { id: number; title?: string }): DeckTheme {
+  const idNum = Math.abs(quiz.id || 0)
+  const titleSum = (quiz.title || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const index = (idNum * 17 + titleSum) % DECK_THEMES.length
+  return DECK_THEMES[index]
+}
 
 export default function DecksPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -519,7 +507,7 @@ export default function DecksPage() {
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
                 const TabIcon = tab.icon
-                const shortLabel = tab.id === 'my' ? 'My Decks' : tab.id === 'folders' ? 'Folders' : tab.id === 'discover' ? 'Discover' : 'Archived'
+                const shortLabel = tab.id === 'my' ? 'Decks' : tab.id === 'folders' ? 'Folders' : tab.id === 'discover' ? 'Discover' : 'Archive'
                 return (
                   <button
                     key={tab.id}
@@ -1101,8 +1089,9 @@ export default function DecksPage() {
                     const total = quiz.questions_count || 1
                     const progressPct = quiz.progress_percent ?? Math.min(100, Math.round((learned / total) * 100))
                     const formattedDate = formatDate(quiz.created_at)
-                    const palette = DECK_PALETTES[idx % DECK_PALETTES.length]
-                    const mascotSrc = quiz.cover_image ? resolveMediaUrl(quiz.cover_image) : palette.mascotImage
+                    const deckTheme = getDeckTheme(quiz)
+                    const ThemeIcon = deckTheme.icon
+                    const hasCover = Boolean(quiz.cover_image)
 
                     return (
                       <motion.div
@@ -1124,24 +1113,28 @@ export default function DecksPage() {
                         className={cn(
                           "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
                           isSelected
-                            ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/95 via-white to-amber-50/60 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/25"
-                            : cn("border border-slate-200/90 hover:border-slate-300 shadow-xs", palette.cardBg)
+                            ? "border-2 border-orange-500 bg-orange-50/20 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/20"
+                            : "bg-white border border-slate-200/90 hover:border-slate-300 shadow-2xs hover:shadow-xs"
                         )}
                       >
-                        {/* Deck Mascot / Avatar */}
+                        {/* Deck Mascot / Themed Avatar */}
                         <div className="relative shrink-0">
                           <div className={cn(
-                            "w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] flex items-center justify-center overflow-hidden shadow-xs border-2 border-white",
-                            palette.avatarBg
+                            "w-13 h-13 sm:w-15 sm:h-15 rounded-[18px] flex items-center justify-center overflow-hidden shadow-2xs border-2 border-white",
+                            hasCover ? "bg-slate-100" : cn("bg-gradient-to-tr text-white", deckTheme.gradient)
                           )}>
-                            <img
-                              src={mascotSrc}
-                              alt={quiz.title}
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = palette.mascotImage
-                              }}
-                              className="w-full h-full object-cover"
-                            />
+                            {hasCover ? (
+                              <img
+                                src={resolveMediaUrl(quiz.cover_image!)}
+                                alt={quiz.title}
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = 'none'
+                                }}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <ThemeIcon className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-white drop-shadow-2xs" />
+                            )}
                           </div>
                         </div>
 
@@ -1196,12 +1189,14 @@ export default function DecksPage() {
                             <div className="flex items-center gap-2 mt-1.5">
                               <div className={cn(
                                 "flex-1 h-1.5 rounded-full overflow-hidden p-0.5 shadow-inner",
-                                isSelected ? "bg-orange-100" : palette.barTrack
+                                isSelected ? "bg-orange-100" : "bg-slate-100"
                               )}>
                                 <div
                                   className={cn(
                                     "h-full rounded-full transition-all duration-500",
-                                    isSelected ? "bg-gradient-to-r from-orange-400 to-amber-500" : palette.barFill
+                                    progressPct === 100
+                                      ? "bg-gradient-to-r from-emerald-400 to-teal-500"
+                                      : "bg-gradient-to-r from-orange-400 to-amber-500"
                                   )}
                                   style={{ width: `${Math.max(progressPct, total > 0 ? 3 : 0)}%` }}
                                 />
