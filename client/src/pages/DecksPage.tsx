@@ -438,16 +438,6 @@ export default function DecksPage() {
                 )}
               </div>
 
-              {/* Room Match */}
-              <button
-                onClick={() => setIsJoinModalOpen(true)}
-                className="h-8.5 px-3 rounded-xl bg-white hover:bg-purple-50/80 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
-                title="Join study room"
-              >
-                <Users className="w-4 h-4 text-purple-600" />
-                <span>Room</span>
-              </button>
-
               {/* Folder Button */}
               <button
                 onClick={() => {
@@ -491,15 +481,6 @@ export default function DecksPage() {
                 title="Search decks"
               >
                 <Search className="w-4 h-4" />
-              </button>
-
-              {/* Room Match (Icon-only on mobile) */}
-              <button
-                onClick={() => setIsJoinModalOpen(true)}
-                className="h-8.5 w-8.5 rounded-xl bg-white hover:bg-purple-50/80 border border-slate-200 text-purple-600 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
-                title="Join study room"
-              >
-                <Users className="w-4 h-4" />
               </button>
 
               {/* New Deck Primary Action */}
@@ -1395,15 +1376,25 @@ export default function DecksPage() {
                             </button>
                           </div>
 
-                          {/* Practice Quiz Button */}
-                          <button
-                            onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                            className="flex-1 min-w-0 h-11 px-3 rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-[3px] border-orange-200 select-none"
-                            title="Practice Quiz (MCQ, Typing, Listening)"
-                          >
-                            <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                            <span className="text-xs font-black truncate">Practice</span>
-                          </button>
+                          {/* Practice Quiz Split Button */}
+                          <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
+                            <button
+                              onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
+                              className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                              title="Launch default Practice (MCQ)"
+                            >
+                              <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                              <span className="text-xs font-black truncate">Practice</span>
+                            </button>
+                            <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
+                            <button
+                              onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                              className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                              title="Choose practice mode (MCQ, Typing, Listening)"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
 
                           {/* Switch back to Roadmap */}
                           <button
@@ -1418,9 +1409,9 @@ export default function DecksPage() {
                     </AnimatePresence>
                   </div>
                 ) : (
-                  /* Decks without roadmap: Directly display Study Flashcard & Practice */
+                  /* Decks without roadmap: Directly display Study & Practice with split buttons */
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    {/* Study Flashcards */}
+                    {/* Study */}
                     <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
                       <button
                         onClick={() => handleLaunchDefaultStudy(selectedDeck)}
@@ -1428,7 +1419,7 @@ export default function DecksPage() {
                         title="Launch default study mode"
                       >
                         <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-                        <span className="text-xs font-black truncate">Study Flashcards</span>
+                        <span className="text-xs font-black truncate">Study</span>
                       </button>
                       <div className="w-[1px] h-5 bg-white/25 shrink-0" />
                       <button
@@ -1440,15 +1431,25 @@ export default function DecksPage() {
                       </button>
                     </div>
 
-                    {/* Practice Quiz */}
-                    <button
-                      onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                      className="flex-1 min-w-0 h-11 px-3 rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-[3px] border-orange-200 select-none"
-                      title="Practice Quiz (MCQ, Typing, Listening)"
-                    >
-                      <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                      <span className="text-xs font-black truncate">Practice Test</span>
-                    </button>
+                    {/* Practice with Dropdown */}
+                    <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
+                      <button
+                        onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
+                        className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                        title="Launch default Practice (MCQ)"
+                      >
+                        <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                        <span className="text-xs font-black truncate">Practice</span>
+                      </button>
+                      <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
+                      <button
+                        onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                        className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                        title="Choose practice mode (MCQ, Typing, Listening)"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </>
