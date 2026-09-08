@@ -21,6 +21,7 @@ import {
   type FolderData
 } from '@/components/deck'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
 
 export interface Quiz {
   id: number
@@ -128,8 +129,8 @@ export default function DecksPage() {
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
   const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
 
-  // Filter dropdown & in-app confirmation modals
-  const [isTagMenuOpen, setIsTagMenuOpen] = useState(false)
+  // Filter tag row & in-app confirmation modals
+  const [isTagRowOpen, setIsTagRowOpen] = useState(false)
   const [folderToDelete, setFolderToDelete] = useState<FolderData | null>(null)
 
   // Pagination State
@@ -277,6 +278,19 @@ export default function DecksPage() {
   const selectedDeck = useMemo(() => {
     return paginatedData.find(q => q.id === selectedDeckId) || paginatedData[0] || null
   }, [paginatedData, selectedDeckId])
+
+  const {
+    status: selectedRoadmapStatus,
+    isAllDone: isSelectedRoadmapAllDone,
+    nextActionUrl: selectedRoadmapNextUrl
+  } = useRoadmapStatus(selectedDeck?.has_roadmap ? selectedDeck.id : undefined)
+
+  const isDeckFullyLearned = (selectedDeck?.progress_percent ?? 0) >= 100
+  const isRoadmapCompleted = Boolean(isSelectedRoadmapAllDone || isDeckFullyLearned)
+  const isRoadmapActive = Boolean(selectedDeck?.has_roadmap && !isRoadmapCompleted)
+  const roadmapStepText = selectedRoadmapStatus?.pipeline?.length
+    ? `Step ${(selectedRoadmapStatus.current_step_index ?? 0) + 1}/${selectedRoadmapStatus.pipeline.length}`
+    : 'Step 1/3'
 
   const tabsConfig: { id: DecksTab; label: string; count: number; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'my', label: 'My Decks', count: data?.my_quizzes?.length || 0, icon: Layers },
@@ -568,11 +582,46 @@ export default function DecksPage() {
             )}
           </AnimatePresence>
 
-          {/* Row 3: Pure Status Filter Chips & Smart Tag Dropdown */}
+          {/* Row 3: Pure Status Filter Chips with Tag Toggle at Front */}
           {activeTab !== 'folders' ? (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2.5 pt-1 md:border-t md:border-slate-100 md:pt-1.5 md:pb-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 pt-1 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
               {activeTab === 'my' && (
                 <>
+                  {/* Tag Toggle Button at Front */}
+                  {allAvailableTags.length > 0 && (
+                    <button
+                      onClick={() => setIsTagRowOpen(prev => !prev)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
+                        activeTag
+                          ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
+                          : isTagRowOpen
+                          ? "bg-amber-100 border-amber-300 text-amber-900 font-extrabold"
+                          : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60"
+                      )}
+                      title={isTagRowOpen ? "Hide tags bar" : "Filter by tags"}
+                    >
+                      <span>{activeTag ? `🏷️ #${activeTag}` : '🏷️ Tags'}</span>
+                      {activeTag ? (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveTag(null)
+                          }}
+                          className="hover:bg-white/20 rounded p-0.5"
+                          title="Clear tag filter"
+                        >
+                          <X className="w-3 h-3" />
+                        </span>
+                      ) : (
+                        <ChevronDown className={cn("w-3 h-3 transition-transform duration-200 opacity-60", isTagRowOpen && "rotate-180")} />
+                      )}
+                    </button>
+                  )}
+
+                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
+
+                  {/* Status Chips */}
                   {[
                     { id: 'all' as StatusFilter, label: 'All' },
                     { id: 'roadmap' as StatusFilter, label: '🧭 Roadmap' },
@@ -598,80 +647,6 @@ export default function DecksPage() {
                       </button>
                     )
                   })}
-
-                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
-
-                  {/* Smart Tag Dropdown Chip */}
-                  {allAvailableTags.length > 0 && (
-                    <div className="relative shrink-0">
-                      <button
-                        onClick={() => setIsTagMenuOpen(prev => !prev)}
-                        className={cn(
-                          "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
-                          activeTag
-                            ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
-                            : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60"
-                        )}
-                      >
-                        <span>{activeTag ? `#${activeTag}` : '🏷️ Tags'}</span>
-                        {activeTag ? (
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setActiveTag(null)
-                            }}
-                            className="hover:bg-white/20 rounded p-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </span>
-                        ) : (
-                          <ChevronDown className="w-3 h-3 opacity-60" />
-                        )}
-                      </button>
-
-                      {/* Popover Menu for Tags */}
-                      {isTagMenuOpen && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setIsTagMenuOpen(false)}
-                          />
-                          <div className="absolute left-0 mt-1.5 w-48 max-h-56 overflow-y-auto custom-scrollbar bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                            <button
-                              onClick={() => {
-                                setActiveTag(null)
-                                setIsTagMenuOpen(false)
-                              }}
-                              className={cn(
-                                "w-full text-left px-3 py-1.5 text-xs font-bold transition-colors flex items-center justify-between cursor-pointer",
-                                !activeTag ? "bg-orange-50 text-orange-600 font-black" : "text-slate-700 hover:bg-slate-50"
-                              )}
-                            >
-                              <span>All Tags</span>
-                              {!activeTag && <Check className="w-3.5 h-3.5 text-orange-500" />}
-                            </button>
-                            <div className="h-[1px] bg-slate-100 my-1" />
-                            {allAvailableTags.map(tag => (
-                              <button
-                                key={tag}
-                                onClick={() => {
-                                  setActiveTag(tag)
-                                  setIsTagMenuOpen(false)
-                                }}
-                                className={cn(
-                                  "w-full text-left px-3 py-1.5 text-xs font-bold transition-colors flex items-center justify-between truncate cursor-pointer",
-                                  activeTag === tag ? "bg-orange-50 text-orange-600 font-black" : "text-slate-700 hover:bg-slate-50"
-                                )}
-                              >
-                                <span className="truncate">#{tag}</span>
-                                {activeTag === tag && <Check className="w-3.5 h-3.5 text-orange-500 shrink-0" />}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -698,6 +673,50 @@ export default function DecksPage() {
               </button>
             </div>
           )}
+
+          {/* Expandable Custom Tags Bar (animated like the search row) */}
+          <AnimatePresence>
+            {isTagRowOpen && activeTab === 'my' && allAvailableTags.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden pb-2"
+              >
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 px-2 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/50 rounded-2xl border border-amber-200/70 shadow-2xs">
+                  <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider shrink-0 flex items-center gap-1 pl-1">
+                    <span>🏷️ All Tags:</span>
+                  </span>
+                  {allAvailableTags.map(tag => {
+                    const isSelected = activeTag === tag
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => setActiveTag(isSelected ? null : tag)}
+                        className={cn(
+                          "px-2.5 py-0.5 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
+                          isSelected
+                            ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
+                            : "bg-white hover:bg-amber-100/70 border-amber-200/80 text-slate-700 hover:text-amber-900"
+                        )}
+                      >
+                        <span>#{tag}</span>
+                        {isSelected && <X className="w-3 h-3 ml-0.5" />}
+                      </button>
+                    )
+                  })}
+                  {activeTag && (
+                    <button
+                      onClick={() => setActiveTag(null)}
+                      className="px-2 py-0.5 rounded-xl text-[10.5px] font-black text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors shrink-0 cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -1135,11 +1154,10 @@ export default function DecksPage() {
                               </h4>
                               {quiz.has_roadmap && (
                                 <span 
-                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-extrabold text-[9.5px] shrink-0"
+                                  className="inline-flex items-center justify-center w-5 h-5 rounded-lg bg-teal-50 border border-teal-200/80 text-teal-600 shrink-0 shadow-2xs"
                                   title="Smart daily roadmap enabled"
                                 >
-                                  <Compass className="w-2.5 h-2.5 text-teal-600 animate-spin-slow" />
-                                  <span>Roadmap</span>
+                                  <Compass className="w-3 h-3 text-teal-600" />
                                 </span>
                               )}
                             </div>
@@ -1238,17 +1256,22 @@ export default function DecksPage() {
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2">
             {activeTab === 'my' && (
               <>
-                {/* Single Row Actions: If roadmap is enabled, show long Roadmap Hero CTA + 2 compact icon buttons (Study & Practice) */}
-                {selectedDeck.has_roadmap ? (
+                {/* Single Row Actions: If roadmap is active and has steps today, show long Roadmap Hero CTA with Step info + 2 compact icon buttons (Study & Practice) */}
+                {isRoadmapActive ? (
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    {/* Main Long Roadmap Hero Button */}
+                    {/* Main Long Roadmap Hero Button with Step */}
                     <button
-                      onClick={() => navigate(`/decks/${selectedDeck.id}?tab=roadmap`)}
-                      className="flex-1 min-w-0 h-11 px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
+                      onClick={() => navigate(selectedRoadmapNextUrl || `/decks/${selectedDeck.id}?tab=roadmap`)}
+                      className="flex-1 min-w-0 h-11 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-between gap-1.5 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
                       title="Continue daily roadmap"
                     >
-                      <Compass className="w-4 h-4 sm:w-4.5 sm:h-4.5 animate-spin-slow shrink-0" />
-                      <span className="truncate">Continue Roadmap</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Compass className="w-4 h-4 sm:w-4.5 sm:h-4.5 animate-spin-slow shrink-0" />
+                        <span className="truncate">Continue Roadmap</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg bg-black/20 backdrop-blur-xs text-[10px] sm:text-[11px] font-mono font-black shrink-0 tracking-wide border border-white/15">
+                        {roadmapStepText}
+                      </span>
                     </button>
 
                     {/* Icon Button: Study */}
@@ -1270,7 +1293,7 @@ export default function DecksPage() {
                     </button>
                   </div>
                 ) : (
-                  /* Standard Decks: Study & Practice (Full Width Split Buttons) */
+                  /* Standard Decks OR Completed Roadmap Decks: Study & Practice (Full Width Split Buttons) */
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {/* Study */}
                     <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
