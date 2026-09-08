@@ -130,7 +130,6 @@ export default function DecksPage() {
 
   // Filter dropdown & in-app confirmation modals
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false)
-  const [deckToArchive, setDeckToArchive] = useState<Quiz | null>(null)
   const [folderToDelete, setFolderToDelete] = useState<FolderData | null>(null)
 
   // Pagination State
@@ -1239,66 +1238,39 @@ export default function DecksPage() {
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2">
             {activeTab === 'my' && (
               <>
-                {/* Small Compact Archive Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeckToArchive(selectedDeck)
-                  }}
-                  className="w-11 h-11 rounded-2xl bg-slate-100/90 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 text-slate-400 hover:text-rose-600 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs"
-                  title="Archive deck"
-                >
-                  <Archive className="w-4 h-4" />
-                </button>
-
-                {/* Add to Folder Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setEditingFolder(null)
-                    setIsFolderModalOpen(true)
-                  }}
-                  className="w-11 h-11 rounded-2xl bg-amber-50/90 hover:bg-amber-100 border border-amber-200/80 hover:border-amber-300 text-amber-700 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs"
-                  title="Organize in Folder"
-                >
-                  <FolderPlus className="w-4 h-4 text-amber-600" />
-                </button>
-
-                {/* Single Row Actions: If roadmap is enabled, show Roadmap Hero CTA + Study/Practice split */}
+                {/* Single Row Actions: If roadmap is enabled, show long Roadmap Hero CTA + 2 compact icon buttons (Study & Practice) */}
                 {selectedDeck.has_roadmap ? (
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    {/* Main Roadmap Hero Button */}
+                    {/* Main Long Roadmap Hero Button */}
                     <button
                       onClick={() => navigate(`/decks/${selectedDeck.id}?tab=roadmap`)}
-                      className="flex-[1.15] min-w-0 h-11 px-3 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
+                      className="flex-1 min-w-0 h-11 px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
                       title="Continue daily roadmap"
                     >
-                      <Compass className="w-4 h-4 animate-spin-slow shrink-0" />
+                      <Compass className="w-4 h-4 sm:w-4.5 sm:h-4.5 animate-spin-slow shrink-0" />
                       <span className="truncate">Continue Roadmap</span>
                     </button>
 
-                    {/* Quick Study / Practice Split Dropdown */}
-                    <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
-                      <button
-                        onClick={() => handleLaunchDefaultStudy(selectedDeck)}
-                        className="flex-1 h-11 pl-3 pr-1.5 flex items-center justify-center gap-1 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
-                        title="Launch default study mode"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current text-orange-500 shrink-0" />
-                        <span className="text-xs font-black truncate">Study</span>
-                      </button>
-                      <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
-                      <button
-                        onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                        className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                        title="Choose practice mode (MCQ, Typing, Listening)"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                      </button>
-                    </div>
+                    {/* Icon Button: Study */}
+                    <button
+                      onClick={() => handleLaunchDefaultStudy(selectedDeck)}
+                      className="w-11 h-11 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-xs border-b-[3px] border-[#c44e00]"
+                      title="Study Flashcards (FSRS)"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                    </button>
+
+                    {/* Icon Button: Practice */}
+                    <button
+                      onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
+                      className="w-11 h-11 rounded-2xl bg-white hover:bg-orange-50/50 text-slate-700 hover:text-orange-600 border-2 border-orange-100 hover:border-orange-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs border-b-[3px] border-orange-200"
+                      title="Practice Quiz (MCQ)"
+                    >
+                      <Trophy className="w-4 h-4 text-orange-500" />
+                    </button>
                   </div>
                 ) : (
-                  /* Standard Decks: Study & Practice */
+                  /* Standard Decks: Study & Practice (Full Width Split Buttons) */
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {/* Study */}
                     <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
@@ -1440,55 +1412,6 @@ export default function DecksPage() {
         }}
       />
 
-      {/* ═══════════ IN-APP ARCHIVE CONFIRMATION MODAL ═══════════ */}
-      <AnimatePresence>
-        {deckToArchive && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 15 }}
-              transition={{ type: "spring", duration: 0.25 }}
-              className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-200/80 text-center select-none"
-            >
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center shadow-inner">
-                <Archive className="w-7 h-7 stroke-[2.2]" />
-              </div>
-
-              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">
-                Archive Deck?
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed mb-6">
-                Are you sure you want to archive <strong className="text-slate-800">"{deckToArchive.title}"</strong>? It will be moved to the <strong>Archived</strong> tab. Your cards, progress, and FSRS memory data will remain 100% safe, and you can restore it anytime.
-              </p>
-
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setDeckToArchive(null)}
-                  className="flex-1 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={archiveMutation.isPending}
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8)
-                    archiveMutation.mutate(deckToArchive.id, {
-                      onSettled: () => setDeckToArchive(null)
-                    })
-                  }}
-                  className="flex-1 h-11 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Archive className="w-4 h-4" />
-                  <span>{archiveMutation.isPending ? 'Archiving...' : 'Archive Deck'}</span>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* ═══════════ IN-APP FOLDER DELETE CONFIRMATION MODAL ═══════════ */}
       <AnimatePresence>
