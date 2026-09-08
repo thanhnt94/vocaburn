@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, ChevronLeft, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2, SlidersHorizontal } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2, SlidersHorizontal } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,10 +14,6 @@ import { StudyModeModal } from '@/components/dashboard/StudyModeModal'
 import { DashboardRoadmapSection } from '@/components/dashboard/DashboardRoadmapSection'
 import { DashboardQuickDecksWidget } from '@/components/dashboard/DashboardQuickDecksWidget'
 import { HomeCustomizeModal } from '@/components/dashboard/HomeCustomizeModal'
-import { HeroTodayCard } from '@/components/dashboard/HeroTodayCard'
-import { RoadmapCardStack } from '@/components/dashboard/RoadmapCardStack'
-import { QuickActionsRow } from '@/components/dashboard/QuickActionsRow'
-import { JoinRoomModal } from '@/components/dashboard/JoinRoomModal'
 
 
 
@@ -1245,7 +1241,6 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [activeHomeTab, setActiveHomeTab] = useState<'roadmap' | 'learning'>('roadmap')
 
   useEffect(() => {
@@ -1732,210 +1727,60 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* DESKTOP 3-PANEL NOTION/LINEAR-STYLE LAYOUT */}
-      <div className="hidden md:flex w-full h-full overflow-hidden px-4 lg:px-6 py-4 gap-5">
+      {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT */}
+      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-6 py-4 gap-6">
 
-        {/* PANEL 1: COLLAPSIBLE LEFT SIDEBAR */}
-        <aside
-          className={cn(
-            "h-full flex flex-col flex-shrink-0 transition-all duration-300 relative select-none",
-            isSidebarCollapsed ? "w-20" : "w-64 2xl:w-72"
-          )}
-        >
-          <div className="bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-3xl p-4 shadow-xs h-full flex flex-col justify-between overflow-hidden">
-            {/* Top: Header & Collapse toggle */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                {!isSidebarCollapsed ? (
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-base shadow-sm font-black">
-                      {data.user?.username?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none block">Welcome</span>
-                      <h3 className="text-xs font-black text-slate-900 truncate leading-tight mt-0.5">
-                        {data.user?.username}
-                      </h3>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-base shadow-sm font-black mx-auto">
-                    {data.user?.username?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
-                )}
+        {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Rich Leaderboard (Col 3 of 12) */}
+        <aside className="col-span-3 h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-1 pb-4">
+          {/* User profile card */}
+          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 shadow-xs flex flex-col gap-3.5 text-left relative overflow-hidden flex-shrink-0">
+            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-100/40 blur-xl pointer-events-none" />
 
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                  className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0",
-                    isSidebarCollapsed ? "mx-auto mt-2" : ""
-                  )}
-                  title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                >
-                  {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                </button>
+            <div className="flex items-center gap-3 z-10">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md text-xl shadow-orange-200">
+                👋
               </div>
-
-              {/* Gamification Stats */}
-              {!isSidebarCollapsed ? (
-                <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
-                  <div className="flex items-center justify-between p-2.5 bg-orange-50/70 border border-orange-100 rounded-2xl">
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-4 h-4 text-orange-500 animate-pulse fill-orange-500" />
-                      <span className="text-[10px] font-black text-orange-950 uppercase tracking-wider">Streak</span>
-                    </div>
-                    <span className="text-xs font-black text-orange-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-orange-100">
-                      {data.gamify?.streak || 0}d 🔥
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-indigo-600" />
-                      <span className="text-[10px] font-black text-indigo-950 uppercase tracking-wider">Level</span>
-                    </div>
-                    <span className="text-xs font-black text-indigo-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-indigo-100">
-                      Lv {data.gamify?.level || 1} ⭐
-                    </span>
-                  </div>
-
-                  {/* XP Progress Bar */}
-                  <div className="px-1 mt-1">
-                    <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1">
-                      <span>{(data.gamify?.xp || 0).toLocaleString()} XP</span>
-                      <span>{(((data.gamify?.level || 1) * 1000)).toLocaleString()} next lv</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Collapsed Icon-only HUD */
-                <div className="flex flex-col items-center gap-2.5 pt-3 border-t border-slate-100">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-200/70 flex flex-col items-center justify-center text-orange-600" title={`Streak: ${data.gamify?.streak || 0} days`}>
-                    <Flame className="w-4 h-4 fill-orange-500" />
-                    <span className="text-[8px] font-black leading-none mt-0.5">{data.gamify?.streak || 0}d</span>
-                  </div>
-
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/70 flex flex-col items-center justify-center text-indigo-600" title={`Level ${data.gamify?.level || 1}`}>
-                    <Zap className="w-4 h-4" />
-                    <span className="text-[8px] font-black leading-none mt-0.5">Lv{data.gamify?.level || 1}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation Shortcuts */}
-              <div className="flex flex-col gap-1 pt-3 border-t border-slate-100">
-                {[
-                  { label: 'Decks', path: '/decks', icon: Layers },
-                  { label: 'Rankings', path: '/stats', icon: Trophy },
-                  { label: 'Arena Room', action: () => setIsJoinModalOpen(true), icon: Swords },
-                  { label: 'Practice Mode', action: () => {
-                    if (sortedActiveDecks.length > 0) handleOpenStudyModal(sortedActiveDecks[0], 'practice')
-                    else navigate('/decks')
-                  }, icon: Target }
-                ].map((item, idx) => {
-                  const Icon = item.icon
-                  if (isSidebarCollapsed) {
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={item.action ? item.action : () => navigate(item.path!)}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-orange-600 hover:bg-orange-50/70 mx-auto transition-colors cursor-pointer"
-                        title={item.label}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </button>
-                    )
-                  }
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={item.action ? item.action : () => navigate(item.path!)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-left cursor-pointer"
-                    >
-                      <Icon className="w-4 h-4 text-slate-400 group-hover:text-orange-500" />
-                      <span>{item.label}</span>
-                    </button>
-                  )
-                })}
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Welcome back</span>
+                <h2 className="text-sm font-black text-slate-800 leading-tight mt-0.5 truncate">
+                  {data.user?.username}
+                </h2>
               </div>
             </div>
 
-            {/* Bottom: Customize Button */}
-            {!isSidebarCollapsed ? (
-              <button
-                type="button"
-                onClick={() => setIsCustomizeModalOpen(true)}
-                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Customize</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsCustomizeModalOpen(true)}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 mx-auto transition-colors cursor-pointer"
-                title="Customize"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-            )}
+            <div className="flex flex-col gap-2 mt-0.5">
+              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Streak</span>
+                </div>
+                <span className="text-xs font-black text-orange-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-orange-100">{data.gamify?.streak} days 🔥</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-100/80 rounded-2xl">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Level</span>
+                </div>
+                <span className="text-xs font-black text-indigo-600 bg-white px-2.5 py-0.5 rounded-xl shadow-2xs border border-indigo-100">Lvl {data.gamify?.level} ⭐</span>
+              </div>
+
+              {/* XP progress to next level */}
+              <div className="px-1 mt-1">
+                <div className="flex justify-between text-[8px] font-black text-slate-400 mb-1">
+                  <span>{data.gamify?.xp?.toLocaleString()} XP</span>
+                  <span>{((data.gamify?.level || 1) * 1000).toLocaleString()} XP next lv</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-orange-500 via-amber-500 to-indigo-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, ((data.gamify?.xp || 0) % 1000) / 10)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </aside>
 
-        {/* PANEL 2: CENTER STAGE (Hero + Roadmaps + Quick Decks) */}
-        <main className="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar flex flex-col gap-5 pr-1 pb-6">
-          {/* Top Hero Card with Progress Ring */}
-          <HeroTodayCard
-            user={data?.user}
-            gamify={data?.gamify}
-            todayReview={todayReview}
-            roadmapDecks={sortedRoadmapDecks}
-            remainingTime={remainingTime}
-            navigate={navigate}
-            onOpenStudyModal={handleOpenStudyModal}
-          />
-
-          {/* Active Roadmaps Section */}
-          <section className="bg-white/80 backdrop-blur-xs border border-slate-200/70 rounded-3xl p-4 shadow-xs flex flex-col gap-3 min-h-[420px]">
-            <DashboardRoadmapSection
-              roadmapDecks={sortedRoadmapDecks}
-              remainingTime={remainingTime}
-              selectedRoadmapIdx={selectedRoadmapIdx}
-              onSelectRoadmapIdx={setSelectedRoadmapIdx}
-              onOpenStudyModal={handleOpenStudyModal}
-              navigate={navigate}
-              isDesktop={true}
-              displayMode={userSettings?.roadmap_display_mode || 'carousel'}
-              onOpenCustomize={() => setIsCustomizeModalOpen(true)}
-            />
-          </section>
-
-          {/* Quick Decks Shortcuts */}
-          <section className="bg-white/80 backdrop-blur-xs border border-slate-200/70 rounded-3xl p-4 shadow-xs">
-            <DashboardQuickDecksWidget
-              todayReview={todayReview}
-              activeDecks={sortedActiveDecks}
-              allDecksCount={activeDecks?.length || 0}
-              onOpenStudyModal={handleOpenStudyModal}
-              navigate={navigate}
-              displayMode={userSettings?.learning_display_mode || 'shortcuts'}
-              onOpenCustomize={() => setIsCustomizeModalOpen(true)}
-            />
-          </section>
-        </main>
-
-        {/* PANEL 3: RIGHT PANEL (Leaderboard + Heatmap + Forecast) */}
-        <aside className="w-72 2xl:w-80 flex-shrink-0 h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 pb-6">
           {/* Rich Leaderboard */}
           {leaderboardData && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
@@ -1943,140 +1788,224 @@ export default function Dashboard() {
 
           {/* Heatmap (Study History) */}
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
-
-          {/* Review Forecast */}
-          {forecastData && <ReviewForecastWidget data={forecastData} />}
         </aside>
+
+        {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
+        <section className="col-span-5 h-full overflow-hidden flex flex-col">
+          <DashboardRoadmapSection
+            roadmapDecks={sortedRoadmapDecks}
+            remainingTime={remainingTime}
+            selectedRoadmapIdx={selectedRoadmapIdx}
+            onSelectRoadmapIdx={setSelectedRoadmapIdx}
+            onOpenStudyModal={handleOpenStudyModal}
+            navigate={navigate}
+            isDesktop={true}
+            displayMode={userSettings?.roadmap_display_mode || 'carousel'}
+            onOpenCustomize={() => setIsCustomizeModalOpen(true)}
+          />
+        </section>
+
+        {/* COLUMN 3: Quick Decks Hub (Col 4 of 12) */}
+        <section className="col-span-4 h-full overflow-hidden flex flex-col">
+          <DashboardQuickDecksWidget
+            todayReview={todayReview}
+            activeDecks={sortedActiveDecks}
+            allDecksCount={activeDecks?.length || 0}
+            onOpenStudyModal={handleOpenStudyModal}
+            navigate={navigate}
+            displayMode={userSettings?.learning_display_mode || 'shortcuts'}
+            onOpenCustomize={() => setIsCustomizeModalOpen(true)}
+          />
+        </section>
       </div>
 
-      {/* MOBILE FEED — Modern Single-Scroll Gamified Duolingo-Inspired UX */}
-      <div className="md:hidden flex flex-col h-full overflow-y-auto custom-scrollbar bg-[#f8fafc] text-slate-900 select-none pb-24 font-sans">
-        {/* TOP MOBILE APP HEADER */}
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-between shadow-2xs">
-          <Link to="/" className="active:scale-95 transition-transform flex items-center">
-            <VocaburnLogo height="md" />
-          </Link>
+      {/* MOBILE FEED — Exact Mockup Design with Unified Header & Flame Logo */}
+      <div 
+        className="md:hidden flex flex-col bg-[#f8fafc] fixed inset-0 top-0 bottom-[68px] z-[100] overflow-hidden select-none font-sans"
+        onTouchStart={(e) => {
+          (window as any)._touchStartX = e.touches[0].clientX;
+          (window as any)._touchStartY = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          const startX = (window as any)._touchStartX;
+          const startY = (window as any)._touchStartY;
+          if (startX === undefined || startY === undefined) return;
+          const endX = e.changedTouches[0].clientX;
+          const endY = e.changedTouches[0].clientY;
+          const diffX = endX - startX;
+          const diffY = endY - startY;
 
-          <div className="flex items-center gap-2">
-            {/* Daily Streak Pill with pulse */}
-            <span 
-              className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-xs font-black shadow-xs"
-              title="Daily Streak"
-            >
-              <Flame className="w-3.5 h-3.5 fill-white text-white animate-pulse" />
-              <span>{data?.gamify?.streak || 0}d</span>
-            </span>
+          // Pull to refresh detection
+          if (diffY > 120 && Math.abs(diffX) < 50) {
+            if (navigator.vibrate) navigator.vibrate(20);
+            queryClient.invalidateQueries();
+            return;
+          }
 
-            {/* Level Badge */}
-            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-[10px] font-bold text-indigo-700">
-              Lv {data?.gamify?.level || 1}
-            </span>
-
-            {/* User Avatar */}
-            <Link 
-              to="/profile" 
-              className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
-            >
-              <User className="w-4 h-4" />
+          // Horizontal Swipe detection (Swipe left to Learning, Swipe right to Roadmap)
+          if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+            if (diffX < -40 && activeHomeTab !== 'learning') {
+              setActiveHomeTab('learning')
+              if (navigator.vibrate) navigator.vibrate(8)
+              updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+            } else if (diffX > 40 && activeHomeTab !== 'roadmap') {
+              setActiveHomeTab('roadmap')
+              if (navigator.vibrate) navigator.vibrate(8)
+              updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+            }
+          }
+        }}
+      >
+        {/* UNIFIED TOP APP HEADER (VS Code Light Studio Tabs) */}
+        <div className="bg-white border-b border-slate-200/70 flex flex-col flex-shrink-0 z-30 shadow-xs">
+          {/* Top Bar: Brand Logo + Utility Cluster */}
+          <div className="flex items-center justify-between px-3.5 pt-2 pb-1.5 w-full max-w-[1700px] mx-auto">
+            <Link to="/" className="active:scale-95 transition-transform flex items-center">
+              <VocaburnLogo height="md" />
             </Link>
+            
+            <div className="flex items-center gap-2">
+              <span 
+                className="flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-black shadow-xs"
+                title="Daily Streak"
+              >
+                <Zap className="w-3 h-3 fill-white text-white animate-pulse" />
+                {data?.gamify?.streak || 0}d
+              </span>
+
+              <Link 
+                to="/profile" 
+                className="w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
+              >
+                <User className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+
+          {/* ═══════════ MINIMAL BORDERLESS FULL-WIDTH TABS ═══════════ */}
+          <div className="bg-white border-t border-slate-100/90 px-3.5 flex items-center justify-between w-full select-none flex-shrink-0 h-10">
+            {/* Tabs Group */}
+            <div className="flex items-center gap-6 h-full">
+              {/* Tab 1: Roadmap */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveHomeTab('roadmap')
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+                }}
+                className={cn(
+                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
+                  activeHomeTab === 'roadmap' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <Layers className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                )} />
+                <span className="text-[13px]">Roadmap</span>
+                {sortedRoadmapDecks.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.2 rounded-full tabular-nums transition-colors",
+                    activeHomeTab === 'roadmap' ? "bg-orange-50 text-orange-600 border border-orange-200/60" : "bg-slate-100 text-slate-400"
+                  )}>
+                    {sortedRoadmapDecks.length}
+                  </span>
+                )}
+                {/* Clean Animated Orange Underline Indicator */}
+                {activeHomeTab === 'roadmap' && (
+                  <motion.div
+                    layoutId="homeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                  />
+                )}
+              </button>
+
+              {/* Tab 2: Learning */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveHomeTab('learning')
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+                }}
+                className={cn(
+                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
+                  activeHomeTab === 'learning' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <BookOpen className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                )} />
+                <span className="text-[13px]">Learning</span>
+                {sortedActiveDecks.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.2 rounded-full tabular-nums transition-colors",
+                    activeHomeTab === 'learning' ? "bg-orange-50 text-orange-600 border border-orange-200/60" : "bg-slate-100 text-slate-400"
+                  )}>
+                    {sortedActiveDecks.length}
+                  </span>
+                )}
+                {/* Clean Animated Orange Underline Indicator */}
+                {activeHomeTab === 'learning' && (
+                  <motion.div
+                    layoutId="homeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                  />
+                )}
+              </button>
+            </div>
+
+            {/* Subtle Customize Button on Far Right */}
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(6)
+                setIsCustomizeModalOpen(true)
+              }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-orange-600 hover:bg-orange-50/70 transition-all cursor-pointer active:scale-95"
+              title="Customize display mode & deck order"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
+            </button>
           </div>
         </div>
 
-        {/* SINGLE-SCROLL BODY */}
-        <div className="px-3.5 py-3.5 flex flex-col gap-4">
-          {/* 1. HERO TODAY CARD (Duolingo-style ring + CTA) */}
-          <HeroTodayCard
-            user={data?.user}
-            gamify={data?.gamify}
-            todayReview={todayReview}
-            roadmapDecks={sortedRoadmapDecks}
-            remainingTime={remainingTime}
-            navigate={navigate}
-            onOpenStudyModal={handleOpenStudyModal}
-          />
-
-          {/* 2. QUICK ACTIONS ROW (All Decks, Rankings, Arena, Practice) */}
-          <QuickActionsRow
-            onOpenRoomModal={() => setIsJoinModalOpen(true)}
-            onOpenPractice={() => {
-              if (sortedActiveDecks.length > 0) {
-                handleOpenStudyModal(sortedActiveDecks[0], 'practice')
-              } else {
-                navigate('/decks')
-              }
-            }}
-          />
-
-          {/* 3. ACTIVE ROADMAPS VERTICAL STACK */}
-          <RoadmapCardStack
-            roadmapDecks={sortedRoadmapDecks}
-            onOpenStudyModal={handleOpenStudyModal}
-            navigate={navigate}
-            onOpenCustomize={() => setIsCustomizeModalOpen(true)}
-          />
-
-          {/* 4. QUICK DECKS SECTION */}
-          {sortedActiveDecks.length > 0 && (
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-4 shadow-xs flex flex-col gap-3">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center">
-                    <BookOpen className="w-3.5 h-3.5 stroke-[2.4]" />
-                  </div>
-                  <h4 className="text-sm font-black text-slate-900 tracking-tight">Quick Decks</h4>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200/60 tabular-nums">
-                    {sortedActiveDecks.length}
-                  </span>
-                </div>
-                <Link
-                  to="/decks"
-                  className="text-xs font-black text-orange-600 hover:text-orange-700 flex items-center gap-0.5"
-                >
-                  <span>See all</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {sortedActiveDecks.slice(0, 4).map((deck: any) => (
-                  <div
-                    key={deck.deck_id || deck.id}
-                    onClick={() => handleOpenStudyModal(deck, 'flashcard')}
-                    className="p-3 rounded-2xl bg-slate-50 hover:bg-orange-50/60 border border-slate-200/70 hover:border-orange-200 transition-all flex items-center justify-between gap-3 cursor-pointer"
-                  >
-                    <div className="min-w-0">
-                      <h5 className="text-xs font-black text-slate-900 truncate">
-                        {deck.title}
-                      </h5>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {deck.learned_cards || 0}/{deck.total_cards || 0} cards · {deck.total_pct || 0}%
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="w-8 h-8 rounded-xl bg-white text-orange-600 border border-orange-100 shadow-2xs flex items-center justify-center shrink-0"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+        {/* MOBILE MAIN CONTENT */}
+        <div className="flex-1 bg-[#f8fafc] overflow-hidden relative flex flex-col min-h-0">
+          {activeHomeTab === 'roadmap' ? (
+            <DashboardRoadmapSection
+              roadmapDecks={sortedRoadmapDecks}
+              remainingTime={remainingTime}
+              selectedRoadmapIdx={selectedRoadmapIdx}
+              onSelectRoadmapIdx={setSelectedRoadmapIdx}
+              onOpenStudyModal={handleOpenStudyModal}
+              navigate={navigate}
+              isDesktop={false}
+              displayMode={userSettings?.roadmap_display_mode || 'carousel'}
+              onOpenCustomize={() => setIsCustomizeModalOpen(true)}
+            />
+          ) : (
+            <div className="flex-1 overflow-hidden p-2.5 sm:p-3 flex flex-col min-h-0">
+              <DashboardQuickDecksWidget
+                todayReview={todayReview}
+                activeDecks={sortedActiveDecks}
+                allDecksCount={activeDecks?.length || 0}
+                onOpenStudyModal={handleOpenStudyModal}
+                navigate={navigate}
+                displayMode={userSettings?.learning_display_mode || 'shortcuts'}
+                onOpenCustomize={() => setIsCustomizeModalOpen(true)}
+              />
             </div>
           )}
         </div>
-      </div>
 
+      </div>
       {/* MODALS */}
       <AnimatePresence>
-
-        <JoinRoomModal
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-          roomCode={roomCode}
-          setRoomCode={setRoomCode}
-          onJoin={() => handleJoinRoom()}
-          isJoining={isJoining}
-        />
 
         <PracticeModeModal
           isOpen={isPracticeModalOpen}
@@ -2113,7 +2042,6 @@ export default function Dashboard() {
         />
 
       </AnimatePresence>
-
     </div>
   )
 }

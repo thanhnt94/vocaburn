@@ -5,7 +5,7 @@ import {
   Search, Plus, ChevronRight, ChevronLeft, Archive, 
   RotateCcw, Users, Trophy, X,
   Play, Sparkles, Layers, Eye, Check,
-  Compass, ChevronDown, BookOpen, Folder as FolderIcon
+  Compass, ChevronDown, BookOpen, Folder as FolderIcon, FolderPlus
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -442,20 +442,24 @@ export default function DecksPage() {
                 <span className="hidden sm:inline">Room</span>
               </button>
 
-              {/* Folder Button (My Decks tab) */}
-              {activeTab === 'my' && (
-                <button
-                  onClick={() => {
-                    setEditingFolder(null)
-                    setIsFolderModalOpen(true)
-                  }}
-                  className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-amber-50/80 border border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-700 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
-                  title="Create new folder"
-                >
-                  <FolderIcon className="w-4 h-4 text-amber-500" />
-                  <span className="hidden sm:inline">Folder</span>
-                </button>
-              )}
+              {/* Folder Button - Always Visible & Accessible */}
+              <button
+                onClick={() => {
+                  if (activeTab !== 'my') setActiveTab('my')
+                  setEditingFolder(null)
+                  setIsFolderModalOpen(true)
+                }}
+                className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-amber-50 hover:bg-amber-100/90 border border-amber-200 hover:border-amber-300 text-amber-800 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Manage & Create Folders"
+              >
+                <FolderIcon className="w-4 h-4 text-amber-600 fill-amber-500/20" />
+                <span className="font-extrabold text-amber-900">Folder</span>
+                {folders.length > 0 && (
+                  <span className="bg-amber-200/90 text-amber-900 px-1.5 py-0.2 rounded-full text-[10px] font-black leading-none">
+                    {folders.length}
+                  </span>
+                )}
+              </button>
 
               {/* New Deck */}
               <button
@@ -566,10 +570,23 @@ export default function DecksPage() {
                 })}
                 <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
 
-                {/* Folder Pills in My Decks tab */}
-                {folders.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                {/* Folder Pills & Creation in My Decks tab */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {folders.length === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingFolder(null)
+                        setIsFolderModalOpen(true)
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 hover:bg-amber-100 text-amber-800 text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs active:scale-95 select-none"
+                      title="Create your first folder to organize decks"
+                    >
+                      <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
+                      <span>+ New Folder</span>
+                    </button>
+                  ) : (
+                    <>
                       {folders.map(folder => {
                         const isFolderSelected = activeFolderId === folder.id
                         return (
@@ -578,8 +595,8 @@ export default function DecksPage() {
                             className={cn(
                               "flex items-center rounded-xl border text-xs font-black transition-all shrink-0 cursor-pointer select-none",
                               isFolderSelected
-                                ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20"
-                                : "bg-white border-slate-200 text-slate-700 hover:border-orange-300 hover:bg-orange-50/40"
+                                ? "bg-amber-500 border-amber-500 text-white shadow-xs shadow-amber-500/20"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/40"
                             )}
                           >
                             <button
@@ -587,7 +604,7 @@ export default function DecksPage() {
                               onClick={() => setActiveFolderId(isFolderSelected ? null : folder.id)}
                               className="flex items-center gap-1.5 px-2.5 py-1"
                             >
-                              <FolderIcon className={cn("w-3.5 h-3.5", isFolderSelected ? "text-white" : "text-amber-500")} />
+                              <FolderIcon className={cn("w-3.5 h-3.5", isFolderSelected ? "text-white fill-white" : "text-amber-500")} />
                               <span className="max-w-[120px] truncate">{folder.title}</span>
                               <span className={cn(
                                 "px-1.5 py-0.2 rounded-full text-[9.5px] font-black leading-none",
@@ -613,10 +630,22 @@ export default function DecksPage() {
                           </div>
                         )
                       })}
-                    </div>
-                    <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
-                  </>
-                )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingFolder(null)
+                          setIsFolderModalOpen(true)
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-100/70 text-amber-700 text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs select-none"
+                        title="Create another folder"
+                      >
+                        <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
+                        <span>+ Folder</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-1" />
               </>
             )}
 
@@ -941,6 +970,19 @@ export default function DecksPage() {
                   title="Archive deck"
                 >
                   <Archive className="w-4 h-4" />
+                </button>
+
+                {/* Add to Folder Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditingFolder(null)
+                    setIsFolderModalOpen(true)
+                  }}
+                  className="w-11 h-11 rounded-2xl bg-amber-50/90 hover:bg-amber-100 border border-amber-200/80 hover:border-amber-300 text-amber-700 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs"
+                  title="Organize in Folder"
+                >
+                  <FolderPlus className="w-4 h-4 text-amber-600" />
                 </button>
 
                 {/* Single Row Actions: If roadmap is enabled, support swipe/toggle between Roadmap and Study/Practice */}
