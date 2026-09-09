@@ -463,13 +463,13 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                   {/* Mode Badge */}
                   <div 
                     className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs",
-                      meta.style || "bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black"
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs text-white",
+                      meta.style || "bg-gradient-to-r from-amber-500 to-amber-600"
                     )}
                     title={currentStep?.label || meta.label}
                   >
                     <span className="text-[10px] sm:text-xs">{meta.emoji}</span>
-                    <span className="text-[10px] sm:text-[11px] font-black">
+                    <span className="text-[10px] sm:text-[11px] font-black text-white">
                       {meta.short}
                     </span>
                   </div>

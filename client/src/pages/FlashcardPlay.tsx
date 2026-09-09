@@ -3040,7 +3040,7 @@ export default function FlashcardPlay() {
   };
 
   {/* ═══════════ LEFT-SIDE EXPANDABLE FLY TOOLBAR (Horizontal Quick Bar) ═══════════ */}
-  const renderFlyToolbar = () => {
+  const renderFlyToolbar = (isEmbedded = false) => {
     if (!currentQuestion) return null;
 
     // Audio availability check
@@ -3086,25 +3086,25 @@ export default function FlashcardPlay() {
           />
         )}
 
-        {/* Left-Side Floating Bar Container */}
+        {/* Floating or Embedded Bar Container */}
         <div 
           data-no-flip
           className={cn(
-            "fixed left-3 sm:left-6 z-[230] pointer-events-auto select-none transition-all duration-300",
-            activelyRatedCurrentCard && hasRated 
-              ? "bottom-[160px] md:bottom-[96px]" 
-              : "bottom-[122px] md:bottom-[76px]"
+            "pointer-events-auto select-none",
+            isEmbedded
+              ? "relative z-[230]"
+              : "fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230]"
           )}
         >
-          <div className="inline-flex items-center bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-md shadow-slate-300/30 p-1 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar flex-nowrap">
+          <div className="inline-flex items-center bg-white border border-slate-200/90 shadow-2xs p-0.5 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar flex-nowrap">
             {/* ── 1. FIXED ANCHOR AUDIO BUTTON (NEVER MOVES, NEVER UNMOUNTS, ROCK SOLID) ── */}
             <button
               type="button"
               onClick={triggerPlayAudio}
-              className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
               title="Play Pronunciation (Audio)"
             >
-              <Volume2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
             </button>
 
             {/* ── 2. DYNAMIC TRAY (DRAWER PULL-OUT TO THE RIGHT) ── */}
@@ -3122,7 +3122,7 @@ export default function FlashcardPlay() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.85 }}
                   transition={{ duration: 0.08 }}
-                  className="h-8.5 sm:h-9 pl-1.5 pr-2 rounded-r-full flex items-center gap-1 hover:bg-slate-100/80 text-slate-500 hover:text-indigo-600 transition-colors duration-150 active:scale-95 cursor-pointer shrink-0 border-l border-slate-200/80 ml-0.5 relative group"
+                  className="h-8 pl-1.5 pr-2 rounded-r-full flex items-center gap-1 hover:bg-slate-100/80 text-slate-500 hover:text-indigo-600 transition-colors duration-150 active:scale-95 cursor-pointer shrink-0 border-l border-slate-200/80 ml-0.5 relative group"
                   title="Expand Quick Options & Settings"
                 >
                   <Sliders className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:rotate-45 transition-all" />
@@ -3442,7 +3442,7 @@ export default function FlashcardPlay() {
               emoji: '🧠',
               label: 'FSRS Spaced Repetition v6',
               short: 'FSRS',
-              style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+              style: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black shadow-xs'
             };
 
             const totalDeckCards = session?.questions?.length || 0;
@@ -3485,7 +3485,7 @@ export default function FlashcardPlay() {
               emoji: '📚',
               label: 'Review Due Cards Only',
               short: 'REV',
-              style: 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+              style: 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-black shadow-xs'
             };
             const learnedTotal = session?.questions ? session.questions.filter((q: any) => {
               return q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && q.is_new !== undefined);
@@ -3501,7 +3501,7 @@ export default function FlashcardPlay() {
               emoji: '✨',
               label: 'Learn New Cards',
               short: 'NEW',
-              style: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+              style: 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black shadow-xs'
             };
             
             subTotal = session?.questions?.length || roadmapStatus?.total_cards || 0;
@@ -3521,7 +3521,7 @@ export default function FlashcardPlay() {
               emoji: '🔄',
               label: 'Free Flip Mode',
               short: 'FLIP',
-              style: 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+              style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black shadow-xs'
             };
             subTotal = session?.questions?.length || 1;
             subCurr = currentIndex + 1;
@@ -3546,7 +3546,7 @@ export default function FlashcardPlay() {
                 emoji: '🛣️',
                 label: 'Roadmap - New Cards',
                 short: 'RM',
-                style: 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                style: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black shadow-xs'
               };
               const targetNew = currentStep.daily_count || currentStep.progress?.target || roadmapStatus?.new_target_today || 20;
               const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
@@ -3562,7 +3562,7 @@ export default function FlashcardPlay() {
                 emoji: '🛣️',
                 label: 'Roadmap - Review',
                 short: 'RM',
-                style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                style: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black shadow-xs'
               };
               const reviewedToday = currentStep?.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
               const dueRemaining = currentStep?.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
@@ -4527,7 +4527,64 @@ export default function FlashcardPlay() {
                     })()}
 
 
-                    {/* Note: FSRS Rating Buttons & Countdown are docked at bottom action bar for thumb reachability and clean layout */}
+                    {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
+                    {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
+                      const dueTimeStr = currentQuestion?.fsrs?.due;
+                      let countdownStr = "";
+                      if (dueTimeStr) {
+                        const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
+                        if (diff > 0) {
+                          const secs = Math.floor(diff / 1000) % 60;
+                          const mins = Math.floor(diff / (1000 * 60)) % 60;
+                          const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                          
+                          const parts = [];
+                          if (days > 0) parts.push(`${days}d`);
+                          if (hours > 0 || days > 0) parts.push(`${hours}h`);
+                          if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
+                          parts.push(`${secs}s`);
+                          countdownStr = parts.join(' ');
+                        }
+                      }
+                      
+                      if (!countdownStr) {
+                        const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
+                        if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
+                        else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
+                        else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
+                        else countdownStr = dynamicIntervals[4] || "4d";
+                      }
+                      return (
+                        <div
+                          className={cn(
+                            "mt-3 relative w-full flex items-center justify-between py-1 px-1.5 rounded-2xl border transition-all duration-300 font-bold min-h-[46px]",
+                            selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+                            selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
+                            selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
+                            "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          )}
+                        >
+                          {/* 1. Left: Dock the Fly Bar button cleanly inside the left of the banner, vertically centered! */}
+                          <div className="shrink-0 z-20 flex items-center">
+                            {renderFlyToolbar(true)}
+                          </div>
+
+                          {/* 2. Center: The rating & countdown text, perfectly centered in the overall bar */}
+                          <div className="flex-1 flex items-center justify-center gap-1.5 text-center px-1">
+                            <span className="text-xs sm:text-sm font-black tracking-wide">
+                              ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                            </span>
+                            <span className="opacity-80 text-xs">
+                              — Unlocks in {countdownStr} ⏳
+                            </span>
+                          </div>
+
+                          {/* 3. Right: Symmetrical placeholder matching the Fly Bar button width (~76px) so text is 100% DEAD CENTER */}
+                          <div className="w-[76px] shrink-0 pointer-events-none" />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -4635,8 +4692,8 @@ export default function FlashcardPlay() {
 
 
       {/* ═══════════ FLY TOOLBAR (Floating Island above footer dock) ═══════════ */}
-      {!shouldShowRoadmapStepCompleteScreen && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && (
-        renderFlyToolbar()
+      {!shouldShowRoadmapStepCompleteScreen && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && !(isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined) && (
+        renderFlyToolbar(false)
       )}
 
       {!shouldShowRoadmapStepCompleteScreen && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
@@ -4786,79 +4843,28 @@ export default function FlashcardPlay() {
                   )
                 ) : (
                   /* ── BACK FACE: RATED (OR FLIP MODE FLIPPED) ── */
-                  <div className="w-full flex flex-col gap-1.5">
-                    {/* Countdown Feedback Pill (Harmonious, centered above action buttons) */}
-                    {activelyRatedCurrentCard && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
-                      const dueTimeStr = currentQuestion?.fsrs?.due;
-                      let countdownStr = "";
-                      if (dueTimeStr) {
-                        const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
-                        if (diff > 0) {
-                          const secs = Math.floor(diff / 1000) % 60;
-                          const mins = Math.floor(diff / (1000 * 60)) % 60;
-                          const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                          
-                          const parts = [];
-                          if (days > 0) parts.push(`${days}d`);
-                          if (hours > 0 || days > 0) parts.push(`${hours}h`);
-                          if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
-                          parts.push(`${secs}s`);
-                          countdownStr = parts.join(' ');
-                        }
-                      }
-                      
-                      if (!countdownStr) {
-                        const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
-                        if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
-                        else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
-                        else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
-                        else countdownStr = dynamicIntervals[4] || "4d";
-                      }
-                      return (
-                        <div
-                          className={cn(
-                            "w-full flex items-center justify-center gap-2 py-1 px-3 rounded-xl border font-bold text-xs shadow-2xs transition-all duration-300",
-                            selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-                            selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
-                            selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
-                            "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          )}
-                        >
-                          <span className="font-black text-[11px] uppercase tracking-wider">
-                            ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                          </span>
-                          <span className="text-slate-300 font-normal">•</span>
-                          <span className="opacity-85 text-[11px]">
-                            Unlocks in {countdownStr} ⏳
-                          </span>
-                        </div>
-                      );
-                    })()}
-
-                    <div className="w-full flex items-center gap-2 h-12 sm:h-13">
-                      {/* Undo button if rated */}
-                      {activelyRatedCurrentCard && hasRated && (
-                        <button
-                          onClick={handleUndoRating}
-                          className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                          title="Undo Rating"
-                        >
-                          <Undo2 className="w-3.5 h-3.5" />
-                          <span>Undo</span>
-                        </button>
-                      )}
-
-                      {/* NEXT CARD button */}
-                      <button 
-                        onClick={handleNext}
-                        className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                  <div className="w-full flex items-center gap-2 h-12 sm:h-13">
+                    {/* Undo button if rated */}
+                    {activelyRatedCurrentCard && hasRated && (
+                      <button
+                        onClick={handleUndoRating}
+                        className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        title="Undo Rating"
                       >
-                        <span>NEXT CARD</span>
-                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                        <ChevronRight className="w-4 h-4" />
+                        <Undo2 className="w-3.5 h-3.5" />
+                        <span>Undo</span>
                       </button>
-                    </div>
+                    )}
+
+                    {/* NEXT CARD button */}
+                    <button 
+                      onClick={handleNext}
+                      className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                    >
+                      <span>NEXT CARD</span>
+                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>
