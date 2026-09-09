@@ -3097,7 +3097,7 @@ export default function FlashcardPlay() {
           )}
         >
           <div className={cn(
-            "inline-flex items-center bg-white/95 backdrop-blur-md border border-slate-200 shadow-md p-0.5 rounded-full overflow-x-auto no-scrollbar flex-nowrap",
+            "inline-flex items-center bg-white/95 backdrop-blur-md border border-slate-200 shadow-xs p-0.5 rounded-full overflow-x-auto no-scrollbar flex-nowrap h-[38px] box-border",
             isEmbedded ? "max-w-[calc(100vw-36px)] md:max-w-[520px]" : "max-w-[calc(100vw-24px)]"
           )}>
             {/* ── 1. FIXED ANCHOR AUDIO BUTTON (NEVER MOVES, NEVER UNMOUNTS, ROCK SOLID) ── */}
@@ -4196,8 +4196,8 @@ export default function FlashcardPlay() {
 
                     {/* Bottom Slot on FRONT Face: Reserves identical 46px height so the audio button is in the exact same coordinates */}
                     <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
-                      <div className="absolute inset-0 rounded-2xl border border-transparent bg-transparent pointer-events-none" />
-                      <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-30">
+                      <div className="absolute inset-0 rounded-full border border-transparent bg-transparent pointer-events-none" />
+                      <div className="absolute left-[4px] top-1/2 -translate-y-1/2 z-30">
                         {renderFlyToolbar(true)}
                       </div>
                     </div>
@@ -4577,7 +4577,7 @@ export default function FlashcardPlay() {
                           {/* 1. Rating Feedback Banner: always mounts to reserve layout space; opacity-0 before rating, fades in when rated */}
                           <div
                             className={cn(
-                              "absolute inset-0 rounded-2xl border flex items-center justify-center font-bold transition-all duration-300 pointer-events-none px-4",
+                              "absolute inset-0 rounded-full border flex items-center justify-center font-bold transition-all duration-300 pointer-events-none px-4",
                               isCardRated
                                 ? cn(
                                     "opacity-100",
@@ -4590,7 +4590,7 @@ export default function FlashcardPlay() {
                             )}
                           >
                             {isCardRated && (
-                              <div className="flex items-center justify-center gap-1.5 text-center truncate">
+                              <div className="flex items-center justify-center gap-1.5 text-center truncate px-20">
                                 <span className="text-xs sm:text-sm font-black tracking-wide">
                                   ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
                                 </span>
@@ -4601,8 +4601,8 @@ export default function FlashcardPlay() {
                             )}
                           </div>
 
-                          {/* 2. Fly Toolbar: Anchored inside this slot at left-1.5, vertically centered, floating on top */}
-                          <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-30">
+                          {/* 2. Fly Toolbar: Anchored inside this slot at left-[4px], vertically centered, floating on top */}
+                          <div className="absolute left-[4px] top-1/2 -translate-y-1/2 z-30">
                             {renderFlyToolbar(true)}
                           </div>
                         </div>
