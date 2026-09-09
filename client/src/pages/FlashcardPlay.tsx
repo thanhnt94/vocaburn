@@ -3032,7 +3032,7 @@ export default function FlashcardPlay() {
     )
   };
 
-  {/* ═══════════ SPEED-DIAL FAB FLY TOOLBAR (Flyout Action Button) ═══════════ */}
+  {/* ═══════════ LEFT-SIDE EXPANDABLE FLY TOOLBAR (Horizontal Quick Bar) ═══════════ */}
   const renderFlyToolbar = () => {
     if (!currentQuestion) return null;
 
@@ -3046,13 +3046,28 @@ export default function FlashcardPlay() {
       isAudioAvail = isAudioEnabled(face);
     }
 
+    const triggerPlayAudio = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (mainTab === 'practice') {
+        const practiceData = currentPracticeData;
+        if (practiceData) {
+          const { question: qText, question_key: qKey } = practiceData;
+          if (qKey === 'front') await playCardAudio('front');
+          else if (qKey === 'back') await playCardAudio('back');
+          else speakMultiLanguage(qText);
+        }
+      } else {
+        await playCardAudio(isFlipped ? 'back' : 'front');
+      }
+    };
+
     const showHintBtn = !isFlipped && !!currentQuestion?.hint;
     const showExplainBtn = isFlipped || mainTab === 'practice' || showFeedback;
     const showFlipBackBtn = isFlipped && mainTab !== 'practice';
 
     return (
       <>
-        {/* Click shield to dismiss flyout when tapping anywhere on screen */}
+        {/* Click shield to dismiss horizontal bar when tapping outside */}
         <AnimatePresence>
           {isFlyToolbarOpen && (
             <motion.div
@@ -3064,266 +3079,289 @@ export default function FlashcardPlay() {
                 e.stopPropagation();
                 setIsFlyToolbarOpen(false);
               }}
-              className="fixed inset-0 z-[225] bg-black/25 backdrop-blur-[1px] select-none"
+              className="fixed inset-0 z-[225] bg-black/25 backdrop-blur-[0.5px] select-none"
             />
           )}
         </AnimatePresence>
 
-        {/* Speed-Dial FAB Floating Container */}
+        {/* Left-Side Floating Bar Container */}
         <div 
           data-no-flip
-          className="fixed bottom-[118px] md:bottom-[76px] right-3 sm:right-6 z-[230] pointer-events-auto select-none flex flex-col items-end"
+          className="fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230] pointer-events-auto select-none"
         >
-          {/* FLYOUT ACTIONS LIST (Staggered spring animation flying upwards) */}
-          <AnimatePresence>
-            {isFlyToolbarOpen && (
+          <AnimatePresence mode="wait">
+            {!isFlyToolbarOpen ? (
+              /* ── 1. COLLAPSED DUAL-PILL (Audio Play Button + Expand Handle) ── */
               <motion.div
-                initial={{ opacity: 0, scale: 0.85, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: 15 }}
+                key="collapsed"
+                initial={{ opacity: 0, x: -15, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -15, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 450, damping: 28 }}
-                className="flex flex-col items-end gap-2.5 mb-3"
+                className="inline-flex items-center rounded-full bg-slate-950/90 backdrop-blur-xl border border-slate-700/80 shadow-2xl shadow-slate-950/60 ring-1 ring-white/10 p-0.5"
               >
-                {/* 1. Study Settings */}
-                <motion.div 
-                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                  transition={{ delay: 0.02 }}
-                  className="flex items-center gap-2"
+                {/* Main Audio Button (Pronounce instantly on click) */}
+                <button
+                  type="button"
+                  onClick={triggerPlayAudio}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center bg-slate-900/90 hover:bg-indigo-600 text-indigo-400 hover:text-white transition-all duration-200 active:scale-90 cursor-pointer group shadow-sm"
+                  title="Play Pronunciation (Audio)"
                 >
-                  <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                    Settings
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsSettingsModalOpen(true);
-                      setIsFlyToolbarOpen(false);
-                    }}
-                    className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-indigo-600 hover:text-white text-slate-300 border border-slate-700/80 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer group"
-                    title="Study Settings"
-                  >
-                    <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform duration-300" />
-                  </button>
-                </motion.div>
+                  <Volume2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
 
-                {/* 2. Star / Bookmark */}
-                <motion.div 
-                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                  transition={{ delay: 0.05 }}
-                  className="flex items-center gap-2"
+                {/* Phần thừa ra (Expand Handle Tab to Horizontal Quick Bar & Full Settings) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsFlyToolbarOpen(true);
+                  }}
+                  className="h-10 sm:h-11 pl-1.5 pr-2.5 rounded-r-full flex items-center gap-1 hover:bg-slate-800/80 text-slate-300 hover:text-white transition-all duration-200 active:scale-95 cursor-pointer relative group border-l border-slate-800/80"
+                  title="Expand Quick Options & Settings"
                 >
-                  <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                    {currentQuestion?.is_starred ? "Starred" : "Star Card"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStarQuestion();
-                    }}
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border group",
-                      currentQuestion?.is_starred
-                        ? "bg-amber-500/30 text-amber-400 border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-                        : "bg-slate-900/90 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border-slate-700/80"
-                    )}
-                    title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
-                  >
-                    <Star className={cn("w-4 h-4 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-400")} />
-                  </button>
-                </motion.div>
-
-                {/* 3. Select Mode Toggle */}
-                <motion.div 
-                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                  transition={{ delay: 0.08 }}
-                  className="flex items-center gap-2"
+                  <Sliders className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400 group-hover:rotate-45 transition-all" />
+                  <ChevronRight className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-0.5 transition-transform" />
+                  {/* Status Indicator Dot if Hint or Starred or Select Mode */}
+                  {(currentQuestion?.hint || isSelectMode || currentQuestion?.is_starred) && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-slate-950 absolute top-1 right-1 animate-pulse" />
+                  )}
+                </button>
+              </motion.div>
+            ) : (
+              /* ── 2. EXPANDED HORIZONTAL BAR (All Quick Toggles & Options) ── */
+              <motion.div
+                key="expanded"
+                initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -20, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 26 }}
+                className="inline-flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-slate-950/95 backdrop-blur-2xl rounded-full border border-slate-700/80 shadow-2xl shadow-slate-950/80 ring-1 ring-white/10 max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar"
+              >
+                {/* 1. Play Audio Button */}
+                <button
+                  type="button"
+                  onClick={triggerPlayAudio}
+                  className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-indigo-600 text-indigo-400 hover:text-white flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm group"
+                  title="Play Pronunciation (Audio)"
                 >
-                  <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                    {isSelectMode ? "Select Mode: ON" : "Select Mode: OFF"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsSelectMode(prev => !prev);
-                    }}
-                    className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border relative group",
-                      isSelectMode
-                        ? "bg-amber-500 text-white border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
-                        : "bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/80"
-                    )}
-                    title={isSelectMode ? "Select Mode: ON (Tap/Swipe paused to select text)" : "Select Mode: OFF"}
-                  >
-                    <MousePointer className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    {isSelectMode && <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
-                  </button>
-                </motion.div>
+                  <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                </button>
 
-                {/* 4. Flip Back (Back face only) */}
-                {showFlipBackBtn && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                    transition={{ delay: 0.11 }}
-                    className="flex items-center gap-2"
-                  >
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                      Flip to Front
-                    </span>
+                {/* 2. Quick Toggle: Autoplay Audio */}
+                {(() => {
+                  const isAutoplay = autoPlayAudio !== 'none';
+                  return (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setIsFlipped(false);
-                        setIsFlyToolbarOpen(false);
+                        setAutoPlayAudio(isAutoplay ? 'none' : 'always');
                       }}
-                      className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-cyan-500 hover:text-white text-cyan-400 border border-slate-700/80 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl group"
-                      title="Flip Back to Front"
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border",
+                        isAutoplay
+                          ? "bg-emerald-500/25 border-emerald-500/50 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                          : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 text-slate-400"
+                      )}
+                      title={`Autoplay Audio: ${isAutoplay ? 'ON (Click to Mute Auto)' : 'OFF (Click to Enable Auto)'}`}
                     >
-                      <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                      {isAutoplay ? (
+                        <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                      )}
                     </button>
-                  </motion.div>
-                )}
+                  );
+                })()}
 
-                {/* 5. AI Hint (Front) or Explanation Drawer (Back) */}
+                {/* 3. Quick Toggle: Card Images */}
+                {(() => {
+                  const isImagesOn = showImages !== 'none';
+                  return (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowImages(isImagesOn ? 'none' : 'always');
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border",
+                        isImagesOn
+                          ? "bg-cyan-500/25 border-cyan-500/50 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.3)]"
+                          : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 text-slate-400"
+                      )}
+                      title={`Card Images: ${isImagesOn ? 'Visible (Click to Hide)' : 'Hidden (Click to Show)'}`}
+                    >
+                      {isImagesOn ? (
+                        <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                      ) : (
+                        <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                    </button>
+                  );
+                })()}
+
+                {/* 4. Quick Toggle: Sound Effects (SFX) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSfxEnabled(!sfxEnabled);
+                  }}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border",
+                    sfxEnabled
+                      ? "bg-amber-500/25 border-amber-500/50 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                      : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 text-slate-500 opacity-60"
+                  )}
+                  title={`SFX Sounds: ${sfxEnabled ? 'ON (Click to Mute SFX)' : 'OFF (Click to Enable SFX)'}`}
+                >
+                  <Sparkles className={cn("w-3.5 h-3.5", sfxEnabled ? "text-amber-400" : "text-slate-500")} />
+                </button>
+
+                {/* 5. Quick Toggle: Shuffle / Random Order */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRandomEnabled(!randomEnabled);
+                  }}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border",
+                    randomEnabled
+                      ? "bg-purple-500/25 border-purple-500/50 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.3)]"
+                      : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 text-slate-400"
+                  )}
+                  title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
+                >
+                  <Shuffle className="w-3.5 h-3.5" />
+                </button>
+
+                {/* 6. Quick Toggle: Select Mode */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSelectMode(prev => !prev);
+                  }}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border relative",
+                    isSelectMode
+                      ? "bg-amber-500 text-white border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
+                      : "bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 text-slate-300 hover:text-white"
+                  )}
+                  title={isSelectMode ? "Select Mode: ON (Tap/Swipe paused to select text)" : "Select Mode: OFF"}
+                >
+                  <MousePointer className="w-3.5 h-3.5" />
+                  {isSelectMode && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
+                </button>
+
+                {/* 7. Quick Action: Star / Bookmark */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStarQuestion();
+                  }}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border group",
+                    currentQuestion?.is_starred
+                      ? "bg-amber-500/30 text-amber-400 border-amber-400/60 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                      : "bg-slate-900/80 hover:bg-amber-500/20 border-slate-700/80 text-slate-400 hover:text-amber-400"
+                  )}
+                  title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
+                >
+                  <Star className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-400")} />
+                </button>
+
+                {/* 8. Quick Action: AI Hint or Explanation */}
                 {showHintBtn ? (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                    transition={{ delay: 0.14 }}
-                    className="flex items-center gap-2"
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowingHint(prev => !prev);
+                    }}
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border",
+                      showingHint
+                        ? "bg-amber-500 text-white border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
+                        : "bg-slate-900/80 hover:bg-amber-500/20 border-slate-700/80 text-amber-400"
+                    )}
+                    title="AI Hint"
                   >
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                      {showingHint ? "Hide Hint" : "AI Hint"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowingHint(prev => !prev);
-                        setIsFlyToolbarOpen(false);
-                      }}
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border group",
-                        showingHint 
-                          ? "bg-amber-500 text-white border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.6)]" 
-                          : "bg-slate-900/90 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border-slate-700/80"
-                      )}
-                      title="AI Hint"
-                    >
-                      <Lightbulb className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                    </button>
-                  </motion.div>
+                    <Lightbulb className="w-3.5 h-3.5" />
+                  </button>
                 ) : showExplainBtn ? (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                    transition={{ delay: 0.14 }}
-                    className="flex items-center gap-2"
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (mainTab === 'practice') setShowFeedback(true);
+                      setIsFeedbackOpen(true);
+                    }}
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm border relative",
+                      justAnswered
+                        ? "bg-indigo-600 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.7)] animate-pulse"
+                        : "bg-slate-900/80 hover:bg-indigo-600/30 border-slate-700/80 text-indigo-400"
+                    )}
+                    title="View Explanation & Details"
                   >
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                      Explanation
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (mainTab === 'practice') setShowFeedback(true);
-                        setIsFeedbackOpen(true);
-                        setIsFlyToolbarOpen(false);
-                      }}
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border relative group",
-                        justAnswered
-                          ? "bg-indigo-600 text-white border-indigo-400 shadow-[0_0_14px_rgba(99,102,241,0.7)] animate-pulse"
-                          : "bg-slate-900/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-400 border-slate-700/80"
-                      )}
-                      title="View Explanation & Details"
-                    >
-                      <Lightbulb className={cn("w-4 h-4", justAnswered ? "text-white" : "text-indigo-300")} />
-                      {justAnswered && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
-                    </button>
-                  </motion.div>
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    {justAnswered && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
+                  </button>
                 ) : null}
 
-                {/* 6. Audio Pronunciation */}
-                {isAudioAvail && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                    transition={{ delay: 0.17 }}
-                    className="flex items-center gap-2"
+                {/* 9. Flip Back (Back face only) */}
+                {showFlipBackBtn && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsFlipped(false);
+                    }}
+                    className="w-8 h-8 rounded-full bg-slate-900/80 hover:bg-cyan-500 hover:text-white text-cyan-400 border border-slate-700/80 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-sm group"
+                    title="Flip Back to Front"
                   >
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
-                      Pronounce
-                    </span>
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (mainTab === 'practice') {
-                          const practiceData = currentPracticeData;
-                          if (practiceData) {
-                            const { question: qText, question_key: qKey } = practiceData;
-                            if (qKey === 'front') await playCardAudio('front');
-                            else if (qKey === 'back') await playCardAudio('back');
-                            else speakMultiLanguage(qText);
-                          }
-                        } else {
-                          await playCardAudio(isFlipped ? 'back' : 'front');
-                        }
-                      }}
-                      className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-indigo-600 hover:text-white text-indigo-400 hover:text-white border border-slate-700/80 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer group"
-                      title="Play Pronunciation (Audio)"
-                    >
-                      <Volume2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    </button>
-                  </motion.div>
+                    <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
+                  </button>
                 )}
+
+                {/* Divider */}
+                <div className="w-[1px] h-4 bg-slate-700/80 mx-0.5 shrink-0" />
+
+                {/* 10. Nút Sang Giao Diện Tổng (Full Settings Console) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSettingsModalOpen(true);
+                    setIsFlyToolbarOpen(false);
+                  }}
+                  className="h-8 px-2.5 rounded-full bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-400/40 flex items-center gap-1 text-[11px] font-bold transition-all duration-200 active:scale-95 cursor-pointer shrink-0 shadow-sm group"
+                  title="Open Full Settings Console"
+                >
+                  <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
+                  <span className="hidden xs:inline sm:inline">Settings</span>
+                </button>
+
+                {/* 11. Collapse Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsFlyToolbarOpen(false);
+                  }}
+                  className="w-7.5 h-7.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0"
+                  title="Collapse Toolbar"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* MAIN SPEED-DIAL TRIGGER BUTTON (FAB) */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFlyToolbarOpen(prev => !prev);
-            }}
-            className={cn(
-              "w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer shadow-2xl backdrop-blur-xl border ring-1 relative group",
-              isFlyToolbarOpen
-                ? "bg-rose-600 text-white border-rose-400 ring-rose-400/40 shadow-[0_0_20px_rgba(225,29,72,0.5)] rotate-90"
-                : "bg-slate-950/90 hover:bg-slate-900 text-white border-slate-700/80 ring-white/10 shadow-slate-950/50 hover:shadow-indigo-500/20"
-            )}
-            title={isFlyToolbarOpen ? "Close Tools" : "Open Flyout Tools"}
-          >
-            {isFlyToolbarOpen ? (
-              <X className="w-5 h-5 text-white transition-transform duration-200" />
-            ) : (
-              <div className="relative flex items-center justify-center">
-                <Sliders className="w-4.5 h-4.5 text-indigo-400 group-hover:text-white group-hover:scale-110 transition-all" />
-                {/* Active status indicator dot */}
-                {(currentQuestion?.hint || isSelectMode || currentQuestion?.is_starred) && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-slate-950 absolute -top-1.5 -right-1.5 animate-pulse" />
-                )}
-              </div>
-            )}
-          </button>
         </div>
       </>
     );
