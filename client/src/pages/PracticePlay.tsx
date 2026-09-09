@@ -4980,7 +4980,7 @@ export default function PracticePlay() {
                           return (
                             <div
                               className={cn(
-                                "mt-4 flex items-center justify-center gap-1.5 py-2.5 px-3 pl-22 sm:pl-24 rounded-2xl border transition-all duration-300 font-bold min-h-[44px]",
+                                "mt-4 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-2xl border transition-all duration-300 font-bold min-h-[44px]",
                                 selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
                                   selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
                                     selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :

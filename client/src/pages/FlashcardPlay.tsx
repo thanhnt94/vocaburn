@@ -3089,9 +3089,14 @@ export default function FlashcardPlay() {
         {/* Left-Side Floating Bar Container */}
         <div 
           data-no-flip
-          className="fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230] pointer-events-auto select-none"
+          className={cn(
+            "fixed left-3 sm:left-6 z-[230] pointer-events-auto select-none transition-all duration-300",
+            activelyRatedCurrentCard && hasRated 
+              ? "bottom-[160px] md:bottom-[96px]" 
+              : "bottom-[122px] md:bottom-[76px]"
+          )}
         >
-          <div className="inline-flex items-center bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-lg shadow-slate-300/40 p-1 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar flex-nowrap">
+          <div className="inline-flex items-center bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-md shadow-slate-300/30 p-1 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar flex-nowrap">
             {/* ── 1. FIXED ANCHOR AUDIO BUTTON (NEVER MOVES, NEVER UNMOUNTS, ROCK SOLID) ── */}
             <button
               type="button"
@@ -4522,57 +4527,7 @@ export default function FlashcardPlay() {
                     })()}
 
 
-                    {/* Note: FSRS Rating Buttons are docked at bottom action bar for thumb reachability */}
-
-                    {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
-                    {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
-                      const dueTimeStr = currentQuestion?.fsrs?.due;
-                      let countdownStr = "";
-                      if (dueTimeStr) {
-                        const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
-                        if (diff > 0) {
-                          const secs = Math.floor(diff / 1000) % 60;
-                          const mins = Math.floor(diff / (1000 * 60)) % 60;
-                          const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                          
-                          const parts = [];
-                          if (days > 0) parts.push(`${days}d`);
-                          if (hours > 0 || days > 0) parts.push(`${hours}h`);
-                          if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
-                          parts.push(`${secs}s`);
-                          countdownStr = parts.join(' ');
-                        }
-                      }
-                      
-                      if (!countdownStr) {
-                        const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
-                        if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
-                        else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
-                        else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
-                        else countdownStr = dynamicIntervals[4] || "4d";
-                      }
-                      return (
-                        <div
-                          className={cn(
-                            "mt-4 flex items-center justify-center gap-1.5 py-2.5 px-3 pl-22 sm:pl-24 rounded-2xl border transition-all duration-300 font-bold relative min-h-[44px]",
-                            selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
-                            selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
-                            selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
-                            "bg-emerald-50 border-emerald-100 text-emerald-600"
-                          )}
-                        >
-                          <div className="flex items-center gap-1.5 justify-center text-center">
-                            <span className="text-xs sm:text-sm font-black tracking-wide">
-                              ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                            </span>
-                            <span className="opacity-80 text-xs">
-                              — Unlocks in {countdownStr} ⏳
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    {/* Note: FSRS Rating Buttons & Countdown are docked at bottom action bar for thumb reachability and clean layout */}
                   </div>
                 </div>
 
@@ -4831,28 +4786,79 @@ export default function FlashcardPlay() {
                   )
                 ) : (
                   /* ── BACK FACE: RATED (OR FLIP MODE FLIPPED) ── */
-                  <div className="w-full flex items-center gap-2 h-12 sm:h-13">
-                    {/* Undo button if rated */}
-                    {activelyRatedCurrentCard && hasRated && (
-                      <button
-                        onClick={handleUndoRating}
-                        className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                        title="Undo Rating"
-                      >
-                        <Undo2 className="w-3.5 h-3.5" />
-                        <span>Undo</span>
-                      </button>
-                    )}
+                  <div className="w-full flex flex-col gap-1.5">
+                    {/* Countdown Feedback Pill (Harmonious, centered above action buttons) */}
+                    {activelyRatedCurrentCard && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
+                      const dueTimeStr = currentQuestion?.fsrs?.due;
+                      let countdownStr = "";
+                      if (dueTimeStr) {
+                        const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
+                        if (diff > 0) {
+                          const secs = Math.floor(diff / 1000) % 60;
+                          const mins = Math.floor(diff / (1000 * 60)) % 60;
+                          const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                          
+                          const parts = [];
+                          if (days > 0) parts.push(`${days}d`);
+                          if (hours > 0 || days > 0) parts.push(`${hours}h`);
+                          if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
+                          parts.push(`${secs}s`);
+                          countdownStr = parts.join(' ');
+                        }
+                      }
+                      
+                      if (!countdownStr) {
+                        const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
+                        if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
+                        else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
+                        else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
+                        else countdownStr = dynamicIntervals[4] || "4d";
+                      }
+                      return (
+                        <div
+                          className={cn(
+                            "w-full flex items-center justify-center gap-2 py-1 px-3 rounded-xl border font-bold text-xs shadow-2xs transition-all duration-300",
+                            selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+                            selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
+                            selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
+                            "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          )}
+                        >
+                          <span className="font-black text-[11px] uppercase tracking-wider">
+                            ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                          </span>
+                          <span className="text-slate-300 font-normal">•</span>
+                          <span className="opacity-85 text-[11px]">
+                            Unlocks in {countdownStr} ⏳
+                          </span>
+                        </div>
+                      );
+                    })()}
 
-                    {/* NEXT CARD button */}
-                    <button 
-                      onClick={handleNext}
-                      className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
-                    >
-                      <span>NEXT CARD</span>
-                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <div className="w-full flex items-center gap-2 h-12 sm:h-13">
+                      {/* Undo button if rated */}
+                      {activelyRatedCurrentCard && hasRated && (
+                        <button
+                          onClick={handleUndoRating}
+                          className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                          title="Undo Rating"
+                        >
+                          <Undo2 className="w-3.5 h-3.5" />
+                          <span>Undo</span>
+                        </button>
+                      )}
+
+                      {/* NEXT CARD button */}
+                      <button 
+                        onClick={handleNext}
+                        className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                      >
+                        <span>NEXT CARD</span>
+                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
