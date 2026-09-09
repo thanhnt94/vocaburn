@@ -434,12 +434,14 @@ export default function FlashcardPlay() {
     color: string;
   } | null>(null)
   const [isFlyingOut, setIsFlyingOut] = useState(false)
+  const [isFlyToolbarOpen, setIsFlyToolbarOpen] = useState(false)
 
   // Reset drag and flyout states whenever card or flip state changes
   useEffect(() => {
     setDragOffset({ x: 0, y: 0 })
     setActiveDragGrade(null)
     setIsFlyingOut(false)
+    setIsFlyToolbarOpen(false)
     cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
   }, [currentIndex, isFlipped])
 
@@ -3030,171 +3032,300 @@ export default function FlashcardPlay() {
     )
   };
 
-  {/* ═══════════ FLY TOOLBAR (Detached Floating Capsule Island) ═══════════ */}
+  {/* ═══════════ SPEED-DIAL FAB FLY TOOLBAR (Flyout Action Button) ═══════════ */}
   const renderFlyToolbar = () => {
     if (!currentQuestion) return null;
 
+    // Audio availability check
+    const face = isFlipped ? 'back' : 'front';
+    let isAudioAvail = true;
+    if (mainTab === 'practice' && currentPracticeData) {
+      const { question_key } = currentPracticeData;
+      isAudioAvail = isAudioEnabled(question_key);
+    } else {
+      isAudioAvail = isAudioEnabled(face);
+    }
+
+    const showHintBtn = !isFlipped && !!currentQuestion?.hint;
+    const showExplainBtn = isFlipped || mainTab === 'practice' || showFeedback;
+    const showFlipBackBtn = isFlipped && mainTab !== 'practice';
+
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 15, scale: 0.92 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 15, scale: 0.92 }}
-        transition={{ type: "spring", stiffness: 380, damping: 26 }}
-        className="fixed bottom-[114px] md:bottom-[76px] left-1/2 -translate-x-1/2 z-[220] pointer-events-auto select-none"
-      >
-        <div 
-          data-no-flip
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-950/90 hover:bg-slate-950/95 backdrop-blur-xl rounded-full border border-slate-700/80 shadow-2xl shadow-slate-950/50 text-white transition-all duration-300 ring-1 ring-white/10"
-        >
-          {/* 1. Audio Pronunciation Button */}
-          {(() => {
-            const face = isFlipped ? 'back' : 'front';
-            let enabled = true;
-            if (mainTab === 'practice' && currentPracticeData) {
-              const { question_key } = currentPracticeData;
-              enabled = isAudioEnabled(question_key);
-            } else {
-              enabled = isAudioEnabled(face);
-            }
-            if (!enabled) return null;
-
-            return (
-              <button
-                type="button"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (mainTab === 'practice') {
-                    const practiceData = currentPracticeData;
-                    if (practiceData) {
-                      const { question: qText, question_key: qKey } = practiceData;
-                      if (qKey === 'front') await playCardAudio('front');
-                      else if (qKey === 'back') await playCardAudio('back');
-                      else speakMultiLanguage(qText);
-                    }
-                  } else {
-                    await playCardAudio(isFlipped ? 'back' : 'front');
-                  }
-                }}
-                className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-indigo-600 hover:text-white text-slate-300 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm group"
-                title="Play Pronunciation (Audio)"
-              >
-                <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-indigo-400 group-hover:text-white" />
-              </button>
-            );
-          })()}
-
-          {/* 2. AI Hint (Front) or Explanation Drawer (Back) */}
-          {!isFlipped ? (
-            currentQuestion?.hint && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowingHint(prev => !prev);
-                }}
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm group",
-                  showingHint 
-                    ? "bg-amber-500 text-white ring-2 ring-amber-400/50 shadow-[0_0_10px_rgba(245,158,11,0.5)]" 
-                    : "bg-slate-800/80 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400"
-                )}
-                title="AI Hint"
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-              </button>
-            )
-          ) : (
-            (mainTab === 'practice' || isFlipped || showFeedback) && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (mainTab === 'practice') setShowFeedback(true);
-                  setIsFeedbackOpen(true);
-                }}
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm relative group",
-                  justAnswered
-                    ? "bg-indigo-600 text-white ring-2 ring-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.6)] animate-pulse"
-                    : "bg-slate-800/80 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-400"
-                )}
-                title="View Explanation & Details"
-              >
-                <Lightbulb className={cn("w-3.5 h-3.5", justAnswered ? "text-white" : "text-indigo-300")} />
-                {justAnswered && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
-              </button>
-            )
-          )}
-
-          {/* 3. Flip Back Button (Back face only) */}
-          {isFlipped && mainTab !== 'practice' && (
-            <button
-              type="button"
+      <>
+        {/* Click shield to dismiss flyout when tapping anywhere on screen */}
+        <AnimatePresence>
+          {isFlyToolbarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               onClick={(e) => {
                 e.stopPropagation();
-                setIsFlipped(false);
+                setIsFlyToolbarOpen(false);
               }}
-              className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-cyan-500 hover:text-white text-cyan-400 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm group"
-              title="Flip Back to Front"
-            >
-              <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
-            </button>
+              className="fixed inset-0 z-[225] bg-black/25 backdrop-blur-[1px] select-none"
+            />
           )}
+        </AnimatePresence>
 
-          {/* Divider */}
-          <div className="w-[1px] h-4 bg-slate-700/80 mx-0.5" />
+        {/* Speed-Dial FAB Floating Container */}
+        <div 
+          data-no-flip
+          className="fixed bottom-[118px] md:bottom-[76px] right-3 sm:right-6 z-[230] pointer-events-auto select-none flex flex-col items-end"
+        >
+          {/* FLYOUT ACTIONS LIST (Staggered spring animation flying upwards) */}
+          <AnimatePresence>
+            {isFlyToolbarOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.85, y: 15 }}
+                transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                className="flex flex-col items-end gap-2.5 mb-3"
+              >
+                {/* 1. Study Settings */}
+                <motion.div 
+                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                  transition={{ delay: 0.02 }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                    Settings
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSettingsModalOpen(true);
+                      setIsFlyToolbarOpen(false);
+                    }}
+                    className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-indigo-600 hover:text-white text-slate-300 border border-slate-700/80 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer group"
+                    title="Study Settings"
+                  >
+                    <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform duration-300" />
+                  </button>
+                </motion.div>
 
-          {/* 4. Select Mode Toggle Button */}
+                {/* 2. Star / Bookmark */}
+                <motion.div 
+                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                  transition={{ delay: 0.05 }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                    {currentQuestion?.is_starred ? "Starred" : "Star Card"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStarQuestion();
+                    }}
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border group",
+                      currentQuestion?.is_starred
+                        ? "bg-amber-500/30 text-amber-400 border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                        : "bg-slate-900/90 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border-slate-700/80"
+                    )}
+                    title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
+                  >
+                    <Star className={cn("w-4 h-4 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-400")} />
+                  </button>
+                </motion.div>
+
+                {/* 3. Select Mode Toggle */}
+                <motion.div 
+                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                  transition={{ delay: 0.08 }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                    {isSelectMode ? "Select Mode: ON" : "Select Mode: OFF"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSelectMode(prev => !prev);
+                    }}
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border relative group",
+                      isSelectMode
+                        ? "bg-amber-500 text-white border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                        : "bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/80"
+                    )}
+                    title={isSelectMode ? "Select Mode: ON (Tap/Swipe paused to select text)" : "Select Mode: OFF"}
+                  >
+                    <MousePointer className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    {isSelectMode && <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
+                  </button>
+                </motion.div>
+
+                {/* 4. Flip Back (Back face only) */}
+                {showFlipBackBtn && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                    transition={{ delay: 0.11 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                      Flip to Front
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsFlipped(false);
+                        setIsFlyToolbarOpen(false);
+                      }}
+                      className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-cyan-500 hover:text-white text-cyan-400 border border-slate-700/80 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl group"
+                      title="Flip Back to Front"
+                    >
+                      <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* 5. AI Hint (Front) or Explanation Drawer (Back) */}
+                {showHintBtn ? (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                    transition={{ delay: 0.14 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                      {showingHint ? "Hide Hint" : "AI Hint"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowingHint(prev => !prev);
+                        setIsFlyToolbarOpen(false);
+                      }}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border group",
+                        showingHint 
+                          ? "bg-amber-500 text-white border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.6)]" 
+                          : "bg-slate-900/90 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border-slate-700/80"
+                      )}
+                      title="AI Hint"
+                    >
+                      <Lightbulb className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    </button>
+                  </motion.div>
+                ) : showExplainBtn ? (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                    transition={{ delay: 0.14 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                      Explanation
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (mainTab === 'practice') setShowFeedback(true);
+                        setIsFeedbackOpen(true);
+                        setIsFlyToolbarOpen(false);
+                      }}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-xl border relative group",
+                        justAnswered
+                          ? "bg-indigo-600 text-white border-indigo-400 shadow-[0_0_14px_rgba(99,102,241,0.7)] animate-pulse"
+                          : "bg-slate-900/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-400 border-slate-700/80"
+                      )}
+                      title="View Explanation & Details"
+                    >
+                      <Lightbulb className={cn("w-4 h-4", justAnswered ? "text-white" : "text-indigo-300")} />
+                      {justAnswered && <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
+                    </button>
+                  </motion.div>
+                ) : null}
+
+                {/* 6. Audio Pronunciation */}
+                {isAudioAvail && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                    transition={{ delay: 0.17 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-bold text-slate-200 shadow-lg">
+                      Pronounce
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (mainTab === 'practice') {
+                          const practiceData = currentPracticeData;
+                          if (practiceData) {
+                            const { question: qText, question_key: qKey } = practiceData;
+                            if (qKey === 'front') await playCardAudio('front');
+                            else if (qKey === 'back') await playCardAudio('back');
+                            else speakMultiLanguage(qText);
+                          }
+                        } else {
+                          await playCardAudio(isFlipped ? 'back' : 'front');
+                        }
+                      }}
+                      className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-indigo-600 hover:text-white text-indigo-400 hover:text-white border border-slate-700/80 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer group"
+                      title="Play Pronunciation (Audio)"
+                    >
+                      <Volume2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    </button>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* MAIN SPEED-DIAL TRIGGER BUTTON (FAB) */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setIsSelectMode(prev => !prev);
+              setIsFlyToolbarOpen(prev => !prev);
             }}
             className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm relative group",
-              isSelectMode
-                ? "bg-amber-500 text-white ring-2 ring-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
-                : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white"
+              "w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer shadow-2xl backdrop-blur-xl border ring-1 relative group",
+              isFlyToolbarOpen
+                ? "bg-rose-600 text-white border-rose-400 ring-rose-400/40 shadow-[0_0_20px_rgba(225,29,72,0.5)] rotate-90"
+                : "bg-slate-950/90 hover:bg-slate-900 text-white border-slate-700/80 ring-white/10 shadow-slate-950/50 hover:shadow-indigo-500/20"
             )}
-            title={isSelectMode ? "Select Mode: ON (Tap / Swipe paused to copy text)" : "Select Mode: OFF (Click to enable text selection)"}
+            title={isFlyToolbarOpen ? "Close Tools" : "Open Flyout Tools"}
           >
-            <MousePointer className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-            {isSelectMode && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
-          </button>
-
-          {/* 5. Star / Bookmark Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStarQuestion();
-            }}
-            className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm group",
-              currentQuestion?.is_starred
-                ? "bg-amber-500/30 text-amber-400 border border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
-                : "bg-slate-800/80 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400"
+            {isFlyToolbarOpen ? (
+              <X className="w-5 h-5 text-white transition-transform duration-200" />
+            ) : (
+              <div className="relative flex items-center justify-center">
+                <Sliders className="w-4.5 h-4.5 text-indigo-400 group-hover:text-white group-hover:scale-110 transition-all" />
+                {/* Active status indicator dot */}
+                {(currentQuestion?.hint || isSelectMode || currentQuestion?.is_starred) && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-slate-950 absolute -top-1.5 -right-1.5 animate-pulse" />
+                )}
+              </div>
             )}
-            title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
-          >
-            <Star className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-400")} />
-          </button>
-
-          {/* 6. Settings Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsSettingsModalOpen(true);
-            }}
-            className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-indigo-600 hover:text-white text-slate-300 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm group"
-            title="Study Settings"
-          >
-            <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
           </button>
         </div>
-      </motion.div>
+      </>
     );
   };
 
