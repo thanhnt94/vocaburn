@@ -4980,15 +4980,15 @@ export default function PracticePlay() {
                           return (
                             <div
                               className={cn(
-                                "mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border transition-all duration-300 font-bold",
+                                "mt-4 flex items-center justify-center gap-1.5 py-2.5 px-3 pl-22 sm:pl-24 rounded-2xl border transition-all duration-300 font-bold min-h-[44px]",
                                 selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
                                   selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
                                     selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
                                       "bg-emerald-50 border-emerald-100 text-emerald-600"
                               )}
                             >
-                              <div className="flex items-center gap-1 justify-center px-12 text-center">
-                                <span className="text-sm font-black tracking-wide">
+                              <div className="flex items-center gap-1.5 justify-center text-center">
+                                <span className="text-xs sm:text-sm font-black tracking-wide">
                                   ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
                                 </span>
                                 <span className="opacity-80 text-xs">

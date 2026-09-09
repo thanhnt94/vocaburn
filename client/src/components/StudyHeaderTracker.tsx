@@ -55,109 +55,109 @@ const MODE_META_DICT: Record<string, { emoji: string; label: string; short: stri
     emoji: '🛣️', 
     label: 'Roadmap Guided', 
     short: 'RM',
-    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+    style: 'bg-amber-50 border-amber-200/80 text-amber-700'
   },
   roadmap_new: { 
     emoji: '🛣️', 
     label: 'Roadmap - New Cards', 
     short: 'RM',
-    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+    style: 'bg-amber-50 border-amber-200/80 text-amber-700'
   },
   roadmap_review: { 
     emoji: '🛣️', 
     label: 'Roadmap - Review', 
     short: 'RM',
-    style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+    style: 'bg-emerald-50 border-emerald-200/80 text-emerald-700'
   },
   new_cards: { 
     emoji: '✨', 
     label: 'Learn New Cards', 
     short: 'NEW',
-    style: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+    style: 'bg-indigo-50 border-indigo-200/80 text-indigo-700'
   },
   new: { 
     emoji: '✨', 
     label: 'Learn New Cards', 
     short: 'NEW',
-    style: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+    style: 'bg-indigo-50 border-indigo-200/80 text-indigo-700'
   },
   fsrs_review: { 
     emoji: '🧠', 
     label: 'FSRS Review', 
     short: 'FSRS',
-    style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+    style: 'bg-emerald-50 border-emerald-200/80 text-emerald-700'
   },
   fsrs: { 
     emoji: '🧠', 
     label: 'FSRS v6 Spaced Repetition', 
     short: 'FSRS',
-    style: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+    style: 'bg-emerald-50 border-emerald-200/80 text-emerald-700'
   },
   review: { 
     emoji: '📚', 
     label: 'Review Only', 
     short: 'REV',
-    style: 'bg-teal-500/15 border-teal-500/30 text-teal-300'
+    style: 'bg-teal-50 border-teal-200/80 text-teal-700'
   },
   rev: { 
     emoji: '📚', 
     label: 'Review Only', 
     short: 'REV',
-    style: 'bg-teal-500/15 border-teal-500/30 text-teal-300'
+    style: 'bg-teal-50 border-teal-200/80 text-teal-700'
   },
   flip: { 
     emoji: '🔄', 
     label: 'Free Flip Mode', 
     short: 'FLIP',
-    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+    style: 'bg-amber-50 border-amber-200/80 text-amber-700'
   },
   mcq: { 
     emoji: '🎯', 
     label: 'Multiple Choice MCQ', 
     short: 'MCQ',
-    style: 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+    style: 'bg-rose-50 border-rose-200/80 text-rose-700'
   },
   roadmap_mcq: { 
     emoji: '🎯', 
     label: 'Roadmap MCQ', 
     short: 'MCQ',
-    style: 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+    style: 'bg-rose-50 border-rose-200/80 text-rose-700'
   },
   typing: { 
     emoji: '⌨️', 
     label: 'Typing Mode', 
     short: 'TYP',
-    style: 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+    style: 'bg-purple-50 border-purple-200/80 text-purple-700'
   },
   roadmap_typing: { 
     emoji: '⌨️', 
     label: 'Roadmap Typing', 
     short: 'TYP',
-    style: 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+    style: 'bg-purple-50 border-purple-200/80 text-purple-700'
   },
   listening: { 
     emoji: '🎧', 
     label: 'Listening Mode', 
     short: 'LIS',
-    style: 'bg-sky-500/15 border-sky-500/30 text-sky-300'
+    style: 'bg-sky-50 border-sky-200/80 text-sky-700'
   },
   audio: { 
     emoji: '🎧', 
     label: 'Listening Mode', 
     short: 'LIS',
-    style: 'bg-sky-500/15 border-sky-500/30 text-sky-300'
+    style: 'bg-sky-50 border-sky-200/80 text-sky-700'
   },
   study_time: { 
     emoji: '⏱️', 
     label: 'Study Time', 
     short: 'TIME',
-    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+    style: 'bg-amber-50 border-amber-200/80 text-amber-700'
   },
   roadmap_test: { 
     emoji: '🏆', 
     label: 'Roadmap Test', 
     short: 'TEST',
-    style: 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+    style: 'bg-amber-50 border-amber-200/80 text-amber-700'
   }
 }
 
@@ -340,12 +340,12 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
             exit={{ opacity: 0, scaleY: 0.1 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={cn(
-              "fixed inset-x-0 top-0 h-[48px] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center overflow-hidden z-[250] border-b shadow-2xl pointer-events-none",
+              "fixed inset-x-0 top-0 h-[48px] bg-white/95 backdrop-blur-xl flex items-center justify-center overflow-hidden z-[250] border-b shadow-lg pointer-events-none",
               isOverachieved
-                ? "border-cyan-400/70 shadow-cyan-950/50"
+                ? "border-cyan-400/70"
                 : isGoalReached 
-                  ? "border-emerald-400/60 shadow-emerald-950/40" 
-                  : "border-amber-500/50 shadow-amber-950/40"
+                  ? "border-emerald-400/60" 
+                  : "border-amber-500/50"
             )}
           >
             <motion.div
@@ -371,24 +371,24 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: [0.9, 1.08, 1], opacity: 1 }}
               transition={{ duration: 0.35 }}
-              className="relative z-10 font-black text-white text-xs sm:text-sm tracking-wider flex items-center gap-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]"
+              className="relative z-10 font-black text-slate-800 text-xs sm:text-sm tracking-wider flex items-center gap-2 drop-shadow-sm"
             >
               {isOverachieved ? (
-                <Zap className="w-4 h-4 text-cyan-300 fill-cyan-300 animate-bounce" />
+                <Zap className="w-4 h-4 text-cyan-600 fill-cyan-500 animate-bounce" />
               ) : isGoalReached ? (
-                <Trophy className="w-4 h-4 text-emerald-300 fill-emerald-300 animate-bounce" />
+                <Trophy className="w-4 h-4 text-emerald-600 fill-emerald-500 animate-bounce" />
               ) : (
-                <Flame className="w-4 h-4 text-amber-300 fill-amber-300 animate-bounce" />
+                <Flame className="w-4 h-4 text-amber-600 fill-amber-500 animate-bounce" />
               )}
               <span>{praiseMsg}</span>
               {hasSubProg && (
                 <span className={cn(
-                  "px-2.5 py-0.5 rounded-full border text-xs font-black shadow-md",
+                  "px-2.5 py-0.5 rounded-full border text-xs font-black shadow-xs",
                   isOverachieved
-                    ? "bg-cyan-950/90 border-cyan-400/80 text-cyan-200"
+                    ? "bg-cyan-50 border-cyan-300 text-cyan-700"
                     : isGoalReached 
-                      ? "bg-emerald-950/80 border-emerald-400/60 text-emerald-200" 
-                      : "bg-black/70 border-amber-300/50 text-amber-300"
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-700" 
+                      : "bg-amber-50 border-amber-300 text-amber-700"
                 )}>
                   {isOverachieved ? `+${extraCount}` : (progressPillText || `${subProgressCurr} / ${subProgressTotal}`)}
                 </span>
@@ -403,7 +403,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
         {onExit && (
           <button
             onClick={onExit}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-rose-300 border border-slate-800 hover:border-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0 shadow-sm cursor-pointer"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100/80 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200/80 hover:border-rose-200 flex items-center justify-center transition-all active:scale-95 shrink-0 shadow-xs cursor-pointer"
             title="Exit session"
           >
             <X className="w-4 h-4" />
@@ -417,7 +417,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
         className="flex-1 flex items-center min-w-0 h-full cursor-pointer z-[140]"
         title="Click to toggle between Deck Info ⇄ Live HUD Stats"
       >
-        <div className="w-full h-full flex items-center rounded-full bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800 hover:border-slate-700/80 px-2.5 sm:px-3.5 backdrop-blur-md shadow-sm transition-all overflow-hidden relative">
+        <div className="w-full h-full flex items-center rounded-full bg-slate-100/80 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-300/80 px-2.5 sm:px-3.5 backdrop-blur-md shadow-xs transition-all overflow-hidden relative">
           <AnimatePresence mode="wait" initial={false}>
             {viewMode === 0 ? (
               /* ========================================================================= */
@@ -433,7 +433,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
               >
                 {/* Left side of Face 1: Deck Title (Clean, no duplicate icon) */}
                 <div className="flex items-center min-w-0 flex-1 pl-0.5">
-                  <h1 className="text-xs sm:text-sm font-bold text-slate-100 tracking-tight truncate" title={deckTitle}>
+                  <h1 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight truncate" title={deckTitle}>
                     {deckTitle || 'Vocaburn Study Session'}
                   </h1>
                 </div>
@@ -449,10 +449,10 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                           className={cn(
                             "h-1.5 rounded-full transition-all duration-300",
                             idx === currentStepIndex
-                              ? "w-3 bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                              ? "w-3 bg-indigo-600 shadow-[0_0_6px_rgba(99,102,241,0.4)]"
                               : idx < (currentStepIndex || 0)
-                                ? "w-1.5 bg-emerald-400"
-                                : "w-1.5 bg-slate-700"
+                                ? "w-1.5 bg-emerald-500"
+                                : "w-1.5 bg-slate-300"
                           )}
                         />
                       ))}
@@ -462,8 +462,8 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                   {/* Mode Badge */}
                   <div 
                     className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-black shrink-0 tracking-wide shadow-sm",
-                      meta.style || "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-black shrink-0 tracking-wide shadow-xs",
+                      meta.style || "bg-amber-50 border-amber-200 text-amber-700"
                     )}
                     title={currentStep?.label || meta.label}
                   >
@@ -476,31 +476,31 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                   {/* Combo Streak Flame Badge */}
                   {comboStreak >= 3 && (
                     <div 
-                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-black shrink-0 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 text-[10px] font-black shrink-0 animate-pulse shadow-xs"
                       title={`${comboStreak} consecutive correct answers!`}
                     >
-                      <Flame className="w-3 h-3 text-orange-400 fill-orange-400 animate-bounce" />
+                      <Flame className="w-3 h-3 text-orange-500 fill-orange-500 animate-bounce" />
                       <span>{comboStreak}x</span>
                     </div>
                   )}
 
                   {/* Micro Progress Counter Pill */}
-                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black font-mono tracking-tight text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800/90 shrink-0">
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black font-mono tracking-tight text-slate-700 bg-white px-2 py-0.5 rounded-lg border border-slate-200/90 shadow-xs shrink-0">
                     {progressPillText ? (
                       <span className={cn(
-                        isOverachieved ? "text-cyan-300" : isGoalReached ? "text-emerald-400" : "text-amber-300 font-bold"
+                        isOverachieved ? "text-cyan-600" : isGoalReached ? "text-emerald-600" : "text-amber-600 font-bold"
                       )}>
                         {progressPillText}
                       </span>
                     ) : (
                       <>
                         <span className={cn(
-                          isOverachieved ? "text-cyan-300" : isGoalReached ? "text-emerald-400" : "text-slate-100"
+                          isOverachieved ? "text-cyan-600" : isGoalReached ? "text-emerald-600" : "text-slate-800"
                         )}>
                           {hasSubProg ? subProgressCurr : (currentIndex + 1)}
                         </span>
-                        <span className="text-slate-600 font-normal">/</span>
-                        <span className="text-slate-400">
+                        <span className="text-slate-300 font-normal">/</span>
+                        <span className="text-slate-500">
                           {hasSubProg ? subProgressTotal : (totalCards || '--')}
                         </span>
                       </>
@@ -522,42 +522,42 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
               >
                 {/* 1. Timer */}
                 <div 
-                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-200/60 transition-colors shrink-0" 
                   title={`Card: ${displayCardTime} • Today: ${displayTodayTime}`}
                 >
-                  <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="font-black text-[11px] text-emerald-300 tracking-tight">{displayCardTime}</span>
-                  <span className="text-emerald-500/40 text-[9.5px] hidden md:inline font-semibold">({displayTodayTime})</span>
+                  <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="font-black text-[11px] text-emerald-600 tracking-tight">{displayCardTime}</span>
+                  <span className="text-emerald-600/50 text-[9.5px] hidden md:inline font-semibold">({displayTodayTime})</span>
                 </div>
 
-                <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
+                <div className="w-[1px] h-3.5 bg-slate-200 shrink-0" />
 
                 {/* 2. Progress */}
                 <div 
-                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-200/60 transition-colors shrink-0" 
                   title="Current card progress"
                 >
-                  <Target className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                  <span className="font-black text-[11px] text-slate-100 tracking-tight">
+                  <Target className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <span className="font-black text-[11px] text-slate-700 tracking-tight">
                     {hasSubProg ? `${subProgressCurr}/${subProgressTotal}` : `${currentIndex + 1}/${totalCards || '--'}`}
                   </span>
                   {cardsRemaining > 0 && (
-                    <span className="text-indigo-400/60 text-[9px] hidden lg:inline font-semibold">({cardsRemaining} left)</span>
+                    <span className="text-indigo-500/70 text-[9px] hidden lg:inline font-semibold">({cardsRemaining} left)</span>
                   )}
                 </div>
 
                 {/* 3. Accuracy (if available) */}
                 {accuracyPercent !== null && (
                   <>
-                    <div className="w-[1px] h-3.5 bg-slate-800 hidden sm:block shrink-0" />
+                    <div className="w-[1px] h-3.5 bg-slate-200 hidden sm:block shrink-0" />
                     <div 
-                      className="hidden sm:flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                      className="hidden sm:flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-200/60 transition-colors shrink-0" 
                       title={`Accuracy: ${correctCount}/${answeredCount} correct`}
                     >
-                      <Gauge className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                      <Gauge className="w-3.5 h-3.5 text-teal-500 shrink-0" />
                       <span className={cn(
                         "font-black text-[11px] tracking-tight",
-                        accuracyPercent >= 80 ? "text-emerald-300" : accuracyPercent >= 60 ? "text-amber-300" : "text-rose-300"
+                        accuracyPercent >= 80 ? "text-emerald-600" : accuracyPercent >= 60 ? "text-amber-600" : "text-rose-600"
                       )}>
                         {accuracyPercent}%
                       </span>
@@ -568,41 +568,41 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                 {/* 4. Avg Speed (large screens) */}
                 {avgSpeed && (
                   <>
-                    <div className="w-[1px] h-3.5 bg-slate-800 hidden xl:block shrink-0" />
+                    <div className="w-[1px] h-3.5 bg-slate-200 hidden xl:block shrink-0" />
                     <div 
-                      className="hidden xl:flex items-center justify-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                      className="hidden xl:flex items-center justify-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-200/60 transition-colors shrink-0" 
                       title="Average speed per card"
                     >
-                      <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      <span className="font-black text-[10.5px] text-cyan-200">{avgSpeed}/c</span>
+                      <Zap className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                      <span className="font-black text-[10.5px] text-cyan-600">{avgSpeed}/c</span>
                     </div>
                   </>
                 )}
 
-                <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
+                <div className="w-[1px] h-3.5 bg-slate-200 shrink-0" />
 
                 {/* 5. XP Score */}
                 <div 
-                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-200/60 transition-colors shrink-0" 
                   title={`Session: +${sessionXP} XP | Total: ${xp.toLocaleString()} XP`}
                 >
-                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="font-black text-[11px] text-amber-300 tracking-tight">
+                  <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="font-black text-[11px] text-amber-600 tracking-tight">
                     {sessionXP > 0 ? `+${sessionXP}` : displayTotalXP}
                   </span>
-                  <span className="text-[9px] text-amber-400/70 font-black">XP</span>
+                  <span className="text-[9px] text-amber-600/70 font-black">XP</span>
                 </div>
 
                 {/* 6. Streak or Combo */}
                 {(streakCount > 0 || comboStreak >= 3) && (
                   <>
-                    <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
+                    <div className="w-[1px] h-3.5 bg-slate-200 shrink-0" />
                     <div 
-                      className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
+                      className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-200/60 transition-colors shrink-0" 
                       title={comboStreak >= 3 ? `Combo: ${comboStreak} correct streak | Streak: ${streakCount}d` : `Streak: ${streakCount} consecutive days`}
                     >
-                      <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0" />
-                      <span className="font-black text-[11px] text-orange-300 tracking-tight">
+                      <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 shrink-0" />
+                      <span className="font-black text-[11px] text-orange-600 tracking-tight">
                         {comboStreak >= 3 ? `${comboStreak}x` : `${streakCount}d`}
                       </span>
                     </div>

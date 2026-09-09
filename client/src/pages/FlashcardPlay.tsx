@@ -4261,7 +4261,7 @@ export default function FlashcardPlay() {
                     {/* Definition & explanation */}
                     <div 
                       ref={backScrollRef}
-                      className={cn("flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2", isSelectMode && "select-text cursor-text")}
+                      className={cn("flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2 pb-16", isSelectMode && "select-text cursor-text")}
                       style={{
                         touchAction: isSelectMode ? 'auto' : (hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y')),
                         WebkitOverflowScrolling: 'touch',
@@ -4555,31 +4555,15 @@ export default function FlashcardPlay() {
                       return (
                         <div
                           className={cn(
-                            "mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border transition-all duration-300 font-bold relative min-h-[48px]",
+                            "mt-4 flex items-center justify-center gap-1.5 py-2.5 px-3 pl-22 sm:pl-24 rounded-2xl border transition-all duration-300 font-bold relative min-h-[44px]",
                             selectedOption === 0 ? "bg-rose-50 border-rose-100 text-rose-600 animate-pulse" :
                             selectedOption === 1 ? "bg-amber-50 border-amber-100 text-amber-600" :
                             selectedOption === 2 ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
                             "bg-emerald-50 border-emerald-100 text-emerald-600"
                           )}
                         >
-                          {activelyRatedCurrentCard && (
-                            <button
-                              onClick={handleUndoRating}
-                              className={cn(
-                                "absolute left-3 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm border",
-                                selectedOption === 0 ? "bg-white border-rose-200 text-rose-600 hover:bg-rose-50" :
-                                selectedOption === 1 ? "bg-white border-amber-200 text-amber-600 hover:bg-amber-50" :
-                                selectedOption === 2 ? "bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50" :
-                                "bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-                              )}
-                              title="Undo Rating"
-                            >
-                              <Undo2 className="w-2.5 h-2.5" />
-                              <span>Undo</span>
-                            </button>
-                          )}
-                          <div className="flex items-center gap-1 justify-center px-12 text-center">
-                            <span className="text-sm font-black tracking-wide">
+                          <div className="flex items-center gap-1.5 justify-center text-center">
+                            <span className="text-xs sm:text-sm font-black tracking-wide">
                               ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
                             </span>
                             <span className="opacity-80 text-xs">
