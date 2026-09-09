@@ -3091,312 +3091,299 @@ export default function FlashcardPlay() {
           data-no-flip
           className="fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230] pointer-events-auto select-none"
         >
-          <AnimatePresence initial={false}>
-            {!isFlyToolbarOpen ? (
-              /* ── 1. COLLAPSED DUAL-PILL (Light Glassmorphic Audio + Expand Handle) ── */
-              <motion.div
-                key="collapsed"
-                initial={{ opacity: 0, x: -10, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -10, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 500, damping: 32 }}
-                className="inline-flex items-center rounded-full bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-md shadow-slate-200/60 p-0.5"
-              >
-                {/* Main Audio Button (Pronounce instantly on click) */}
-                <button
-                  type="button"
-                  onClick={triggerPlayAudio}
-                  className="w-9 h-9 sm:w-9.5 sm:h-9.5 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-200 active:scale-90 cursor-pointer group shadow-xs"
-                  title="Play Pronunciation (Audio)"
-                >
-                  <Volume2 className="w-4 h-4 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
-                </button>
+          <div className="inline-flex items-center bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-lg shadow-slate-300/40 p-1 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar flex-nowrap">
+            {/* ── 1. FIXED ANCHOR AUDIO BUTTON (NEVER MOVES, NEVER UNMOUNTS, ROCK SOLID) ── */}
+            <button
+              type="button"
+              onClick={triggerPlayAudio}
+              className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
+              title="Play Pronunciation (Audio)"
+            >
+              <Volume2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </button>
 
-                {/* Phần thừa ra (Expand Handle Tab to Horizontal Quick Bar & Full Settings) */}
-                <button
+            {/* ── 2. DYNAMIC TRAY (DRAWER PULL-OUT TO THE RIGHT) ── */}
+            <AnimatePresence mode="wait" initial={false}>
+              {!isFlyToolbarOpen ? (
+                /* Expand Handle Tab (Visible when collapsed) */
+                <motion.button
+                  key="expand-handle-tab"
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsFlyToolbarOpen(true);
                   }}
-                  className="h-9 sm:h-9.5 pl-1.5 pr-2 rounded-r-full flex items-center gap-1 hover:bg-slate-100/80 text-slate-500 hover:text-indigo-600 transition-all duration-200 active:scale-95 cursor-pointer relative group border-l border-slate-200/80"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.08 }}
+                  className="h-8.5 sm:h-9 pl-1.5 pr-2 rounded-r-full flex items-center gap-1 hover:bg-slate-100/80 text-slate-500 hover:text-indigo-600 transition-colors duration-150 active:scale-95 cursor-pointer shrink-0 border-l border-slate-200/80 ml-0.5 relative group"
                   title="Expand Quick Options & Settings"
                 >
                   <Sliders className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:rotate-45 transition-all" />
                   <ChevronRight className="w-3.5 h-3.5 text-indigo-500 group-hover:translate-x-0.5 transition-transform" />
-                  {/* Status Indicator Dot if Hint or Starred or Select Mode */}
                   {(currentQuestion?.hint || isSelectMode || currentQuestion?.is_starred) && (
                     <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white absolute top-1 right-1 animate-pulse" />
                   )}
-                </button>
-              </motion.div>
-            ) : (
-              /* ── 2. EXPANDED HORIZONTAL BAR (Grouped with Dividers, Light Glassmorphic) ── */
-              <motion.div
-                key="expanded"
-                initial={{ opacity: 0, x: -15, scale: 0.96 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -15, scale: 0.96 }}
-                transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                className="inline-flex items-center gap-1 p-1 bg-white/95 backdrop-blur-2xl rounded-full border border-slate-200/90 shadow-xl shadow-slate-300/50 max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar"
-              >
-                {/* ═══ GROUP 1: AUDIO & SOUND ═══ */}
-                {/* 1.1 Play Audio Button */}
-                <button
-                  type="button"
-                  onClick={triggerPlayAudio}
-                  className="w-8 h-8 rounded-full bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
-                  title="Play Pronunciation (Audio)"
+                </motion.button>
+              ) : (
+                /* Expanded Horizontal Tray (Pulls out smoothly from behind Audio button) */
+                <motion.div
+                  key="expanded-drawer-tray"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                  className="inline-flex items-center gap-1 pl-1 shrink-0 overflow-hidden flex-nowrap whitespace-nowrap"
                 >
-                  <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                </button>
+                  {/* ═══ GROUP 1: AUDIO & SOUND ═══ */}
+                  {/* 1.1 Quick Toggle: Autoplay Audio */}
+                  {(() => {
+                    const isAutoplay = autoPlayAudio !== 'none';
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAutoPlayAudio(isAutoplay ? 'none' : 'always');
+                        }}
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
+                          isAutoplay
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-600"
+                            : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
+                        )}
+                        title={`Autoplay Audio: ${isAutoplay ? 'ON (Click to Turn Off)' : 'OFF (Click to Turn On)'}`}
+                      >
+                        {isAutoplay ? (
+                          <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                      </button>
+                    );
+                  })()}
 
-                {/* 1.2 Quick Toggle: Autoplay Audio */}
-                {(() => {
-                  const isAutoplay = autoPlayAudio !== 'none';
-                  return (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAutoPlayAudio(isAutoplay ? 'none' : 'always');
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                        isAutoplay
-                          ? "bg-emerald-50 border-emerald-300 text-emerald-600"
-                          : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                      )}
-                      title={`Autoplay Audio: ${isAutoplay ? 'ON (Click to Turn Off)' : 'OFF (Click to Turn On)'}`}
-                    >
-                      {isAutoplay ? (
-                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                    </button>
-                  );
-                })()}
-
-                {/* 1.3 Quick Toggle: Sound Effects (SFX) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSfxEnabled(!sfxEnabled);
-                  }}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                    sfxEnabled
-                      ? "bg-purple-50 border-purple-300 text-purple-600"
-                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                  )}
-                  title={`SFX Sounds: ${sfxEnabled ? 'ON (Click to Mute)' : 'OFF (Click to Enable)'}`}
-                >
-                  <Sparkles className={cn("w-3.5 h-3.5", sfxEnabled ? "text-purple-600" : "text-slate-400")} />
-                </button>
-
-                {/* ─── GROUP DIVIDER 1 ─── */}
-                <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
-
-                {/* ═══ GROUP 2: FLOW & DISPLAY ═══ */}
-                {/* 2.1 Quick Toggle: Auto Advance After Rating */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const nextVal = !effectiveAutoAdvance;
-                    setIsAutoAdvance(nextVal);
-                    if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal);
-                  }}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
-                    effectiveAutoAdvance
-                      ? "bg-amber-50 border-amber-400 text-amber-600 ring-1 ring-amber-300/50"
-                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                  )}
-                  title={`Auto Advance after rating: ${effectiveAutoAdvance ? 'ON (Instantly move to next card)' : 'OFF (Stay on card until flip/next)'}`}
-                >
-                  <Zap className={cn("w-3.5 h-3.5", effectiveAutoAdvance ? "fill-amber-500 text-amber-600" : "text-slate-400")} />
-                  {effectiveAutoAdvance && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute -top-0.5 -right-0.5 ring-1 ring-white" />
-                  )}
-                </button>
-
-                {/* 2.2 Quick Toggle: Card Images */}
-                {(() => {
-                  const isImagesOn = showImages !== 'none';
-                  return (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowImages(isImagesOn ? 'none' : 'always');
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                        isImagesOn
-                          ? "bg-sky-50 border-sky-300 text-sky-600"
-                          : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                      )}
-                      title={`Card Images: ${isImagesOn ? 'Visible (Click to Hide)' : 'Hidden (Click to Show)'}`}
-                    >
-                      {isImagesOn ? (
-                        <Eye className="w-3.5 h-3.5 text-sky-600" />
-                      ) : (
-                        <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                    </button>
-                  );
-                })()}
-
-                {/* 2.3 Quick Toggle: Shuffle / Random Order */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setRandomEnabled(!randomEnabled);
-                  }}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                    randomEnabled
-                      ? "bg-violet-50 border-violet-300 text-violet-600"
-                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                  )}
-                  title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
-                >
-                  <Shuffle className="w-3.5 h-3.5" />
-                </button>
-
-                {/* ─── GROUP DIVIDER 2 ─── */}
-                <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
-
-                {/* ═══ GROUP 3: CARD ACTIONS ═══ */}
-                {/* 3.1 Quick Toggle: Select Mode */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsSelectMode(prev => !prev);
-                  }}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
-                    isSelectMode
-                      ? "bg-rose-500 text-white border-rose-600 shadow-xs"
-                      : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-500 hover:text-slate-700"
-                  )}
-                  title={isSelectMode ? "Select Mode: ON (Tap/Swipe paused to select text)" : "Select Mode: OFF"}
-                >
-                  <MousePointer className="w-3.5 h-3.5" />
-                  {isSelectMode && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
-                </button>
-
-                {/* 3.2 Quick Action: Star / Bookmark */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleStarQuestion();
-                  }}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border group",
-                    currentQuestion?.is_starred
-                      ? "bg-amber-50 border-amber-300 text-amber-500 shadow-xs"
-                      : "bg-slate-50 hover:bg-amber-50 border-slate-200/70 text-slate-400 hover:text-amber-500"
-                  )}
-                  title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
-                >
-                  <Star className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-500")} />
-                </button>
-
-                {/* 3.3 Quick Action: AI Hint or Explanation */}
-                {showHintBtn ? (
+                  {/* 1.2 Quick Toggle: Sound Effects (SFX) */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowingHint(prev => !prev);
+                      setSfxEnabled(!sfxEnabled);
                     }}
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                      showingHint
-                        ? "bg-amber-500 text-white border-amber-600 shadow-xs"
-                        : "bg-slate-50 hover:bg-amber-50 border-slate-200/70 text-amber-500"
+                      sfxEnabled
+                        ? "bg-purple-50 border-purple-300 text-purple-600"
+                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                     )}
-                    title="AI Hint"
+                    title={`SFX Sounds: ${sfxEnabled ? 'ON (Click to Mute)' : 'OFF (Click to Enable)'}`}
                   >
-                    <Lightbulb className="w-3.5 h-3.5" />
+                    <Sparkles className={cn("w-3.5 h-3.5", sfxEnabled ? "text-purple-600" : "text-slate-400")} />
                   </button>
-                ) : showExplainBtn ? (
+
+                  {/* ─── GROUP DIVIDER 1 ─── */}
+                  <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
+
+                  {/* ═══ GROUP 2: FLOW & DISPLAY ═══ */}
+                  {/* 2.1 Quick Toggle: Auto Advance After Rating */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (mainTab === 'practice') setShowFeedback(true);
-                      setIsFeedbackOpen(true);
+                      const nextVal = !effectiveAutoAdvance;
+                      setIsAutoAdvance(nextVal);
+                      if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal);
                     }}
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
-                      justAnswered
-                        ? "bg-indigo-600 text-white border-indigo-700 shadow-xs animate-pulse"
-                        : "bg-slate-50 hover:bg-indigo-50 border-slate-200/70 text-indigo-600"
+                      effectiveAutoAdvance
+                        ? "bg-amber-50 border-amber-400 text-amber-600 ring-1 ring-amber-300/50"
+                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                     )}
-                    title="View Explanation & Details"
+                    title={`Auto Advance after rating: ${effectiveAutoAdvance ? 'ON (Instantly move to next card)' : 'OFF (Stay on card until flip/next)'}`}
                   >
-                    <Lightbulb className="w-3.5 h-3.5" />
-                    {justAnswered && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
+                    <Zap className={cn("w-3.5 h-3.5", effectiveAutoAdvance ? "fill-amber-500 text-amber-600" : "text-slate-400")} />
+                    {effectiveAutoAdvance && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute -top-0.5 -right-0.5 ring-1 ring-white" />
+                    )}
                   </button>
-                ) : null}
 
-                {/* 3.4 Flip Back (Back face only) */}
-                {showFlipBackBtn && (
+                  {/* 2.2 Quick Toggle: Card Images */}
+                  {(() => {
+                    const isImagesOn = showImages !== 'none';
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowImages(isImagesOn ? 'none' : 'always');
+                        }}
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
+                          isImagesOn
+                            ? "bg-sky-50 border-sky-300 text-sky-600"
+                            : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
+                        )}
+                        title={`Card Images: ${isImagesOn ? 'Visible (Click to Hide)' : 'Hidden (Click to Show)'}`}
+                      >
+                        {isImagesOn ? (
+                          <Eye className="w-3.5 h-3.5 text-sky-600" />
+                        ) : (
+                          <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                      </button>
+                    );
+                  })()}
+
+                  {/* 2.3 Quick Toggle: Shuffle / Random Order */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsFlipped(false);
+                      setRandomEnabled(!randomEnabled);
                     }}
-                    className="w-8 h-8 rounded-full bg-slate-50 hover:bg-cyan-50 text-cyan-600 border border-slate-200/70 hover:border-cyan-300 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
-                    title="Flip Back to Front"
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
+                      randomEnabled
+                        ? "bg-violet-50 border-violet-300 text-violet-600"
+                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
+                    )}
+                    title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
                   >
-                    <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
+                    <Shuffle className="w-3.5 h-3.5" />
                   </button>
-                )}
 
-                {/* ─── GROUP DIVIDER 3 ─── */}
-                <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
+                  {/* ─── GROUP DIVIDER 2 ─── */}
+                  <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
 
-                {/* ═══ GROUP 4: SETTINGS & NAVIGATION ═══ */}
-                {/* 4.1 Nút Sang Giao Diện Tổng (Full Settings Console) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsSettingsModalOpen(true);
-                    setIsFlyToolbarOpen(false);
-                  }}
-                  className="h-8 px-2.5 rounded-full bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200/80 flex items-center gap-1 text-[11px] font-bold transition-all duration-200 active:scale-95 cursor-pointer shrink-0 shadow-xs group"
-                  title="Open Full Settings Console"
-                >
-                  <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
-                  <span className="hidden xs:inline sm:inline">Settings</span>
-                </button>
+                  {/* ═══ GROUP 3: CARD ACTIONS ═══ */}
+                  {/* 3.1 Quick Toggle: Select Mode */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSelectMode(prev => !prev);
+                    }}
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
+                      isSelectMode
+                        ? "bg-rose-500 text-white border-rose-600 shadow-xs"
+                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-500 hover:text-slate-700"
+                    )}
+                    title={isSelectMode ? "Select Mode: ON (Tap/Swipe paused to select text)" : "Select Mode: OFF"}
+                  >
+                    <MousePointer className="w-3.5 h-3.5" />
+                    {isSelectMode && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
+                  </button>
 
-                {/* 4.2 Collapse Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsFlyToolbarOpen(false);
-                  }}
-                  className="w-7.5 h-7.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0"
-                  title="Collapse Toolbar"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {/* 3.2 Quick Action: Star / Bookmark */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStarQuestion();
+                    }}
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border group",
+                      currentQuestion?.is_starred
+                        ? "bg-amber-50 border-amber-300 text-amber-500 shadow-xs"
+                        : "bg-slate-50 hover:bg-amber-50 border-slate-200/70 text-slate-400 hover:text-amber-500"
+                    )}
+                    title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
+                  >
+                    <Star className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-500")} />
+                  </button>
+
+                  {/* 3.3 Quick Action: AI Hint or Explanation */}
+                  {showHintBtn ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowingHint(prev => !prev);
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
+                        showingHint
+                          ? "bg-amber-500 text-white border-amber-600 shadow-xs"
+                          : "bg-slate-50 hover:bg-amber-50 border-slate-200/70 text-amber-500"
+                      )}
+                      title="AI Hint"
+                    >
+                      <Lightbulb className="w-3.5 h-3.5" />
+                    </button>
+                  ) : showExplainBtn ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (mainTab === 'practice') setShowFeedback(true);
+                        setIsFeedbackOpen(true);
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
+                        justAnswered
+                          ? "bg-indigo-600 text-white border-indigo-700 shadow-xs animate-pulse"
+                          : "bg-slate-50 hover:bg-indigo-50 border-slate-200/70 text-indigo-600"
+                      )}
+                      title="View Explanation & Details"
+                    >
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      {justAnswered && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
+                    </button>
+                  ) : null}
+
+                  {/* 3.4 Flip Back (Back face only) */}
+                  {showFlipBackBtn && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsFlipped(false);
+                      }}
+                      className="w-8 h-8 rounded-full bg-slate-50 hover:bg-cyan-50 text-cyan-600 border border-slate-200/70 hover:border-cyan-300 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
+                      title="Flip Back to Front"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
+                    </button>
+                  )}
+
+                  {/* ─── GROUP DIVIDER 3 ─── */}
+                  <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
+
+                  {/* ═══ GROUP 4: SETTINGS & NAVIGATION ═══ */}
+                  {/* 4.1 Nút Sang Giao Diện Tổng (Full Settings Console) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSettingsModalOpen(true);
+                      setIsFlyToolbarOpen(false);
+                    }}
+                    className="h-8 px-2.5 rounded-full bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200/80 flex items-center gap-1 text-[11px] font-bold transition-all duration-200 active:scale-95 cursor-pointer shrink-0 shadow-xs group"
+                    title="Open Full Settings Console"
+                  >
+                    <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
+                    <span className="hidden xs:inline sm:inline">Settings</span>
+                  </button>
+
+                  {/* 4.2 Collapse Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsFlyToolbarOpen(false);
+                    }}
+                    className="w-7.5 h-7.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0"
+                    title="Collapse Toolbar"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </>
     );
