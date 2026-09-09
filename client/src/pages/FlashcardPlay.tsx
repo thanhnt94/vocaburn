@@ -3096,7 +3096,10 @@ export default function FlashcardPlay() {
               : "fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230]"
           )}
         >
-          <div className="inline-flex items-center bg-white border border-slate-200/90 shadow-2xs p-0.5 rounded-full max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar flex-nowrap">
+          <div className={cn(
+            "inline-flex items-center bg-white/95 backdrop-blur-md border border-slate-200 shadow-md p-0.5 rounded-full overflow-x-auto no-scrollbar flex-nowrap",
+            isEmbedded ? "max-w-[calc(100vw-36px)] md:max-w-[520px]" : "max-w-[calc(100vw-24px)]"
+          )}>
             {/* ── 1. FIXED ANCHOR AUDIO BUTTON (NEVER MOVES, NEVER UNMOUNTS, ROCK SOLID) ── */}
             <button
               type="button"
@@ -4091,6 +4094,7 @@ export default function FlashcardPlay() {
                           }
                           if (effectiveCardFlipTrigger !== 'button_only') {
                             setIsFlipped(true);
+                            setIsFlyToolbarOpen(false);
                             setShowFeedback(true);
                             setJustAnswered(true);
                           }
@@ -4189,6 +4193,14 @@ export default function FlashcardPlay() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Bottom Slot on FRONT Face: Reserves identical 46px height so the audio button is in the exact same coordinates */}
+                    <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
+                      <div className="absolute inset-0 rounded-2xl border border-transparent bg-transparent pointer-events-none" />
+                      <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-30">
+                        {renderFlyToolbar(true)}
+                      </div>
+                    </div>
                   </div>
 
                   {/* BACK SIDE */}
@@ -4204,6 +4216,7 @@ export default function FlashcardPlay() {
                       }
                       if (effectiveCardFlipTrigger !== 'button_only') {
                         setIsFlipped(false);
+                        setIsFlyToolbarOpen(false);
                       }
                     }}
                     className={cn(
@@ -4527,61 +4540,71 @@ export default function FlashcardPlay() {
                     })()}
 
 
-                    {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
-                    {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
-                      const dueTimeStr = currentQuestion?.fsrs?.due;
+                    {/* Bottom Slot on BACK Face: Rating Feedback Banner + Overlay Fly Toolbar */}
+                    {(() => {
+                      const isCardRated = isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined;
                       let countdownStr = "";
-                      if (dueTimeStr) {
-                        const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
-                        if (diff > 0) {
-                          const secs = Math.floor(diff / 1000) % 60;
-                          const mins = Math.floor(diff / (1000 * 60)) % 60;
-                          const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                          
-                          const parts = [];
-                          if (days > 0) parts.push(`${days}d`);
-                          if (hours > 0 || days > 0) parts.push(`${hours}h`);
-                          if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
-                          parts.push(`${secs}s`);
-                          countdownStr = parts.join(' ');
+                      if (isCardRated) {
+                        const dueTimeStr = currentQuestion?.fsrs?.due;
+                        if (dueTimeStr) {
+                          const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
+                          if (diff > 0) {
+                            const secs = Math.floor(diff / 1000) % 60;
+                            const mins = Math.floor(diff / (1000 * 60)) % 60;
+                            const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            
+                            const parts = [];
+                            if (days > 0) parts.push(`${days}d`);
+                            if (hours > 0 || days > 0) parts.push(`${hours}h`);
+                            if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
+                            parts.push(`${secs}s`);
+                            countdownStr = parts.join(' ');
+                          }
+                        }
+                        
+                        if (!countdownStr) {
+                          const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
+                          if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
+                          else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
+                          else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
+                          else countdownStr = dynamicIntervals[4] || "4d";
                         }
                       }
-                      
-                      if (!countdownStr) {
-                        const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
-                        if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
-                        else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
-                        else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
-                        else countdownStr = dynamicIntervals[4] || "4d";
-                      }
+
                       return (
-                        <div
-                          className={cn(
-                            "mt-3 relative w-full flex items-center justify-between py-1 px-1.5 rounded-2xl border transition-all duration-300 font-bold min-h-[46px]",
-                            selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-                            selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
-                            selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
-                            "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          )}
-                        >
-                          {/* 1. Left: Dock the Fly Bar button cleanly inside the left of the banner, vertically centered! */}
-                          <div className="shrink-0 z-20 flex items-center">
+                        <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
+                          {/* 1. Rating Feedback Banner: always mounts to reserve layout space; opacity-0 before rating, fades in when rated */}
+                          <div
+                            className={cn(
+                              "absolute inset-0 rounded-2xl border flex items-center justify-center font-bold transition-all duration-300 pointer-events-none px-4",
+                              isCardRated
+                                ? cn(
+                                    "opacity-100",
+                                    selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+                                    selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
+                                    selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
+                                    "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                  )
+                                : "opacity-0 border-transparent bg-transparent"
+                            )}
+                          >
+                            {isCardRated && (
+                              <div className="flex items-center justify-center gap-1.5 text-center truncate">
+                                <span className="text-xs sm:text-sm font-black tracking-wide">
+                                  ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                                </span>
+                                <span className="opacity-80 text-xs font-semibold">
+                                  — Unlocks in {countdownStr} ⏳
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 2. Fly Toolbar: Anchored inside this slot at left-1.5, vertically centered, floating on top */}
+                          <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-30">
                             {renderFlyToolbar(true)}
                           </div>
-
-                          {/* 2. Center: The rating & countdown text, perfectly centered in the overall bar */}
-                          <div className="flex-1 flex items-center justify-center gap-1.5 text-center px-1">
-                            <span className="text-xs sm:text-sm font-black tracking-wide">
-                              ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                            </span>
-                            <span className="opacity-80 text-xs">
-                              — Unlocks in {countdownStr} ⏳
-                            </span>
-                          </div>
-
-                          {/* 3. Right: Symmetrical placeholder matching the Fly Bar button width (~76px) so text is 100% DEAD CENTER */}
-                          <div className="w-[76px] shrink-0 pointer-events-none" />
                         </div>
                       );
                     })()}
@@ -4691,8 +4714,8 @@ export default function FlashcardPlay() {
       </main>
 
 
-      {/* ═══════════ FLY TOOLBAR (Floating Island above footer dock) ═══════════ */}
-      {!shouldShowRoadmapStepCompleteScreen && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && !(isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined) && (
+      {/* ═══════════ FLY TOOLBAR (Floating Island above footer dock for Practice Mode) ═══════════ */}
+      {!shouldShowRoadmapStepCompleteScreen && mainTab === 'practice' && !practiceNeedsSetup && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && (
         renderFlyToolbar(false)
       )}
 
