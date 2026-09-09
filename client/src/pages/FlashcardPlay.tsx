@@ -3096,56 +3096,68 @@ export default function FlashcardPlay() {
               : "fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230]"
           )}
         >
-          <div className={cn(
-            "inline-flex items-center bg-white/95 backdrop-blur-md border border-slate-200 shadow-xs p-0.5 rounded-full overflow-x-auto no-scrollbar flex-nowrap h-[38px] box-border",
-            isEmbedded ? "max-w-[calc(100vw-36px)] md:max-w-[520px]" : "max-w-[calc(100vw-24px)]"
-          )}>
-            {/* ── 1. FIXED ANCHOR AUDIO BUTTON (NEVER MOVES, NEVER UNMOUNTS, ROCK SOLID) ── */}
-            <button
-              type="button"
-              onClick={triggerPlayAudio}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
-              title="Play Pronunciation (Audio)"
-            >
-              <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-            </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {!isFlyToolbarOpen ? (
+              /* Collapsed Single-Line Pill (Concentric 4px equidistant in 46px slot) */
+              <motion.div
+                key="collapsed-pill"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.12 }}
+                className={cn(
+                  "inline-flex items-center bg-white/95 backdrop-blur-md border border-slate-200 shadow-xs p-0.5 rounded-full overflow-x-auto no-scrollbar flex-nowrap h-[38px] box-border",
+                  isEmbedded ? "max-w-[calc(100vw-36px)] md:max-w-[520px]" : "max-w-[calc(100vw-24px)]"
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={triggerPlayAudio}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
+                  title="Play Pronunciation (Audio)"
+                >
+                  <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                </button>
 
-            {/* ── 2. DYNAMIC TRAY (DRAWER PULL-OUT TO THE RIGHT) ── */}
-            <AnimatePresence mode="wait" initial={false}>
-              {!isFlyToolbarOpen ? (
-                /* Expand Handle Tab (Visible when collapsed) */
-                <motion.button
-                  key="expand-handle-tab"
+                <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsFlyToolbarOpen(true);
                   }}
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ duration: 0.08 }}
                   className="h-8 pl-1.5 pr-2 rounded-r-full flex items-center gap-1 hover:bg-slate-100/80 text-slate-500 hover:text-indigo-600 transition-colors duration-150 active:scale-95 cursor-pointer shrink-0 border-l border-slate-200/80 ml-0.5 relative group"
-                  title="Expand Quick Options & Settings"
+                  title="Expand Quick Options (Nhiều dòng)"
                 >
                   <Sliders className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:rotate-45 transition-all" />
                   <ChevronRight className="w-3.5 h-3.5 text-indigo-500 group-hover:translate-x-0.5 transition-transform" />
                   {(currentQuestion?.hint || isSelectMode || currentQuestion?.is_starred) && (
                     <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white absolute top-1 right-1 animate-pulse" />
                   )}
-                </motion.button>
-              ) : (
-                /* Expanded Horizontal Tray (Pulls out smoothly from behind Audio button) */
-                <motion.div
-                  key="expanded-drawer-tray"
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                  className="inline-flex items-center gap-1 pl-1 shrink-0 overflow-hidden flex-nowrap whitespace-nowrap"
-                >
-                  {/* ═══ GROUP 1: AUDIO & SOUND ═══ */}
-                  {/* 1.1 Quick Toggle: Autoplay Audio */}
+                </button>
+              </motion.div>
+            ) : (
+              /* Expanded Multi-Row Floating Island (Pops out cleanly into 2 compact rows) */
+              <motion.div
+                key="expanded-multi-row-island"
+                initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 8 }}
+                transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                className="flex flex-col gap-1.5 p-1.5 rounded-[1.5rem] bg-white/98 backdrop-blur-2xl border border-slate-200/90 shadow-2xl shadow-indigo-500/15 select-none origin-bottom-left max-w-[calc(100vw-36px)]"
+              >
+                {/* ── ROW 1: SOUND & FLOW ── */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* 1.0 Primary Audio (Pronounce) */}
+                  <button
+                    type="button"
+                    onClick={triggerPlayAudio}
+                    className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
+                    title="Play Pronunciation (Audio)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                  </button>
+
+                  {/* 1.1 Autoplay Audio */}
                   {(() => {
                     const isAutoplay = autoPlayAudio !== 'none';
                     return (
@@ -3161,7 +3173,7 @@ export default function FlashcardPlay() {
                             ? "bg-emerald-50 border-emerald-300 text-emerald-600"
                             : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                         )}
-                        title={`Autoplay Audio: ${isAutoplay ? 'ON (Click to Turn Off)' : 'OFF (Click to Turn On)'}`}
+                        title={`Autoplay Audio: ${isAutoplay ? 'ON' : 'OFF'}`}
                       >
                         {isAutoplay ? (
                           <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -3172,7 +3184,7 @@ export default function FlashcardPlay() {
                     );
                   })()}
 
-                  {/* 1.2 Quick Toggle: Sound Effects (SFX) */}
+                  {/* 1.2 SFX Sounds */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3185,16 +3197,15 @@ export default function FlashcardPlay() {
                         ? "bg-purple-50 border-purple-300 text-purple-600"
                         : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                     )}
-                    title={`SFX Sounds: ${sfxEnabled ? 'ON (Click to Mute)' : 'OFF (Click to Enable)'}`}
+                    title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
                   >
                     <Sparkles className={cn("w-3.5 h-3.5", sfxEnabled ? "text-purple-600" : "text-slate-400")} />
                   </button>
 
-                  {/* ─── GROUP DIVIDER 1 ─── */}
+                  {/* Divider 1 */}
                   <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
 
-                  {/* ═══ GROUP 2: FLOW & DISPLAY ═══ */}
-                  {/* 2.1 Quick Toggle: Auto Advance After Rating */}
+                  {/* 1.3 Auto Advance */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3209,7 +3220,7 @@ export default function FlashcardPlay() {
                         ? "bg-amber-50 border-amber-400 text-amber-600 ring-1 ring-amber-300/50"
                         : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                     )}
-                    title={`Auto Advance after rating: ${effectiveAutoAdvance ? 'ON (Instantly move to next card)' : 'OFF (Stay on card until flip/next)'}`}
+                    title={`Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
                   >
                     <Zap className={cn("w-3.5 h-3.5", effectiveAutoAdvance ? "fill-amber-500 text-amber-600" : "text-slate-400")} />
                     {effectiveAutoAdvance && (
@@ -3217,7 +3228,7 @@ export default function FlashcardPlay() {
                     )}
                   </button>
 
-                  {/* 2.2 Quick Toggle: Card Images */}
+                  {/* 1.4 Card Images */}
                   {(() => {
                     const isImagesOn = showImages !== 'none';
                     return (
@@ -3233,7 +3244,7 @@ export default function FlashcardPlay() {
                             ? "bg-sky-50 border-sky-300 text-sky-600"
                             : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                         )}
-                        title={`Card Images: ${isImagesOn ? 'Visible (Click to Hide)' : 'Hidden (Click to Show)'}`}
+                        title={`Card Images: ${isImagesOn ? 'ON' : 'OFF'}`}
                       >
                         {isImagesOn ? (
                           <Eye className="w-3.5 h-3.5 text-sky-600" />
@@ -3244,7 +3255,7 @@ export default function FlashcardPlay() {
                     );
                   })()}
 
-                  {/* 2.3 Quick Toggle: Shuffle / Random Order */}
+                  {/* 1.5 Shuffle */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3257,16 +3268,15 @@ export default function FlashcardPlay() {
                         ? "bg-violet-50 border-violet-300 text-violet-600"
                         : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
                     )}
-                    title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
+                    title={`Shuffle: ${randomEnabled ? 'ON' : 'OFF'}`}
                   >
                     <Shuffle className="w-3.5 h-3.5" />
                   </button>
+                </div>
 
-                  {/* ─── GROUP DIVIDER 2 ─── */}
-                  <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
-
-                  {/* ═══ GROUP 3: CARD ACTIONS ═══ */}
-                  {/* 3.1 Quick Toggle: Select Mode */}
+                {/* ── ROW 2: ACTIONS & SETTINGS ── */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* 2.1 Select Mode */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3279,13 +3289,13 @@ export default function FlashcardPlay() {
                         ? "bg-rose-500 text-white border-rose-600 shadow-xs"
                         : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-500 hover:text-slate-700"
                     )}
-                    title={isSelectMode ? "Select Mode: ON (Tap/Swipe paused to select text)" : "Select Mode: OFF"}
+                    title={isSelectMode ? "Select Mode: ON" : "Select Mode: OFF"}
                   >
                     <MousePointer className="w-3.5 h-3.5" />
                     {isSelectMode && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
                   </button>
 
-                  {/* 3.2 Quick Action: Star / Bookmark */}
+                  {/* 2.2 Star / Bookmark */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3303,7 +3313,7 @@ export default function FlashcardPlay() {
                     <Star className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-500")} />
                   </button>
 
-                  {/* 3.3 Quick Action: AI Hint or Explanation */}
+                  {/* 2.3 AI Hint or Explanation */}
                   {showHintBtn ? (
                     <button
                       type="button"
@@ -3342,13 +3352,14 @@ export default function FlashcardPlay() {
                     </button>
                   ) : null}
 
-                  {/* 3.4 Flip Back (Back face only) */}
+                  {/* 2.4 Flip Back (Back face only) */}
                   {showFlipBackBtn && (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsFlipped(false);
+                        setIsFlyToolbarOpen(false);
                       }}
                       className="w-8 h-8 rounded-full bg-slate-50 hover:bg-cyan-50 text-cyan-600 border border-slate-200/70 hover:border-cyan-300 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
                       title="Flip Back to Front"
@@ -3357,11 +3368,10 @@ export default function FlashcardPlay() {
                     </button>
                   )}
 
-                  {/* ─── GROUP DIVIDER 3 ─── */}
+                  {/* Divider 2 */}
                   <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
 
-                  {/* ═══ GROUP 4: SETTINGS & NAVIGATION ═══ */}
-                  {/* 4.1 Nút Sang Giao Diện Tổng (Full Settings Console) */}
+                  {/* 2.5 Settings Button */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3369,29 +3379,29 @@ export default function FlashcardPlay() {
                       setIsSettingsModalOpen(true);
                       setIsFlyToolbarOpen(false);
                     }}
-                    className="h-8 px-2.5 rounded-full bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200/80 flex items-center gap-1 text-[11px] font-bold transition-all duration-200 active:scale-95 cursor-pointer shrink-0 shadow-xs group"
+                    className="h-8 px-2.5 rounded-full bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200/80 flex items-center gap-1 text-[11px] font-bold transition-all duration-150 active:scale-95 cursor-pointer shrink-0 shadow-xs group"
                     title="Open Full Settings Console"
                   >
                     <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
-                    <span className="hidden xs:inline sm:inline">Settings</span>
+                    <span>Settings</span>
                   </button>
 
-                  {/* 4.2 Collapse Button */}
+                  {/* 2.6 Close Button */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsFlyToolbarOpen(false);
                     }}
-                    className="w-7.5 h-7.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0"
-                    title="Collapse Toolbar"
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 border border-slate-200/70 hover:border-rose-200 flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs"
+                    title="Close Quick Options"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </>
     );
@@ -4197,7 +4207,7 @@ export default function FlashcardPlay() {
                     {/* Bottom Slot on FRONT Face: Reserves identical 46px height so the audio button is in the exact same coordinates */}
                     <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
                       <div className="absolute inset-0 rounded-full border border-transparent bg-transparent pointer-events-none" />
-                      <div className="absolute left-[4px] top-1/2 -translate-y-1/2 z-30">
+                      <div className="absolute left-[4px] bottom-1 z-30">
                         {renderFlyToolbar(true)}
                       </div>
                     </div>
@@ -4601,8 +4611,8 @@ export default function FlashcardPlay() {
                             )}
                           </div>
 
-                          {/* 2. Fly Toolbar: Anchored inside this slot at left-[4px], vertically centered, floating on top */}
-                          <div className="absolute left-[4px] top-1/2 -translate-y-1/2 z-30">
+                          {/* 2. Fly Toolbar: Anchored inside this slot at left-[4px], bottom-1, floating on top */}
+                          <div className="absolute left-[4px] bottom-1 z-30">
                             {renderFlyToolbar(true)}
                           </div>
                         </div>
