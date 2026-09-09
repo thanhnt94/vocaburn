@@ -913,7 +913,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       onClose()
                       openEditModal()
                     }}
-                    title="Quick Edit Card (Sửa nhanh thẻ)"
+                    title="Quick Edit Card"
                     aria-label="Quick Edit Card"
                     className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
                   >
@@ -926,7 +926,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleStarQuestion}
-                    title={starred ? "Unstar Card (Bỏ đánh dấu)" : "Star / Bookmark Card (Đánh dấu thẻ)"}
+                    title={starred ? "Unstar Card" : "Star / Bookmark Card"}
                     aria-label="Star / Bookmark Card"
                     className={cn(
                       "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs",
@@ -944,7 +944,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleCopy}
-                    title={copied ? "Copied! (Đã sao chép)" : "Copy Card Content (Sao chép thẻ)"}
+                    title={copied ? "Copied to clipboard!" : "Copy Card Content"}
                     aria-label="Copy Card Content"
                     className={cn(
                       "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs",
@@ -965,7 +965,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       handleIgnoreQuestion()
                       onClose()
                     }}
-                    title="Skip / Ignore Card (Ẩn / Bỏ qua thẻ)"
+                    title="Skip / Ignore Card"
                     aria-label="Ignore Card"
                     className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
                   >

@@ -40,6 +40,7 @@ export interface FlashcardHeaderProps {
   correctCount?: number
   totalCards?: number
   cardsRemaining?: number
+  comboStreak?: number
   onCreateNewCard?: () => void
   rightAction?: React.ReactNode
 }
@@ -80,29 +81,23 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
   correctCount,
   totalCards,
   cardsRemaining,
+  comboStreak,
   onCreateNewCard,
   rightAction
 }) => {
   return (
     <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-slate-950/90 border-b border-slate-800/80 text-white shadow-xl">
       {/* Sleek Underline Progress Bar at the Bottom Edge of Header */}
-      <AnimatePresence>
-        {!isHeaderSurging && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
-          >
-            <motion.div 
-              className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
-              initial={{ width: 0 }}
-              animate={{ width: `${activePercent}%` }}
-              transition={{ type: "spring", stiffness: 120, damping: 18 }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-800/60 pointer-events-none z-[125]"
+      >
+        <motion.div 
+          className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+          initial={{ width: 0 }}
+          animate={{ width: `${activePercent}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 18 }}
+        />
+      </div>
 
       <div className="flex-1 min-w-0 relative z-[140] flex items-center gap-2">
         <div className="flex-1 min-w-0">
@@ -140,6 +135,7 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
             correctCount={correctCount}
             totalCards={totalCards}
             cardsRemaining={cardsRemaining}
+            comboStreak={comboStreak}
           />
         </div>
 
@@ -147,7 +143,7 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
           <button
             onClick={onCreateNewCard}
             className="w-8.5 h-8.5 ml-1 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md active:scale-90 transition-all flex-shrink-0 cursor-pointer"
-            title="Thêm thẻ nhanh"
+            title="Quick Add Card"
           >
             <span className="text-lg font-bold leading-none">+</span>
           </button>

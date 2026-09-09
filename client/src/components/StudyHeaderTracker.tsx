@@ -47,6 +47,7 @@ export interface StudyHeaderTrackerProps {
   activeMode?: string
   modeBadge?: { emoji: string; label: string; short: string; style: string }
   progressPillText?: string
+  comboStreak?: number
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
@@ -201,7 +202,8 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
   cardsRemaining = 0,
   activeMode,
   modeBadge,
-  progressPillText
+  progressPillText,
+  comboStreak = 0
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -338,7 +340,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
             exit={{ opacity: 0, scaleY: 0.1 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={cn(
-              "fixed inset-x-0 top-0 h-[48px] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center overflow-hidden z-[250] border-b shadow-2xl",
+              "fixed inset-x-0 top-0 h-[48px] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center overflow-hidden z-[250] border-b shadow-2xl pointer-events-none",
               isOverachieved
                 ? "border-cyan-400/70 shadow-cyan-950/50"
                 : isGoalReached 
@@ -396,8 +398,8 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 1. LEFT: Exit button */}
-      <div className="flex items-center shrink-0 z-[140]">
+      {/* 1. LEFT: Exit button (always on top and clickable) */}
+      <div className="flex items-center shrink-0 z-[260] relative pointer-events-auto">
         {onExit && (
           <button
             onClick={onExit}
@@ -470,6 +472,17 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                       {meta.short}
                     </span>
                   </div>
+
+                  {/* Combo Streak Flame Badge */}
+                  {comboStreak >= 3 && (
+                    <div 
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-500/20 border border-orange-500/40 text-orange-300 text-[10px] font-black shrink-0 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                      title={`${comboStreak} consecutive correct answers!`}
+                    >
+                      <Flame className="w-3 h-3 text-orange-400 fill-orange-400 animate-bounce" />
+                      <span>{comboStreak}x</span>
+                    </div>
+                  )}
 
                   {/* Micro Progress Counter Pill */}
                   <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black font-mono tracking-tight text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800/90 shrink-0">
@@ -580,16 +593,18 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                   <span className="text-[9px] text-amber-400/70 font-black">XP</span>
                 </div>
 
-                {/* 6. Streak */}
-                {streakCount > 0 && (
+                {/* 6. Streak or Combo */}
+                {(streakCount > 0 || comboStreak >= 3) && (
                   <>
                     <div className="w-[1px] h-3.5 bg-slate-800 shrink-0" />
                     <div 
                       className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-slate-800/50 transition-colors shrink-0" 
-                      title={`Streak: ${streakCount} consecutive days`}
+                      title={comboStreak >= 3 ? `Combo: ${comboStreak} correct streak | Streak: ${streakCount}d` : `Streak: ${streakCount} consecutive days`}
                     >
                       <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0" />
-                      <span className="font-black text-[11px] text-orange-300 tracking-tight">{streakCount}d</span>
+                      <span className="font-black text-[11px] text-orange-300 tracking-tight">
+                        {comboStreak >= 3 ? `${comboStreak}x` : `${streakCount}d`}
+                      </span>
                     </div>
                   </>
                 )}

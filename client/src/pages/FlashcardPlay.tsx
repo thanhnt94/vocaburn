@@ -298,6 +298,7 @@ export default function FlashcardPlay() {
   } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
+  const [comboStreak, setComboStreak] = useState(0)
   const timeLeftRef = useRef(0)
   const sessionStudyTimeRef = useRef(0)
   const [initialTodayXP, setInitialTodayXP] = useState(0)
@@ -907,6 +908,13 @@ export default function FlashcardPlay() {
     setActivelyRatedCurrentCard(true)
     setPrevStreakBeforeRating(streak)
 
+    // Update Combo Streak
+    if (rating >= 3) {
+      setComboStreak(prev => prev + 1);
+    } else if (rating === 1) {
+      setComboStreak(0);
+    }
+
     // Snapshot BEFORE updating stats (for context display)
     const prevTotal = currentQuestion.stats?.total || 0
     const prevCorrect = currentQuestion.stats?.correct || 0
@@ -926,14 +934,14 @@ export default function FlashcardPlay() {
 
     if (correct) {
       if (sfxEnabled) playCorrectSound()
-      triggerHaptic('success')
+      if (hapticEnabled) triggerHaptic('success')
       const confettiColors = streak >= 5 ? ['#f59e0b', '#ef4444', '#f97316'] : ['#6366f1', '#a855f7', '#ec4899']
       confetti({ zIndex: 9999, particleCount: streak >= 5 ? 250 : 150, spread: streak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
-      if (alreadyRated) setBadgeMessage("Chính xác! 🎯")
+      if (alreadyRated) setBadgeMessage("Correct! 🎯")
     } else {
       if (sfxEnabled) playIncorrectSound()
-      triggerHaptic('error')
-      if (alreadyRated) setBadgeMessage("Cố lên nhé! 💪")
+      if (hapticEnabled) triggerHaptic('error')
+      if (alreadyRated) setBadgeMessage("Keep going! 💪")
     }
     
     if (alreadyRated) {
@@ -3043,7 +3051,7 @@ export default function FlashcardPlay() {
           const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
             {
               type: (activeMode === 'new' ? 'new_cards' : 'fsrs_review') as any,
-              label: activeMode === 'new' ? 'Học Từ Mới' : (activeMode === 'review' ? 'Ôn Tập Thẻ Cũ' : 'Ôn Tập FSRS'),
+              label: activeMode === 'new' ? 'Learn New Cards' : (activeMode === 'review' ? 'Review Due Cards' : 'FSRS Review'),
               daily_count: session?.questions?.length || 20,
               done: false,
               url: `/flashcard/${id}/play`,
@@ -3097,13 +3105,11 @@ export default function FlashcardPlay() {
             const isCurrentCardActiveReview = dueCardsIndices.includes(currentIndex);
 
             if (isCurrentCardActiveReview) {
-              // Thẻ ôn tập: Hiển thị "Còn X" (ví dụ: Còn 2, Còn 1)
               const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
               subCurr = unreviewedDueCount;
               subTotal = dueCardsIndices.length > 0 ? dueCardsIndices.length : totalDeckCards;
-              progressPillText = `Còn ${unreviewedDueCount}`;
+              progressPillText = `${unreviewedDueCount} left`;
             } else {
-              // Thẻ mới (⭐ MỚI): Hiển thị [Số từ đã học] / [Tổng số từ của bộ thẻ] (ví dụ: 3 / 26 -> sau khi đánh giá nhảy lên 4 / 26)
               subCurr = totalLearnedCards;
               subTotal = totalDeckCards;
               progressPillText = undefined;
@@ -3113,7 +3119,7 @@ export default function FlashcardPlay() {
             if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
             modeBadge = {
               emoji: '📚',
-              label: 'Chỉ Ôn Tập Thẻ Cũ (Review Only)',
+              label: 'Review Due Cards Only',
               short: 'REV',
               style: 'bg-teal-500/20 border-teal-500/40 text-teal-300'
             };
@@ -3129,7 +3135,7 @@ export default function FlashcardPlay() {
             if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
             modeBadge = {
               emoji: '✨',
-              label: 'Học Thẻ Mới (New Only)',
+              label: 'Learn New Cards',
               short: 'NEW',
               style: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
             };
@@ -3149,7 +3155,7 @@ export default function FlashcardPlay() {
           } else if (activeMode === 'flip') {
             modeBadge = {
               emoji: '🔄',
-              label: 'Lật Thẻ Tự Do (Flip Card)',
+              label: 'Free Flip Mode',
               short: 'FLIP',
               style: 'bg-amber-500/20 border-amber-500/40 text-amber-300'
             };
@@ -3174,7 +3180,7 @@ export default function FlashcardPlay() {
             if (currentStep?.type === 'new_cards') {
               modeBadge = {
                 emoji: '🛣️',
-                label: 'Lộ trình - Học từ mới (Roadmap New)',
+                label: 'Roadmap - New Cards',
                 short: 'RM',
                 style: 'bg-amber-500/20 border-amber-500/40 text-amber-300'
               };
@@ -3186,11 +3192,11 @@ export default function FlashcardPlay() {
               }).length;
               subTotal = targetNew;
               subCurr = Math.max(learnedToday, newCardsInSession);
-              progressPillText = undefined; // Hiển thị số thẻ mới / tổng số thẻ (ví dụ 7 / 20)
+              progressPillText = undefined;
             } else {
               modeBadge = {
                 emoji: '🛣️',
-                label: 'Lộ trình - Ôn tập (Roadmap Review)',
+                label: 'Roadmap - Review',
                 short: 'RM',
                 style: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
               };
@@ -3223,7 +3229,7 @@ export default function FlashcardPlay() {
                 : Math.max(0, dueRemaining - Object.keys(sessionAnswers).length);
 
               subCurr = unreviewedDueCount;
-              progressPillText = `Còn ${unreviewedDueCount}`;
+              progressPillText = `${unreviewedDueCount} left`;
             }
           }
 
@@ -3258,7 +3264,7 @@ export default function FlashcardPlay() {
               onToggleTimeMode={toggleTimeMode}
               initialTodayTime={initialTodayTime}
               initialAllTimeTime={initialAllTimeTime}
-              showFeedback={showFeedback}
+              showFeedback={isFeedbackOpen}
               hasRated={selectedOption !== null}
               currentIndex={currentIndex}
               timeLeftRef={timeLeftRef}
@@ -3273,6 +3279,7 @@ export default function FlashcardPlay() {
               correctCount={correctCount}
               totalCards={totalCards}
               cardsRemaining={cardsRemaining}
+              comboStreak={comboStreak}
             />
           );
         })()}
@@ -3347,9 +3354,9 @@ export default function FlashcardPlay() {
                           🗺️
                         </div>
                         <div>
-                          <h4 className="text-xs font-black text-slate-800">Lộ Trình Roadmap</h4>
+                          <h4 className="text-xs font-black text-slate-800">Roadmap Pathway</h4>
                           <p className="text-[10px] text-slate-400 font-semibold">
-                            {roadmapStatus.all_done ? '✅ Đã Xong Hôm Nay' : `Bước ${roadmapStatus.current_step_index + 1}/${roadmapStatus.pipeline?.length || 1}`}
+                            {roadmapStatus.all_done ? '✅ Completed Today' : `Step ${roadmapStatus.current_step_index + 1}/${roadmapStatus.pipeline?.length || 1}`}
                           </p>
                         </div>
                       </div>
@@ -3357,7 +3364,7 @@ export default function FlashcardPlay() {
                         "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
                         roadmapStatus.all_done ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
                       )}>
-                        {roadmapStatus.all_done ? 'Hoàn Thành' : 'Đang Học'}
+                        {roadmapStatus.all_done ? 'Completed' : 'In Progress'}
                       </span>
                     </div>
 
@@ -3382,8 +3389,8 @@ export default function FlashcardPlay() {
                             </div>
 
                             <div className="text-[10px] font-black">
-                              {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} từ`}
-                              {st.type === 'fsrs_review' && `Còn ${st.progress?.due_count || 0} thẻ`}
+                              {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} cards`}
+                              {st.type === 'fsrs_review' && `${st.progress?.due_count || 0} due cards left`}
                               {(st.type === 'mcq' || st.type === 'typing') && `${st.progress?.best_score || 0}/${st.pass_threshold}%`}
                             </div>
                           </div>
@@ -3398,8 +3405,8 @@ export default function FlashcardPlay() {
                         📚
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-700">Chế Độ Tự Do</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Bật Lộ trình để tạo pipeline</p>
+                        <h4 className="text-xs font-black text-slate-700">Free Mode</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Enable Roadmap to activate pipeline</p>
                       </div>
                     </div>
                   </div>
@@ -3558,7 +3565,7 @@ export default function FlashcardPlay() {
                       })()}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 text-center py-2">Đang tải bảng xếp hạng...</p>
+                    <p className="text-[10px] text-slate-400 text-center py-2">Loading leaderboard...</p>
                   )}
 
                   <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/50">
@@ -3571,14 +3578,14 @@ export default function FlashcardPlay() {
                 {/* 4. Session Quick Stats */}
                 <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
                   <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    <span>Phiên học hiện tại</span>
+                    <span>Current Session</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
                       <span className="block font-black text-slate-700">
                         {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
                       </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">Đã làm</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Done</span>
                     </div>
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-emerald-600">
                       <span className="block font-black">
@@ -3603,7 +3610,7 @@ export default function FlashcardPlay() {
                           }).length
                         )}
                       </span>
-                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Đúng</span>
+                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Correct</span>
                     </div>
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-rose-600">
                       <span className="block font-black">
@@ -3628,7 +3635,7 @@ export default function FlashcardPlay() {
                           }).length
                         )}
                       </span>
-                      <span className="text-[8px] font-bold text-rose-400 uppercase">Sai</span>
+                      <span className="text-[8px] font-bold text-rose-400 uppercase">Wrong</span>
                     </div>
                   </div>
                 </div>
@@ -4156,18 +4163,7 @@ export default function FlashcardPlay() {
                     })()}
 
 
-                    {/* FSRS Buttons / Hidden in swipe-only modes (swipe_4way, swipe_2way) to save vertical screen space */}
-                    {activeMode !== 'flip' && !hasRated && (
-                      effectiveCardRatingMode === 'both' || effectiveCardRatingMode === 'buttons' ? (
-                        <FSRSActionButtons
-                          isFlipped={isFlipped}
-                          hasRated={hasRated}
-                          selectedOption={selectedOption}
-                          intervals={getFSRSIntervals(currentQuestion?.fsrs)}
-                          onRate={handleReviewRating}
-                        />
-                      ) : null
-                    )}
+                    {/* Note: FSRS Rating Buttons are docked at bottom action bar for thumb reachability */}
 
                     {/* After rating: show colorful dynamic rated badge with real-time unlocking countdown */}
                     {isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined && (() => {
@@ -4282,26 +4278,26 @@ export default function FlashcardPlay() {
                     🎉
                   </motion.div>
                   <h3 className="text-xl font-black text-indigo-600 uppercase tracking-widest mb-1.5 animate-pulse">
-                    Thẻ Lên Cấp!
+                    Card Leveled Up!
                   </h3>
                   <p className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">
-                    Độ bền trí nhớ đã nâng cấp
+                    Memory Stability Upgraded
                   </p>
                   
                   <div className="flex items-center gap-5 bg-slate-50/80 px-5 py-4 rounded-3xl border border-slate-100 shadow-inner">
                     <div className="text-center">
-                      <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Cấp độ cũ</span>
+                      <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Previous Level</span>
                       <span className="px-3.5 py-1.5 bg-slate-200/80 text-slate-600 rounded-xl text-xs font-black">Level {activeMasteryUpgrade.old_level}</span>
                     </div>
                     <div className="text-indigo-500 font-black text-lg animate-pulse">➔</div>
                     <div className="text-center">
-                      <span className="text-[8px] font-black text-emerald-400 block mb-1 uppercase tracking-widest">Cấp độ mới</span>
+                      <span className="text-[8px] font-black text-emerald-400 block mb-1 uppercase tracking-widest">New Level</span>
                       <span className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-400 to-emerald-500 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-200/60 flex items-center gap-1">
                         Level {activeMasteryUpgrade.new_level} ⚡
                       </span>
                     </div>
                   </div>
-                  <p className="text-[9px] font-bold text-slate-300 italic mt-6">Khắc sâu từ vựng thành công!</p>
+                  <p className="text-[9px] font-bold text-slate-300 italic mt-6">Card Mastered Successfully!</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -4375,174 +4371,279 @@ export default function FlashcardPlay() {
                 )}
               </AnimatePresence>
 
-              <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
-              {/* Settings Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSettingsModalOpen(true);
-                }}
-                className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 hover:border-indigo-300 transition-all"
-                title="Cấu hình học tập"
-              >
-                <Settings className="w-5.5 h-5.5 text-indigo-600" />
-              </button>
-
-              {(() => {
-                if (!currentQuestion) return null;
-                
-                const face = isFlipped ? 'back' : 'front';
-                let enabled = true;
-                if (mainTab === 'practice' && currentPracticeData) {
-                  const { question_key } = currentPracticeData;
-                  enabled = isAudioEnabled(question_key);
-                } else {
-                  enabled = isAudioEnabled(face);
-                }
-                
-                if (!enabled) return null;
-                
-                return (
+              {/* TIER 1: UTILITY MICRO TOOLBAR (Always accessible) */}
+              <div className="w-full flex items-center justify-between px-3 sm:px-4 pt-1.5 pb-1 gap-2">
+                {/* Left tools: Settings & Select Mode */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Settings Button */}
                   <button
-                    onClick={async (e) => {
+                    type="button"
+                    onClick={(e) => {
                       e.stopPropagation();
-                      if (mainTab === 'practice') {
-                        const practiceData = currentPracticeData;
-                        if (practiceData) {
-                          const { question: qText, question_key: qKey } = practiceData;
-                          if (qKey === 'front') {
-                            await playCardAudio('front');
-                          } else if (qKey === 'back') {
-                            await playCardAudio('back');
-                          } else {
-                            speakMultiLanguage(qText);
-                          }
-                        }
-                      } else {
-                        await playCardAudio(isFlipped ? 'back' : 'front');
-                      }
+                      setIsSettingsModalOpen(true);
                     }}
-                    className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-600 shadow-sm active:scale-95 transition-all hover:bg-indigo-100 hover:border-indigo-300"
-                    title="Phát âm"
+                    className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 border border-slate-200/60 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    title="Study Settings"
                   >
-                    <Volume2 className="w-5.5 h-5.5 text-indigo-600 animate-pulse" />
+                    <Settings className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="hidden sm:inline text-[11px] font-black">Settings</span>
                   </button>
-                );
-              })()}
 
-              {/* AI Hint "?" Button */}
-
-              
-              {/* Lightbulb Explanation Button */}
-              {(mainTab === 'practice' || isFlipped || showFeedback) && (
-                <button 
-                  onClick={() => {
-                    if (mainTab === 'practice') {
-                      setShowFeedback(true);
-                    }
-                    setIsFeedbackOpen(true);
-                  }} 
-                  className={`xl:hidden w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all relative ${
-                    justAnswered 
-                      ? 'bg-indigo-600 border border-indigo-600 text-white animate-[pulse_1.5s_infinite] ring-4 ring-indigo-300 ring-offset-1 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]' 
-                      : 'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100'
-                  }`}
-                  title="Xem giải thích và hướng dẫn"
-                >
-                  <Lightbulb className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-                  {justAnswered && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
-                </button>
-              )}
-
-              {/* Select Mode Toggle Button (Disables swipe/tap so user can highlight and copy text) */}
-              <button
-                type="button"
-                onClick={() => setIsSelectMode(prev => !prev)}
-                className={cn(
-                  "w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl shadow-sm active:scale-95 transition-all cursor-pointer border relative",
-                  isSelectMode
-                    ? "bg-amber-500 border-amber-600 text-white ring-2 ring-amber-300 shadow-amber-200 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                    : "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300"
-                )}
-                title={isSelectMode ? "Select Mode: ON (Click to resume swipe & tap)" : "Select Mode: OFF (Click to pause swipe & tap to select/copy text)"}
-              >
-                <MousePointer className={cn("w-5 h-5 transition-transform", isSelectMode ? "scale-110 text-white" : "text-indigo-600")} />
-                {isSelectMode && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
-                )}
-              </button>
-
-              {/* Main Action Buttons */}
-              {mainTab === 'practice' ? (
-                practiceAnswers[currentIndex] !== undefined ? (
-                  <button 
-                    onClick={handleNext}
-                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                  {/* Select Mode Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsSelectMode(prev => !prev)}
+                    className={cn(
+                      "h-8.5 px-2.5 sm:px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 relative",
+                      isSelectMode
+                        ? "bg-amber-500 border-amber-600 text-white ring-2 ring-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                        : "bg-slate-100/80 hover:bg-slate-200/80 border-slate-200/60 text-slate-600 hover:text-slate-900"
+                    )}
+                    title={isSelectMode ? "Select Mode: ON (Tap / Swipe paused to copy text)" : "Select Mode: OFF (Click to enable text selection)"}
                   >
-                    <span>Continue</span>
-                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <div className="flex-1 flex gap-2 h-12 sm:h-14">
-                    <button
-                      onClick={handleNext}
-                      className="flex-1 h-12 sm:h-14 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
-                    >
-                      Skip <ChevronRight className="w-4 h-4" />
-                    </button>
-                    <div className="flex-[2] h-12 sm:h-14 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                      Waiting...
-                    </div>
-                  </div>
-                )
-              ) : (
-                (!hasRated && activeMode !== 'flip') || (activeMode === 'flip' && !isFlipped) ? (
-                  <button 
-                    onClick={() => {
-                      const nextFlipped = !isFlipped;
-                      setIsFlipped(nextFlipped);
-                      if (nextFlipped) {
-                        setShowFeedback(true);
-                        setJustAnswered(true);
-                      }
-                    }}
-                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
-                  >
-                    {isFlipped ? (
-                      <>
-                        <ChevronRight className="w-4 h-4 rotate-180" />
-                        <span>FLIP BACK</span>
-                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                      </>
-                    ) : (
-                      <>
-                        <span>FLIP CARD</span>
-                        <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                        <ChevronRight className="w-4 h-4 rotate-90" />
-                      </>
+                    <MousePointer className={cn("w-3.5 h-3.5", isSelectMode ? "text-white" : "text-slate-500")} />
+                    <span className="hidden sm:inline text-[11px] font-black">Select</span>
+                    {isSelectMode && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
                     )}
                   </button>
-                ) : (
-                  <div className="flex-1 flex gap-1.5 sm:gap-3 h-12 sm:h-14">
-                    <button 
-                      onClick={() => setIsFlipped(prev => !prev)}
-                      className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 bg-gradient-to-r from-indigo-50 to-indigo-100/80 hover:from-indigo-100 hover:to-indigo-200 text-indigo-600 border border-indigo-200/50 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
-                      title={isFlipped ? "Flip to Front" : "Flip to Back"}
+                </div>
+
+                {/* Center tool (When Flipped): Flip Back Button */}
+                {isFlipped && mainTab !== 'practice' && (
+                  <div className="flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setIsFlipped(false)}
+                      className="h-8.5 px-3 rounded-xl bg-indigo-50/90 hover:bg-indigo-100/90 border border-indigo-200/90 text-indigo-600 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      title="Flip to Front"
                     >
-                      <RefreshCw className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-indigo-600 animate-[spin_4s_linear_infinite]" />
+                      <RefreshCw className="w-3 h-3 text-indigo-600" />
+                      <span>Flip Back</span>
                     </button>
+                  </div>
+                )}
+
+                {/* Right tools: Audio & Explanation / Hint */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Audio Button */}
+                  {(() => {
+                    if (!currentQuestion) return null;
+                    const face = isFlipped ? 'back' : 'front';
+                    let enabled = true;
+                    if (mainTab === 'practice' && currentPracticeData) {
+                      const { question_key } = currentPracticeData;
+                      enabled = isAudioEnabled(question_key);
+                    } else {
+                      enabled = isAudioEnabled(face);
+                    }
+                    if (!enabled) return null;
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (mainTab === 'practice') {
+                            const practiceData = currentPracticeData;
+                            if (practiceData) {
+                              const { question: qText, question_key: qKey } = practiceData;
+                              if (qKey === 'front') {
+                                await playCardAudio('front');
+                              } else if (qKey === 'back') {
+                                await playCardAudio('back');
+                              } else {
+                                speakMultiLanguage(qText);
+                              }
+                            }
+                          } else {
+                            await playCardAudio(isFlipped ? 'back' : 'front');
+                          }
+                        }}
+                        className="h-8.5 px-2.5 sm:px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 border border-slate-200/60 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                        title="Pronounce"
+                      >
+                        <Volume2 className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                        <span className="hidden sm:inline text-[11px] font-black">Audio</span>
+                      </button>
+                    );
+                  })()}
+
+                  {/* AI Hint Button (Front Only) */}
+                  {!isFlipped && currentQuestion?.hint && (
+                    <button
+                      type="button"
+                      onClick={() => setShowingHint(prev => !prev)}
+                      className="h-8.5 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 flex items-center gap-1 text-[11px] font-black transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      title="AI Hint"
+                    >
+                      <span>💡</span>
+                      <span className="hidden sm:inline">Hint</span>
+                    </button>
+                  )}
+
+                  {/* Explanation / Lightbulb Button */}
+                  {(mainTab === 'practice' || isFlipped || showFeedback) && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (mainTab === 'practice') {
+                          setShowFeedback(true);
+                        }
+                        setIsFeedbackOpen(true);
+                      }} 
+                      className={cn(
+                        "xl:hidden h-8.5 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 transition-all relative cursor-pointer shadow-2xs active:scale-95 border",
+                        justAnswered 
+                          ? 'bg-indigo-600 border-indigo-600 text-white animate-pulse shadow-indigo-300' 
+                          : 'bg-slate-100/80 hover:bg-slate-200/80 border-slate-200/60 text-slate-600 hover:text-slate-900'
+                      )}
+                      title="View Explanation & Guide"
+                    >
+                      <Lightbulb className={cn("w-3.5 h-3.5", justAnswered ? "text-white" : "text-amber-500")} />
+                      <span className="hidden sm:inline text-[11px] font-black">Explain</span>
+                      {justAnswered && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* TIER 2: PRIMARY ACTION ZONE (Thumb-reachable) */}
+              <div className="w-full px-3 sm:px-4 pb-2 pt-0.5">
+                {mainTab === 'practice' ? (
+                  practiceAnswers[currentIndex] !== undefined ? (
                     <button 
                       onClick={handleNext}
-                      className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                      className="w-full h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                    >
+                      <span>Continue</span>
+                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <div className="flex gap-2 h-12 w-full">
+                      <button
+                        onClick={handleNext}
+                        className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
+                      >
+                        Skip <ChevronRight className="w-4 h-4" />
+                      </button>
+                      <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
+                        Waiting...
+                      </div>
+                    </div>
+                  )
+                ) : !isFlipped ? (
+                  /* ── FRONT FACE: BIG FLIP CARD CTA BUTTON ── */
+                  <button 
+                    onClick={() => {
+                      setIsFlipped(true);
+                      setJustAnswered(true);
+                    }}
+                    className="w-full h-12 sm:h-13 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
+                  >
+                    <span>FLIP CARD</span>
+                    <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </button>
+                ) : !hasRated && activeMode !== 'flip' ? (
+                  /* ── BACK FACE: UNRATED (FSRS BUTTONS OR SWIPE GUIDE) ── */
+                  effectiveCardRatingMode === 'buttons' || effectiveCardRatingMode === 'both' ? (
+                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 w-full">
+                      {/* AGAIN (1) */}
+                      <button
+                        onClick={() => handleReviewRating(1)}
+                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100/90 text-rose-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                        title="Shortcut: 1"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-rose-600">AGAIN</span>
+                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-rose-300 bg-rose-100 text-rose-700">1</kbd>
+                        </div>
+                        <span className="text-[11px] sm:text-xs font-black text-rose-700 mt-0.5">
+                          {getFSRSIntervals(currentQuestion?.fsrs)?.[1] || "10m"}
+                        </span>
+                      </button>
+
+                      {/* HARD (2) */}
+                      <button
+                        onClick={() => handleReviewRating(2)}
+                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-amber-200 bg-amber-50/80 hover:bg-amber-100/90 text-amber-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                        title="Shortcut: 2"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-amber-600">HARD</span>
+                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-amber-300 bg-amber-100 text-amber-700">2</kbd>
+                        </div>
+                        <span className="text-[11px] sm:text-xs font-black text-amber-700 mt-0.5">
+                          {getFSRSIntervals(currentQuestion?.fsrs)?.[2] || "1d"}
+                        </span>
+                      </button>
+
+                      {/* GOOD (3) */}
+                      <button
+                        onClick={() => handleReviewRating(3)}
+                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border-2 border-indigo-300 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-600 shadow-xs ring-2 ring-indigo-400/20 active:scale-95 transition-all cursor-pointer group"
+                        title="Shortcut: 3"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-indigo-600">GOOD</span>
+                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-indigo-300 bg-indigo-100 text-indigo-700">3</kbd>
+                        </div>
+                        <span className="text-[11px] sm:text-xs font-black text-indigo-700 mt-0.5">
+                          {getFSRSIntervals(currentQuestion?.fsrs)?.[3] || "4d"}
+                        </span>
+                      </button>
+
+                      {/* EASY (4) */}
+                      <button
+                        onClick={() => handleReviewRating(4)}
+                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                        title="Shortcut: 4"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-emerald-600">EASY</span>
+                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-emerald-300 bg-emerald-100 text-emerald-700">4</kbd>
+                        </div>
+                        <span className="text-[11px] sm:text-xs font-black text-emerald-700 mt-0.5">
+                          {getFSRSIntervals(currentQuestion?.fsrs)?.[4] || "12d"}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    /* SWIPE GUIDE INDICATOR */
+                    <div className="w-full h-11 bg-slate-100/80 rounded-2xl border border-slate-200/80 flex items-center justify-between px-4 text-xs font-black text-slate-500">
+                      <span className="flex items-center gap-1 text-rose-500">← Again</span>
+                      <span className="text-[10px] font-bold text-slate-400">Swipe card to rate</span>
+                      <span className="flex items-center gap-1 text-emerald-600">Good →</span>
+                    </div>
+                  )
+                ) : (
+                  /* ── BACK FACE: RATED (OR FLIP MODE FLIPPED) ── */
+                  <div className="w-full flex items-center gap-2 h-12 sm:h-13">
+                    {/* Undo button if rated */}
+                    {activelyRatedCurrentCard && hasRated && (
+                      <button
+                        onClick={handleUndoRating}
+                        className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                        title="Undo Rating"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                        <span>Undo</span>
+                      </button>
+                    )}
+
+                    {/* NEXT CARD button */}
+                    <button 
+                      onClick={handleNext}
+                      className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
                     >
                       <span>NEXT CARD</span>
                       <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
-                )
-              )}
+                )}
               </div>
             </>
           )}
@@ -4558,7 +4659,7 @@ export default function FlashcardPlay() {
                 setIsFeedbackOpen(false);
               }}
               className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Mở bản đồ thẻ"
+              title="Card Map"
             >
               {activeBottomTab === 'map' && (
                 <motion.div
@@ -4584,7 +4685,7 @@ export default function FlashcardPlay() {
                 setIsFeedbackOpen(false);
               }}
               className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Tiến trình học tập hiện tại"
+              title="Current Flashcard"
             >
               {activeBottomTab === 'flashcard' && (
                 <motion.div
@@ -4610,7 +4711,7 @@ export default function FlashcardPlay() {
                 setIsFeedbackOpen(false);
               }}
               className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Mở thống kê tiến trình"
+              title="Study Stats"
             >
               {activeBottomTab === 'stats' && (
                 <motion.div
@@ -4704,13 +4805,13 @@ export default function FlashcardPlay() {
                      onChange={(e) => setMobileMapFilterMode(e.target.value as any)}
                      className="w-full h-10 pl-4 pr-10 bg-slate-100/80 border border-slate-200/50 rounded-xl text-xs font-black uppercase tracking-wider text-slate-700 outline-none appearance-none cursor-pointer focus:border-indigo-300 focus:bg-white transition-all shadow-sm"
                   >
-                     <option value="all">📁 Tất cả</option>
-                     <option value="unseen">📖 Chưa học</option>
-                     <option value="learning">🧠 Đang học</option>
-                     <option value="mastered">🏆 Đã thuộc</option>
-                     <option value="hard">🔥 Thẻ khó</option>
-                     <option value="starred">⭐ Gắn sao</option>
-                     <option value="ignored">🚫 Bỏ qua</option>
+                     <option value="all">📁 All Cards</option>
+                     <option value="unseen">📖 Unseen</option>
+                     <option value="learning">🧠 Learning</option>
+                     <option value="mastered">🏆 Mastered</option>
+                     <option value="hard">🔥 Hard Cards</option>
+                     <option value="starred">⭐ Starred</option>
+                     <option value="ignored">🚫 Ignored</option>
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
