@@ -484,6 +484,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
                 isCopied={isCopied}
                 handleNext={handleNext}
                 deckInfo={session}
+                currentIndex={currentIndex}
               />
             </div>
           </motion.div>

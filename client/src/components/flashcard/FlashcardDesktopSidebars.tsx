@@ -120,7 +120,8 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
   leaderboardMsg,
   practiceAnswers,
   sessionAnswers,
-  practiceSubMode
+  practiceSubMode,
+  currentIndex
 }) => {
   return (
     <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col min-h-0 overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
@@ -160,6 +161,7 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
           isCopied={isCopied}
           handleNext={handleNext}
           deckInfo={session}
+          currentIndex={currentIndex}
         />
       ) : (
         <div className="flex flex-col h-full bg-slate-50/40">

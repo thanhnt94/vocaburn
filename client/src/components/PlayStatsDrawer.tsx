@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils'
 import DailyComparisonChart from './DailyComparisonChart'
 import { parseUTCDate, formatRelativeTime, formatOverdueTime, getCardBoxId, getFSRSIntervals } from '@/lib/flashcard-utils'
 import { speakWithEdgeTTS } from '@/lib/audio'
-import { FeedbackArea } from './FeedbackArea'
 
 const getAvatarGradient = (username: string) => {
   if (!username) return 'from-slate-400 to-slate-500';
@@ -78,8 +77,8 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
 }) => {
   const navigate = useNavigate()
   
-  // 3 Primary Tabs: 'card' (Card Hub) vs 'deck' (Entire Deck) vs 'rank' (Leaderboard & Goals)
-  const [statsViewMode, setStatsViewMode] = useState<'card' | 'deck' | 'rank'>('card')
+  // Primary Tabs: 'card' (Card FSRS Stats) vs 'deck' (Entire Deck) vs 'rank' (Leaderboard & Goals)
+  const [statsViewMode, setStatsViewMode] = useState<'card' | 'deck' | 'rank'>('deck')
 
   // Sub-tabs for Card Hub: 'stats' | 'insight' | 'card' | 'note' | 'community'
   const [cardSubTab, setCardSubTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>(initialCardSubTab)
@@ -355,124 +354,12 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Sleek Sub-Tab Segmented Bar */}
-                <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-2xs gap-1 overflow-x-auto custom-scrollbar">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardSubTab('stats');
-                      onCardSubTabChange?.('stats');
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
-                      cardSubTab === 'stats'
-                        ? "bg-white text-indigo-600 shadow-xs border border-indigo-100 scale-[1.02]"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <BarChart3 className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>FSRS Stats</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardSubTab('insight');
-                      feedbackProps?.setActiveFeedbackTab?.('insight');
-                      onCardSubTabChange?.('insight');
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
-                      cardSubTab === 'insight'
-                        ? "bg-white text-amber-600 shadow-xs border border-amber-100 scale-[1.02]"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Insights</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardSubTab('card');
-                      feedbackProps?.setActiveFeedbackTab?.('card');
-                      onCardSubTabChange?.('card');
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
-                      cardSubTab === 'card'
-                        ? "bg-white text-blue-600 shadow-xs border border-blue-100 scale-[1.02]"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <FileText className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Full Card</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardSubTab('note');
-                      feedbackProps?.setActiveFeedbackTab?.('note');
-                      onCardSubTabChange?.('note');
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
-                      cardSubTab === 'note'
-                        ? "bg-white text-emerald-600 shadow-xs border border-emerald-100 scale-[1.02]"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <StickyNote className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Notes</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCardSubTab('community');
-                      feedbackProps?.setActiveFeedbackTab?.('community');
-                      onCardSubTabChange?.('community');
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
-                      cardSubTab === 'community'
-                        ? "bg-white text-purple-600 shadow-xs border border-purple-100 scale-[1.02]"
-                        : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 text-purple-500" />
-                    <span>Community</span>
-                  </button>
-                </div>
-
-                {/* 3. Conditional Content Based on cardSubTab */}
-                {cardSubTab !== 'stats' ? (
-                  <div className="bg-white p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm">
-                    {feedbackProps ? (
-                      <FeedbackArea
-                        {...feedbackProps}
-                        activeFeedbackTab={cardSubTab as any}
-                        setActiveFeedbackTab={(tab: any) => {
-                          setCardSubTab(tab);
-                          feedbackProps.setActiveFeedbackTab?.(tab);
-                        }}
-                        currentQuestion={currentCard}
-                        deckInfo={session}
-                        embedded={true}
-                        showFeedback={true}
-                      />
-                    ) : (
-                      <div className="py-8 text-center text-xs font-semibold text-slate-400">
-                        Card details not available.
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Hero KPI Cards for this Card */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      {/* Total Reviews */}
-                      <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Reviews</span>
-                        <span className="text-lg font-black text-slate-800">{cardInfo.reviews_summary?.total_reviews ?? 0}</span>
+                {/* 2. Hero KPI Cards for this Card */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {/* Total Reviews */}
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Reviews</span>
+                    <span className="text-lg font-black text-slate-800">{cardInfo.reviews_summary?.total_reviews ?? 0}</span>
                         <span className="text-[8.5px] font-bold text-emerald-600">
                           Accuracy: {cardInfo.reviews_summary?.accuracy_percent ?? 0}%
                         </span>
@@ -675,8 +562,6 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                 </div>
               </div>
             )}
-          </div>
-        )}
 
             {/* ─────────────────────────────────────────────────────────────
                 VIEW 2: THỐNG KÊ TOÀN BỘ BỘ THẺ (ENTIRE DECK STATS)

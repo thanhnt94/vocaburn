@@ -484,7 +484,7 @@ export default function PracticePlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'community' | 'note' | 'card'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('insight')
   const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)

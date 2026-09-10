@@ -372,17 +372,19 @@ export default function FlashcardPlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'community' | 'note' | 'card'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('stats')
   const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('stats')
 
   const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'card' | 'note' | 'community' = 'stats') => {
-    setCardHubSubTab(subTab)
-    if (subTab !== 'stats') {
-      setActiveFeedbackTab(subTab as any)
+    if (isFeedbackOpen && activeFeedbackTab === subTab) {
+      setIsFeedbackOpen(false)
+      return
     }
-    setIsStatsOpen(true)
+    setCardHubSubTab(subTab)
+    setActiveFeedbackTab(subTab)
+    setIsFeedbackOpen(true)
+    setIsStatsOpen(false)
     setIsMapOpen(false)
-    setIsFeedbackOpen(false)
   }
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
@@ -430,7 +432,7 @@ export default function FlashcardPlay() {
 
   const fetchRoadmapStatus = () => refetchRoadmap();
 
-  const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard');
+  const activeBottomTab = isMapOpen ? 'map' : (isFeedbackOpen ? 'stats' : 'flashcard');
 
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;

@@ -1,11 +1,18 @@
 import React from 'react'
-import { Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, Copy, ChevronRight, MessageSquare, Heart, Trash2, Send } from 'lucide-react'
+import { 
+  Lightbulb, Sparkles, StickyNote, X, Check, Edit3, FileText, Copy, 
+  ChevronRight, MessageSquare, Heart, Trash2, Send, BarChart3, Clock, 
+  TrendingUp, Volume2, RotateCcw, AlertCircle, Eye, EyeOff
+} from 'lucide-react'
+import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
+import { speakWithEdgeTTS } from '@/lib/audio'
+import { formatOverdueTime, formatRelativeTime, getFSRSIntervals } from '@/lib/flashcard-utils'
 
 const MarkdownComponents = {
   code({ className, children, ...props }: any) {
@@ -31,10 +38,12 @@ interface Question {
   others?: Record<string, any> | null
 }
 
+export type CardHubTab = 'stats' | 'insight' | 'card' | 'note' | 'community'
+
 interface FeedbackAreaProps {
   showFeedback: boolean
-  activeFeedbackTab: 'insight' | 'community' | 'note' | 'card'
-  setActiveFeedbackTab: (tab: 'insight' | 'community' | 'note' | 'card') => void
+  activeFeedbackTab: CardHubTab
+  setActiveFeedbackTab: (tab: CardHubTab) => void
   getInsightText: () => string
   isEditingInsight: boolean
   insightInput: string
@@ -69,6 +78,8 @@ interface FeedbackAreaProps {
   selectedChoiceData?: any
   deckInfo?: any
   embedded?: boolean
+  currentIndex?: number
+  cardDetails?: any
 }
 
 const getQuestionField = (question: any, key: string, useAiResponse: boolean = false): string => {
@@ -133,7 +144,70 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   handleNext,
   deckInfo,
   embedded = false,
+  currentIndex = 0,
+  cardDetails
 }) => {
+  const [cardStats, setCardStats] = React.useState<any>(cardDetails || null)
+  const [isCardStatsLoading, setIsCardStatsLoading] = React.useState(false)
+
+  const refetchCardStats = React.useCallback(async () => {
+    if (!currentQuestion?.id) return
+    setIsCardStatsLoading(true)
+    try {
+      const res = await axios.get(`/api/v1/deck/question/${currentQuestion.id}/detailed-stats`)
+      if (res.data) {
+        setCardStats(res.data)
+      }
+    } catch (e) {
+      console.error("Failed to fetch detailed card stats:", e)
+    } finally {
+      setIsCardStatsLoading(false)
+    }
+  }, [currentQuestion?.id])
+
+  React.useEffect(() => {
+    if (currentQuestion?.id) {
+      refetchCardStats()
+    }
+  }, [currentQuestion?.id, refetchCardStats])
+
+  const formatSeconds = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '0s'
+    if (seconds < 60) return `${Math.round(seconds)}s`
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.round(seconds % 60)
+    const hours = Math.floor(mins / 60)
+    if (hours > 0) {
+      return `${hours}h ${mins % 60}m`
+    }
+    return `${mins}m ${secs > 0 ? `${secs}s` : ''}`
+  }
+
+  const effectiveCardInfo = cardStats?.card || {
+    content: currentQuestion?.content,
+    explanation: currentQuestion?.explanation,
+    box_level: (currentQuestion as any)?.box_level || 1,
+    consecutive_correct: (currentQuestion as any)?.stats?.total || 0,
+    fsrs: (currentQuestion as any)?.fsrs || {},
+    reviews_summary: {
+      total_reviews: (currentQuestion as any)?.stats?.total || 0,
+      correct_count: (currentQuestion as any)?.stats?.correct || 0,
+      accuracy_percent: (currentQuestion as any)?.stats?.total > 0
+        ? Math.round(((currentQuestion as any).stats.correct / (currentQuestion as any).stats.total) * 100)
+        : 0,
+      total_time_seconds: 0,
+      avg_time_seconds: (currentQuestion as any)?.stats?.avg_time || 0,
+      again_count: (currentQuestion as any)?.stats?.again_count || 0,
+      hard_count: (currentQuestion as any)?.stats?.hard_count || 0,
+      good_count: (currentQuestion as any)?.stats?.good_count || 0,
+      easy_count: (currentQuestion as any)?.stats?.easy_count || 0,
+      again_percent: 0,
+      hard_percent: 0,
+      good_percent: 0,
+      easy_percent: 0
+    },
+    history_logs: []
+  }
 
   const insightTabs = React.useMemo(() => {
     const tabs: any[] = []
@@ -412,12 +486,221 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     }
   }
 
+  const renderStatsSurface = () => {
+    const cardInfo = effectiveCardInfo;
+    const intervals = getFSRSIntervals(cardInfo.fsrs);
+    const summary = cardInfo.reviews_summary || {};
+    const totalReviews = summary.total_reviews ?? 0;
+    const accuracy = summary.accuracy_percent ?? 0;
+    const totalTimeSec = summary.total_time_seconds || 0;
+    const avgTimeSec = summary.avg_time_seconds || 0;
+    const stability = cardInfo.fsrs?.stability ? `${Number(cardInfo.fsrs.stability).toFixed(1)}d` : 'New';
+    const difficulty = cardInfo.fsrs?.difficulty ? `${Number(cardInfo.fsrs.difficulty).toFixed(1)}/10` : 'Standard';
+    const retrievability = cardInfo.fsrs?.retrievability !== null && cardInfo.fsrs?.retrievability !== undefined
+      ? `${cardInfo.fsrs.retrievability}%`
+      : (cardInfo.fsrs?.state === 0 ? '100%' : '90%');
+    const overdueInfo = formatOverdueTime(cardInfo.fsrs?.due);
+
+    return (
+      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+        {/* Card Overview Banner */}
+        <div className="bg-white p-4 sm:p-4.5 rounded-3xl border border-slate-200/80 shadow-xs relative overflow-hidden space-y-2.5">
+          <div className="h-1.5 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+          <div className="flex items-start justify-between gap-3 pt-1">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider">
+                  Card #{currentIndex !== undefined ? currentIndex + 1 : (currentQuestion?.id || 1)}
+                </span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider",
+                  cardInfo.box_level === 5 ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                  cardInfo.box_level >= 3 ? "bg-blue-50 text-blue-600 border-blue-100" :
+                  "bg-amber-50 text-amber-600 border-amber-100"
+                )}>
+                  Leitner Box {cardInfo.box_level || 1} / 5
+                </span>
+                {cardInfo.consecutive_correct > 0 && (
+                  <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 border border-orange-100 text-[9px] font-black">
+                    🔥 {cardInfo.consecutive_correct} streak
+                  </span>
+                )}
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-800 leading-snug">
+                {cardInfo.content || currentQuestion?.content || "Card Content"}
+              </h3>
+              {cardInfo.explanation && (
+                <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
+                  {cardInfo.explanation}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => speakWithEdgeTTS(cardInfo.content || currentQuestion?.content || '')}
+              className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100/60 flex items-center justify-center transition-all active:scale-90 shrink-0 cursor-pointer"
+              title="Play Pronunciation"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Hero KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* Total Reviews */}
+          <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Reviews</span>
+            <span className="text-lg font-black text-slate-800">{totalReviews}</span>
+            <span className="text-[8.5px] font-bold text-emerald-600">
+              Accuracy: {accuracy}%
+            </span>
+          </div>
+
+          {/* Total Study Time */}
+          <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Time</span>
+            <span className="text-lg font-black text-indigo-600">
+              {formatSeconds(totalTimeSec)}
+            </span>
+            <span className="text-[8.5px] font-bold text-slate-400">
+              Avg {avgTimeSec}s / review
+            </span>
+          </div>
+
+          {/* Memory Stability (S) */}
+          <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Stability (S)</span>
+            <span className="text-lg font-black text-purple-600">{stability}</span>
+            <span className="text-[8.5px] font-bold text-purple-500">
+              Diff: {difficulty}
+            </span>
+          </div>
+
+          {/* Retrievability (R) */}
+          <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Recall (R)</span>
+            <span className={cn(
+              "text-lg font-black",
+              (cardInfo.fsrs?.retrievability ?? 90) >= 80 ? "text-emerald-600" :
+              (cardInfo.fsrs?.retrievability ?? 90) >= 50 ? "text-amber-600" : "text-rose-600"
+            )}>
+              {retrievability}
+            </span>
+            <span className="text-[8.5px] font-bold text-slate-400 truncate max-w-[90px]">
+              {overdueInfo.relative}
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Choices Rating Breakdown */}
+        <div className="bg-white p-4 sm:p-4.5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <BarChart3 className="w-3.5 h-3.5 text-indigo-500" />
+              Rating Distribution
+            </h4>
+            <span className="text-[9px] font-bold text-slate-400">
+              {totalReviews} ratings total
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {/* AGAIN */}
+            <div className="p-2.5 rounded-2xl bg-rose-50/80 border border-rose-100 flex flex-col items-center justify-center text-center">
+              <span className="text-[8.5px] font-black text-rose-500 uppercase tracking-wider">AGAIN (1)</span>
+              <span className="text-base font-black text-rose-700">{summary.again_count ?? 0}</span>
+              <span className="text-[8px] font-bold text-rose-500">{summary.again_percent ?? 0}%</span>
+            </div>
+
+            {/* HARD */}
+            <div className="p-2.5 rounded-2xl bg-amber-50/80 border border-amber-100 flex flex-col items-center justify-center text-center">
+              <span className="text-[8.5px] font-black text-amber-600 uppercase tracking-wider">HARD (2)</span>
+              <span className="text-base font-black text-amber-700">{summary.hard_count ?? 0}</span>
+              <span className="text-[8px] font-bold text-amber-600">{summary.hard_percent ?? 0}%</span>
+            </div>
+
+            {/* GOOD */}
+            <div className="p-2.5 rounded-2xl bg-indigo-50/80 border border-indigo-100 flex flex-col items-center justify-center text-center">
+              <span className="text-[8.5px] font-black text-indigo-600 uppercase tracking-wider">GOOD (3)</span>
+              <span className="text-base font-black text-indigo-700">{summary.good_count ?? 0}</span>
+              <span className="text-[8px] font-bold text-indigo-600">{summary.good_percent ?? 0}%</span>
+            </div>
+
+            {/* EASY */}
+            <div className="p-2.5 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex flex-col items-center justify-center text-center">
+              <span className="text-[8.5px] font-black text-emerald-600 uppercase tracking-wider">EASY (4)</span>
+              <span className="text-base font-black text-emerald-700">{summary.easy_count ?? 0}</span>
+              <span className="text-[8px] font-bold text-emerald-600">{summary.easy_percent ?? 0}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Projected Next Intervals */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Next Intervals:</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 text-[9px] font-black">
+              Again: {intervals[1] || '10m'}
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-black">
+              Hard: {intervals[2] || '1d'}
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[9px] font-black">
+              Good: {intervals[3] || '3d'}
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[9px] font-black">
+              Easy: {intervals[4] || '7d'}
+            </span>
+          </div>
+        </div>
+
+        {/* Recent Review Logs */}
+        {cardInfo.history_logs && cardInfo.history_logs.length > 0 && (
+          <div className="bg-white p-4 sm:p-4.5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2.5">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+              Recent Review History
+            </span>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+              {cardInfo.history_logs.slice(0, 10).map((log: any, idx: number) => {
+                const ratingBadge = 
+                  log.rating === 4 ? { text: 'EASY', bg: 'bg-emerald-50 text-emerald-600 border-emerald-100' } :
+                  log.rating === 3 ? { text: 'GOOD', bg: 'bg-indigo-50 text-indigo-600 border-indigo-100' } :
+                  log.rating === 2 ? { text: 'HARD', bg: 'bg-amber-50 text-amber-600 border-amber-100' } :
+                  { text: 'AGAIN', bg: 'bg-rose-50 text-rose-600 border-rose-100' };
+                return (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("px-2 py-0.5 rounded-md border text-[9px] font-black", ratingBadge.bg)}>
+                        {ratingBadge.text}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {log.time_taken ? `${log.time_taken}s` : 'Quick'}
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-medium text-slate-400">
+                      {log.created_at ? formatRelativeTime(log.created_at).relative : 'Recently'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const tabs = [
-    { id: 'insight' as const, label: 'Giải thích', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() },
-    { id: 'card' as const, label: 'Toàn bộ thẻ', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: allTabs.some(t => !!getTabContent(t.id)) },
-    { id: 'note' as const, label: 'Ghi chú', icon: StickyNote, color: 'text-emerald-500', bg: 'bg-emerald-100', hasContent: !!personalNote },
-    { id: 'community' as const, label: 'Thảo luận', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 }
-  ]
+    { id: 'stats' as const, label: 'Stats', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: true },
+    { id: 'insight' as const, label: 'Insight', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() },
+    { id: 'card' as const, label: 'Full Card', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: allTabs.some(t => !!getTabContent(t.id)) },
+    { id: 'note' as const, label: 'Note', icon: StickyNote, color: 'text-emerald-500', bg: 'bg-emerald-100', hasContent: !!personalNote },
+    { id: 'community' as const, label: 'Community', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 }
+  ];
 
   React.useEffect(() => {
     if (tabs.length > 0 && !tabs.some(t => t.id === activeFeedbackTab)) {
@@ -427,6 +710,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   const renderTabContent = () => {
     switch (activeFeedbackTab) {
+      case 'stats':
+        return renderStatsSurface();
       case 'insight':
         return (
           <div className="p-1.5 md:p-3 rounded-2xl md:rounded-[2rem] ai-glow animate-in fade-in slide-in-from-bottom-2">
@@ -765,7 +1050,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   contributionType === 'comment' ? "bg-purple-600 text-white shadow-2xs" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 )}
               >
-                💬 Thảo luận
+                💬 Comments
               </button>
               <button
                 type="button"
@@ -775,21 +1060,22 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   contributionType === 'correction' ? "bg-amber-500 text-white shadow-2xs" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 )}
               >
-                ⚠️ Góp ý / Báo lỗi
+                ⚠️ Suggestions
               </button>
             </div>
             <div className="flex gap-2 items-end">
               <textarea
+                id="community-comment-input"
                 value={commentInput}
                 onChange={(e) => setCommentInput(e.target.value)}
-                placeholder={contributionType === 'comment' ? "Đặt câu hỏi hoặc thảo luận về từ vựng này..." : "Nhập nội dung đề xuất sửa đổi (Ví dụ: nghĩa đúng phải là...)"}
+                placeholder={contributionType === 'comment' ? "Ask a question or discuss this card..." : "Suggest an edit or correction for this card..."}
                 className="flex-1 min-h-[38px] max-h-[80px] p-2 bg-white rounded-xl text-xs font-semibold text-slate-700 placeholder:text-slate-400 outline-none border border-slate-200 focus:border-purple-300 resize-y"
                 required
               />
               <button
                 type="submit"
                 className="w-10 h-10 rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center transition-all active:scale-90 flex-shrink-0 cursor-pointer shadow-xs"
-                title="Gửi bình luận"
+                title="Post Comment"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -846,10 +1132,10 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               </div>
               <div>
                 <h4 className="text-xs font-black text-blue-950 uppercase tracking-tight">
-                  Cấu trúc & Dữ liệu thẻ bài
+                  Full Card Structure & Fields
                 </h4>
                 <p className="text-[10px] font-semibold text-blue-600/80">
-                  Mã thẻ: #{currentQuestion?.id || 'N/A'} • {allTabs.length} trường thông tin
+                  Card ID: #{currentQuestion?.id || 'N/A'} • {allTabs.length} fields
                 </p>
               </div>
             </div>
@@ -858,7 +1144,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                Mặt trước (Front / Câu hỏi)
+                Front Face (Prompt / Question)
               </span>
               <div className="flex items-center gap-1">
                 {canEdit && (
@@ -890,7 +1176,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   p: ({ children }) => <span>{children}</span>
                 }}
               >
-                {parseBBCodeToHtml(currentQuestion?.content || 'Chưa có nội dung')}
+                {parseBBCodeToHtml(currentQuestion?.content || 'No content')}
               </ReactMarkdown>
             </div>
           </div>
@@ -898,7 +1184,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                Mặt sau (Back / Đáp án gốc)
+                Back Face (Answer / Explanation)
               </span>
               <div className="flex items-center gap-1">
                 {canEdit && (
@@ -930,17 +1216,17 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   p: ({ children }) => <span>{children}</span>
                 }}
               >
-                {parseBBCodeToHtml(currentQuestion?.explanation || currentQuestion?.ai_explanation || 'Chưa có đáp án')}
+                {parseBBCodeToHtml(currentQuestion?.explanation || currentQuestion?.ai_explanation || 'No explanation provided')}
               </ReactMarkdown>
             </div>
           </div>
           <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-2">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-              Các thuộc tính & Cột mở rộng ({allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length})
+              Attributes & Extended Columns ({allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length})
             </span>
             {allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length === 0 ? (
               <p className="text-[11px] font-medium text-slate-400 italic bg-slate-50 p-3 rounded-xl text-center">
-                Thẻ này chỉ bao gồm 2 mặt cơ bản: Mặt trước và Mặt sau.
+                This card only contains basic Front and Back fields.
               </p>
             ) : (
               <div className="space-y-2">
@@ -977,7 +1263,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                         </div>
                       </div>
                       <div className="text-xs font-semibold text-slate-800 break-words select-text">
-                        {val ? parseBBCodeToHtml(val) : <span className="text-slate-400 italic">Trống</span>}
+                        {val ? parseBBCodeToHtml(val) : <span className="text-slate-400 italic">Empty</span>}
                       </div>
                     </div>
                   )
@@ -1071,40 +1357,92 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
-      <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-2xs">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-black">
-            {activeFeedbackTab === 'insight' ? <Lightbulb className="w-4 h-4" /> :
-             activeFeedbackTab === 'card' ? <FileText className="w-4 h-4 text-blue-500" /> :
-             activeFeedbackTab === 'note' ? <StickyNote className="w-4 h-4 text-emerald-500" /> :
-             <MessageSquare className="w-4 h-4 text-purple-500" />}
+      {/* Top Header */}
+      <div className="p-3.5 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={cn(
+            "w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 transition-colors",
+            activeFeedbackTab === 'stats' ? "bg-indigo-50 text-indigo-600" :
+            activeFeedbackTab === 'insight' ? "bg-amber-50 text-amber-600" :
+            activeFeedbackTab === 'card' ? "bg-blue-50 text-blue-600" :
+            activeFeedbackTab === 'note' ? "bg-emerald-50 text-emerald-600" :
+            "bg-purple-50 text-purple-600"
+          )}>
+            {activeFeedbackTab === 'stats' ? <BarChart3 className="w-4 h-4" /> :
+             activeFeedbackTab === 'insight' ? <Sparkles className="w-4 h-4" /> :
+             activeFeedbackTab === 'card' ? <FileText className="w-4 h-4" /> :
+             activeFeedbackTab === 'note' ? <StickyNote className="w-4 h-4" /> :
+             <MessageSquare className="w-4 h-4" />}
           </div>
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-              {activeFeedbackTab === 'insight' ? 'Assistant Insights & Mnemonics' :
+          <div className="min-w-0">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider truncate">
+              {activeFeedbackTab === 'stats' ? 'Card Performance & FSRS Stats' :
+               activeFeedbackTab === 'insight' ? 'Assistant Insights & Mnemonics' :
                activeFeedbackTab === 'card' ? 'Full Card Content & Fields' :
                activeFeedbackTab === 'note' ? 'Personal Notes Journal' :
                'Community Discussion & Feedback'}
             </h3>
+            <p className="text-[10px] font-semibold text-slate-400 truncate">
+              Card #{currentIndex !== undefined ? currentIndex + 1 : (currentQuestion?.id || 1)}: {currentQuestion?.content || 'Flashcard'}
+            </p>
           </div>
         </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => speakWithEdgeTTS(currentQuestion?.content || '')}
+            className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200/60 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+            title="Pronunciation"
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+          </button>
+          {setIsFeedbackOpen && (
+            <button
+              type="button"
+              onClick={() => setIsFeedbackOpen(false)}
+              className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200/60 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Body Content */}
       <div className="flex-1 flex flex-col overflow-y-auto p-3 sm:p-4 lg:p-6 custom-scrollbar pb-6">
         {renderTabContent()}
       </div>
+
+      {/* Docked Bottom Bar */}
       <div className="bg-white/95 backdrop-blur-xl border-t border-slate-100 sticky bottom-0 z-50 flex-shrink-0 shadow-lg">
+        {/* Contextual Action Bar */}
         <div className="px-3 py-1.5 border-b border-slate-50 flex items-center justify-between gap-1.5 text-xs">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             {isMobile && setIsFeedbackOpen && (
               <button
                 onClick={() => setIsFeedbackOpen(false)}
                 className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer shrink-0"
-                title="Close Assistant"
+                title="Close Card Hub"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>CLOSE</span>
               </button>
             )}
+
+            {activeFeedbackTab === 'stats' && (
+              <button
+                type="button"
+                onClick={refetchCardStats}
+                disabled={isCardStatsLoading}
+                className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0"
+              >
+                <RotateCcw className={cn("w-3 h-3", isCardStatsLoading && "animate-spin")} />
+                <span>REFRESH</span>
+              </button>
+            )}
+
             {activeFeedbackTab === 'note' && (
               <button
                 onClick={handleEditCurrentTab}
@@ -1128,6 +1466,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 )}
               </button>
             )}
+
             {activeFeedbackTab === 'card' && (
               <button
                 onClick={handleEditCurrentTab}
@@ -1137,6 +1476,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 <span>EDIT CARD</span>
               </button>
             )}
+
             {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
               <button
                 onClick={() => copyCurrentTabContent()}
@@ -1151,7 +1491,22 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 <span>{isCopied ? 'COPIED' : 'COPY'}</span>
               </button>
             )}
+
+            {activeFeedbackTab === 'community' && (
+              <button
+                type="button"
+                onClick={() => {
+                  const inputEl = document.getElementById('community-comment-input')
+                  inputEl?.focus()
+                }}
+                className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-700 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0"
+              >
+                <MessageSquare className="w-3 h-3" />
+                <span>COMMENT</span>
+              </button>
+            )}
           </div>
+
           {isMobile && (
             <button
               onClick={() => {
@@ -1165,7 +1520,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             </button>
           )}
         </div>
-        <div className="w-full grid grid-cols-4 bg-white p-0 relative">
+
+        {/* 5 Bottom Segmented Tabs */}
+        <div className="w-full grid grid-cols-5 bg-white p-0 relative border-t border-slate-100">
           {tabs.map((tab) => {
             const isActive = activeFeedbackTab === tab.id;
             return (
@@ -1180,12 +1537,12 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 {isActive && (
                   <motion.div
                     layoutId="activeFeedbackBottomTab"
-                    className="absolute inset-0 bg-orange-500/10"
+                    className="absolute inset-0 bg-indigo-500/10"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
                 <div className="relative z-10 flex items-center justify-center">
-                  <tab.icon className={cn("w-4 h-4 transition-colors", isActive ? "text-orange-600" : "text-slate-400")} />
+                  <tab.icon className={cn("w-4 h-4 transition-colors", isActive ? tab.color : "text-slate-400")} />
                   {tab.id === 'community' && contributions.length > 0 && (
                     <span className="absolute -top-1.5 -right-2 px-1 py-0.2 bg-purple-600 text-white text-[8px] font-black rounded-full">
                       {contributions.length}
@@ -1194,7 +1551,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 </div>
                 <span className={cn(
                   "relative z-10 text-[9px] font-extrabold uppercase tracking-wider truncate transition-colors",
-                  isActive ? "text-orange-600 font-black" : "text-slate-400"
+                  isActive ? cn(tab.color, "font-black") : "text-slate-400"
                 )}>
                   {tab.label}
                 </span>
