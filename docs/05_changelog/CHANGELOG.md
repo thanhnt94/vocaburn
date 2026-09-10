@@ -17,8 +17,13 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
   - `stopAudio()` ngắt ngay âm thanh đang phát, đặt `currentTime = 0`, hủy đăng ký cũ và phát lại từ đầu một cách mượt mà, không bao giờ có 2 thẻ `<audio>` chạy cùng lúc.
 - **Trực Quan Hóa Trạng Thái Trên Nút Âm Thanh (`UI Feedback`)**:
   - Nút phát âm trên thanh công cụ (`FlashcardFlyToolbar.tsx`) tự động chuyển thành biểu tượng xoay `RefreshCw` khi đang gen audio, và chuyển thành hiệu ứng sóng âm `Volume2 animate-pulse` màu tím khi đang phát audio.
-- **Quy Trình Triển Khai Siêu Tốc (Fast Frontend Deploy)**:
-  - Kiểm tra kiểu dữ liệu TypeScript nghiêm ngặt (`tsc -p tsconfig.app.json --noEmit` đạt 0 lỗi), triển khai lên VPS thông qua `remote_update_vocaburn.py --fast` trong 2 giây mà không làm gián đoạn backend service.
+- **Tái Cấu Trúc Fly Button: Micro-Pill Siêu Gọn & Quick Action Bottom Sheet (iOS Control Center Style)**:
+  - **Capsule Micro-Pill trên thẻ**: Thu gọn thanh công cụ dài thành 1 capsule nhỏ gọn ở góc dưới bên trái thẻ (`Flashcard3DCard.tsx`) với 3 nút thông minh `[ 🔊 Phát âm | 💡 Gợi ý | 🎚️ Menu ]`, giải phóng tối đa diện tích mặt thẻ và không che chữ.
+  - **Nút Gợi ý thông minh (Smart Hint Button)**: Tự động ẩn nếu thẻ không có nội dung hint. Khi bấm, mở khung gợi ý màu hổ phách tinh tế (`In-card Hint Box`) phía trên thanh dock điều khiển, bấm lần nữa để đóng.
+  - **Bảng điều khiển nhanh (Quick Action Bottom Sheet)**: Trượt mượt mà từ đáy màn hình (`framer-motion`) với backdrop blur; bố cục lưới **Action Grid 4 cột** chuẩn phong cách iOS Control Center:
+    - Các ô squircle bo góc lớn, icon to, nhãn tiếng Anh chuẩn Eco Rule 6 (`Autoplay`, `SFX Audio`, `Auto Next`, `Images`, `Shuffle`, `Select Text`, `Star`, `Explain`, `Flip Back`).
+    - Màu sắc hiển thị trạng thái Active/Inactive trực quan, dễ bấm bằng 1 tay (thumb-reachable).
+  - **Nút chân trang**: Nút `All Deck Settings` giúp mở modal cấu hình chi tiết của bộ thẻ một cách liền mạch.
 
 ### [2026-09-06]
 #### Tái Cấu Trúc Giao Diện Cài Đặt Phân Tầng Tab Đa Năng & Thanh Sub-Tab Neo Đáy Di Động (Settings Mobile-First Tab Architecture)
