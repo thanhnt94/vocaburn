@@ -135,17 +135,13 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
         registerAudioElement(audio);
         audio.play().catch(e => {
           console.warn('[EDGE TTS AUTOPLAY BLOCKED]', e);
-          speakMultiLanguage(text);
         });
         return;
       }
     }
   } catch (err) {
-    console.warn('[EDGE TTS STREAM ERROR, FALLING BACK TO WEB SPEECH]', err);
+    console.warn('[EDGE TTS STREAM ERROR]', err);
   }
-
-  // Fallback to client browser webSpeech
-  speakMultiLanguage(text);
 };
 
 export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<void> => {
@@ -162,24 +158,20 @@ export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<vo
           const audio = new Audio(`${data.url}?t=${Date.now()}`);
           registerAudioElement(audio);
           audio.onended = () => resolve();
-          audio.onended = () => resolve();
           audio.onerror = () => {
-            speakMultiLanguage(text);
             resolve();
           };
           audio.play().catch(e => {
             console.warn('[EDGE TTS AUTOPLAY BLOCKED]', e);
-            speakMultiLanguage(text);
             resolve();
           });
           return;
         }
       }
     } catch (err) {
-      console.warn('[EDGE TTS STREAM ERROR, FALLING BACK TO WEB SPEECH]', err);
+      console.warn('[EDGE TTS STREAM ERROR]', err);
     }
 
-    speakMultiLanguage(text);
     resolve();
   });
 };

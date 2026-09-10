@@ -5065,7 +5065,7 @@ export default function PracticePlay() {
                 const practiceData = currentPracticeData;
                 if (practiceData) {
                   const { question: qText } = practiceData;
-                  speakMultiLanguage(qText);
+                  speakWithEdgeTTS(qText);
                 }
               }
             } else {

@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage, cancelAllAudio } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakWithEdgeTTS, cancelAllAudio } from '@/lib/audio'
 import { triggerHaptic } from '@/lib/haptic'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
@@ -532,15 +532,24 @@ export default function FlashcardPlay() {
 
 
   // Autoplay Audio Effect
+  const lastAutoplayKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!currentQuestion) return;
-    
+
+    const autoplayKey = `${currentQuestion.id}_${isFlipped ? 'back' : 'front'}`;
+    if (lastAutoplayKeyRef.current === autoplayKey) {
+      return;
+    }
+
     if (isFlipped) {
       if (autoPlayAudio === 'always' || autoPlayAudio === 'back') {
+        lastAutoplayKeyRef.current = autoplayKey;
         playCardAudio('back');
       }
     } else {
       if (autoPlayAudio === 'always' || autoPlayAudio === 'front') {
+        lastAutoplayKeyRef.current = autoplayKey;
         playCardAudio('front');
       }
     }
@@ -638,7 +647,7 @@ export default function FlashcardPlay() {
       } else if (question_key === 'back') {
         playCardAudio('back');
       } else {
-        speakMultiLanguage(question);
+        speakWithEdgeTTS(question);
       }
     }
   }, [currentIndex, mainTab, practiceSubMode, currentPracticeData])
@@ -2620,8 +2629,10 @@ export default function FlashcardPlay() {
                   const { question: qText, question_key: qKey } = practiceData!;
                   if (qKey === 'front') {
                     playCardAudio('front');
+                  } else if (qKey === 'back') {
+                    playCardAudio('back');
                   } else {
-                    speakMultiLanguage(qText);
+                    speakWithEdgeTTS(qText);
                   }
                 }}
                 className="relative w-24 h-24 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-100/30 active:scale-95 transition-all cursor-pointer group"
@@ -3057,7 +3068,7 @@ export default function FlashcardPlay() {
           const { question: qText, question_key: qKey } = practiceData;
           if (qKey === 'front') await playCardAudio('front');
           else if (qKey === 'back') await playCardAudio('back');
-          else speakMultiLanguage(qText);
+          else await speakWithEdgeTTS(qText);
         }
       } else {
         await playCardAudio(isFlipped ? 'back' : 'front');

@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import axios from 'axios'
-import { speakWithEdgeTTS, speakEdgeTTSSequentially } from '@/lib/audio'
+import { speakWithEdgeTTS, speakEdgeTTSSequentially, registerAudioElement, cancelAllAudio } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
@@ -20,12 +20,13 @@ export function usePracticeAudio({
   const currentQuestionIdRef = useRef<number | null>(null)
 
   const stopAllAudio = () => {
+    cancelAllAudio()
     if (activeAudioRef.current) {
-      activeAudioRef.current.pause()
+      try {
+        activeAudioRef.current.pause()
+        activeAudioRef.current.currentTime = 0
+      } catch (e) {}
       activeAudioRef.current = null
-    }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
     }
   }
 
@@ -93,10 +94,11 @@ export function usePracticeAudio({
       const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
       const audio = new Audio(cacheBustedUrl)
       audio.playbackRate = rate
+      registerAudioElement(audio)
       activeAudioRef.current = audio
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK] Playback failed: ${cacheBustedUrl}`, err?.message)
-        if (script && script.trim()) {
+        if (err?.name !== 'NotAllowedError' && script && script.trim()) {
           speakWithEdgeTTS(script, pair?.lang)
         }
       })

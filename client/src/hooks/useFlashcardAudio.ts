@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import axios from 'axios';
-import { speakWithEdgeTTS } from '@/lib/audio';
+import { speakWithEdgeTTS, registerAudioElement, cancelAllAudio } from '@/lib/audio';
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -24,12 +24,13 @@ export function useFlashcardAudio(
   };
 
   const stopAudio = () => {
+    cancelAllAudio();
     if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
+      try {
+        activeAudioRef.current.pause();
+        activeAudioRef.current.currentTime = 0;
+      } catch (e) {}
       activeAudioRef.current = null;
-    }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
     }
   };
 
@@ -166,10 +167,11 @@ export function useFlashcardAudio(
       const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
       console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
+      registerAudioElement(audio);
       activeAudioRef.current = audio;
       audio.play().catch(err => {
-        console.warn(`[TTS FALLBACK WARNING] Playback of Edge TTS audio file failed:`, err.message);
-        if (script && script.trim()) {
+        console.warn(`[TTS PLAYBACK WARNING] Playback of Edge TTS audio file failed:`, err?.message);
+        if (err?.name !== 'NotAllowedError' && script && script.trim()) {
           speakWithEdgeTTS(script, lang);
         }
       });
