@@ -2,6 +2,18 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-10]
+#### Khắc Phục Triệt Để Lỗi 2 Giọng Đọc & Tối Ưu Hóa Bộ Phát Edge TTS (Single-Voice TTS & Autoplay Deduplication)
+- **Loại Bỏ Fallback Sang Trình Duyệt (`speechSynthesis`)**:
+  - Triệt tiêu toàn bộ cơ chế fallback gọi `speakMultiLanguage` khi Edge TTS gặp chính sách Autoplay của trình duyệt. Tránh việc trình duyệt phát giọng robot của hệ điều hành trước rồi mới phát giọng chuẩn AI của Edge TTS.
+  - Xử lý mượt mà lỗi `NotAllowedError` khi thẻ vừa load mà người dùng chưa tương tác: hệ thống chỉ ghi log cảnh báo và sẵn sàng phát khi người dùng tương tác, không kích hoạt luồng đọc kép.
+- **Khử Trùng Lặp Autoplay Theo Từng Mặt Thẻ (`lastAutoplayKeyRef`)**:
+  - Trang bị `lastAutoplayKeyRef` trong `FlashcardPlay.tsx` để khóa kích hoạt autoplay theo `${question.id}_${face}`. Đảm bảo mỗi mặt thẻ chỉ tự động phát âm thanh đúng 1 lần duy nhất, không bị re-trigger khi server hoàn tất đồng bộ cài đặt học tập `syncStudySettings`.
+- **Đồng Bộ Dừng Âm Thanh Tức Thì (`registerAudioElement` & `cancelAllAudio`)**:
+  - Đăng ký mọi thẻ `<audio>` tạo mới vào trình quản lý âm thanh tập trung, đảm bảo khi bấm chuyển thẻ hoặc bấm lật mặt, âm thanh cũ ngắt ngay lập tức, không chồng âm.
+- **Quy Trình Triển Khai Siêu Tốc (Fast Frontend Deploy)**:
+  - Kiểm tra kiểu dữ liệu TypeScript nghiêm ngặt (`tsc -p tsconfig.app.json --noEmit` đạt 0 lỗi), triển khai lên VPS thông qua `remote_update_vocaburn.py --fast` trong 2 giây mà không làm gián đoạn backend service.
+
 ### [2026-09-06]
 #### Tái Cấu Trúc Giao Diện Cài Đặt Phân Tầng Tab Đa Năng & Thanh Sub-Tab Neo Đáy Di Động (Settings Mobile-First Tab Architecture)
 - **Giải Quyết Triệt Để Vấn Đề Cuộn Trang Dài Vô Tận Trên Di Động (Rule 6: Mobile-First App-Like UI)**:
