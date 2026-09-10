@@ -3,14 +3,20 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-10]
-#### Khắc Phục Triệt Để Lỗi 2 Giọng Đọc & Tối Ưu Hóa Bộ Phát Edge TTS (Single-Voice TTS & Autoplay Deduplication)
+#### Khắc Phục Triệt Để Lỗi 2 Giọng Đọc & Cơ Chế Chống Duplicate Khi Bấm Phát Âm Liên Tục (Single-Voice TTS & Concurrency Deduplication)
 - **Loại Bỏ Fallback Sang Trình Duyệt (`speechSynthesis`)**:
   - Triệt tiêu toàn bộ cơ chế fallback gọi `speakMultiLanguage` khi Edge TTS gặp chính sách Autoplay của trình duyệt. Tránh việc trình duyệt phát giọng robot của hệ điều hành trước rồi mới phát giọng chuẩn AI của Edge TTS.
   - Xử lý mượt mà lỗi `NotAllowedError` khi thẻ vừa load mà người dùng chưa tương tác: hệ thống chỉ ghi log cảnh báo và sẵn sàng phát khi người dùng tương tác, không kích hoạt luồng đọc kép.
 - **Khử Trùng Lặp Autoplay Theo Từng Mặt Thẻ (`lastAutoplayKeyRef`)**:
   - Trang bị `lastAutoplayKeyRef` trong `FlashcardPlay.tsx` để khóa kích hoạt autoplay theo `${question.id}_${face}`. Đảm bảo mỗi mặt thẻ chỉ tự động phát âm thanh đúng 1 lần duy nhất, không bị re-trigger khi server hoàn tất đồng bộ cài đặt học tập `syncStudySettings`.
-- **Đồng Bộ Dừng Âm Thanh Tức Thì (`registerAudioElement` & `cancelAllAudio`)**:
-  - Đăng ký mọi thẻ `<audio>` tạo mới vào trình quản lý âm thanh tập trung, đảm bảo khi bấm chuyển thẻ hoặc bấm lật mặt, âm thanh cũ ngắt ngay lập tức, không chồng âm.
+- **Cơ Chế Token Thứ Tự & Chống Duplicate Khi Đang Gen (`playSeqRef` & `inFlightGenMapRef`)**:
+  - Nếu người dùng bấm phát âm lần 2 trong khi hệ thống đang gen âm thanh (`/generate-audio/...` hoặc stream TTS), hệ thống tái sử dụng Promise gen đang chạy, không gửi thêm request trùng lặp lên backend.
+  - Áp dụng số thứ tự tăng dần (`playSeqRef` / `activePlayToken`): các yêu cầu cũ bị đánh dấu lỗi thời và tự động hủy bỏ khi hoàn tất. Chỉ có lần bấm mới nhất mới được phép phát ra âm thanh.
+  - Tích hợp `AbortController` tự động hủy request mạng cũ ngay khi người dùng bấm lại hoặc chuyển thẻ.
+- **Dừng Dứt Điểm & Tua Lại Từ Đầu Khi Bấm Lại**:
+  - `stopAudio()` ngắt ngay âm thanh đang phát, đặt `currentTime = 0`, hủy đăng ký cũ và phát lại từ đầu một cách mượt mà, không bao giờ có 2 thẻ `<audio>` chạy cùng lúc.
+- **Trực Quan Hóa Trạng Thái Trên Nút Âm Thanh (`UI Feedback`)**:
+  - Nút phát âm trên thanh công cụ (`FlashcardFlyToolbar.tsx`) tự động chuyển thành biểu tượng xoay `RefreshCw` khi đang gen audio, và chuyển thành hiệu ứng sóng âm `Volume2 animate-pulse` màu tím khi đang phát audio.
 - **Quy Trình Triển Khai Siêu Tốc (Fast Frontend Deploy)**:
   - Kiểm tra kiểu dữ liệu TypeScript nghiêm ngặt (`tsc -p tsconfig.app.json --noEmit` đạt 0 lỗi), triển khai lên VPS thông qua `remote_update_vocaburn.py --fast` trong 2 giây mà không làm gián đoạn backend service.
 
