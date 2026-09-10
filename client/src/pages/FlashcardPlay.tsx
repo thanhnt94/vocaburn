@@ -59,7 +59,13 @@ import {
   GoalCelebrationModal,
   QuitSessionModal,
   SessionStatsWidget,
-  FlashcardHeader
+  FlashcardHeader,
+  FlashcardActionDock,
+  FlashcardFlyToolbar,
+  Flashcard3DCard,
+  FlashcardDesktopLeftAside,
+  FlashcardDesktopRightAside,
+  FlashcardModalsContainer
 } from '@/components/flashcard'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useCardAI } from '@/hooks/useCardAI'
@@ -3043,16 +3049,6 @@ export default function FlashcardPlay() {
   const renderFlyToolbar = (isEmbedded = false) => {
     if (!currentQuestion) return null;
 
-    // Audio availability check
-    const face = isFlipped ? 'back' : 'front';
-    let isAudioAvail = true;
-    if (mainTab === 'practice' && currentPracticeData) {
-      const { question_key } = currentPracticeData;
-      isAudioAvail = isAudioEnabled(question_key);
-    } else {
-      isAudioAvail = isAudioEnabled(face);
-    }
-
     const triggerPlayAudio = async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (mainTab === 'practice') {
@@ -3074,338 +3070,41 @@ export default function FlashcardPlay() {
     const effectiveAutoAdvance = isAutoAdvance || quickLearnEnabled;
 
     return (
-      <>
-        {/* Transparent click shield to dismiss horizontal bar when tapping outside (Zero blur, Zero darkening) */}
-        {isFlyToolbarOpen && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFlyToolbarOpen(false);
-            }}
-            className="fixed inset-0 z-[225] bg-transparent pointer-events-auto select-none"
-          />
-        )}
-
-        {/* Floating or Embedded Bar Container */}
-        <div 
-          data-no-flip
-          className={cn(
-            "pointer-events-auto select-none",
-            isEmbedded
-              ? "relative z-[230]"
-              : "fixed bottom-[118px] md:bottom-[76px] left-3 sm:left-6 z-[230]"
-          )}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {!isFlyToolbarOpen ? (
-              /* Collapsed Single-Line Pill (Concentric 4px equidistant in 46px slot) */
-              <motion.div
-                key="collapsed-pill"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.12 }}
-                className={cn(
-                  "inline-flex items-center bg-white/95 backdrop-blur-md border border-slate-200 shadow-xs p-0.5 rounded-full overflow-x-auto no-scrollbar flex-nowrap h-[38px] box-border",
-                  isEmbedded ? "max-w-[calc(100vw-36px)] md:max-w-[520px]" : "max-w-[calc(100vw-24px)]"
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={triggerPlayAudio}
-                  className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
-                  title="Play Pronunciation (Audio)"
-                >
-                  <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsFlyToolbarOpen(true);
-                  }}
-                  className="h-8 pl-1.5 pr-2 rounded-r-full flex items-center gap-1 hover:bg-slate-100/80 text-slate-500 hover:text-indigo-600 transition-colors duration-150 active:scale-95 cursor-pointer shrink-0 border-l border-slate-200/80 ml-0.5 relative group"
-                  title="Expand Quick Options (Nhiều dòng)"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:rotate-45 transition-all" />
-                  <ChevronRight className="w-3.5 h-3.5 text-indigo-500 group-hover:translate-x-0.5 transition-transform" />
-                  {(currentQuestion?.hint || isSelectMode || currentQuestion?.is_starred) && (
-                    <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white absolute top-1 right-1 animate-pulse" />
-                  )}
-                </button>
-              </motion.div>
-            ) : (
-              /* Expanded Multi-Row Floating Island (Pops out cleanly into 2 compact rows) */
-              <motion.div
-                key="expanded-multi-row-island"
-                initial={{ opacity: 0, scale: 0.92, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 8 }}
-                transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                className="flex flex-col gap-1.5 p-1.5 rounded-[1.5rem] bg-white/98 backdrop-blur-2xl border border-slate-200/90 shadow-2xl shadow-indigo-500/15 select-none origin-bottom-left max-w-[calc(100vw-36px)]"
-              >
-                {/* ── ROW 1: SOUND & FLOW ── */}
-                <div className="flex items-center gap-1 shrink-0">
-                  {/* 1.0 Primary Audio (Pronounce) */}
-                  <button
-                    type="button"
-                    onClick={triggerPlayAudio}
-                    className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
-                    title="Play Pronunciation (Audio)"
-                  >
-                    <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                  </button>
-
-                  {/* 1.1 Autoplay Audio */}
-                  {(() => {
-                    const isAutoplay = autoPlayAudio !== 'none';
-                    return (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAutoPlayAudio(isAutoplay ? 'none' : 'always');
-                        }}
-                        className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                          isAutoplay
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-600"
-                            : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                        )}
-                        title={`Autoplay Audio: ${isAutoplay ? 'ON' : 'OFF'}`}
-                      >
-                        {isAutoplay ? (
-                          <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                        )}
-                      </button>
-                    );
-                  })()}
-
-                  {/* 1.2 SFX Sounds */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSfxEnabled(!sfxEnabled);
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                      sfxEnabled
-                        ? "bg-purple-50 border-purple-300 text-purple-600"
-                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                    )}
-                    title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
-                  >
-                    <Sparkles className={cn("w-3.5 h-3.5", sfxEnabled ? "text-purple-600" : "text-slate-400")} />
-                  </button>
-
-                  {/* Divider 1 */}
-                  <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
-
-                  {/* 1.3 Auto Advance */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const nextVal = !effectiveAutoAdvance;
-                      setIsAutoAdvance(nextVal);
-                      if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal);
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
-                      effectiveAutoAdvance
-                        ? "bg-amber-50 border-amber-400 text-amber-600 ring-1 ring-amber-300/50"
-                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                    )}
-                    title={`Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
-                  >
-                    <Zap className={cn("w-3.5 h-3.5", effectiveAutoAdvance ? "fill-amber-500 text-amber-600" : "text-slate-400")} />
-                    {effectiveAutoAdvance && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute -top-0.5 -right-0.5 ring-1 ring-white" />
-                    )}
-                  </button>
-
-                  {/* 1.4 Card Images */}
-                  {(() => {
-                    const isImagesOn = showImages !== 'none';
-                    return (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowImages(isImagesOn ? 'none' : 'always');
-                        }}
-                        className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                          isImagesOn
-                            ? "bg-sky-50 border-sky-300 text-sky-600"
-                            : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                        )}
-                        title={`Card Images: ${isImagesOn ? 'ON' : 'OFF'}`}
-                      >
-                        {isImagesOn ? (
-                          <Eye className="w-3.5 h-3.5 text-sky-600" />
-                        ) : (
-                          <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-                        )}
-                      </button>
-                    );
-                  })()}
-
-                  {/* 1.5 Shuffle */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRandomEnabled(!randomEnabled);
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                      randomEnabled
-                        ? "bg-violet-50 border-violet-300 text-violet-600"
-                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-400 hover:text-slate-600"
-                    )}
-                    title={`Shuffle: ${randomEnabled ? 'ON' : 'OFF'}`}
-                  >
-                    <Shuffle className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* ── ROW 2: ACTIONS & SETTINGS ── */}
-                <div className="flex items-center gap-1 shrink-0">
-                  {/* 2.1 Select Mode */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsSelectMode(prev => !prev);
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
-                      isSelectMode
-                        ? "bg-rose-500 text-white border-rose-600 shadow-xs"
-                        : "bg-slate-50 hover:bg-slate-100 border-slate-200/70 text-slate-500 hover:text-slate-700"
-                    )}
-                    title={isSelectMode ? "Select Mode: ON" : "Select Mode: OFF"}
-                  >
-                    <MousePointer className="w-3.5 h-3.5" />
-                    {isSelectMode && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute -top-0.5 -right-0.5" />}
-                  </button>
-
-                  {/* 2.2 Star / Bookmark */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStarQuestion();
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border group",
-                      currentQuestion?.is_starred
-                        ? "bg-amber-50 border-amber-300 text-amber-500 shadow-xs"
-                        : "bg-slate-50 hover:bg-amber-50 border-slate-200/70 text-slate-400 hover:text-amber-500"
-                    )}
-                    title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
-                  >
-                    <Star className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", currentQuestion?.is_starred && "fill-amber-400 text-amber-500")} />
-                  </button>
-
-                  {/* 2.3 AI Hint or Explanation */}
-                  {showHintBtn ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowingHint(prev => !prev);
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border",
-                        showingHint
-                          ? "bg-amber-500 text-white border-amber-600 shadow-xs"
-                          : "bg-slate-50 hover:bg-amber-50 border-slate-200/70 text-amber-500"
-                      )}
-                      title="AI Hint"
-                    >
-                      <Lightbulb className="w-3.5 h-3.5" />
-                    </button>
-                  ) : showExplainBtn ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (mainTab === 'practice') setShowFeedback(true);
-                        setIsFeedbackOpen(true);
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs border relative",
-                        justAnswered
-                          ? "bg-indigo-600 text-white border-indigo-700 shadow-xs animate-pulse"
-                          : "bg-slate-50 hover:bg-indigo-50 border-slate-200/70 text-indigo-600"
-                      )}
-                      title="View Explanation & Details"
-                    >
-                      <Lightbulb className="w-3.5 h-3.5" />
-                      {justAnswered && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />}
-                    </button>
-                  ) : null}
-
-                  {/* 2.4 Flip Back (Back face only) */}
-                  {showFlipBackBtn && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsFlipped(false);
-                        setIsFlyToolbarOpen(false);
-                      }}
-                      className="w-8 h-8 rounded-full bg-slate-50 hover:bg-cyan-50 text-cyan-600 border border-slate-200/70 hover:border-cyan-300 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 shadow-xs group"
-                      title="Flip Back to Front"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
-                    </button>
-                  )}
-
-                  {/* Divider 2 */}
-                  <div className="w-[1px] h-4 bg-slate-200/90 mx-0.5 shrink-0" />
-
-                  {/* 2.5 Settings Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsSettingsModalOpen(true);
-                      setIsFlyToolbarOpen(false);
-                    }}
-                    className="h-8 px-2.5 rounded-full bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200/80 flex items-center gap-1 text-[11px] font-bold transition-all duration-150 active:scale-95 cursor-pointer shrink-0 shadow-xs group"
-                    title="Open Full Settings Console"
-                  >
-                    <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
-                    <span>Settings</span>
-                  </button>
-
-                  {/* 2.6 Close Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsFlyToolbarOpen(false);
-                    }}
-                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 border border-slate-200/70 hover:border-rose-200 flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs"
-                    title="Close Quick Options"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </>
+      <FlashcardFlyToolbar
+        isCardSlot={isEmbedded}
+        isFlyToolbarOpen={isFlyToolbarOpen}
+        setIsFlyToolbarOpen={setIsFlyToolbarOpen}
+        triggerPlayAudio={triggerPlayAudio}
+        autoPlayAudio={autoPlayAudio}
+        setAutoPlayAudio={setAutoPlayAudio}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        effectiveAutoAdvance={effectiveAutoAdvance}
+        setIsAutoAdvance={setIsAutoAdvance}
+        setQuickLearnEnabled={setQuickLearnEnabled}
+        showImages={showImages}
+        setShowImages={setShowImages}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
+        isSelectMode={isSelectMode}
+        setIsSelectMode={setIsSelectMode}
+        currentQuestion={currentQuestion}
+        handleStarQuestion={handleStarQuestion}
+        showHintBtn={showHintBtn}
+        showingHint={showingHint}
+        setShowingHint={setShowingHint}
+        showExplainBtn={showExplainBtn}
+        justAnswered={justAnswered}
+        mainTab={mainTab}
+        setShowFeedback={setShowFeedback}
+        setIsFeedbackOpen={setIsFeedbackOpen}
+        showFlipBackBtn={showFlipBackBtn}
+        setIsFlipped={setIsFlipped}
+        setIsSettingsModalOpen={setIsSettingsModalOpen}
+      />
     );
   };
+
 
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
@@ -3664,362 +3363,66 @@ export default function FlashcardPlay() {
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
 
       <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
-        <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col min-h-0 overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
-          {showFeedback ? (
-            <FeedbackArea
-              showFeedback={showFeedback}
-              activeFeedbackTab={activeFeedbackTab}
-              setActiveFeedbackTab={setActiveFeedbackTab}
-              getInsightText={getInsightText}
-              isEditingInsight={isEditingInsight}
-              insightInput={insightInput}
-              setInsightInput={setInsightInput}
-              currentQuestion={currentQuestion}
-              canEdit={canEdit}
-              clearAIExplanation={clearAIExplanation}
-              isEditingAI={isEditingAI}
-              setIsEditingAI={setIsEditingAI}
-              isEditingPrompt={isEditingPrompt}
-              setIsEditingPrompt={setIsEditingPrompt}
-              askAI={askAI}
-              isAskingAI={isAskingAI}
-              aiInput={aiInput}
-              setAiInput={setAiInput}
-              promptInput={promptInput}
-              setPromptInput={setPromptInput}
-              savePrompt={savePrompt}
-              saveNote={saveNote}
-              personalNote={personalNote}
-              setPersonalNote={setPersonalNote}
-              isEditingNote={isEditingNote}
-              setIsEditingNote={setIsEditingNote}
-              isMobile={false}
-              handleEditCurrentTab={handleEditCurrentTab}
-              isCopyMenuOpen={isCopyMenuOpen}
-              setIsCopyMenuOpen={setIsCopyMenuOpen}
-              copyCurrentTabContent={copyCurrentTabContent}
-              isCopied={isCopied}
-              handleNext={handleNext}
-              deckInfo={session}
-            />
-          ) : (
-            <div className="flex flex-col h-full bg-slate-50/40">
-              {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
-                  {mainTab === 'practice' ? "Practice Details" : "Review & Goals"}
-                </span>
-                {activeGoal && activeMode !== 'review' && (
-                  <span className={cn(
-                    "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm",
-                    activeGoal.is_target_met 
-                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
-                      : "bg-amber-100 text-amber-700 border border-amber-200"
-                  )}>
-                    {activeGoal.is_target_met ? "Goal Reached" : "In Progress"}
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
-                {/* 1. Roadmap Pipeline Progress Card */}
-                {roadmapStatus && roadmapStatus.roadmap_active ? (
-                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black">
-                          🗺️
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800">Roadmap Pathway</h4>
-                          <p className="text-[10px] text-slate-400 font-semibold">
-                            {roadmapStatus.all_done ? '✅ Completed Today' : `Step ${roadmapStatus.current_step_index + 1}/${roadmapStatus.pipeline?.length || 1}`}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={cn(
-                        "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
-                        roadmapStatus.all_done ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
-                      )}>
-                        {roadmapStatus.all_done ? 'Completed' : 'In Progress'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {roadmapStatus.pipeline?.map((st: any, sIdx: number) => {
-                        const isCurrent = sIdx === roadmapStatus.current_step_index && !roadmapStatus.all_done
-                        return (
-                          <div
-                            key={sIdx}
-                            className={cn(
-                              "p-2.5 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all",
-                              st.done ? "bg-emerald-50/60 border-emerald-200 text-emerald-800" :
-                              isCurrent ? "bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/20" :
-                              "bg-slate-50 border-slate-100 text-slate-400 opacity-60"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black">
-                                {st.done ? '✓' : `${sIdx + 1}.`}
-                              </span>
-                              <span>{st.label}</span>
-                            </div>
-
-                            <div className="text-[10px] font-black">
-                              {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} cards`}
-                              {st.type === 'fsrs_review' && `${st.progress?.due_count || 0} due cards left`}
-                              {(st.type === 'mcq' || st.type === 'typing') && `${st.progress?.best_score || 0}/${st.pass_threshold}%`}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black">
-                        📚
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-700">Free Mode</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Enable Roadmap to activate pipeline</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Personal Achievement & Streak Card */}
-                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
-                        <Flame className="w-4.5 h-4.5" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-700">Learning Streak</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Consecutive days</p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100 shadow-sm">
-                      {gamify.streak} days 🔥
-                    </span>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-50 space-y-3">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-600">Level {gamify.level}</span>
-                      <span className="font-bold text-slate-400">{gamify.xp % 1000} / 1000 XP</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-orange-400 rounded-full"
-                        style={{ width: `${(gamify.xp % 1000) / 10}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-medium">
-                      {1000 - (gamify.xp % 1000)} XP more to reach level {gamify.level + 1}!
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. Leaderboard Recommendation Card */}
-                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-                      <Trophy className="w-4.5 h-4.5" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-700">
-                        Bảng xếp hạng {leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'thẻ học' : 'thời gian học'}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        Đua top {leaderboardTimeFilter === 'today' ? 'hôm nay' : leaderboardTimeFilter === 'week' ? 'tuần này' : leaderboardTimeFilter === 'month' ? 'tháng này' : 'mọi lúc'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Metric Switcher */}
-                  <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
-                    {(['xp', 'streak', 'questions', 'time'] as const).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setLeaderboardType(type)}
-                        className={cn(
-                          "flex-1 py-1 px-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all whitespace-nowrap text-center",
-                          leaderboardType === type 
-                            ? "bg-white text-indigo-650 shadow-sm border border-slate-100/50" 
-                            : "text-slate-400 hover:text-indigo-650"
-                        )}
-                      >
-                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Cards' : 'Time'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Time Filter Switcher */}
-                  <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
-                    {(['today', 'week', 'month', 'all_time'] as const).map((filter) => (
-                      <button
-                        key={filter}
-                        onClick={() => setLeaderboardTimeFilter(filter)}
-                        className={cn(
-                          "flex-1 py-1 px-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all whitespace-nowrap text-center",
-                          leaderboardTimeFilter === filter 
-                            ? "bg-slate-900 text-white shadow-sm" 
-                            : "text-slate-400 hover:text-slate-700"
-                        )}
-                      >
-                        {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : filter === 'month' ? 'Tháng này' : 'Tất cả'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Mini Leaderboard List */}
-                  {isLeaderboardLoading ? (
-                    <p className="text-[10px] text-slate-400 text-center py-4 font-bold animate-pulse">Đang tải bảng xếp hạng...</p>
-                  ) : xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
-                    <div className="space-y-1.5 py-1">
-                      {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => {
-                        const displayValue = u.user_id === user?.id ? xpLeaderboard.user_value : u.value;
-                        const unit = getUnitName(leaderboardType);
-                        return (
-                        <div 
-                          key={u.user_id} 
-                          className={cn(
-                            "flex items-center justify-between p-2 rounded-2xl border transition-all text-xs",
-                            u.user_id === user?.id 
-                              ? "bg-indigo-50/50 border-indigo-100 font-black text-indigo-950" 
-                              : "bg-slate-50/30 border-transparent text-slate-700"
-                          )}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-base">
-                              {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"}
-                            </span>
-                            <span className="font-bold truncate text-[11px] uppercase">
-                              {u.full_name || u.username}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-medium">
-                              Lv.{u.user_id === user?.id ? gamify.level : u.level}
-                            </span>
-                          </div>
-                          <span className="font-black text-[11px] text-slate-900 shrink-0">
-                            {displayValue.toLocaleString()} {unit}
-                          </span>
-                        </div>
-                      )})}
-                      
-                      {/* Show user if they are not in Top 3 */}
-                      {userRank > 3 && (() => {
-                        const currentUserObj = xpLeaderboard.list.find((u: any) => u.user_id === user?.id) || {
-                          full_name: user?.username || "",
-                          level: gamify.level,
-                          value: xpLeaderboard.user_value
-                        };
-                        const unit = getUnitName(leaderboardType);
-                        return (
-                          <>
-                            <div className="text-center text-[10px] font-black text-slate-300 tracking-widest leading-none my-1">•••</div>
-                            <div className="flex items-center justify-between p-2 rounded-2xl border bg-indigo-50 border-indigo-100 font-black text-indigo-950 text-xs">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-black text-indigo-600 w-5 text-center text-[10px]">
-                                  #{userRank}
-                                </span>
-                                <span className="font-bold truncate text-[11px] uppercase">
-                                  {currentUserObj.full_name || currentUserObj.username}
-                                </span>
-                                <span className="text-[9px] text-indigo-400 font-medium">
-                                  Lv.{gamify.level}
-                                </span>
-                              </div>
-                              <span className="font-black text-[11px] text-indigo-600 shrink-0">
-                                {xpLeaderboard.user_value.toLocaleString()} {unit}
-                              </span>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-slate-400 text-center py-2">Loading leaderboard...</p>
-                  )}
-
-                  <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/50">
-                    <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
-                      {leaderboardMsg}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 4. Session Quick Stats */}
-                <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
-                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    <span>Current Session</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
-                      <span className="block font-black text-slate-700">
-                        {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
-                      </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">Done</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-emerald-600">
-                      <span className="block font-black">
-                        {mainTab === 'practice' ? (
-                          Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
-                            const q = session?.questions?.[Number(idx)];
-                            if (!q || !q.practice) return false;
-                            if (practiceSubMode === 'typing') return ansIdx === 3;
-                            return ansIdx === q.practice.correct_index;
-                          }).length
-                        ) : (
-                          Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
-                            const q = session.questions[Number(idx)];
-                            if (!q) return false;
-                            const ratingVal = Array.isArray(optIdx) 
-                              ? optIdx[optIdx.length - 1] 
-                              : (typeof optIdx === 'number' ? optIdx : 0);
-                            if (ratingVal === -2) return false;
-                            return q.options && q.options.length > 0
-                              ? q.options[ratingVal]?.is_correct
-                              : ratingVal > 0; // 0 (Again) is Wrong, 1/2/3 are Correct
-                          }).length
-                        )}
-                      </span>
-                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Correct</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-rose-600">
-                      <span className="block font-black">
-                        {mainTab === 'practice' ? (
-                          Object.keys(practiceAnswers).length - Object.entries(practiceAnswers).filter(([idx, ansIdx]) => {
-                            const q = session?.questions?.[Number(idx)];
-                            if (!q || !q.practice) return false;
-                            if (practiceSubMode === 'typing') return ansIdx === 3;
-                            return ansIdx === q.practice.correct_index;
-                          }).length
-                        ) : (
-                          Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
-                            const q = session.questions[Number(idx)];
-                            if (!q) return false;
-                            const ratingVal = Array.isArray(optIdx) 
-                              ? optIdx[optIdx.length - 1] 
-                              : (typeof optIdx === 'number' ? optIdx : 0);
-                            if (ratingVal === -2) return false;
-                            return q.options && q.options.length > 0
-                              ? !q.options[ratingVal]?.is_correct
-                              : ratingVal === 0; // 0 (Again) is Wrong
-                          }).length
-                        )}
-                      </span>
-                      <span className="text-[8px] font-bold text-rose-400 uppercase">Wrong</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
+        <FlashcardDesktopLeftAside
+          showFeedback={showFeedback}
+          activeFeedbackTab={activeFeedbackTab}
+          setActiveFeedbackTab={setActiveFeedbackTab}
+          getInsightText={getInsightText}
+          isEditingInsight={isEditingInsight}
+          insightInput={insightInput}
+          setInsightInput={setInsightInput}
+          currentQuestion={currentQuestion}
+          canEdit={canEdit}
+          clearAIExplanation={clearAIExplanation}
+          isEditingAI={isEditingAI}
+          setIsEditingAI={setIsEditingAI}
+          isEditingPrompt={isEditingPrompt}
+          setIsEditingPrompt={setIsEditingPrompt}
+          askAI={askAI}
+          isAskingAI={isAskingAI}
+          aiInput={aiInput}
+          setAiInput={setAiInput}
+          promptInput={promptInput}
+          setPromptInput={setPromptInput}
+          savePrompt={savePrompt}
+          saveNote={saveNote}
+          personalNote={personalNote}
+          setPersonalNote={setPersonalNote}
+          isEditingNote={isEditingNote}
+          setIsEditingNote={setIsEditingNote}
+          handleEditCurrentTab={handleEditCurrentTab}
+          isCopyMenuOpen={isCopyMenuOpen}
+          setIsCopyMenuOpen={setIsCopyMenuOpen}
+          copyCurrentTabContent={copyCurrentTabContent}
+          isCopied={isCopied}
+          handleNext={handleNext}
+          session={session}
+          mainTab={mainTab}
+          activeGoal={activeGoal}
+          activeMode={activeMode}
+          roadmapStatus={roadmapStatus}
+          leaderboardType={leaderboardType}
+          setLeaderboardType={setLeaderboardType}
+          leaderboardTimeFilter={leaderboardTimeFilter}
+          setLeaderboardTimeFilter={setLeaderboardTimeFilter}
+          isLeaderboardLoading={isLeaderboardLoading}
+          xpLeaderboard={xpLeaderboard}
+          user={user}
+          gamify={gamify}
+          userRank={userRank}
+          getUnitName={getUnitName}
+          leaderboardMsg={leaderboardMsg}
+          practiceAnswers={practiceAnswers}
+          sessionAnswers={sessionAnswers}
+          practiceSubMode={practiceSubMode}
+          renderPracticeStats={renderPracticeStats}
+          renderSessionStats={renderSessionStats}
+          currentIndex={currentIndex}
+          navigateToQuestion={navigateToQuestion}
+          setIsMapOpen={setIsMapOpen}
+          mobileMapFilterMode={mobileMapFilterMode}
+          setMobileMapFilterMode={setMobileMapFilterMode}
+        />
 
         <div className="w-full max-w-4xl min-w-0 flex flex-col min-h-0 overflow-hidden h-full">
           <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0 min-h-0">
@@ -4054,673 +3457,62 @@ export default function FlashcardPlay() {
               ) : shouldShowFsrsCompleteScreen ? (
                 renderFsrsCompleteScreen()
               ) : (
-                <div 
-                  className={cn(
-                    "perspective-1000 w-full h-full flex-1 relative min-h-0 flex items-center justify-center",
-                    isSelectMode ? "select-text" : "select-none"
-                  )}
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
-                >
-                  {isSelectMode && (
-                    <div 
-                      onClick={() => setIsSelectMode(false)}
-                      className="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-amber-500/95 hover:bg-amber-600 text-white px-3.5 py-1 rounded-full text-[11px] font-black shadow-lg shadow-amber-500/30 flex items-center gap-1.5 animate-in fade-in zoom-in-95 cursor-pointer pointer-events-auto"
-                      title="Click to exit Select Mode"
-                    >
-                      <MousePointer className="w-3.5 h-3.5" />
-                      <span>Select Mode ON (Tap / Swipe paused)</span>
-                      <span className="ml-1 text-[10px] opacity-80 underline">Exit</span>
-                    </div>
-                  )}
-                  <motion.div
-                    className={cn("w-full h-full relative", isSelectMode && "select-text")}
-                    drag={!isSelectMode && canDragRate ? (effectiveCardRatingMode === 'swipe_2way' ? 'x' : true) : false}
-                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                    dragElastic={0.65}
-                    onDrag={handleCardDrag}
-                    onDragEnd={handleCardDragEnd}
-                    animate={cardDragControls}
-                    style={{
-                      touchAction: isSelectMode 
-                        ? 'auto' 
-                        : (canDragRate ? (hasBackOverflow ? 'pan-y' : 'none') : 'pan-y'),
-                    }}
-                  >
-                    <div
-                      className="preserve-3d w-full h-full relative transition-transform duration-700 ease-out-quint"
-                      style={{
-                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                        transformStyle: 'preserve-3d',
-                      }}
-                    >
-                       {/* FRONT SIDE */}
-                      <div
-                        onClick={(e) => {
-                          if (isSelectMode) return;
-                          const target = e.target as HTMLElement;
-                          if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('[data-no-flip]')) {
-                            return;
-                          }
-                          if (effectiveCardFlipTrigger !== 'button_only') {
-                            setIsFlipped(true);
-                            setIsFlyToolbarOpen(false);
-                            setShowFeedback(true);
-                            setJustAnswered(true);
-                          }
-                        }}
-                        className={cn(
-                          "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40",
-                          !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
-                          isSelectMode && "cursor-text select-text"
-                        )}
-                    style={{
-                      backfaceVisibility: 'hidden',
-                      transform: 'none',
-                      WebkitFontSmoothing: 'antialiased',
-                      MozOsxFontSmoothing: 'grayscale',
-                      pointerEvents: 'auto',
-                      zIndex: isFlipped ? 1 : 2,
-                      visibility: isFlipped ? 'hidden' : 'visible',
-                      transition: 'visibility 0s ' + (isFlipped ? '0.7s' : '0s'),
-                    }}
-                  >
-                    {/* Top Stats Banner */}
-                    <div className="flex items-center justify-between select-none">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 uppercase shadow-sm">
-                          FRONT
-                        </span>
-                        <span className="text-[10px] font-black tracking-wider text-white bg-indigo-500 px-3 py-1.5 rounded-xl border border-indigo-600 shadow-sm">
-                          {currentQuestion?.original_index ?? (currentIndex + 1)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {currentQuestion && getMasteryPill(currentQuestion)}
-                        {currentQuestion && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStarQuestion();
-                            }}
-                            className={cn(
-                              "w-7.5 h-7.5 flex items-center justify-center rounded-xl border transition-all active:scale-90",
-                              currentQuestion.is_starred
-                                ? "bg-amber-50 border-amber-300 text-amber-500 shadow-sm"
-                                : "bg-slate-50 border-slate-200/60 text-slate-400 hover:text-slate-600 hover:bg-slate-100/50"
-                            )}
-                            title={currentQuestion.is_starred ? "Unstar Card" : "Star Card"}
-                          >
-                            <Star className={cn("w-4 h-4", currentQuestion.is_starred && "fill-amber-500 text-amber-500")} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Word / Question Content */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar my-2 py-2 flex flex-col">
-                      <div className={cn(
-                        "w-full flex flex-col gap-6",
-                        frontValign === 'top' ? "mt-0 mb-auto" : "my-auto",
-                        frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
-                      )}>
-                        {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
-                          <img 
-                            src={resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || undefined} 
-                            alt="Front Visual" 
-                            className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                            onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || null)}
-                          />
-                        )}
-                        <div 
-                          className={cn(
-                            "font-black text-slate-800 tracking-tight leading-normal max-w-2xl markdown-content whitespace-pre-wrap flex flex-col w-full",
-                            frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
-                          )}
-                          style={{
-                            textAlign: frontHalign === 'center' ? 'center' : 'left',
-                            fontSize: getFrontFontSizeStyle(frontFontSize)
-                          }}
-                        >
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]} 
-                            rehypePlugins={[rehypeRaw]} 
-                            components={{
-                              ...MarkdownComponents,
-                              p: ({ children }) => (
-                                <p 
-                                  className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", frontHalign === 'center' ? "text-center" : "text-left")}
-                                  style={{ textAlign: frontHalign === 'center' ? 'center' : 'left' }}
-                                >
-                                  {children}
-                                </p>
-                              )
-                            }}
-                          >
-                            {parseBBCodeToHtml(currentQuestion?.content || '')}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Slot on FRONT Face: Reserves identical 46px height so the audio button is in the exact same coordinates */}
-                    <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
-                      <div className="absolute inset-0 rounded-full border border-transparent bg-transparent pointer-events-none" />
-                      <div className="absolute left-[4px] bottom-1 z-30">
-                        {renderFlyToolbar(true)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* BACK SIDE */}
-                  <div
-                    onClick={(e) => {
-                      if (isSelectMode) return;
-                      const target = e.target as HTMLElement;
-                      if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
-                        return;
-                      }
-                      if (window.getSelection() && window.getSelection()!.toString().length > 0) {
-                        return;
-                      }
-                      if (effectiveCardFlipTrigger !== 'button_only') {
-                        setIsFlipped(false);
-                        setIsFlyToolbarOpen(false);
-                      }
-                    }}
-                    className={cn(
-                      "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
-                      !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
-                      isSelectMode && "cursor-text select-text",
-                      activeDragGrade?.direction === 'again' ? "border-rose-400 shadow-rose-200/60 ring-2 ring-rose-400/20" :
-                      activeDragGrade?.direction === 'good' ? "border-indigo-400 shadow-indigo-200/60 ring-2 ring-indigo-400/20" :
-                      activeDragGrade?.direction === 'hard' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
-                      activeDragGrade?.direction === 'easy' ? "border-emerald-400 shadow-emerald-200/60 ring-2 ring-emerald-400/20" :
-                      "border-slate-200 shadow-indigo-100/40"
-                    )}
-                    style={{
-                      backfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg)',
-                      WebkitFontSmoothing: 'antialiased',
-                      MozOsxFontSmoothing: 'grayscale',
-                      pointerEvents: 'auto',
-                      zIndex: isFlipped ? 2 : 1,
-                      visibility: isFlipped ? 'visible' : 'hidden',
-                      transition: 'visibility 0s ' + (isFlipped ? '0s' : '0.7s'),
-                    }}
-                  >
-                    {/* Top Banner */}
-                    <div 
-                      className="flex items-center justify-between select-none"
-                      style={{ touchAction: 'none' }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 uppercase shadow-sm">
-                          BACK
-                        </span>
-                        <span className="text-[10px] font-black tracking-wider text-white bg-emerald-500 px-3 py-1.5 rounded-xl border border-emerald-600 shadow-sm">
-                          {currentQuestion?.original_index ?? (currentIndex + 1)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {currentQuestion && getMasteryPill(currentQuestion)}
-                        {currentQuestion && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStarQuestion();
-                            }}
-                            className={cn(
-                              "w-7.5 h-7.5 flex items-center justify-center rounded-xl border transition-all active:scale-90",
-                              currentQuestion.is_starred
-                                ? "bg-amber-50 border-amber-300 text-amber-500 shadow-sm"
-                                : "bg-slate-50 border-slate-200/60 text-slate-400 hover:text-slate-600 hover:bg-slate-100/50"
-                            )}
-                            title={currentQuestion.is_starred ? "Unstar Card" : "Star Card"}
-                          >
-                            <Star className={cn("w-4 h-4", currentQuestion.is_starred && "fill-amber-500 text-amber-500")} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Definition & explanation */}
-                    <div 
-                      ref={backScrollRef}
-                      className={cn("flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2 pb-16", isSelectMode && "select-text cursor-text")}
-                      style={{
-                        touchAction: isSelectMode ? 'auto' : (hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y')),
-                        WebkitOverflowScrolling: 'touch',
-                        overscrollBehavior: 'contain'
-                      }}
-                    >
-                      <div className={cn(
-                        "w-full flex flex-col gap-3 md:gap-4",
-                        backValign === 'top' ? "mt-0 mb-auto" : "my-auto",
-                        backHalign === 'center' ? "items-center text-center" : "items-start text-left",
-                        isSelectMode && "select-text cursor-text"
-                      )}>
-                        {/* Show the correct options or direct explanation */}
-                        {currentQuestion?.options && currentQuestion.options.length > 0 && (
-                          <div className={cn("space-y-2 w-full", backHalign === 'center' ? "flex justify-center" : "")}>
-                            <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4 w-full">
-                              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
-                                ✓
-                              </div>
-                              <div 
-                                className={cn(
-                                  "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
-                                  backHalign === 'center' ? "text-center" : "text-left",
-                                  isSelectMode && "select-text cursor-text"
-                                )}
-                                style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                              >
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]} 
-                                  rehypePlugins={[rehypeRaw]} 
-                                  components={{
-                                    ...MarkdownComponents,
-                                    p: ({ children }) => (
-                                      <p 
-                                        className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
-                                        style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                                      >
-                                        {children}
-                                      </p>
-                                    )
-                                  }}
-                                >
-                                  {parseBBCodeToHtml(currentQuestion.options.find(o => o.is_correct)?.content || "Definition revealed.")}
-                                </ReactMarkdown>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
-                          <div className="space-y-2 flex justify-center w-full">
-                            <img 
-                              src={resolveMediaUrl(currentQuestion.back_img || currentQuestion.others?.back_img) || undefined} 
-                              alt="Back Visual" 
-                              className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                              onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || null)}
-                            />
-                          </div>
-                        )}
-
-                        {currentQuestion?.mnemonic && (
-                          <div className={cn("p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500 w-full text-left", isSelectMode && "select-text cursor-text")}>
-                            <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
-                              💡
-                            </div>
-                            <div className={cn("text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap", isSelectMode && "select-text cursor-text")}>
-                              <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">Cách nhớ (AI Mnemonic)</span>
-                              {currentQuestion.mnemonic}
-                            </div>
-                          </div>
-                        )}
-
-                        {currentQuestion?.explanation && (
-                          <div 
-                            className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start", isSelectMode && "select-text cursor-text")}
-                            style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                          >
-                            <div 
-                              className={cn(
-                                "text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
-                                backHalign === 'center' ? "text-center" : "text-left",
-                                isSelectMode && "select-text cursor-text"
-                              )}
-                              style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                            >
-                              <ReactMarkdown 
-                                remarkPlugins={[remarkGfm]} 
-                                rehypePlugins={[rehypeRaw]} 
-                                components={{
-                                  ...MarkdownComponents,
-                                  p: ({ children }) => (
-                                    <p 
-                                      className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
-                                      style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                                    >
-                                      {children}
-                                    </p>
-                                  )
-                                }}
-                              >
-                                {parseBBCodeToHtml(currentQuestion.explanation)}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Card Answer Frequency & Statistics Bar */}
-                    {(() => {
-                      const sessionRatings = Array.isArray(sessionAnswers[currentIndex]) 
-                        ? (sessionAnswers[currentIndex] as number[]) 
-                        : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : []);
-                      
-                      const stats = currentQuestion?.stats || { 
-                        total: 0, 
-                        correct: 0, 
-                        wrong: 0, 
-                        avg_time: 0,
-                        again_count: 0,
-                        hard_count: 0,
-                        good_count: 0,
-                        easy_count: 0
-                      };
-                      const allTimeTotal = stats.total || 0;
-                      const allTimeCorrect = stats.correct || 0;
-                      const allTimeWrong = stats.wrong || 0;
-                      const allTimeAccuracy = allTimeTotal > 0 ? Math.round((allTimeCorrect / allTimeTotal) * 100) : 0;
-
-                      return effectiveShowFsrs ? (
-                        <div className="md:mt-3 mt-1.5 p-2.5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-1.5 w-full">
-                          <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
-                            <span>Card Performance Stats</span>
-                            <span>{allTimeTotal} reviews {allTimeTotal > 0 && `(Accuracy: ${allTimeAccuracy}%)`}</span>
-                          </div>
-
-                          <div className="grid grid-cols-4 gap-2">
-                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-rose-50/80 border border-rose-100/50 text-rose-600 shadow-sm">
-                              <span className="text-[8px] font-black tracking-wider uppercase">Again</span>
-                              <span className="text-xs font-black">{stats.again_count || 0}</span>
-                            </div>
-                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-amber-50/80 border border-amber-100/50 text-amber-600 shadow-sm">
-                              <span className="text-[8px] font-black tracking-wider uppercase">Hard</span>
-                              <span className="text-xs font-black">{stats.hard_count || 0}</span>
-                            </div>
-                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-indigo-50/80 border border-indigo-100/50 text-indigo-600 shadow-sm">
-                              <span className="text-[8px] font-black tracking-wider uppercase">Good</span>
-                              <span className="text-xs font-black">{stats.good_count || 0}</span>
-                            </div>
-                            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-emerald-50/80 border border-emerald-100/50 text-emerald-600 shadow-sm">
-                              <span className="text-[8px] font-black tracking-wider uppercase">Easy</span>
-                              <span className="text-xs font-black">{stats.easy_count || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null;
-                    })()}
-
-                    {/* FSRS Stats Row */}
-                    {effectiveShowFsrs && currentQuestion?.fsrs && (() => {
-                      const stateLabels = ['New', 'Learning', 'Review', 'Relearning'];
-                      const stateColors = [
-                        'bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-sm shadow-blue-500/5',
-                        'bg-amber-500/10 text-amber-600 border-amber-500/20 shadow-sm shadow-amber-500/5',
-                        'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-sm shadow-emerald-500/5',
-                        'bg-rose-500/10 text-rose-600 border-rose-500/20 shadow-sm shadow-rose-500/5'
-                      ];
-                      const stateDots = [
-                        'bg-blue-500 shadow-blue-500/50',
-                        'bg-amber-50 shadow-amber-500/50',
-                        'bg-emerald-50 shadow-emerald-500/50',
-                        'bg-rose-500 shadow-rose-500/50'
-                      ];
-                      const stateIdx = currentQuestion.fsrs.state || 0;
-                      
-                      const firstLearnedInfo = formatRelativeTime(currentQuestion.fsrs.first_learned);
-                      const lastReviewedInfo = formatRelativeTime(currentQuestion.fsrs.last_reviewed);
-                      
-                      return (
-                        <div className="flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 rounded-2xl px-1 py-1.5 sm:px-1.5 sm:py-2 border border-slate-100/90 text-[9px] font-bold shadow-[0_4px_20px_rgba(0,0,0,0.01),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md w-full md:mt-3 mt-1.5 gap-0.5 sm:gap-1.5 animate-fadeIn">
-                          {/* Overdue / Quá hạn */}
-                          {(() => {
-                            const overdueInfo = formatOverdueTime(currentQuestion.fsrs?.due);
-                            return (
-                              <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0 cursor-pointer select-none" title={overdueInfo.full}>
-                                <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Overdue</span>
-                                <span className={cn(
-                                  "px-1.5 py-0.5 rounded-lg border text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-0.5 truncate transition-all duration-300 shadow-2xs",
-                                  overdueInfo.overdue
-                                    ? (overdueInfo.severe ? "bg-rose-500/10 text-rose-600 border-rose-500/25 shadow-rose-500/5" : "bg-amber-500/10 text-amber-600 border-amber-500/25 shadow-amber-500/5")
-                                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/25 shadow-emerald-500/5"
-                                )}>
-                                  {overdueInfo.overdue && (
-                                    <span className={cn("w-1 h-1 rounded-full animate-ping", overdueInfo.severe ? "bg-rose-500" : "bg-amber-500")} />
-                                  )}
-                                  <span>{overdueInfo.relative}</span>
-                                </span>
-                              </div>
-                            );
-                          })()}
-                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
-
-                          {/* Stability */}
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
-                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Stability</span>
-                            <span className="bg-indigo-50/40 text-indigo-600 border border-indigo-100/30 px-1.5 py-0.5 rounded-lg font-black text-[10px] sm:text-[11.5px] shadow-sm flex items-center gap-0.5 truncate">
-                              {currentQuestion.fsrs.stability ? (
-                                <>
-                                  <span className="tracking-tight">{currentQuestion.fsrs.stability.toFixed(2)}</span>
-                                  <span className="text-[8.5px] font-bold opacity-75">d</span>
-                                </>
-                              ) : (
-                                'none'
-                              )}
-                            </span>
-                          </div>
-                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
-
-                          {/* Difficulty */}
-                          <div className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0">
-                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Difficulty</span>
-                            <span className="bg-purple-50/40 text-purple-600 border border-purple-100/30 px-1.5 py-0.5 rounded-lg font-black text-[10px] sm:text-[11.5px] shadow-sm flex items-center gap-0.5 truncate">
-                              {currentQuestion.fsrs.difficulty ? (
-                                <span className="tracking-tight">{currentQuestion.fsrs.difficulty.toFixed(2)}</span>
-                              ) : (
-                                'none'
-                              )}
-                            </span>
-                          </div>
-                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
-
-                          {/* First Learned */}
-                          <div 
-                            className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0 cursor-pointer select-none hover:opacity-80 transition-opacity"
-                            onClick={() => setShowAbsoluteFirst(!showAbsoluteFirst)}
-                            title={firstLearnedInfo.full}
-                          >
-                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">First</span>
-                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1.5 py-0.5 rounded-lg font-black text-[9.5px] sm:text-[11px] shadow-sm truncate">
-                              {showAbsoluteFirst ? firstLearnedInfo.full : firstLearnedInfo.relative}
-                            </span>
-                          </div>
-                          <div className="w-px h-6 bg-gradient-to-b from-slate-100 via-slate-200/60 to-slate-100 flex-shrink-0" />
-
-                          {/* Last Reviewed */}
-                          <div 
-                            className="flex flex-col items-center gap-0.5 flex-1 justify-center min-w-0 cursor-pointer select-none hover:opacity-80 transition-opacity"
-                            onClick={() => setShowAbsoluteLast(!showAbsoluteLast)}
-                            title={lastReviewedInfo.full}
-                          >
-                            <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Last</span>
-                            <span className="bg-slate-100/60 text-slate-600 border border-slate-200/40 px-1.5 py-0.5 rounded-lg font-black text-[9.5px] sm:text-[11px] shadow-sm truncate">
-                              {showAbsoluteLast ? lastReviewedInfo.full : lastReviewedInfo.relative}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-
-                    {/* Bottom Slot on BACK Face: Rating Feedback Banner + Overlay Fly Toolbar */}
-                    {(() => {
-                      const isCardRated = isFlipped && hasRated && selectedOption !== null && selectedOption !== undefined;
-                      let countdownStr = "";
-                      if (isCardRated) {
-                        const dueTimeStr = currentQuestion?.fsrs?.due;
-                        if (dueTimeStr) {
-                          const diff = parseUTCDate(dueTimeStr).getTime() - currentTime.getTime();
-                          if (diff > 0) {
-                            const secs = Math.floor(diff / 1000) % 60;
-                            const mins = Math.floor(diff / (1000 * 60)) % 60;
-                            const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                            
-                            const parts = [];
-                            if (days > 0) parts.push(`${days}d`);
-                            if (hours > 0 || days > 0) parts.push(`${hours}h`);
-                            if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
-                            parts.push(`${secs}s`);
-                            countdownStr = parts.join(' ');
-                          }
-                        }
-                        
-                        if (!countdownStr) {
-                          const dynamicIntervals = getFSRSIntervals(currentQuestion?.fsrs);
-                          if (selectedOption === 0) countdownStr = dynamicIntervals[1] || "1m";
-                          else if (selectedOption === 1) countdownStr = dynamicIntervals[2] || "5m";
-                          else if (selectedOption === 2) countdownStr = dynamicIntervals[3] || "10m";
-                          else countdownStr = dynamicIntervals[4] || "4d";
-                        }
-                      }
-
-                      return (
-                        <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
-                          {/* 1. Rating Feedback Banner: always mounts to reserve layout space; opacity-0 before rating, fades in when rated */}
-                          <div
-                            className={cn(
-                              "absolute inset-0 rounded-full border flex items-center justify-center font-bold transition-all duration-300 pointer-events-none px-4",
-                              isCardRated
-                                ? cn(
-                                    "opacity-100",
-                                    selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-                                    selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
-                                    selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
-                                    "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                  )
-                                : "opacity-0 border-transparent bg-transparent"
-                            )}
-                          >
-                            {isCardRated && (
-                              <div className="flex items-center justify-center gap-1.5 text-center truncate px-20">
-                                <span className="text-xs sm:text-sm font-black tracking-wide">
-                                  ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                                </span>
-                                <span className="opacity-80 text-xs font-semibold">
-                                  — Unlocks in {countdownStr} ⏳
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* 2. Fly Toolbar: Anchored inside this slot at left-[4px], bottom-1, floating on top */}
-                          <div className="absolute left-[4px] bottom-1 z-30">
-                            {renderFlyToolbar(true)}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Floating Dynamic Stamp Badge */}
-                {activeDragGrade && (
-                  <div 
-                    className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center"
-                    style={{ opacity: Math.min(Math.max((Math.hypot(dragOffset.x, dragOffset.y) - 20) / 45, 0), 1) }}
-                  >
-                    <div
-                      className={cn(
-                        "px-6 py-3 rounded-2xl border-4 font-black text-2xl md:text-3xl tracking-widest shadow-2xl backdrop-blur-md transform uppercase flex items-center gap-3",
-                        activeDragGrade.direction === 'again' && "border-rose-500 text-rose-600 bg-rose-50/95 -rotate-12 shadow-rose-500/30",
-                        activeDragGrade.direction === 'good' && "border-indigo-500 text-indigo-600 bg-indigo-50/95 rotate-12 shadow-indigo-500/30",
-                        activeDragGrade.direction === 'hard' && "border-amber-500 text-amber-600 bg-amber-50/95 shadow-amber-500/30",
-                        activeDragGrade.direction === 'easy' && "border-emerald-500 text-emerald-600 bg-emerald-50/95 -rotate-6 shadow-emerald-500/30",
-                      )}
-                    >
-                      {activeDragGrade.direction === 'again' && <RotateCcw className="w-7 h-7 stroke-[2.5]" />}
-                      {activeDragGrade.direction === 'good' && <Check className="w-7 h-7 stroke-[2.5]" />}
-                      {activeDragGrade.direction === 'hard' && <AlertCircle className="w-7 h-7 stroke-[2.5]" />}
-                      {activeDragGrade.direction === 'easy' && <Zap className="w-7 h-7 stroke-[2.5]" />}
-                      <span>{activeDragGrade.label}</span>
-                    </div>
-                  </div>
-                )}
-                </motion.div>
-              </div>
+                <Flashcard3DCard
+                  currentQuestion={currentQuestion}
+                  currentIndex={currentIndex}
+                  isFlipped={isFlipped}
+                  setIsFlipped={setIsFlipped}
+                  isSelectMode={isSelectMode}
+                  effectiveCardFlipTrigger={effectiveCardFlipTrigger}
+                  setIsFlyToolbarOpen={setIsFlyToolbarOpen}
+                  setShowFeedback={setShowFeedback}
+                  setJustAnswered={setJustAnswered}
+                  handleStarQuestion={handleStarQuestion}
+                  frontValign={frontValign}
+                  frontHalign={frontHalign}
+                  frontFontSize={frontFontSize}
+                  backValign={backValign}
+                  backHalign={backHalign}
+                  showImages={showImages}
+                  setZoomedImage={setZoomedImage}
+                  effectiveShowFsrs={effectiveShowFsrs}
+                  selectedOption={selectedOption}
+                  hasRated={selectedOption !== null}
+                  activeDragGrade={activeDragGrade}
+                  dragOffset={dragOffset}
+                  canDragRate={canDragRate}
+                  hasBackOverflow={hasBackOverflow}
+                  backScrollRef={backScrollRef}
+                  handleCardDrag={handleCardDrag}
+                  handleCardDragEnd={handleCardDragEnd}
+                  cardDragControls={cardDragControls}
+                  activeMasteryUpgrade={activeMasteryUpgrade}
+                  currentTime={currentTime}
+                  showAbsoluteFirst={showAbsoluteFirst}
+                  setShowAbsoluteFirst={setShowAbsoluteFirst}
+                  showAbsoluteLast={showAbsoluteLast}
+                  setShowAbsoluteLast={setShowAbsoluteLast}
+                  renderFlyToolbarNode={renderFlyToolbar}
+                />
               )}
             </motion.div>
-            {/* Level Up Celebration Overlay */}
-            <AnimatePresence>
-              {activeMasteryUpgrade && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="absolute inset-0 bg-white/95 backdrop-blur-md z-[250] flex flex-col items-center justify-center text-center p-6 md:rounded-[2rem] rounded-[1.25rem] border-2 border-indigo-200/50 shadow-2xl"
-                >
-                  <motion.div 
-                    initial={{ rotate: -15, scale: 0 }}
-                    animate={{ rotate: 0, scale: 1 }}
-                    transition={{ delay: 0.15, type: "spring", stiffness: 150 }}
-                    className="text-6xl mb-3 drop-shadow-lg"
-                  >
-                    🎉
-                  </motion.div>
-                  <h3 className="text-xl font-black text-indigo-600 uppercase tracking-widest mb-1.5 animate-pulse">
-                    Card Leveled Up!
-                  </h3>
-                  <p className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">
-                    Memory Stability Upgraded
-                  </p>
-                  
-                  <div className="flex items-center gap-5 bg-slate-50/80 px-5 py-4 rounded-3xl border border-slate-100 shadow-inner">
-                    <div className="text-center">
-                      <span className="text-[8px] font-black text-slate-400 block mb-1 uppercase tracking-widest">Previous Level</span>
-                      <span className="px-3.5 py-1.5 bg-slate-200/80 text-slate-600 rounded-xl text-xs font-black">Level {activeMasteryUpgrade.old_level}</span>
-                    </div>
-                    <div className="text-indigo-500 font-black text-lg animate-pulse">➔</div>
-                    <div className="text-center">
-                      <span className="text-[8px] font-black text-emerald-400 block mb-1 uppercase tracking-widest">New Level</span>
-                      <span className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-400 to-emerald-500 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-200/60 flex items-center gap-1">
-                        Level {activeMasteryUpgrade.new_level} ⚡
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[9px] font-bold text-slate-300 italic mt-6">Card Mastered Successfully!</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            </AnimatePresence>
+          </AnimatePresence>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <aside className="hidden lg:flex w-[340px] 2xl:w-[420px] flex-shrink-0 flex-col min-h-0 overflow-hidden">
-          <div className="flex-1 bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col overflow-hidden">
-            <h4 className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 flex-shrink-0">
-              {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}
-            </h4>
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-24">
-              {mainTab === 'practice' ? (
-                renderPracticeStats()
-              ) : (
-                <>
-                  {renderSessionStats()}
-                  <QuestionMapGrid
-                    questions={session.questions}
-                    mainTab={mainTab}
-                    practiceAnswers={practiceAnswers}
-                    sessionAnswers={sessionAnswers}
-                    currentIndex={currentIndex}
-                    navigateToQuestion={navigateToQuestion}
-                    setIsMapOpen={setIsMapOpen}
-                    filterMode={mobileMapFilterMode}
-                    setFilterMode={setMobileMapFilterMode}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-        </aside>
+        <FlashcardDesktopRightAside
+          mainTab={mainTab}
+          renderPracticeStats={renderPracticeStats}
+          renderSessionStats={renderSessionStats}
+          session={session}
+          practiceAnswers={practiceAnswers}
+          sessionAnswers={sessionAnswers}
+          currentIndex={currentIndex}
+          navigateToQuestion={navigateToQuestion}
+          setIsMapOpen={setIsMapOpen}
+          mobileMapFilterMode={mobileMapFilterMode}
+          setMobileMapFilterMode={setMobileMapFilterMode}
+        />
       </main>
 
 
@@ -4729,265 +3521,44 @@ export default function FlashcardPlay() {
         renderFlyToolbar(false)
       )}
 
-      {!shouldShowRoadmapStepCompleteScreen && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
-      <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[190] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
-        <div className="max-w-2xl mx-auto w-full flex flex-col">
-          {(activeBottomTab === 'flashcard' || !isFeedbackOpen) && (
-            <>
-              {/* Hint Popup Bubble */}
-              <AnimatePresence>
-                {showingHint && currentQuestion?.hint && !isFlipped && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="mx-3 sm:mx-4 mt-3 p-3.5 bg-amber-50 border border-amber-100 rounded-2xl shadow-md text-xs font-semibold text-amber-850 leading-relaxed relative flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-2"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="w-5.5 h-5.5 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm text-white font-black text-xs">
-                      💡
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="font-black text-[9px] uppercase tracking-wider text-amber-600 block mb-0.5">💡 AI Hint</span>
-                      {currentQuestion.hint}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowingHint(false);
-                      }}
-                      className="text-amber-400 hover:text-amber-600 active:scale-95 transition-all p-0.5 hover:bg-amber-100 rounded-lg"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* PRIMARY ACTION ZONE (Single Clean Thumb-Reachable 1-Row Action Bar) */}
-              <div className="w-full px-3 sm:px-4 py-2">
-                {mainTab === 'practice' ? (
-                  practiceAnswers[currentIndex] !== undefined ? (
-                    <button 
-                      onClick={handleNext}
-                      className="w-full h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
-                    >
-                      <span>Continue</span>
-                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <div className="flex gap-2 h-12 w-full">
-                      <button
-                        onClick={handleNext}
-                        className="flex-1 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
-                      >
-                        Skip <ChevronRight className="w-4 h-4" />
-                      </button>
-                      <div className="flex-[2] h-12 bg-slate-100 text-slate-400 font-black text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-                        Waiting...
-                      </div>
-                    </div>
-                  )
-                ) : !isFlipped ? (
-                  /* ── FRONT FACE: BIG FLIP CARD CTA BUTTON ── */
-                  <button 
-                    onClick={() => {
-                      setIsFlipped(true);
-                      setJustAnswered(true);
-                    }}
-                    className="w-full h-12 sm:h-13 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
-                  >
-                    <span>FLIP CARD</span>
-                    <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                    <ChevronRight className="w-4 h-4 rotate-90" />
-                  </button>
-                ) : !hasRated && activeMode !== 'flip' ? (
-                  /* ── BACK FACE: UNRATED (FSRS BUTTONS OR SWIPE GUIDE) ── */
-                  effectiveCardRatingMode === 'buttons' || effectiveCardRatingMode === 'both' ? (
-                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 w-full">
-                      {/* AGAIN (1) */}
-                      <button
-                        onClick={() => handleReviewRating(1)}
-                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100/90 text-rose-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                        title="Shortcut: 1"
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-rose-600">AGAIN</span>
-                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-rose-300 bg-rose-100 text-rose-700">1</kbd>
-                        </div>
-                        <span className="text-[11px] sm:text-xs font-black text-rose-700 mt-0.5">
-                          {getFSRSIntervals(currentQuestion?.fsrs)?.[1] || "10m"}
-                        </span>
-                      </button>
-
-                      {/* HARD (2) */}
-                      <button
-                        onClick={() => handleReviewRating(2)}
-                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-amber-200 bg-amber-50/80 hover:bg-amber-100/90 text-amber-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                        title="Shortcut: 2"
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-amber-600">HARD</span>
-                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-amber-300 bg-amber-100 text-amber-700">2</kbd>
-                        </div>
-                        <span className="text-[11px] sm:text-xs font-black text-amber-700 mt-0.5">
-                          {getFSRSIntervals(currentQuestion?.fsrs)?.[2] || "1d"}
-                        </span>
-                      </button>
-
-                      {/* GOOD (3) */}
-                      <button
-                        onClick={() => handleReviewRating(3)}
-                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border-2 border-indigo-300 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-600 shadow-xs ring-2 ring-indigo-400/20 active:scale-95 transition-all cursor-pointer group"
-                        title="Shortcut: 3"
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-indigo-600">GOOD</span>
-                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-indigo-300 bg-indigo-100 text-indigo-700">3</kbd>
-                        </div>
-                        <span className="text-[11px] sm:text-xs font-black text-indigo-700 mt-0.5">
-                          {getFSRSIntervals(currentQuestion?.fsrs)?.[3] || "4d"}
-                        </span>
-                      </button>
-
-                      {/* EASY (4) */}
-                      <button
-                        onClick={() => handleReviewRating(4)}
-                        className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                        title="Shortcut: 4"
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-emerald-600">EASY</span>
-                          <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-emerald-300 bg-emerald-100 text-emerald-700">4</kbd>
-                        </div>
-                        <span className="text-[11px] sm:text-xs font-black text-emerald-700 mt-0.5">
-                          {getFSRSIntervals(currentQuestion?.fsrs)?.[4] || "12d"}
-                        </span>
-                      </button>
-                    </div>
-                  ) : (
-                    /* SWIPE GUIDE INDICATOR */
-                    <div className="w-full h-11 bg-slate-100/80 rounded-2xl border border-slate-200/80 flex items-center justify-between px-4 text-xs font-black text-slate-500">
-                      <span className="flex items-center gap-1 text-rose-500">← Again</span>
-                      <span className="text-[10px] font-bold text-slate-400">Swipe card to rate</span>
-                      <span className="flex items-center gap-1 text-emerald-600">Good →</span>
-                    </div>
-                  )
-                ) : (
-                  /* ── BACK FACE: RATED (OR FLIP MODE FLIPPED) ── */
-                  <div className="w-full flex items-center gap-2 h-12 sm:h-13">
-                    {/* Undo button if rated */}
-                    {activelyRatedCurrentCard && hasRated && (
-                      <button
-                        onClick={handleUndoRating}
-                        className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                        title="Undo Rating"
-                      >
-                        <Undo2 className="w-3.5 h-3.5" />
-                        <span>Undo</span>
-                      </button>
-                    )}
-
-                    {/* NEXT CARD button */}
-                    <button 
-                      onClick={handleNext}
-                      className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
-                    >
-                      <span>NEXT CARD</span>
-                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Interactive Navigation Tabs (Always Accessible) */}
-          <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden">
-            {/* 1. Card Map Tab */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsStatsOpen(false);
-                setIsMapOpen(true);
-                setIsFeedbackOpen(false);
-              }}
-              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Card Map"
-            >
-              {activeBottomTab === 'map' && (
-                <motion.div
-                  layoutId="activeBottomTabBg"
-                  className="absolute inset-0 bg-amber-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                activeBottomTab === 'map' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-              )}>
-                <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-                MAP
-              </span>
-            </button>
-            {/* 2. Flashcard Active View Tab */}
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMapOpen(false);
-                setIsStatsOpen(false);
-                setIsFeedbackOpen(false);
-              }}
-              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Current Flashcard"
-            >
-              {activeBottomTab === 'flashcard' && (
-                <motion.div
-                  layoutId="activeBottomTabBg"
-                  className="absolute inset-0 bg-amber-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                activeBottomTab === 'flashcard' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-              )}>
-                <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                FLASHCARD
-              </span>
-            </button>
-            {/* 3. Stats Tab */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMapOpen(false);
-                setIsStatsOpen(true);
-                setIsFeedbackOpen(false);
-              }}
-              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-              title="Study Stats"
-            >
-              {activeBottomTab === 'stats' && (
-                <motion.div
-                  layoutId="activeBottomTabBg"
-                  className="absolute inset-0 bg-amber-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-                activeBottomTab === 'stats' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-              )}>
-                <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-                STATS
-              </span>
-            </button>
-          </div>
-        </div>
-      </footer>
-      )}
+      <FlashcardActionDock
+        shouldShowRoadmapStepCompleteScreen={shouldShowRoadmapStepCompleteScreen}
+        mainTab={mainTab}
+        practiceNeedsSetup={practiceNeedsSetup}
+        practiceAnswers={practiceAnswers}
+        currentIndex={currentIndex}
+        activeBottomTab={activeBottomTab}
+        isFeedbackOpen={isFeedbackOpen}
+        showingHint={showingHint}
+        setShowingHint={setShowingHint}
+        currentQuestion={currentQuestion}
+        isFlipped={isFlipped}
+        setIsFlipped={setIsFlipped}
+        setJustAnswered={setJustAnswered}
+        hasRated={selectedOption !== null}
+        activeMode={activeMode}
+        effectiveCardRatingMode={effectiveCardRatingMode}
+        handleReviewRating={handleReviewRating}
+        handleNext={handleNext}
+        handleUndoRating={handleUndoRating}
+        activelyRatedCurrentCard={activelyRatedCurrentCard}
+        onOpenMap={() => {
+          setIsMapOpen(true);
+          setIsStatsOpen(false);
+          setIsFeedbackOpen(false);
+        }}
+        onOpenFlashcard={() => {
+          setIsMapOpen(false);
+          setIsStatsOpen(false);
+          setIsFeedbackOpen(false);
+        }}
+        onOpenStats={() => {
+          setIsMapOpen(false);
+          setIsStatsOpen(true);
+          setIsFeedbackOpen(false);
+        }}
+        getFSRSIntervals={getFSRSIntervals}
+      />
 
 
       {/* ✅ SESSION COMPLETE SUMMARY MODAL */}
@@ -5001,86 +3572,31 @@ export default function FlashcardPlay() {
         onNavigateToDeck={() => navigate(`/decks/${id}`)}
       />
 
-      {/* Mobile Question Map Modal */}
-      <AnimatePresence>
-        {isMapOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 30 }} 
-            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
-          >
-            {/* Header */}
-            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-              <button 
-                onClick={() => setIsMapOpen(false)} 
-                className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-                title="Quay lại thẻ học"
-              >
-                <ChevronLeft className="w-4.5 h-4.5" />
-              </button>
-              {(() => {
-                const info = getMapTitleInfo(mobileMapFilterMode);
-                const count = getFilteredCount(mobileMapFilterMode);
-                return (
-                  <div className="flex flex-col min-w-0">
-                    <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
-                      {info.title} ({count})
-                    </h2>
-                    <p className="text-[9px] text-slate-400 font-bold">
-                      {info.subtitle}
-                    </p>
-                  </div>
-                );
-              })()}
-            </header>
+      <FlashcardModalsContainer
+        id={id!}
+        session={session}
+        user={user}
+        gamify={gamify}
+        currentIndex={currentIndex}
+        mainTab={mainTab}
+        practiceAnswers={practiceAnswers}
+        sessionAnswers={sessionAnswers}
+        navigateToQuestion={navigateToQuestion}
+        userSettings={userSettings}
+        updateUserSettings={updateUserSettings}
+        setActiveMode={setActiveMode}
+        navigate={navigate}
 
-            {/* Grid Area */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-              <QuestionMapGrid
-                questions={session.questions}
-                mainTab={mainTab}
-                practiceAnswers={practiceAnswers}
-                sessionAnswers={sessionAnswers}
-                currentIndex={currentIndex}
-                navigateToQuestion={navigateToQuestion}
-                setIsMapOpen={setIsMapOpen}
-                filterMode={mobileMapFilterMode}
-                setFilterMode={setMobileMapFilterMode}
-                showFiltersInline={false}
-              />
-            </div>
+        // Question Map Modal
+        isMapOpen={isMapOpen}
+        setIsMapOpen={setIsMapOpen}
+        mobileMapFilterMode={mobileMapFilterMode}
+        setMobileMapFilterMode={setMobileMapFilterMode}
+        getFilteredCount={getFilteredCount}
 
-            {/* Bottom Reachable Dismiss Bar & Filters */}
-            <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-3 flex flex-col gap-2.5">
-              {/* Filter Dropdown at the Bottom for reachability */}
-              <div className="px-4 pt-2">
-                <div className="relative w-full">
-                  <select
-                     value={mobileMapFilterMode}
-                     onChange={(e) => setMobileMapFilterMode(e.target.value as any)}
-                     className="w-full h-10 pl-4 pr-10 bg-slate-100/80 border border-slate-200/50 rounded-xl text-xs font-black uppercase tracking-wider text-slate-700 outline-none appearance-none cursor-pointer focus:border-indigo-300 focus:bg-white transition-all shadow-sm"
-                  >
-                     <option value="all">📁 All Cards</option>
-                     <option value="unseen">📖 Unseen</option>
-                     <option value="learning">🧠 Learning</option>
-                     <option value="mastered">🏆 Mastered</option>
-                     <option value="hard">🔥 Hard Cards</option>
-                     <option value="starred">⭐ Starred</option>
-                     <option value="ignored">🚫 Ignored</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile Stats Drawer */}
-      <PlayStatsDrawer
-        isOpen={isStatsOpen}
-        onClose={() => setIsStatsOpen(false)}
+        // Stats Drawer
+        isStatsOpen={isStatsOpen}
+        setIsStatsOpen={setIsStatsOpen}
         activeStatsTab={activeStatsTab}
         setActiveStatsTab={setActiveStatsTab}
         dailyComparisonData={dailyComparisonData || []}
@@ -5088,98 +3604,58 @@ export default function FlashcardPlay() {
         isDailyComparisonLoading={isDailyComparisonLoading}
         activeGoal={activeGoal}
         activeMode={activeMode}
-        gamify={gamify}
         xpLeaderboard={xpLeaderboard}
         userRank={userRank}
         leaderboardMsg={leaderboardMsg}
-        user={user}
-        currentCard={currentQuestion}
-        currentIndex={currentIndex}
-        session={session}
-        sessionStatsNode={renderSessionStats()}
-      />
+        currentQuestion={currentQuestion}
+        renderSessionStats={renderSessionStats}
 
-      {/* Mobile Feedback Modal */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 50 }} 
-            className="fixed inset-0 z-[500] bg-[#F8FAFC] xl:hidden flex flex-col"
-          >
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <FeedbackArea
-                showFeedback={showFeedback}
-                activeFeedbackTab={activeFeedbackTab}
-                setActiveFeedbackTab={setActiveFeedbackTab}
-                getInsightText={getInsightText}
-                isEditingInsight={isEditingInsight}
-                insightInput={insightInput}
-                setInsightInput={setInsightInput}
-                currentQuestion={currentQuestion}
-                canEdit={canEdit}
-                clearAIExplanation={clearAIExplanation}
-                isEditingAI={isEditingAI}
-                setIsEditingAI={setIsEditingAI}
-                isEditingPrompt={isEditingPrompt}
-                setIsEditingPrompt={setIsEditingPrompt}
-                askAI={askAI}
-                isAskingAI={isAskingAI}
-                aiInput={aiInput}
-                setAiInput={setAiInput}
-                promptInput={promptInput}
-                setPromptInput={setPromptInput}
-                savePrompt={savePrompt}
-                saveNote={saveNote}
-                personalNote={personalNote}
-                setPersonalNote={setPersonalNote}
-                isEditingNote={isEditingNote}
-                setIsEditingNote={setIsEditingNote}
-                isMobile={true}
-                setIsFeedbackOpen={setIsFeedbackOpen}
-                handleEditCurrentTab={handleEditCurrentTab}
-                isCopyMenuOpen={isCopyMenuOpen}
-                setIsCopyMenuOpen={setIsCopyMenuOpen}
-                copyCurrentTabContent={copyCurrentTabContent}
-                isCopied={isCopied}
-                handleNext={handleNext}
-                deckInfo={session}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        // Feedback Modal
+        isFeedbackOpen={isFeedbackOpen}
+        setIsFeedbackOpen={setIsFeedbackOpen}
+        showFeedback={showFeedback}
+        activeFeedbackTab={activeFeedbackTab}
+        setActiveFeedbackTab={setActiveFeedbackTab}
+        getInsightText={getInsightText}
+        isEditingInsight={isEditingInsight}
+        insightInput={insightInput}
+        setInsightInput={setInsightInput}
+        canEdit={canEdit}
+        clearAIExplanation={clearAIExplanation}
+        isEditingAI={isEditingAI}
+        setIsEditingAI={setIsEditingAI}
+        isEditingPrompt={isEditingPrompt}
+        setIsEditingPrompt={setIsEditingPrompt}
+        askAI={askAI}
+        isAskingAI={isAskingAI}
+        aiInput={aiInput}
+        setAiInput={setAiInput}
+        promptInput={promptInput}
+        setPromptInput={setPromptInput}
+        savePrompt={savePrompt}
+        saveNote={saveNote}
+        personalNote={personalNote}
+        setPersonalNote={setPersonalNote}
+        isEditingNote={isEditingNote}
+        setIsEditingNote={setIsEditingNote}
+        handleEditCurrentTab={handleEditCurrentTab}
+        isCopyMenuOpen={isCopyMenuOpen}
+        setIsCopyMenuOpen={setIsCopyMenuOpen}
+        copyCurrentTabContent={copyCurrentTabContent}
+        isCopied={isCopied}
+        handleNext={handleNext}
 
-      {/* ⚡ LIMITLESS MODE SCREEN FLASH OVERLAY */}
-      <AnimatePresence>
-        {isLimitlessStrike && (
-          <div className="pointer-events-none fixed inset-0 z-[1999] border-[8px] border-amber-400/50 shadow-[inset_0_0_100px_rgba(245,158,11,0.4)] animate-pulse flex items-center justify-center">
-            <motion.div 
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: [1, 1.15, 1], opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 tracking-widest drop-shadow-[0_0_15px_rgba(245,158,11,0.7)] uppercase text-center"
-            >
-              ⚡ OVERDRIVE STRIKE! ⚡
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+        // Overdrive Strike
+        isLimitlessStrike={isLimitlessStrike}
 
-      {/* 🏆 DAILY GOAL CELEBRATION MODAL */}
-      <GoalCelebrationModal
-        isOpen={showGoalCelebration}
-        onClose={() => setShowGoalCelebration(false)}
+        // Goal Celebration
+        showGoalCelebration={showGoalCelebration}
+        setShowGoalCelebration={setShowGoalCelebration}
         goalToast={goalToast}
-      />
 
-      {/* Smart Settings Modal */}
-      <PlaySettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        activeMode={activeMode}
+        // Settings Modal
+        isSettingsModalOpen={isSettingsModalOpen}
+        setIsSettingsModalOpen={setIsSettingsModalOpen}
         applyLearningMode={applyLearningMode}
         autoPlayAudio={autoPlayAudio}
         setAutoPlayAudio={setAutoPlayAudio}
@@ -5187,33 +3663,27 @@ export default function FlashcardPlay() {
         setSfxEnabled={setSfxEnabled}
         hapticEnabled={hapticEnabled}
         setHapticEnabled={setHapticEnabled}
-        showFeedback={showFeedback}
         copyQuestionToClipboard={copyQuestionToClipboard}
-        currentQuestion={currentQuestion}
         handleIgnoreQuestion={handleIgnoreQuestion}
         handleStarQuestion={handleStarQuestion}
-        isStarred={Boolean(currentQuestion?.is_starred)}
         openEditModal={openEditModal}
         setIsQuitModalOpen={setIsQuitModalOpen}
         quickLearnEnabled={quickLearnEnabled}
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
         setShowImages={setShowImages}
-        showFsrs={effectiveShowFsrs}
-        setShowFsrs={(val: boolean) => {
-          setShowFsrs(val);
-          updateUserSettings({ show_fsrs: val });
-        }}
+        effectiveShowFsrs={effectiveShowFsrs}
+        setShowFsrs={setShowFsrs}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
-        onResetToCreatorDefaults={resetToCreatorDefaults}
+        resetToCreatorDefaults={resetToCreatorDefaults}
         studyProfiles={studyProfiles}
         activeProfileId={activeProfileId}
-        onApplyProfile={applyProfile}
-        onCreateCustomProfile={createCustomProfile}
-        onDeleteCustomProfile={deleteCustomProfile}
+        applyProfile={applyProfile}
+        createCustomProfile={createCustomProfile}
+        deleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         frontFontSize={frontFontSize}
@@ -5224,87 +3694,33 @@ export default function FlashcardPlay() {
         setFrontValign={setFrontValign}
         backValign={backValign}
         setBackValign={setBackValign}
-        cardFlipTrigger={deckCardFlipTrigger || userSettings.card_flip_trigger || 'both'}
-        setCardFlipTrigger={(val) => {
-          setCardFlipTrigger(val);
-          saveGeneralSettings({ card_flip_trigger: val });
-        }}
-        cardRatingMode={deckCardRatingMode || userSettings.card_rating_mode || 'both'}
-        setCardRatingMode={(val) => {
-          setCardRatingMode(val);
-          saveGeneralSettings({ card_rating_mode: val });
-        }}
-        isCreator={Boolean(session?.is_creator || session?.creator_id === user?.id || user?.role === 'admin')}
-        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
-      />
+        deckCardFlipTrigger={deckCardFlipTrigger}
+        setCardFlipTrigger={setCardFlipTrigger}
+        saveGeneralSettings={saveGeneralSettings}
+        deckCardRatingMode={deckCardRatingMode}
+        setCardRatingMode={setCardRatingMode}
+        saveAsCreatorDefaults={saveAsCreatorDefaults}
 
-      {/* Exit Confirmation Modal */}
-      <QuitSessionModal
-        isOpen={isQuitModalOpen}
-        onClose={() => setIsQuitModalOpen(false)}
-        onConfirmQuit={() => navigate(`/decks/${id}`)}
-      />
-      <FlashcardEditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        flashcard={editFormData}
-        onSave={handleSaveEdit}
-        isSaving={isSavingEdit}
-        availableColumns={session?.column_order || session?.custom_columns || []}
-      />
+        // Quit Modal
+        isQuitModalOpen={isQuitModalOpen}
 
+        // Edit Modal
+        isEditModalOpen={isEditModalOpen}
+        setIsEditModalOpen={setIsEditModalOpen}
+        editFormData={editFormData}
+        handleSaveEdit={handleSaveEdit}
+        isSavingEdit={isSavingEdit}
 
+        // Local Toast
+        localToast={localToast}
 
-
-
-      {/* Intrusive mid-session popups (Badge & Milestone) disabled per user request */}
-      {/* Local Toast Overlay */}
-      <AnimatePresence>
-        {localToast.visible && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-[3000] flex items-center gap-3 px-4 py-3 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 text-white"
-            style={{
-              backgroundColor: localToast.type === 'error' 
-                ? 'rgba(239, 68, 68, 0.95)' 
-                : localToast.type === 'warning'
-                ? 'rgba(245, 158, 11, 0.95)'
-                : 'rgba(16, 185, 129, 0.95)',
-              borderColor: localToast.type === 'error'
-                ? 'rgba(248, 113, 113, 0.4)'
-                : localToast.type === 'warning'
-                ? 'rgba(251, 191, 36, 0.4)'
-                : 'rgba(52, 211, 153, 0.4)'
-            }}
-          >
-            {localToast.type === 'error' && <XCircle className="w-5 h-5 text-red-100" />}
-            {localToast.type === 'warning' && <AlertCircle className="w-5 h-5 text-amber-100" />}
-            {localToast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-100" />}
-            <span className="font-bold text-sm tracking-wide">{localToast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Zoomed Image Modal Overlay */}
-      <ImageZoomOverlay
+        // Zoomed Image
         zoomedImage={zoomedImage}
-        onClose={() => setZoomedImage(null)}
-      />
+        setZoomedImage={setZoomedImage}
 
-      {/* ── STUDY CONSOLE MODAL ── */}
-      <StudyConsoleModal
-        isOpen={isStudyConsoleOpen}
-        onClose={() => setIsStudyConsoleOpen(false)}
-        session={session}
-        deckId={id}
-        onSelectMode={(selectedMode) => {
-          setIsStudyConsoleOpen(false);
-          updateUserSettings({ quiz_learning_mode: selectedMode as any });
-          navigate(`/flashcard/${id}/play?mode=${selectedMode}`);
-          setActiveMode(selectedMode as any);
-        }}
+        // Study Console
+        isStudyConsoleOpen={isStudyConsoleOpen}
+        setIsStudyConsoleOpen={setIsStudyConsoleOpen}
       />
     </div>
   )

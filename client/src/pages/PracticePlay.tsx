@@ -1048,37 +1048,37 @@ export default function PracticePlay() {
       case 'ignored':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-sm">
-            🚫 BỎ QUA
+            🚫 IGNORED
           </span>
         );
       case 'starred':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white border border-amber-600 shadow-sm">
-            ★ ĐÃ GẮN SAO
+            ★ STARRED
           </span>
         );
       case 'hard':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-sm">
-            ⚠️ THỂ KHÓ
+            ⚠️ HARD
           </span>
         );
       case 'mastered':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-            🏆 ĐÃ THUỘC
+            🏆 MASTERED
           </span>
         );
       case 'learning':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm">
-            🌱 ĐANG HỌC
+            🌱 LEARNING
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-600 border border-slate-500/20 shadow-sm">
-            ⭐ MỚI
+            ⭐ NEW
           </span>
         );
     }
