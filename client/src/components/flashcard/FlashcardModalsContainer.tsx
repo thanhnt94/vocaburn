@@ -51,6 +51,8 @@ export interface FlashcardModalsContainerProps {
   leaderboardMsg: string
   currentQuestion: any
   renderSessionStats: () => React.ReactNode
+  cardHubSubTab?: 'stats' | 'insight' | 'card' | 'note' | 'community'
+  setCardHubSubTab?: (tab: 'stats' | 'insight' | 'card' | 'note' | 'community') => void
 
   // Feedback Modal
   isFeedbackOpen: boolean
@@ -198,6 +200,8 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   leaderboardMsg,
   currentQuestion,
   renderSessionStats,
+  cardHubSubTab,
+  setCardHubSubTab,
   isFeedbackOpen,
   setIsFeedbackOpen,
   showFeedback,
@@ -370,7 +374,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         )}
       </AnimatePresence>
 
-      {/* 2. Mobile Stats Drawer */}
+      {/* 2. Mobile Stats Drawer & Card Hub */}
       <PlayStatsDrawer
         isOpen={isStatsOpen}
         onClose={() => setIsStatsOpen(false)}
@@ -390,6 +394,48 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         currentIndex={currentIndex}
         session={session}
         sessionStatsNode={renderSessionStats()}
+        feedbackProps={{
+          showFeedback: true,
+          activeFeedbackTab,
+          setActiveFeedbackTab,
+          getInsightText,
+          isEditingInsight,
+          insightInput,
+          setInsightInput,
+          currentQuestion,
+          canEdit,
+          clearAIExplanation,
+          isEditingAI,
+          setIsEditingAI,
+          isEditingPrompt,
+          setIsEditingPrompt,
+          askAI,
+          isAskingAI,
+          aiInput,
+          setAiInput,
+          promptInput,
+          setPromptInput,
+          savePrompt,
+          saveNote,
+          personalNote,
+          setPersonalNote,
+          isEditingNote,
+          setIsEditingNote,
+          handleEditCurrentTab,
+          isCopyMenuOpen,
+          setIsCopyMenuOpen,
+          copyCurrentTabContent,
+          isCopied,
+          handleNext,
+          deckInfo: session
+        }}
+        initialCardSubTab={cardHubSubTab || (activeFeedbackTab as any) || 'stats'}
+        onCardSubTabChange={(subTab) => {
+          setCardHubSubTab?.(subTab);
+          if (subTab !== 'stats') {
+            setActiveFeedbackTab(subTab as any);
+          }
+        }}
       />
 
       {/* 3. Mobile Feedback Modal */}

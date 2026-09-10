@@ -53,6 +53,7 @@ export interface FlashcardFlyToolbarProps {
   showFlipBackBtn: boolean
   setIsFlipped: (val: boolean) => void
   setIsSettingsModalOpen: (val: boolean) => void
+  onOpenCardHub?: (subTab?: 'stats' | 'insight' | 'card' | 'note' | 'community') => void
 }
 
 export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
@@ -87,7 +88,8 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
   setIsFeedbackOpen,
   showFlipBackBtn,
   setIsFlipped,
-  setIsSettingsModalOpen
+  setIsSettingsModalOpen,
+  onOpenCardHub
 }) => {
   return (
     <>
@@ -123,32 +125,9 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
             )}
           </button>
 
-          {/* 2. Smart Hint Button (Only rendered if card has hint) */}
-          {showHintBtn && (
-            <>
-              <div className="w-[1px] h-3 bg-slate-200/80" />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowingHint(prev => !prev);
-                }}
-                className={cn(
-                  "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-                  showingHint
-                    ? "bg-amber-100 text-amber-700 ring-2 ring-amber-300"
-                    : "bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white"
-                )}
-                title={showingHint ? "Hide Hint" : "Show Hint (AI)"}
-              >
-                <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
-              </button>
-            </>
-          )}
-
           <div className="w-[1px] h-3 bg-slate-200/80" />
 
-          {/* 3. Quick Options Menu Button (Opens Bottom Sheet) */}
+          {/* 2. Quick Options Menu Button (Opens Bottom Sheet) */}
           <button
             type="button"
             onClick={(e) => {
@@ -357,13 +336,17 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
                   <span className="text-[10px] font-bold tracking-tight">{currentQuestion?.is_starred ? "Starred" : "Star"}</span>
                 </button>
 
-                {/* 8. Explain / Feedback Modal */}
+                {/* 8. Explain / Card Hub Modal */}
                 {showExplainBtn ? (
                   <button
                     type="button"
                     onClick={() => {
-                      if (mainTab === 'practice') setShowFeedback(true);
-                      setIsFeedbackOpen(true);
+                      if (onOpenCardHub) {
+                        onOpenCardHub('insight');
+                      } else {
+                        if (mainTab === 'practice') setShowFeedback(true);
+                        setIsFeedbackOpen(true);
+                      }
                       setIsFlyToolbarOpen(false);
                     }}
                     className={cn(
@@ -372,12 +355,12 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
                         ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
                         : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                     )}
-                    title="View Explanation & Details"
+                    title="View Card Insights & Explanation"
                   >
                     <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", justAnswered ? "bg-indigo-600 text-white shadow-2xs animate-pulse" : "bg-white text-slate-400 border border-slate-200/60")}>
                       <BookOpen className="w-4 h-4" />
                     </div>
-                    <span className="text-[10px] font-bold tracking-tight">Explain</span>
+                    <span className="text-[10px] font-bold tracking-tight">Card Hub</span>
                   </button>
                 ) : (
                   <div className="hidden sm:block" />

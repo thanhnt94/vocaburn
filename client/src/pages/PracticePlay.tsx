@@ -5375,13 +5375,13 @@ export default function PracticePlay() {
               <span className="block font-black">
                 {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
               </span>
-              <span className="text-[8px] font-bold text-slate-400 uppercase">Đã làm</span>
+              <span className="text-[8px] font-bold text-slate-400 uppercase">Answered</span>
             </div>
             <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-emerald-600">
               <span className="block font-black">
                 {mainTab === 'practice' ? practiceCorrectCount : Object.values(sessionAnswers).filter(Boolean).length}
               </span>
-              <span className="text-[8px] font-bold text-slate-400 uppercase">Đúng</span>
+              <span className="text-[8px] font-bold text-slate-400 uppercase">Correct</span>
             </div>
             <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-rose-500">
               <span className="block font-black">
@@ -5390,10 +5390,52 @@ export default function PracticePlay() {
                   : Object.values(sessionAnswers).filter(x => !x).length
                 }
               </span>
-              <span className="text-[8px] font-bold text-slate-400 uppercase">Sai</span>
+              <span className="text-[8px] font-bold text-slate-400 uppercase">Incorrect</span>
             </div>
           </div>
         }
+        feedbackProps={{
+          showFeedback: true,
+          activeFeedbackTab,
+          setActiveFeedbackTab,
+          selectedChoiceData,
+          getInsightText,
+          isEditingInsight,
+          insightInput,
+          setInsightInput,
+          currentQuestion,
+          canEdit,
+          clearAIExplanation,
+          isEditingAI,
+          setIsEditingAI,
+          isEditingPrompt,
+          setIsEditingPrompt,
+          askAI,
+          isAskingAI,
+          aiInput,
+          setAiInput,
+          promptInput,
+          setPromptInput,
+          savePrompt,
+          saveNote,
+          personalNote,
+          setPersonalNote,
+          isEditingNote,
+          setIsEditingNote,
+          handleEditCurrentTab,
+          isCopyMenuOpen,
+          setIsCopyMenuOpen,
+          copyCurrentTabContent,
+          isCopied,
+          handleNext,
+          deckInfo: session
+        }}
+        initialCardSubTab={activeFeedbackTab || 'stats'}
+        onCardSubTabChange={(subTab) => {
+          if (subTab !== 'stats') {
+            setActiveFeedbackTab(subTab as any);
+          }
+        }}
       />
 
       {/* Mobile Feedback Modal */}

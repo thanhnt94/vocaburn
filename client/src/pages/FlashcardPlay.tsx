@@ -373,6 +373,17 @@ export default function FlashcardPlay() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'insight' | 'community' | 'note' | 'card'>('insight')
+  const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('stats')
+
+  const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'card' | 'note' | 'community' = 'stats') => {
+    setCardHubSubTab(subTab)
+    if (subTab !== 'stats') {
+      setActiveFeedbackTab(subTab as any)
+    }
+    setIsStatsOpen(true)
+    setIsMapOpen(false)
+    setIsFeedbackOpen(false)
+  }
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [activeUnlockedBadge, setActiveUnlockedBadge] = useState<any | null>(null)
@@ -3116,6 +3127,7 @@ export default function FlashcardPlay() {
         showFlipBackBtn={showFlipBackBtn}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
+        onOpenCardHub={handleOpenCardHub}
       />
     );
   };
@@ -3568,9 +3580,7 @@ export default function FlashcardPlay() {
           setIsFeedbackOpen(false);
         }}
         onOpenStats={() => {
-          setIsMapOpen(false);
-          setIsStatsOpen(true);
-          setIsFeedbackOpen(false);
+          handleOpenCardHub('stats');
         }}
         getFSRSIntervals={getFSRSIntervals}
       />
@@ -3609,9 +3619,11 @@ export default function FlashcardPlay() {
         setMobileMapFilterMode={setMobileMapFilterMode}
         getFilteredCount={getFilteredCount}
 
-        // Stats Drawer
+        // Stats Drawer & Card Hub
         isStatsOpen={isStatsOpen}
         setIsStatsOpen={setIsStatsOpen}
+        cardHubSubTab={cardHubSubTab}
+        setCardHubSubTab={setCardHubSubTab}
         activeStatsTab={activeStatsTab}
         setActiveStatsTab={setActiveStatsTab}
         dailyComparisonData={dailyComparisonData || []}

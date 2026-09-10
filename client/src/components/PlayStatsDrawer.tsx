@@ -4,7 +4,7 @@ import {
   X, TrendingUp, Target, Trophy, Flame, ChevronLeft, Crown, Medal, Award, 
   Brain, Clock, Zap, Sparkles, BookOpen, Layers, CheckCircle2, XCircle, 
   AlertCircle, BarChart3, HelpCircle, History, RotateCcw, Volume2, Calendar,
-  ArrowUpRight, ArrowDownRight, Percent, Timer
+  ArrowUpRight, ArrowDownRight, Percent, Timer, FileText, StickyNote, MessageSquare
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import DailyComparisonChart from './DailyComparisonChart'
 import { parseUTCDate, formatRelativeTime, formatOverdueTime, getCardBoxId, getFSRSIntervals } from '@/lib/flashcard-utils'
 import { speakWithEdgeTTS } from '@/lib/audio'
+import { FeedbackArea } from './FeedbackArea'
 
 const getAvatarGradient = (username: string) => {
   if (!username) return 'from-slate-400 to-slate-500';
@@ -55,6 +56,9 @@ interface PlayStatsDrawerProps {
   session?: any
   sessionStatsNode?: React.ReactNode
   practiceStatsNode?: React.ReactNode
+  feedbackProps?: any
+  initialCardSubTab?: 'stats' | 'insight' | 'card' | 'note' | 'community'
+  onCardSubTabChange?: (tab: 'stats' | 'insight' | 'card' | 'note' | 'community') => void
 }
 
 export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
@@ -68,11 +72,23 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   currentCard,
   currentIndex = 0,
   session,
+  feedbackProps,
+  initialCardSubTab = 'stats',
+  onCardSubTabChange
 }) => {
   const navigate = useNavigate()
   
-  // 2 Primary Tabs: 'card' (Thẻ Này) vs 'deck' (Toàn Bộ Bộ Thẻ) vs 'rank' (Bảng Xếp Hạng & Mục Tiêu)
+  // 3 Primary Tabs: 'card' (Card Hub) vs 'deck' (Entire Deck) vs 'rank' (Leaderboard & Goals)
   const [statsViewMode, setStatsViewMode] = useState<'card' | 'deck' | 'rank'>('card')
+
+  // Sub-tabs for Card Hub: 'stats' | 'insight' | 'card' | 'note' | 'community'
+  const [cardSubTab, setCardSubTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>(initialCardSubTab)
+
+  useEffect(() => {
+    if (initialCardSubTab) {
+      setCardSubTab(initialCardSubTab)
+    }
+  }, [initialCardSubTab])
 
   // Detailed data states
   const [cardDetails, setCardDetails] = useState<any>(null)
@@ -234,17 +250,17 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
             <div className="flex items-center gap-2.5 min-w-0">
               <button 
                 onClick={onClose} 
-                className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200/70 rounded-xl text-slate-600 shadow-2xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all shrink-0"
-                title="Quay lại thẻ học"
+                className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200/70 rounded-xl text-slate-600 shadow-2xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all shrink-0 cursor-pointer"
+                title="Back to study"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <div className="flex flex-col min-w-0">
                 <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">
-                  {statsViewMode === 'card' ? 'Thống Kê Thẻ Này' : statsViewMode === 'deck' ? 'Thống Kê Toàn Bộ Bộ Thẻ' : 'Bảng Xếp Hạng & Mục Tiêu'}
+                  {statsViewMode === 'card' ? 'Card Hub & Insights' : statsViewMode === 'deck' ? 'Deck Overview & Analytics' : 'Leaderboard & Goals'}
                 </h2>
                 <p className="text-[9px] text-slate-400 font-bold truncate">
-                  {statsViewMode === 'card' ? `Thẻ #${currentIndex + 1}: ${currentCard?.content || ''}` : session?.title || 'Bộ thẻ'}
+                  {statsViewMode === 'card' ? `Card #${currentIndex + 1}: ${currentCard?.content || ''}` : session?.title || 'Deck Study'}
                 </p>
               </div>
             </div>
@@ -254,35 +270,35 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
               <button
                 onClick={() => setStatsViewMode('card')}
                 className={cn(
-                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer",
                   statsViewMode === 'card'
                     ? "bg-white text-indigo-600 shadow-xs border border-indigo-100 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                Thẻ này
+                Card Hub
               </button>
               <button
                 onClick={() => setStatsViewMode('deck')}
                 className={cn(
-                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer",
                   statsViewMode === 'deck'
                     ? "bg-white text-emerald-600 shadow-xs border border-emerald-100 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                Bộ thẻ
+                Deck
               </button>
               <button
                 onClick={() => setStatsViewMode('rank')}
                 className={cn(
-                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all",
+                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer",
                   statsViewMode === 'rank'
                     ? "bg-white text-amber-600 shadow-xs border border-amber-100 scale-105"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                Đua Top
+                Rank
               </button>
             </div>
           </header>
@@ -291,19 +307,19 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 custom-scrollbar space-y-4 text-left pb-16">
             
             {/* ─────────────────────────────────────────────────────────────
-                VIEW 1: THỐNG KÊ CHI TIẾT THẺ HIỆN TẠI (CURRENT CARD STATS)
+                VIEW 1: ALL-IN-ONE CARD HUB (STATS, INSIGHTS, NOTES, COMMUNITY)
                ───────────────────────────────────────────────────────────── */}
             {statsViewMode === 'card' && (
               <div className="space-y-4">
                 {/* 1. Header Card Info */}
-                <div className="bg-white p-4.5 rounded-3xl border border-slate-200/80 shadow-sm relative overflow-hidden space-y-3">
+                <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm relative overflow-hidden space-y-3">
                   <div className="h-1.5 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
                   
                   <div className="flex items-start justify-between gap-3 pt-1">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider">
-                          Thẻ #{currentIndex + 1}
+                          Card #{currentIndex + 1}
                         </span>
                         <span className={cn(
                           "px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider",
@@ -315,12 +331,12 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                         </span>
                         {cardInfo.consecutive_correct > 0 && (
                           <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 border border-orange-100 text-[9px] font-black">
-                            🔥 {cardInfo.consecutive_correct} đúng liên tiếp
+                            🔥 {cardInfo.consecutive_correct} correct streak
                           </span>
                         )}
                       </div>
-                      <h3 className="text-base font-black text-slate-800 leading-snug">
-                        {cardInfo.content || currentCard?.content || "Nội dung thẻ"}
+                      <h3 className="text-base sm:text-lg font-black text-slate-800 leading-snug">
+                        {cardInfo.content || currentCard?.content || "Card Content"}
                       </h3>
                       {cardInfo.explanation && (
                         <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
@@ -329,51 +345,164 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                       )}
                     </div>
                     <button
+                      type="button"
                       onClick={() => speakWithEdgeTTS(cardInfo.content || currentCard?.content || '')}
-                      className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100/60 flex items-center justify-center transition-all active:scale-90 shrink-0"
-                      title="Phát âm"
+                      className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100/60 flex items-center justify-center transition-all active:scale-90 shrink-0 cursor-pointer"
+                      title="Play Pronunciation"
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* 2. Four Hero KPI Cards for this Card */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {/* Lượt ôn */}
-                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tổng Lượt Ôn</span>
-                    <span className="text-lg font-black text-slate-800">{cardInfo.reviews_summary?.total_reviews ?? 0}</span>
-                    <span className="text-[8.5px] font-bold text-emerald-600">
-                      Tỉ lệ đúng: {cardInfo.reviews_summary?.accuracy_percent ?? 0}%
-                    </span>
-                  </div>
+                {/* 2. Sleek Sub-Tab Segmented Bar */}
+                <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-2xs gap-1 overflow-x-auto custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardSubTab('stats');
+                      onCardSubTabChange?.('stats');
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
+                      cardSubTab === 'stats'
+                        ? "bg-white text-indigo-600 shadow-xs border border-indigo-100 scale-[1.02]"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>FSRS Stats</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardSubTab('insight');
+                      feedbackProps?.setActiveFeedbackTab?.('insight');
+                      onCardSubTabChange?.('insight');
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
+                      cardSubTab === 'insight'
+                        ? "bg-white text-amber-600 shadow-xs border border-amber-100 scale-[1.02]"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Insights</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardSubTab('card');
+                      feedbackProps?.setActiveFeedbackTab?.('card');
+                      onCardSubTabChange?.('card');
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
+                      cardSubTab === 'card'
+                        ? "bg-white text-blue-600 shadow-xs border border-blue-100 scale-[1.02]"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Full Card</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardSubTab('note');
+                      feedbackProps?.setActiveFeedbackTab?.('note');
+                      onCardSubTabChange?.('note');
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
+                      cardSubTab === 'note'
+                        ? "bg-white text-emerald-600 shadow-xs border border-emerald-100 scale-[1.02]"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <StickyNote className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Notes</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardSubTab('community');
+                      feedbackProps?.setActiveFeedbackTab?.('community');
+                      onCardSubTabChange?.('community');
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shrink-0 cursor-pointer",
+                      cardSubTab === 'community'
+                        ? "bg-white text-purple-600 shadow-xs border border-purple-100 scale-[1.02]"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-purple-500" />
+                    <span>Community</span>
+                  </button>
+                </div>
 
-                  {/* Tổng thời gian học */}
+                {/* 3. Conditional Content Based on cardSubTab */}
+                {cardSubTab !== 'stats' ? (
+                  <div className="bg-white p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm">
+                    {feedbackProps ? (
+                      <FeedbackArea
+                        {...feedbackProps}
+                        activeFeedbackTab={cardSubTab as any}
+                        setActiveFeedbackTab={(tab: any) => {
+                          setCardSubTab(tab);
+                          feedbackProps.setActiveFeedbackTab?.(tab);
+                        }}
+                        currentQuestion={currentCard}
+                        deckInfo={session}
+                        embedded={true}
+                        showFeedback={true}
+                      />
+                    ) : (
+                      <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                        Card details not available.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Hero KPI Cards for this Card */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {/* Total Reviews */}
+                      <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Reviews</span>
+                        <span className="text-lg font-black text-slate-800">{cardInfo.reviews_summary?.total_reviews ?? 0}</span>
+                        <span className="text-[8.5px] font-bold text-emerald-600">
+                          Accuracy: {cardInfo.reviews_summary?.accuracy_percent ?? 0}%
+                        </span>
+                      </div>
+
+                  {/* Total Study Time */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tổng Thời Gian</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Time</span>
                     <span className="text-lg font-black text-indigo-600">
                       {formatSeconds(cardInfo.reviews_summary?.total_time_seconds || 0)}
                     </span>
                     <span className="text-[8.5px] font-bold text-slate-400">
-                      TB {cardInfo.reviews_summary?.avg_time_seconds ?? 0}s / lần
+                      Avg {cardInfo.reviews_summary?.avg_time_seconds ?? 0}s / review
                     </span>
                   </div>
 
                   {/* FSRS Stability */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Độ Bền Nhớ (S)</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Memory Stability (S)</span>
                     <span className="text-lg font-black text-purple-600">
-                      {cardInfo.fsrs?.stability ? `${Number(cardInfo.fsrs.stability).toFixed(1)}d` : 'Mới học'}
+                      {cardInfo.fsrs?.stability ? `${Number(cardInfo.fsrs.stability).toFixed(1)}d` : 'New'}
                     </span>
                     <span className="text-[8.5px] font-bold text-purple-500">
-                      Độ khó: {cardInfo.fsrs?.difficulty ? `${Number(cardInfo.fsrs.difficulty).toFixed(1)}/10` : 'Chuẩn'}
+                      Difficulty: {cardInfo.fsrs?.difficulty ? `${Number(cardInfo.fsrs.difficulty).toFixed(1)}/10` : 'Standard'}
                     </span>
                   </div>
 
-                  {/* FSRS Retrievability (Khả năng nhớ) */}
+                  {/* FSRS Retrievability */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Khả Năng Nhớ (R)</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Retrievability (R)</span>
                     <span className={cn(
                       "text-lg font-black",
                       (cardInfo.fsrs?.retrievability ?? 90) >= 80 ? "text-emerald-600" :
@@ -394,10 +523,10 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                       <BarChart3 className="w-3.5 h-3.5 text-indigo-500" />
-                      Phân Bố Các Lần Chọn Nút
+                      Rating Choices Distribution
                     </h4>
                     <span className="text-[9px] font-bold text-slate-400">
-                      {cardInfo.reviews_summary?.total_reviews ?? 0} lần đánh giá
+                      {cardInfo.reviews_summary?.total_reviews ?? 0} total ratings
                     </span>
                   </div>
 
@@ -436,29 +565,29 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                 <div className="bg-white p-4.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 text-xs font-semibold">
                   <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                     <Brain className="w-3.5 h-3.5 text-purple-500" />
-                    Thông Số FSRS & Lịch Học Chi Tiết
+                    FSRS Parameters & Intervals Forecast
                   </h4>
 
                   <div className="grid grid-cols-2 gap-2 text-[10.5px]">
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Trạng Thái FSRS</span>
-                      <span className="font-black text-slate-700">{cardInfo.fsrs?.state_label || 'Mới (New)'}</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase">FSRS State</span>
+                      <span className="font-black text-slate-700">{cardInfo.fsrs?.state_label || 'New'}</span>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Hạn Ôn Tập (Due)</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase">Due Date</span>
                       <span className={cn("font-black", formatOverdueTime(cardInfo.fsrs?.due).overdue ? "text-rose-600" : "text-emerald-600")}>
                         {formatOverdueTime(cardInfo.fsrs?.due).full}
                       </span>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Lần Ôn Cuối Cùng</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase">Last Review</span>
                       <span className="font-bold text-slate-700">{formatRelativeTime(cardInfo.fsrs?.last_review).full}</span>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Ngày Bắt Đầu Học</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase">First Learned</span>
                       <span className="font-bold text-slate-700">{formatRelativeTime(cardInfo.fsrs?.first_learned).full}</span>
                     </div>
                   </div>
@@ -466,7 +595,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   {/* Next Intervals Projections */}
                   <div className="pt-2 border-t border-slate-100">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">
-                      Khoảng Cách Hẹn Giờ Lần Tới (Next Intervals):
+                      Next Intervals Forecast:
                     </span>
                     <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] font-black">
                       <span className="py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-100">
@@ -490,10 +619,10 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                       <History className="w-3.5 h-3.5 text-indigo-500" />
-                      Lịch Sử Các Lần Ôn Tập
+                      Review History Timeline
                     </h4>
                     <span className="text-[9px] font-bold text-slate-400">
-                      {cardInfo.history_logs?.length || 0} lần gần nhất
+                      {cardInfo.history_logs?.length || 0} recent reviews
                     </span>
                   </div>
 
@@ -508,7 +637,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                           4: 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         };
                         const rColor = ratingColors[log.rating as keyof typeof ratingColors] || 'bg-slate-50 text-slate-600 border-slate-150';
-                        const rName = ratingNames[log.rating as keyof typeof ratingNames] || `Đánh giá ${log.rating || '?'}`;
+                        const rName = ratingNames[log.rating as keyof typeof ratingNames] || `Rating ${log.rating || '?'}`;
 
                         return (
                           <div 
@@ -540,12 +669,14 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                     </div>
                   ) : (
                     <div className="py-6 text-center text-[10.5px] font-semibold text-slate-400 italic">
-                      Chưa có lịch sử ôn tập nào được ghi nhận cho thẻ này.
+                      No review history recorded yet for this card.
                     </div>
                   )}
                 </div>
               </div>
             )}
+          </div>
+        )}
 
             {/* ─────────────────────────────────────────────────────────────
                 VIEW 2: THỐNG KÊ TOÀN BỘ BỘ THẺ (ENTIRE DECK STATS)

@@ -68,6 +68,7 @@ interface FeedbackAreaProps {
   handleNext: () => void
   selectedChoiceData?: any
   deckInfo?: any
+  embedded?: boolean
 }
 
 const getQuestionField = (question: any, key: string, useAiResponse: boolean = false): string => {
@@ -131,6 +132,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   isCopied,
   handleNext,
   deckInfo,
+  embedded = false,
 }) => {
 
   const insightTabs = React.useMemo(() => {
@@ -988,142 +990,219 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   }
 }
 
-if (!showFeedback) return null;
+  if (!showFeedback) return null;
 
-return (
-  <div className="flex flex-col h-full bg-[#F8FAFC]">
-    <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-2xs">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-black">
-          {activeFeedbackTab === 'insight' ? <Lightbulb className="w-4 h-4" /> :
-           activeFeedbackTab === 'card' ? <FileText className="w-4 h-4 text-blue-500" /> :
-           activeFeedbackTab === 'note' ? <StickyNote className="w-4 h-4 text-emerald-500" /> :
-           <MessageSquare className="w-4 h-4 text-purple-500" />}
-        </div>
-        <div>
-          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-            {activeFeedbackTab === 'insight' ? 'Trợ lý Giải thích & Ghi nhớ' :
-             activeFeedbackTab === 'card' ? 'Toàn bộ dữ liệu thẻ' :
-             activeFeedbackTab === 'note' ? 'Sổ tay Ghi chú cá nhân' :
-             'Cộng đồng thảo luận & Góp ý'}
-          </h3>
-        </div>
-      </div>
-    </div>
-    <div className="flex-1 flex flex-col overflow-y-auto p-3 sm:p-4 lg:p-6 custom-scrollbar pb-6">
-      {renderTabContent()}
-    </div>
-    <div className="bg-white/95 backdrop-blur-xl border-t border-slate-100 sticky bottom-0 z-50 flex-shrink-0 shadow-lg">
-      <div className="px-3 py-1.5 border-b border-slate-50 flex items-center justify-between gap-1.5 text-xs">
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          {isMobile && setIsFeedbackOpen && (
-            <button
-              onClick={() => setIsFeedbackOpen(false)}
-              className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer shrink-0"
-              title="Close Assistant"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>CLOSE</span>
-            </button>
-          )}
-          {activeFeedbackTab === 'note' && (
-            <button
-              onClick={handleEditCurrentTab}
-              className={cn(
-                "h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0",
-                isEditingNote
-                  ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
-                  : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600"
-              )}
-            >
-              {isEditingNote ? (
-                <>
-                  <Check className="w-3 h-3 stroke-[3]" />
-                  <span>SAVE NOTE</span>
-                </>
-              ) : (
-                <>
-                  <Edit3 className="w-3 h-3" />
-                  <span>EDIT NOTE</span>
-                </>
-              )}
-            </button>
-          )}
-          {activeFeedbackTab === 'card' && (
-            <button
-              onClick={handleEditCurrentTab}
-              className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0"
-            >
-              <Edit3 className="w-3 h-3" />
-              <span>EDIT CARD</span>
-            </button>
-          )}
-          {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
-            <button
-              onClick={() => copyCurrentTabContent()}
-              className={cn(
-                "h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0",
-                isCopied
-                  ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
-                  : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
-              )}
-            >
-              {isCopied ? <Check className="w-3 h-3 stroke-[3]" /> : <Copy className="w-3 h-3" />}
-              <span>{isCopied ? 'COPIED' : 'COPY'}</span>
-            </button>
-          )}
-        </div>
-        {isMobile && (
-          <button
-            onClick={() => {
-              handleNext();
-              if (setIsFeedbackOpen) setIsFeedbackOpen(false);
-            }}
-            className="h-8 px-3 flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-[10px] uppercase tracking-wider shadow-2xs active:scale-[0.98] transition-all cursor-pointer shrink-0"
-          >
-            <span>NEXT</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-      <div className="w-full grid grid-cols-4 bg-white p-0 relative">
-        {tabs.map((tab) => {
-          const isActive = activeFeedbackTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(8);
-                setActiveFeedbackTab(tab.id);
-              }}
-              className="relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 transition-all active:scale-95 overflow-hidden cursor-pointer"
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeFeedbackBottomTab"
-                  className="absolute inset-0 bg-orange-500/10"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <div className="relative z-10 flex items-center justify-center">
-                <tab.icon className={cn("w-4 h-4 transition-colors", isActive ? "text-orange-600" : "text-slate-400")} />
-                {tab.id === 'community' && contributions.length > 0 && (
-                  <span className="absolute -top-1.5 -right-2 px-1 py-0.2 bg-purple-600 text-white text-[8px] font-black rounded-full">
-                    {contributions.length}
-                  </span>
+  if (embedded) {
+    return (
+      <div className="flex flex-col w-full space-y-3">
+        {/* Action bar for current active tab (Edit Note, Edit Card, Copy) */}
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              {activeFeedbackTab === 'insight' ? 'AI Insights & Mnemonics' :
+               activeFeedbackTab === 'card' ? 'Full Card Data' :
+               activeFeedbackTab === 'note' ? 'Personal Note' :
+               'Community Comments'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {activeFeedbackTab === 'note' && (
+              <button
+                type="button"
+                onClick={handleEditCurrentTab}
+                className={cn(
+                  "h-7 px-2.5 flex items-center justify-center gap-1 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer",
+                  isEditingNote
+                    ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600"
                 )}
-              </div>
-              <span className={cn(
-                "relative z-10 text-[9px] font-extrabold uppercase tracking-wider truncate transition-colors",
-                isActive ? "text-orange-600 font-black" : "text-slate-400"
-              )}>
-                {tab.label}
-              </span>
+              >
+                {isEditingNote ? (
+                  <>
+                    <Check className="w-3 h-3 stroke-[3]" />
+                    <span>Save Note</span>
+                  </>
+                ) : (
+                  <>
+                    <Edit3 className="w-3 h-3" />
+                    <span>Edit Note</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {activeFeedbackTab === 'card' && (
+              <button
+                type="button"
+                onClick={handleEditCurrentTab}
+                className="h-7 px-2.5 flex items-center justify-center gap-1 rounded-xl border bg-white border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Edit Card</span>
+              </button>
+            )}
+
+            {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
+              <button
+                type="button"
+                onClick={() => copyCurrentTabContent()}
+                className={cn(
+                  "h-7 px-2.5 flex items-center justify-center gap-1 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer",
+                  isCopied
+                    ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
+                )}
+              >
+                {isCopied ? <Check className="w-3 h-3 stroke-[3]" /> : <Copy className="w-3 h-3" />}
+                <span>{isCopied ? 'Copied' : 'Copy'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tab Body */}
+        <div className="w-full">
+          {renderTabContent()}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-[#F8FAFC]">
+      <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-black">
+            {activeFeedbackTab === 'insight' ? <Lightbulb className="w-4 h-4" /> :
+             activeFeedbackTab === 'card' ? <FileText className="w-4 h-4 text-blue-500" /> :
+             activeFeedbackTab === 'note' ? <StickyNote className="w-4 h-4 text-emerald-500" /> :
+             <MessageSquare className="w-4 h-4 text-purple-500" />}
+          </div>
+          <div>
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+              {activeFeedbackTab === 'insight' ? 'Assistant Insights & Mnemonics' :
+               activeFeedbackTab === 'card' ? 'Full Card Content & Fields' :
+               activeFeedbackTab === 'note' ? 'Personal Notes Journal' :
+               'Community Discussion & Feedback'}
+            </h3>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col overflow-y-auto p-3 sm:p-4 lg:p-6 custom-scrollbar pb-6">
+        {renderTabContent()}
+      </div>
+      <div className="bg-white/95 backdrop-blur-xl border-t border-slate-100 sticky bottom-0 z-50 flex-shrink-0 shadow-lg">
+        <div className="px-3 py-1.5 border-b border-slate-50 flex items-center justify-between gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            {isMobile && setIsFeedbackOpen && (
+              <button
+                onClick={() => setIsFeedbackOpen(false)}
+                className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all cursor-pointer shrink-0"
+                title="Close Assistant"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>CLOSE</span>
+              </button>
+            )}
+            {activeFeedbackTab === 'note' && (
+              <button
+                onClick={handleEditCurrentTab}
+                className={cn(
+                  "h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0",
+                  isEditingNote
+                    ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600"
+                )}
+              >
+                {isEditingNote ? (
+                  <>
+                    <Check className="w-3 h-3 stroke-[3]" />
+                    <span>SAVE NOTE</span>
+                  </>
+                ) : (
+                  <>
+                    <Edit3 className="w-3 h-3" />
+                    <span>EDIT NOTE</span>
+                  </>
+                )}
+              </button>
+            )}
+            {activeFeedbackTab === 'card' && (
+              <button
+                onClick={handleEditCurrentTab}
+                className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>EDIT CARD</span>
+              </button>
+            )}
+            {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
+              <button
+                onClick={() => copyCurrentTabContent()}
+                className={cn(
+                  "h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0",
+                  isCopied
+                    ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
+                )}
+              >
+                {isCopied ? <Check className="w-3 h-3 stroke-[3]" /> : <Copy className="w-3 h-3" />}
+                <span>{isCopied ? 'COPIED' : 'COPY'}</span>
+              </button>
+            )}
+          </div>
+          {isMobile && (
+            <button
+              onClick={() => {
+                handleNext();
+                if (setIsFeedbackOpen) setIsFeedbackOpen(false);
+              }}
+              className="h-8 px-3 flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-[10px] uppercase tracking-wider shadow-2xs active:scale-[0.98] transition-all cursor-pointer shrink-0"
+            >
+              <span>NEXT</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
-          );
-        })}
+          )}
+        </div>
+        <div className="w-full grid grid-cols-4 bg-white p-0 relative">
+          {tabs.map((tab) => {
+            const isActive = activeFeedbackTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(8);
+                  setActiveFeedbackTab(tab.id);
+                }}
+                className="relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 transition-all active:scale-95 overflow-hidden cursor-pointer"
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeFeedbackBottomTab"
+                    className="absolute inset-0 bg-orange-500/10"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <div className="relative z-10 flex items-center justify-center">
+                  <tab.icon className={cn("w-4 h-4 transition-colors", isActive ? "text-orange-600" : "text-slate-400")} />
+                  {tab.id === 'community' && contributions.length > 0 && (
+                    <span className="absolute -top-1.5 -right-2 px-1 py-0.2 bg-purple-600 text-white text-[8px] font-black rounded-full">
+                      {contributions.length}
+                    </span>
+                  )}
+                </div>
+                <span className={cn(
+                  "relative z-10 text-[9px] font-extrabold uppercase tracking-wider truncate transition-colors",
+                  isActive ? "text-orange-600 font-black" : "text-slate-400"
+                )}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
 }
