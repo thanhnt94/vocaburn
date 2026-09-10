@@ -372,10 +372,10 @@ export default function FlashcardPlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('stats')
-  const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('stats')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
+  const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
 
-  const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'card' | 'note' | 'community' = 'stats') => {
+  const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'note' | 'community' = 'stats') => {
     if (isFeedbackOpen && activeFeedbackTab === subTab) {
       setIsFeedbackOpen(false)
       return

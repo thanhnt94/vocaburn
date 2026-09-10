@@ -2,6 +2,7 @@ const bbcodeCache = new Map<string, string>();
 
 export const parseBBCodeToHtml = (text: string): string => {
   if (!text) return '';
+  if (typeof text !== 'string') return String(text);
   const cached = bbcodeCache.get(text);
   if (cached !== undefined) return cached;
 
@@ -31,6 +32,7 @@ export const parseBBCodeToHtml = (text: string): string => {
 
 export const stripBBCode = (text: string): string => {
   if (!text) return "";
+  if (typeof text !== 'string') return String(text);
   return text.replace(/\[\/?[a-zA-Z0-9=#_\-]+\]/g, '');
 };
 

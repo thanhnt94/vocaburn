@@ -56,8 +56,8 @@ interface PlayStatsDrawerProps {
   sessionStatsNode?: React.ReactNode
   practiceStatsNode?: React.ReactNode
   feedbackProps?: any
-  initialCardSubTab?: 'stats' | 'insight' | 'card' | 'note' | 'community'
-  onCardSubTabChange?: (tab: 'stats' | 'insight' | 'card' | 'note' | 'community') => void
+  initialCardSubTab?: 'stats' | 'insight' | 'note' | 'community'
+  onCardSubTabChange?: (tab: 'stats' | 'insight' | 'note' | 'community') => void
 }
 
 export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({

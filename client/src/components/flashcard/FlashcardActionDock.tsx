@@ -60,7 +60,10 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   if (mainTab === 'practice' && practiceNeedsSetup) return null
 
   return (
-    <footer className="relative w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[190] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+    <footer className={cn(
+      "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]",
+      (isFeedbackOpen || activeBottomTab === 'map') ? "fixed bottom-0 inset-x-0 md:relative" : "relative"
+    )}>
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {(activeBottomTab === 'flashcard' || !isFeedbackOpen) && (
           <>
@@ -235,7 +238,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
         )}
 
         {/* Interactive Navigation Tabs (Always Accessible on Mobile) */}
-        <div className="w-full grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden">
+        <div className="w-full h-12 grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden">
           {/* 1. Card Map Tab */}
           <button
             onClick={(e) => {

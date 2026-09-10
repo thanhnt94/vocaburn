@@ -38,7 +38,7 @@ interface Question {
   others?: Record<string, any> | null
 }
 
-export type CardHubTab = 'stats' | 'insight' | 'card' | 'note' | 'community'
+export type CardHubTab = 'stats' | 'insight' | 'note' | 'community'
 
 interface FeedbackAreaProps {
   showFeedback?: boolean
@@ -258,51 +258,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   const [activeInsightTab, setActiveInsightTab] = React.useState<string>('')
   const [openInsightTabs, setOpenInsightTabs] = React.useState<string[]>([])
-  const [activeFullCardTab, setActiveFullCardTab] = React.useState<string>('')
-  const [openFullCardTabs, setOpenFullCardTabs] = React.useState<string[]>([])
   
   const [isEditingAI, setIsEditingAI] = React.useState(false)
   const [isEditingPrompt, setIsEditingPrompt] = React.useState(false)
-
-  const allTabs = React.useMemo(() => {
-    const tabs: any[] = [
-      { id: 'front', title: 'Mặt trước (Front)', column: 'front' },
-      { id: 'back', title: 'Mặt sau (Back)', column: 'back' }
-    ]
-    let othersObj = currentQuestion?.others;
-    if (typeof othersObj === 'string') {
-      try { othersObj = JSON.parse(othersObj); } catch (e) {}
-    }
-    if (othersObj && typeof othersObj === 'object') {
-      Object.keys(othersObj).forEach((key) => {
-        if (key !== 'ai_responses' && key !== 'id' && key !== 'created_at' && key !== 'updated_at') {
-          if (key !== 'front' && key !== 'back' && !tabs.some(t => t.id === key)) {
-            tabs.push({
-              id: key,
-              title: key.toUpperCase().replace(/_/g, ' '),
-              column: key
-            })
-          }
-        }
-      })
-    }
-    if (currentQuestion?.mnemonic && !tabs.some(t => t.id === 'mnemonic')) {
-      tabs.push({ id: 'mnemonic', title: 'MNEMONIC', column: 'mnemonic' })
-    }
-    if (currentQuestion?.hint && !tabs.some(t => t.id === 'hint')) {
-      tabs.push({ id: 'hint', title: 'HINT', column: 'hint' })
-    }
-    return tabs
-  }, [currentQuestion])
-
-  const getTabContent = (tabId: string) => {
-    if (!currentQuestion) return ''
-    if (tabId === 'front' || tabId === 'content') return currentQuestion.content || ''
-    if (tabId === 'back' || tabId === 'explanation') return currentQuestion.explanation || ''
-    if (tabId === 'mnemonic') return currentQuestion.mnemonic || ''
-    if (tabId === 'hint') return currentQuestion.hint || ''
-    return getQuestionField(currentQuestion, tabId) || ''
-  }
 
   React.useEffect(() => {
     if (insightTabs.length > 0) {
@@ -314,17 +272,6 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       setOpenInsightTabs(insightTabs.map((t: any) => t.id))
     }
   }, [insightTabs])
-
-  React.useEffect(() => {
-    if (allTabs.length > 0) {
-      if (!activeFullCardTab || !allTabs.some((t: any) => t.id === activeFullCardTab)) {
-        const firstId = allTabs[0].id
-        setActiveFullCardTab(firstId)
-      }
-      // Expand all tabs by default when loading a new card/deck
-      setOpenFullCardTabs(allTabs.map((t: any) => t.id))
-    }
-  }, [allTabs])
 
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
@@ -697,10 +644,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   const tabs = React.useMemo(() => [
     { id: 'stats' as const, label: 'Stats', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: true },
     { id: 'insight' as const, label: 'Insight', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() },
-    { id: 'card' as const, label: 'Full Card', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: allTabs.some(t => !!getTabContent(t.id)) },
     { id: 'note' as const, label: 'Note', icon: StickyNote, color: 'text-emerald-500', bg: 'bg-emerald-100', hasContent: !!personalNote },
     { id: 'community' as const, label: 'Community', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 }
-  ], [hasInsightAnyContent, allTabs, personalNote, contributions.length]);
+  ], [hasInsightAnyContent, personalNote, contributions.length]);
 
   React.useEffect(() => {
     if (tabs.length > 0 && !tabs.some(t => t.id === activeFeedbackTab)) {
@@ -1122,170 +1068,19 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
           )}
         </div>
       )
-    case 'card':
-      return (
-        <div className="space-y-3.5 animate-in fade-in slide-in-from-bottom-2">
-          <div className="bg-blue-50/60 rounded-2xl p-3 border border-blue-100/80 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-xs">
-                <FileText className="w-4.5 h-4.5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-blue-950 uppercase tracking-tight">
-                  Full Card Structure & Fields
-                </h4>
-                <p className="text-[10px] font-semibold text-blue-600/80">
-                  Card ID: #{currentQuestion?.id || 'N/A'} • {allTabs.length} fields
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                Front Face (Prompt / Question)
-              </span>
-              <div className="flex items-center gap-1">
-                {canEdit && (
-                  <button
-                    onClick={handleEditCurrentTab}
-                    className="text-[10px] font-bold text-blue-500 hover:text-blue-700 flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
-                    title="Edit Front"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>Edit</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => copyCurrentTabContent('question')}
-                  className="text-[10px] font-bold text-slate-400 hover:text-slate-700 flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
-                  title="Copy Front"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>Copy</span>
-                </button>
-              </div>
-            </div>
-            <div className="text-slate-900 font-extrabold text-sm sm:text-base leading-relaxed break-words bg-slate-50/70 p-3 rounded-xl border border-slate-100 select-text">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                components={{
-                  ...MarkdownComponents,
-                  p: ({ children }) => <span>{children}</span>
-                }}
-              >
-                {parseBBCodeToHtml(currentQuestion?.content || 'No content')}
-              </ReactMarkdown>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                Back Face (Answer / Explanation)
-              </span>
-              <div className="flex items-center gap-1">
-                {canEdit && (
-                  <button
-                    onClick={handleEditCurrentTab}
-                    className="text-[10px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-orange-50 rounded-md transition-colors cursor-pointer"
-                    title="Edit Back"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>Edit</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => copyCurrentTabContent('default')}
-                  className="text-[10px] font-bold text-orange-500 hover:text-orange-700 flex items-center gap-0.5 px-1.5 py-0.5 hover:bg-orange-50 rounded-md transition-colors cursor-pointer"
-                  title="Copy Back"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>Copy</span>
-                </button>
-              </div>
-            </div>
-            <div className="text-slate-800 font-bold text-xs sm:text-sm leading-relaxed break-words bg-orange-50/30 p-3 rounded-xl border border-orange-100/50 select-text">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                components={{
-                  ...MarkdownComponents,
-                  p: ({ children }) => <span>{children}</span>
-                }}
-              >
-                {parseBBCodeToHtml(currentQuestion?.explanation || currentQuestion?.ai_explanation || 'No explanation provided')}
-              </ReactMarkdown>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs space-y-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-              Attributes & Extended Columns ({allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length})
-            </span>
-            {allTabs.filter(t => t.id !== 'front' && t.id !== 'back').length === 0 ? (
-              <p className="text-[11px] font-medium text-slate-400 italic bg-slate-50 p-3 rounded-xl text-center">
-                This card only contains basic Front and Back fields.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {allTabs.filter(t => t.id !== 'front' && t.id !== 'back').map((tab: any) => {
-                  const val = getTabContent(tab.id)
-                  return (
-                    <div key={tab.id} className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 space-y-1">
-                      <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                        <span>{tab.title}</span>
-                        <div className="flex items-center gap-1.5">
-                          {canEdit && (
-                            <button
-                              onClick={handleEditCurrentTab}
-                              className="text-blue-500 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer"
-                              title={`Edit ${tab.title}`}
-                            >
-                              <Edit3 className="w-2.5 h-2.5" />
-                              <span>Edit</span>
-                            </button>
-                          )}
-                          {val && (
-                            <button
-                              onClick={() => {
-                                navigator.clipboard?.writeText(val);
-                                if (navigator.vibrate) navigator.vibrate(8);
-                              }}
-                              className="text-slate-400 hover:text-slate-600 flex items-center gap-0.5 cursor-pointer"
-                              title="Copy Value"
-                            >
-                              <Copy className="w-2.5 h-2.5" />
-                              <span>Copy</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs font-semibold text-slate-800 break-words select-text">
-                        {val ? parseBBCodeToHtml(val) : <span className="text-slate-400 italic">Empty</span>}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )
   }
 }
 
   if (embedded) {
     return (
       <div className="flex flex-col w-full space-y-3">
-        {/* Action bar for current active tab (Edit Note, Edit Card, Copy) */}
+        {/* Action bar for current active tab (Edit Note, Copy) */}
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
               {activeFeedbackTab === 'insight' ? 'AI Insights & Mnemonics' :
-               activeFeedbackTab === 'card' ? 'Full Card Data' :
                activeFeedbackTab === 'note' ? 'Personal Note' :
+               activeFeedbackTab === 'stats' ? 'Card Performance & FSRS Stats' :
                'Community Comments'}
             </span>
           </div>
@@ -1316,18 +1111,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               </button>
             )}
 
-            {activeFeedbackTab === 'card' && (
-              <button
-                type="button"
-                onClick={handleEditCurrentTab}
-                className="h-7 px-2.5 flex items-center justify-center gap-1 rounded-xl border bg-white border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
-              >
-                <Edit3 className="w-3 h-3" />
-                <span>Edit Card</span>
-              </button>
-            )}
-
-            {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
+            {activeFeedbackTab === 'insight' && (
               <button
                 type="button"
                 onClick={() => copyCurrentTabContent()}
@@ -1362,13 +1146,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             "w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 transition-colors",
             activeFeedbackTab === 'stats' ? "bg-indigo-50 text-indigo-600" :
             activeFeedbackTab === 'insight' ? "bg-amber-50 text-amber-600" :
-            activeFeedbackTab === 'card' ? "bg-blue-50 text-blue-600" :
             activeFeedbackTab === 'note' ? "bg-emerald-50 text-emerald-600" :
             "bg-purple-50 text-purple-600"
           )}>
             {activeFeedbackTab === 'stats' ? <BarChart3 className="w-4 h-4" /> :
              activeFeedbackTab === 'insight' ? <Sparkles className="w-4 h-4" /> :
-             activeFeedbackTab === 'card' ? <FileText className="w-4 h-4" /> :
              activeFeedbackTab === 'note' ? <StickyNote className="w-4 h-4" /> :
              <MessageSquare className="w-4 h-4" />}
           </div>
@@ -1376,7 +1158,6 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider truncate">
               {activeFeedbackTab === 'stats' ? 'Card Performance & FSRS Stats' :
                activeFeedbackTab === 'insight' ? 'Assistant Insights & Mnemonics' :
-               activeFeedbackTab === 'card' ? 'Full Card Content & Fields' :
                activeFeedbackTab === 'note' ? 'Personal Notes Journal' :
                'Community Discussion & Feedback'}
             </h3>
@@ -1465,17 +1246,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               </button>
             )}
 
-            {activeFeedbackTab === 'card' && (
-              <button
-                onClick={handleEditCurrentTab}
-                className="h-8 px-2.5 flex items-center justify-center gap-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0"
-              >
-                <Edit3 className="w-3 h-3" />
-                <span>EDIT CARD</span>
-              </button>
-            )}
-
-            {(activeFeedbackTab === 'insight' || activeFeedbackTab === 'card') && (
+            {activeFeedbackTab === 'insight' && (
               <button
                 onClick={() => copyCurrentTabContent()}
                 className={cn(
@@ -1519,8 +1290,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
           )}
         </div>
 
-        {/* 5 Bottom Segmented Tabs */}
-        <div className="w-full grid grid-cols-5 bg-white p-0 relative border-t border-slate-100">
+        {/* 4 Bottom Segmented Tabs */}
+        <div className="w-full grid grid-cols-4 bg-white p-0 relative border-t border-slate-100">
           {tabs.map((tab) => {
             const isActive = activeFeedbackTab === tab.id;
             return (

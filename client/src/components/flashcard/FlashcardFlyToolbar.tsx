@@ -53,7 +53,7 @@ export interface FlashcardFlyToolbarProps {
   showFlipBackBtn: boolean
   setIsFlipped: (val: boolean) => void
   setIsSettingsModalOpen: (val: boolean) => void
-  onOpenCardHub?: (subTab?: 'stats' | 'insight' | 'card' | 'note' | 'community') => void
+  onOpenCardHub?: (subTab?: 'stats' | 'insight' | 'note' | 'community') => void
 }
 
 export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({

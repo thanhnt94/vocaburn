@@ -484,7 +484,7 @@ export default function PracticePlay() {
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
-  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>('insight')
+  const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('insight')
   const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
@@ -5445,7 +5445,7 @@ export default function PracticePlay() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-0 z-[500] bg-[#F8FAFC] xl:hidden flex flex-col"
+            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
           >
             <div className="flex-1 overflow-hidden flex flex-col">
               <FeedbackArea

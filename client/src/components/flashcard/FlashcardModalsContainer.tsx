@@ -51,8 +51,8 @@ export interface FlashcardModalsContainerProps {
   leaderboardMsg: string
   currentQuestion: any
   renderSessionStats: () => React.ReactNode
-  cardHubSubTab?: 'stats' | 'insight' | 'card' | 'note' | 'community'
-  setCardHubSubTab?: (tab: 'stats' | 'insight' | 'card' | 'note' | 'community') => void
+  cardHubSubTab?: 'stats' | 'insight' | 'note' | 'community'
+  setCardHubSubTab?: (tab: 'stats' | 'insight' | 'note' | 'community') => void
 
   // Feedback Modal
   isFeedbackOpen: boolean
@@ -445,7 +445,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
             initial={{ opacity: 0, y: 50 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: 50 }} 
-            className="fixed inset-0 z-[500] bg-[#F8FAFC] xl:hidden flex flex-col"
+            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
           >
             <div className="flex-1 overflow-hidden flex flex-col">
               <FeedbackArea
