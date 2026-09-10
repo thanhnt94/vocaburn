@@ -309,32 +309,41 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
             className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
           >
             {/* Header */}
-            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-              <button 
-                onClick={() => setIsMapOpen(false)} 
-                className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-                title="Back to Study"
+            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-2 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsMapOpen(false)} 
+                  className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0 cursor-pointer"
+                  title="Back to Study"
+                >
+                  <ChevronLeft className="w-4.5 h-4.5" />
+                </button>
+                {(() => {
+                  const info = getMapTitleInfo(mobileMapFilterMode);
+                  const count = getFilteredCount(mobileMapFilterMode);
+                  return (
+                    <div className="flex flex-col min-w-0">
+                      <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
+                        {info.title} ({count})
+                      </h2>
+                      <p className="text-[9px] text-slate-400 font-bold">
+                        {info.subtitle}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+              <button
+                onClick={() => setIsMapOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer text-xs font-bold"
+                title="Close"
               >
-                <ChevronLeft className="w-4.5 h-4.5" />
+                ✕
               </button>
-              {(() => {
-                const info = getMapTitleInfo(mobileMapFilterMode);
-                const count = getFilteredCount(mobileMapFilterMode);
-                return (
-                  <div className="flex flex-col min-w-0">
-                    <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
-                      {info.title} ({count})
-                    </h2>
-                    <p className="text-[9px] text-slate-400 font-bold">
-                      {info.subtitle}
-                    </p>
-                  </div>
-                );
-              })()}
             </header>
 
             {/* Grid Area */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar">
               <QuestionMapGrid
                 questions={session.questions}
                 mainTab={mainTab as 'fsrs' | 'practice'}
@@ -345,30 +354,8 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
                 setIsMapOpen={setIsMapOpen}
                 filterMode={mobileMapFilterMode}
                 setFilterMode={setMobileMapFilterMode}
-                showFiltersInline={false}
+                showFiltersInline={true}
               />
-            </div>
-
-            {/* Bottom Reachable Dismiss Bar & Filters */}
-            <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-3 flex flex-col gap-2.5">
-              <div className="px-4 pt-2">
-                <div className="relative w-full">
-                  <select
-                    value={mobileMapFilterMode}
-                    onChange={(e) => setMobileMapFilterMode(e.target.value as any)}
-                    className="w-full h-10 pl-4 pr-10 bg-slate-100/80 border border-slate-200/50 rounded-xl text-xs font-black uppercase tracking-wider text-slate-700 outline-none appearance-none cursor-pointer focus:border-indigo-300 focus:bg-white transition-all shadow-sm"
-                  >
-                    <option value="all">📁 All Cards</option>
-                    <option value="unseen">📖 Unseen</option>
-                    <option value="learning">🧠 Learning</option>
-                    <option value="mastered">🏆 Mastered</option>
-                    <option value="hard">🔥 Hard Cards</option>
-                    <option value="starred">⭐ Starred</option>
-                    <option value="ignored">🚫 Ignored</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
             </div>
           </motion.div>
         )}

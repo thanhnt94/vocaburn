@@ -5305,10 +5305,17 @@ export default function PracticePlay() {
                   </div>
                 );
               })()}
+              <button
+                onClick={() => setIsMapOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer text-xs font-bold"
+                title="Close"
+              >
+                ✕
+              </button>
             </header>
 
             {/* Grid Area */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar">
               <QuestionMapGrid
                 questions={session.questions}
                 mainTab={mainTab}
@@ -5319,31 +5326,8 @@ export default function PracticePlay() {
                 setIsMapOpen={setIsMapOpen}
                 filterMode={mobileMapFilterMode}
                 setFilterMode={setMobileMapFilterMode}
-                showFiltersInline={false}
+                showFiltersInline={true}
               />
-            </div>
-
-            {/* Bottom Reachable Header/Dismiss Bar & Filters */}
-            <div className="border-t border-slate-100 bg-white/95 backdrop-blur-md flex-shrink-0 pb-3 flex flex-col gap-2.5">
-              {/* Filter Dropdown at the Bottom for reachability */}
-              <div className="px-4 pt-2">
-                <div className="relative w-full">
-                  <select
-                     value={mobileMapFilterMode}
-                     onChange={(e) => setMobileMapFilterMode(e.target.value as any)}
-                     className="w-full h-10 pl-4 pr-10 bg-slate-100/80 border border-slate-200/50 rounded-xl text-xs font-black uppercase tracking-wider text-slate-700 outline-none appearance-none cursor-pointer focus:border-indigo-300 focus:bg-white transition-all shadow-sm"
-                  >
-                     <option value="all">📁 Tất cả</option>
-                     <option value="unseen">📖 Chưa học</option>
-                     <option value="learning">🧠 Đang học</option>
-                     <option value="mastered">🏆 Đã thuộc</option>
-                     <option value="hard">🔥 Thẻ khó</option>
-                     <option value="starred">⭐ Gắn sao</option>
-                     <option value="ignored">🚫 Bỏ qua</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
             </div>
           </motion.div>
         )}
