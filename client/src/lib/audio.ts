@@ -1,6 +1,15 @@
 let activeAudioElement: HTMLAudioElement | null = null;
+let activeStreamAbortController: AbortController | null = null;
+let activePlayToken = 0;
 
 export const cancelAllAudio = () => {
+  activePlayToken++;
+  if (activeStreamAbortController) {
+    try {
+      activeStreamAbortController.abort();
+    } catch (e) {}
+    activeStreamAbortController = null;
+  }
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();
@@ -126,10 +135,22 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
   const clean = stripTagsAndBBCode(text);
   if (!clean) return;
 
+  cancelAllAudio();
+  const currentToken = activePlayToken;
+  const controller = new AbortController();
+  activeStreamAbortController = controller;
+
   try {
-    const res = await fetch(`/api/v1/deck/tts/stream?text=${encodeURIComponent(clean)}&lang=${encodeURIComponent(lang || 'multi')}`);
+    const res = await fetch(
+      `/api/v1/deck/tts/stream?text=${encodeURIComponent(clean)}&lang=${encodeURIComponent(lang || 'multi')}`,
+      { signal: controller.signal }
+    );
+    if (activePlayToken !== currentToken) return;
+
     if (res.ok) {
       const data = await res.json();
+      if (activePlayToken !== currentToken) return;
+
       if (data.url) {
         const audio = new Audio(`${data.url}?t=${Date.now()}`);
         registerAudioElement(audio);
@@ -139,8 +160,13 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
         return;
       }
     }
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return;
     console.warn('[EDGE TTS STREAM ERROR]', err);
+  } finally {
+    if (activeStreamAbortController === controller) {
+      activeStreamAbortController = null;
+    }
   }
 };
 
@@ -150,10 +176,22 @@ export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<vo
     const clean = stripTagsAndBBCode(text);
     if (!clean) return resolve();
 
+    cancelAllAudio();
+    const currentToken = activePlayToken;
+    const controller = new AbortController();
+    activeStreamAbortController = controller;
+
     try {
-      const res = await fetch(`/api/v1/deck/tts/stream?text=${encodeURIComponent(clean)}&lang=${encodeURIComponent(lang || 'multi')}`);
+      const res = await fetch(
+        `/api/v1/deck/tts/stream?text=${encodeURIComponent(clean)}&lang=${encodeURIComponent(lang || 'multi')}`,
+        { signal: controller.signal }
+      );
+      if (activePlayToken !== currentToken) return resolve();
+
       if (res.ok) {
         const data = await res.json();
+        if (activePlayToken !== currentToken) return resolve();
+
         if (data.url) {
           const audio = new Audio(`${data.url}?t=${Date.now()}`);
           registerAudioElement(audio);
@@ -168,8 +206,13 @@ export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<vo
           return;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return resolve();
       console.warn('[EDGE TTS STREAM ERROR]', err);
+    } finally {
+      if (activeStreamAbortController === controller) {
+        activeStreamAbortController = null;
+      }
     }
 
     resolve();

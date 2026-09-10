@@ -300,7 +300,9 @@ export default function FlashcardPlay() {
     playCardAudio,
     stopAudio,
     activeAudioRef,
-    isAudioEnabled
+    isAudioEnabled,
+    isLoadingAudio,
+    isPlayingAudio
   } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
@@ -3086,6 +3088,8 @@ export default function FlashcardPlay() {
         isFlyToolbarOpen={isFlyToolbarOpen}
         setIsFlyToolbarOpen={setIsFlyToolbarOpen}
         triggerPlayAudio={triggerPlayAudio}
+        isLoadingAudio={isLoadingAudio}
+        isPlayingAudio={isPlayingAudio}
         autoPlayAudio={autoPlayAudio}
         setAutoPlayAudio={setAutoPlayAudio}
         sfxEnabled={sfxEnabled}

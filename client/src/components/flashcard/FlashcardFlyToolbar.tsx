@@ -23,6 +23,8 @@ export interface FlashcardFlyToolbarProps {
   isFlyToolbarOpen: boolean
   setIsFlyToolbarOpen: React.Dispatch<React.SetStateAction<boolean>>
   triggerPlayAudio: (e: React.MouseEvent) => void
+  isLoadingAudio?: boolean
+  isPlayingAudio?: boolean
   autoPlayAudio: string
   setAutoPlayAudio: (val: any) => void
   sfxEnabled: boolean
@@ -56,6 +58,8 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
   isFlyToolbarOpen,
   setIsFlyToolbarOpen,
   triggerPlayAudio,
+  isLoadingAudio = false,
+  isPlayingAudio = false,
   autoPlayAudio,
   setAutoPlayAudio,
   sfxEnabled,
@@ -112,10 +116,21 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
             <button
               type="button"
               onClick={triggerPlayAudio}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
-              title="Play Pronunciation (Audio)"
+              className={cn(
+                "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
+                isPlayingAudio
+                  ? "bg-indigo-600 text-white ring-2 ring-indigo-300"
+                  : isLoadingAudio
+                  ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                  : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
+              )}
+              title={isLoadingAudio ? "Generating pronunciation..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
             >
-              <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+              {isLoadingAudio ? (
+                <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-indigo-600" />
+              ) : (
+                <Volume2 className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
+              )}
             </button>
 
             <div className="w-[1px] h-3.5 bg-slate-200/90" />
@@ -157,10 +172,21 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
                 <button
                   type="button"
                   onClick={triggerPlayAudio}
-                  className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group"
-                  title="Play Pronunciation (Audio)"
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shrink-0 shadow-2xs group",
+                    isPlayingAudio
+                      ? "bg-indigo-600 text-white ring-2 ring-indigo-300"
+                      : isLoadingAudio
+                      ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                      : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
+                  )}
+                  title={isLoadingAudio ? "Generating pronunciation..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
                 >
-                  <Volume2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                  {isLoadingAudio ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                  ) : (
+                    <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
+                  )}
                 </button>
 
                 {/* 1.1 Autoplay Audio */}

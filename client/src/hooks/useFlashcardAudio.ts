@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import axios from 'axios';
 import { speakWithEdgeTTS, registerAudioElement, cancelAllAudio } from '@/lib/audio';
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput';
@@ -14,6 +14,12 @@ export function useFlashcardAudio(
 ) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentQuestionIdRef = useRef<number | null>(null);
+  const playSeqRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const inFlightGenMapRef = useRef<Map<string, Promise<string>>>(new Map());
+
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   const autoPlayAudio = scopedAutoPlayAudio !== undefined ? scopedAutoPlayAudio : 'none';
 
@@ -24,6 +30,13 @@ export function useFlashcardAudio(
   };
 
   const stopAudio = () => {
+    playSeqRef.current++;
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current.abort();
+      } catch (e) {}
+      abortControllerRef.current = null;
+    }
     cancelAllAudio();
     if (activeAudioRef.current) {
       try {
@@ -32,6 +45,8 @@ export function useFlashcardAudio(
       } catch (e) {}
       activeAudioRef.current = null;
     }
+    setIsLoadingAudio(false);
+    setIsPlayingAudio(false);
   };
 
   const getAudioConfigForColumn = (columnKey: string) => {
@@ -103,7 +118,9 @@ export function useFlashcardAudio(
     const targetQuestionId = currentQuestion.id;
     currentQuestionIdRef.current = targetQuestionId;
 
+    // Reset previous audio and advance sequence token
     stopAudio();
+    const currentSeq = ++playSeqRef.current;
 
     const cfg = getAudioConfigForColumn(columnKey);
     const urlCol = cfg?.url_col;
@@ -138,14 +155,38 @@ export function useFlashcardAudio(
 
     // Lazily generate audio if it is not yet created on backend, or if audio_url_col is empty
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
+      setIsLoadingAudio(true);
+      const genKey = `${targetQuestionId}_${columnKey}`;
+      let genPromise = inFlightGenMapRef.current.get(genKey);
+
+      if (!genPromise) {
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        genPromise = (async () => {
+          try {
+            console.log(`[CLIENT TTS] Requesting Edge TTS audio generation for question ${targetQuestionId} (${columnKey})...`);
+            const res = await axios.get(
+              `/api/v1/deck/generate-audio/${targetQuestionId}?face=${columnKey}`,
+              { signal: controller.signal }
+            );
+            return res.data?.url || '';
+          } catch (err: any) {
+            if (axios.isCancel(err) || err?.name === 'CanceledError') {
+              return '';
+            }
+            console.error(`[TTS SERVER ERROR] Backend failed to synthesize custom audio file for column ${columnKey}.`, err?.message);
+            return '';
+          } finally {
+            inFlightGenMapRef.current.delete(genKey);
+          }
+        })();
+
+        inFlightGenMapRef.current.set(genKey, genPromise);
+      }
+
       try {
-        console.log(`[CLIENT TTS] Requesting Edge TTS audio generation for question ${currentQuestion.id} (${columnKey})...`);
-        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${columnKey}`);
-        if (currentQuestionIdRef.current !== targetQuestionId) {
-          console.log(`[CLIENT TTS] Question changed. Aborting playback.`);
-          return;
-        }
-        audioUrl = res.data.url;
+        audioUrl = await genPromise;
         if (audioUrl && urlCol) {
           if (!currentQuestion.others) currentQuestion.others = {};
           currentQuestion.others[urlCol] = audioUrl;
@@ -157,9 +198,23 @@ export function useFlashcardAudio(
             currentQuestion.back_audio_url = audioUrl;
           }
         }
-      } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize custom audio file for column ${columnKey}.`, err.message);
+      } catch (e) {
+        // Ignored
+      } finally {
+        if (playSeqRef.current === currentSeq) {
+          setIsLoadingAudio(false);
+        }
       }
+    }
+
+    // CRITICAL: Check if superseded by a newer click or card switch
+    if (playSeqRef.current !== currentSeq) {
+      console.log(`[CLIENT TTS] Playback request seq ${currentSeq} was superseded by seq ${playSeqRef.current}. Aborting.`);
+      return;
+    }
+    if (currentQuestionIdRef.current !== targetQuestionId) {
+      console.log(`[CLIENT TTS] Question changed. Aborting playback.`);
+      return;
     }
 
     if (audioUrl) {
@@ -169,10 +224,28 @@ export function useFlashcardAudio(
       const audio = new Audio(cacheBustedUrl);
       registerAudioElement(audio);
       activeAudioRef.current = audio;
+
+      setIsPlayingAudio(true);
+      audio.onended = () => {
+        if (playSeqRef.current === currentSeq) {
+          setIsPlayingAudio(false);
+        }
+      };
+      audio.onerror = () => {
+        if (playSeqRef.current === currentSeq) {
+          setIsPlayingAudio(false);
+        }
+      };
+
       audio.play().catch(err => {
+        if (playSeqRef.current === currentSeq) {
+          setIsPlayingAudio(false);
+        }
         console.warn(`[TTS PLAYBACK WARNING] Playback of Edge TTS audio file failed:`, err?.message);
         if (err?.name !== 'NotAllowedError' && script && script.trim()) {
-          speakWithEdgeTTS(script, lang);
+          if (playSeqRef.current === currentSeq) {
+            speakWithEdgeTTS(script, lang);
+          }
         }
       });
     } else if (script && script.trim()) {
@@ -192,6 +265,8 @@ export function useFlashcardAudio(
     playColumnAudio,
     stopAudio,
     isAudioEnabled,
-    activeAudioRef
+    activeAudioRef,
+    isLoadingAudio,
+    isPlayingAudio
   };
 }

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import axios from 'axios'
 import { speakWithEdgeTTS, speakEdgeTTSSequentially, registerAudioElement, cancelAllAudio } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -18,8 +18,21 @@ export function usePracticeAudio({
 }: UsePracticeAudioProps) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
+  const playSeqRef = useRef(0)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const inFlightGenMapRef = useRef<Map<string, Promise<string>>>(new Map())
+
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false)
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false)
 
   const stopAllAudio = () => {
+    playSeqRef.current++
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current.abort()
+      } catch (e) {}
+      abortControllerRef.current = null
+    }
     cancelAllAudio()
     if (activeAudioRef.current) {
       try {
@@ -28,6 +41,8 @@ export function usePracticeAudio({
       } catch (e) {}
       activeAudioRef.current = null
     }
+    setIsLoadingAudio(false)
+    setIsPlayingAudio(false)
   }
 
   const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
@@ -36,6 +51,7 @@ export function usePracticeAudio({
     currentQuestionIdRef.current = targetQuestionId
 
     stopAllAudio()
+    const currentSeq = ++playSeqRef.current
 
     const qAny = currentQuestion as any
     const pairs = session?.practice_settings?.audio_pairs || session?.creator_settings?.audio_pairs || []
@@ -67,12 +83,37 @@ export function usePracticeAudio({
 
     // Lazily generate audio if it is not yet created on backend
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
+      setIsLoadingAudio(true)
+      const genKey = `${targetQuestionId}_${face}`
+      let genPromise = inFlightGenMapRef.current.get(genKey)
+
+      if (!genPromise) {
+        const controller = new AbortController()
+        abortControllerRef.current = controller
+
+        genPromise = (async () => {
+          try {
+            const res = await axios.get(
+              `/api/v1/deck/generate-audio/${targetQuestionId}?face=${encodeURIComponent(face)}`,
+              { signal: controller.signal }
+            );
+            return res.data?.url || ''
+          } catch (err: any) {
+            if (axios.isCancel(err) || err?.name === 'CanceledError') {
+              return ''
+            }
+            console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio for question ${targetQuestionId}:`, err?.message)
+            return ''
+          } finally {
+            inFlightGenMapRef.current.delete(genKey)
+          }
+        })()
+
+        inFlightGenMapRef.current.set(genKey, genPromise)
+      }
+
       try {
-        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${encodeURIComponent(face)}`)
-        if (currentQuestionIdRef.current !== targetQuestionId) {
-          return
-        }
-        audioUrl = res.data.url
+        audioUrl = await genPromise
         if (audioUrl) {
           if (face === 'front') {
             currentQuestion.audio = audioUrl
@@ -84,9 +125,20 @@ export function usePracticeAudio({
             currentQuestion.others[pair.audio_url_col] = audioUrl
           }
         }
-      } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio for question ${currentQuestion.id}:`, err?.message)
+      } catch (e) {
+        // Ignored
+      } finally {
+        if (playSeqRef.current === currentSeq) {
+          setIsLoadingAudio(false)
+        }
       }
+    }
+
+    if (playSeqRef.current !== currentSeq) {
+      return
+    }
+    if (currentQuestionIdRef.current !== targetQuestionId) {
+      return
     }
 
     if (audioUrl) {
@@ -96,10 +148,28 @@ export function usePracticeAudio({
       audio.playbackRate = rate
       registerAudioElement(audio)
       activeAudioRef.current = audio
+
+      setIsPlayingAudio(true)
+      audio.onended = () => {
+        if (playSeqRef.current === currentSeq) {
+          setIsPlayingAudio(false)
+        }
+      }
+      audio.onerror = () => {
+        if (playSeqRef.current === currentSeq) {
+          setIsPlayingAudio(false)
+        }
+      }
+
       audio.play().catch(err => {
+        if (playSeqRef.current === currentSeq) {
+          setIsPlayingAudio(false)
+        }
         console.warn(`[TTS FALLBACK] Playback failed: ${cacheBustedUrl}`, err?.message)
         if (err?.name !== 'NotAllowedError' && script && script.trim()) {
-          speakWithEdgeTTS(script, pair?.lang)
+          if (playSeqRef.current === currentSeq) {
+            speakWithEdgeTTS(script, pair?.lang)
+          }
         }
       })
     } else if (script && script.trim()) {
@@ -136,6 +206,8 @@ export function usePracticeAudio({
     activeAudioRef,
     playCardAudio,
     speakPracticeQuestionAndAnswer,
-    stopAllAudio
+    stopAllAudio,
+    isLoadingAudio,
+    isPlayingAudio
   }
 }
