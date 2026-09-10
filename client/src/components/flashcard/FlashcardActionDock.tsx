@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X } from 'lucide-react'
+import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -284,14 +284,14 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
               FLASHCARD
             </span>
           </button>
-          {/* 3. Stats Tab */}
+          {/* 3. Card Hub Tab (Replaced STATS) */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onOpenStats();
             }}
-            className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-            title="Study Stats"
+            className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden cursor-pointer"
+            title="Card Hub & Stats"
           >
             {activeBottomTab === 'stats' && (
               <motion.div
@@ -304,8 +304,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
               "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
               activeBottomTab === 'stats' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
             )}>
-              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-              STATS
+              <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+              CARD HUB
             </span>
           </button>
         </div>

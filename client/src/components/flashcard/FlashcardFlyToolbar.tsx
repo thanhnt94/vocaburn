@@ -336,37 +336,7 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
                   <span className="text-[10px] font-bold tracking-tight">{currentQuestion?.is_starred ? "Starred" : "Star"}</span>
                 </button>
 
-                {/* 8. Explain / Card Hub Modal */}
-                {showExplainBtn ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onOpenCardHub) {
-                        onOpenCardHub('insight');
-                      } else {
-                        if (mainTab === 'practice') setShowFeedback(true);
-                        setIsFeedbackOpen(true);
-                      }
-                      setIsFlyToolbarOpen(false);
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                      justAnswered
-                        ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title="View Card Insights & Explanation"
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", justAnswered ? "bg-indigo-600 text-white shadow-2xs animate-pulse" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      <BookOpen className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] font-bold tracking-tight">Card Hub</span>
-                  </button>
-                ) : (
-                  <div className="hidden sm:block" />
-                )}
-
-                {/* 9. Flip Back (if back face) */}
+                {/* 8. Flip Back (if back face) */}
                 {showFlipBackBtn && (
                   <button
                     type="button"
