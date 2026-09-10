@@ -382,6 +382,7 @@ export default function FlashcardPlay() {
     }
     setCardHubSubTab(subTab)
     setActiveFeedbackTab(subTab)
+    setShowFeedback(true)
     setIsFeedbackOpen(true)
     setIsStatsOpen(false)
     setIsMapOpen(false)
@@ -3393,7 +3394,7 @@ export default function FlashcardPlay() {
 
       <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
         <FlashcardDesktopLeftAside
-          showFeedback={showFeedback}
+          showFeedback={showFeedback || isFeedbackOpen}
           activeFeedbackTab={activeFeedbackTab}
           setActiveFeedbackTab={setActiveFeedbackTab}
           getInsightText={getInsightText}

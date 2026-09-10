@@ -5449,7 +5449,7 @@ export default function PracticePlay() {
           >
             <div className="flex-1 overflow-hidden flex flex-col">
               <FeedbackArea
-                showFeedback={showFeedback}
+                showFeedback={true}
                 activeFeedbackTab={activeFeedbackTab}
                 setActiveFeedbackTab={setActiveFeedbackTab}
                 selectedChoiceData={selectedChoiceData}

@@ -41,7 +41,7 @@ interface Question {
 export type CardHubTab = 'stats' | 'insight' | 'card' | 'note' | 'community'
 
 interface FeedbackAreaProps {
-  showFeedback: boolean
+  showFeedback?: boolean
   activeFeedbackTab: CardHubTab
   setActiveFeedbackTab: (tab: CardHubTab) => void
   getInsightText: () => string
@@ -694,19 +694,19 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     );
   };
 
-  const tabs = [
+  const tabs = React.useMemo(() => [
     { id: 'stats' as const, label: 'Stats', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100', hasContent: true },
     { id: 'insight' as const, label: 'Insight', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-100', hasContent: hasInsightAnyContent() },
     { id: 'card' as const, label: 'Full Card', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-100', hasContent: allTabs.some(t => !!getTabContent(t.id)) },
     { id: 'note' as const, label: 'Note', icon: StickyNote, color: 'text-emerald-500', bg: 'bg-emerald-100', hasContent: !!personalNote },
     { id: 'community' as const, label: 'Community', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-100', hasContent: contributions.length > 0 }
-  ];
+  ], [hasInsightAnyContent, allTabs, personalNote, contributions.length]);
 
   React.useEffect(() => {
     if (tabs.length > 0 && !tabs.some(t => t.id === activeFeedbackTab)) {
       setActiveFeedbackTab(tabs[0].id)
     }
-  }, [tabs, activeFeedbackTab])
+  }, [tabs, activeFeedbackTab, setActiveFeedbackTab])
 
   const renderTabContent = () => {
     switch (activeFeedbackTab) {
@@ -946,16 +946,16 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-[10px] font-black uppercase">
-                        {c.user.username.substring(0, 2)}
+                        {c.user?.username ? c.user.username.substring(0, 2) : 'U'}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-black text-slate-700">{c.user.full_name || c.user.username}</span>
-                          {c.user.role === 'admin' && (
+                          <span className="text-xs font-black text-slate-700">{c.user?.full_name || c.user?.username || 'User'}</span>
+                          {c.user?.role === 'admin' && (
                             <span className="px-1.5 py-0.2 bg-rose-100 text-rose-600 rounded text-[7px] font-black uppercase">Admin</span>
                           )}
                         </div>
-                        <span className="text-[8px] font-bold text-slate-400">{new Date(c.created_at).toLocaleDateString('vi-VN')}</span>
+                        <span className="text-[8px] font-bold text-slate-400">{c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : ''}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -968,7 +968,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                           {c.status === 'active' ? 'Góp ý' : c.status === 'resolved' ? 'Đã duyệt' : 'Đã bỏ qua'}
                         </span>
                       )}
-                      {(c.user_id === parseInt(document.cookie.split('; ').find(row => row.startsWith('user_id='))?.split('=')[1] || '1') || c.user.role === 'admin') && (
+                      {(c.user_id === parseInt(document.cookie.split('; ').find(row => row.startsWith('user_id='))?.split('=')[1] || '1') || c.user?.role === 'admin') && (
                         <button
                           onClick={() => handleDeleteContribution(c.id)}
                           className="text-slate-300 hover:text-rose-500 transition-colors p-1 cursor-pointer"
@@ -1009,8 +1009,8 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                       {c.replies.map((r: any) => (
                         <div key={r.id} className="bg-purple-50/40 p-2.5 rounded-xl text-xs space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-black text-slate-700 text-[11px]">{r.user.full_name || r.user.username}</span>
-                            <span className="text-[8px] font-bold text-slate-400">{new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
+                            <span className="font-black text-slate-700 text-[11px]">{r.user?.full_name || r.user?.username || 'User'}</span>
+                            <span className="text-[8px] font-bold text-slate-400">{r.created_at ? new Date(r.created_at).toLocaleDateString('vi-VN') : ''}</span>
                           </div>
                           <p className="text-slate-600 font-medium">{r.content}</p>
                         </div>
@@ -1275,8 +1275,6 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
       )
   }
 }
-
-  if (!showFeedback) return null;
 
   if (embedded) {
     return (

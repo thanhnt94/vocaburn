@@ -449,7 +449,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
           >
             <div className="flex-1 overflow-hidden flex flex-col">
               <FeedbackArea
-                showFeedback={showFeedback}
+                showFeedback={true}
                 activeFeedbackTab={activeFeedbackTab}
                 setActiveFeedbackTab={setActiveFeedbackTab}
                 getInsightText={getInsightText}

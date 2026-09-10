@@ -5,6 +5,7 @@ import { useAppStore } from './store/useAppStore'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Layout from './components/Layout'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
 
 // Lazy loaded page components
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -58,37 +59,39 @@ function AppContent() {
           </div>
         </div>
       }>
-        <Routes>
-          {/* Public Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<Login />} />
+        <ErrorBoundary>
+          <Routes>
+            {/* Public Auth Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<Login />} />
 
-          {/* Client Layout Routes (Protected / Guest Landing) */}
-          <Route element={<Layout />}>
-            <Route path="/" element={isLoggedIn ? <Dashboard /> : <Landing />} />
-            <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            
-            {/* Protected Routes (Authenticated only) */}
-            <Route path="/decks" element={isLoggedIn ? <DecksPage /> : <Navigate to="/login" replace />} />
-            <Route path="/decks/:id" element={isLoggedIn ? <DeckDetailPage /> : <Navigate to="/login" replace />} />
-            <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" replace />} />
-            <Route path="/stats" element={isLoggedIn ? <Stats /> : <Navigate to="/login" replace />} />
-            <Route path="/settings" element={isLoggedIn ? <Settings /> : <Navigate to="/login" replace />} />
-            <Route path="/roadmap" element={isLoggedIn ? <RoadmapHub /> : <Navigate to="/login" replace />} />
-            <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
+            {/* Client Layout Routes (Protected / Guest Landing) */}
+            <Route element={<Layout />}>
+              <Route path="/" element={isLoggedIn ? <Dashboard /> : <Landing />} />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              
+              {/* Protected Routes (Authenticated only) */}
+              <Route path="/decks" element={isLoggedIn ? <DecksPage /> : <Navigate to="/login" replace />} />
+              <Route path="/decks/:id" element={isLoggedIn ? <DeckDetailPage /> : <Navigate to="/login" replace />} />
+              <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" replace />} />
+              <Route path="/stats" element={isLoggedIn ? <Stats /> : <Navigate to="/login" replace />} />
+              <Route path="/settings" element={isLoggedIn ? <Settings /> : <Navigate to="/login" replace />} />
+              <Route path="/roadmap" element={isLoggedIn ? <RoadmapHub /> : <Navigate to="/login" replace />} />
+              <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
 
-            {/* Admin Control Panel */}
-            <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />
-          </Route>
+              {/* Admin Control Panel */}
+              <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />
+            </Route>
 
-          {/* Fullscreen Dedicated Study Views */}
-          <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
-          <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
-          <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
+            {/* Fullscreen Dedicated Study Views */}
+            <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
+            <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
+            <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
 
-          {/* Catch-all Redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Catch-all Redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </Suspense>
     </Router>
   )

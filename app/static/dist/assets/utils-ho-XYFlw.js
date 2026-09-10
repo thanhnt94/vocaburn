@@ -1,0 +1,1 @@
+import{h as e}from"./charts-vendor-NJb2HK66.js";import{i as t}from"./vendor-DlUuF9II.js";function n(...n){return t(e(n))}export{n as t};

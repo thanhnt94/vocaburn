@@ -127,7 +127,7 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
     <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col min-h-0 overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
       {showFeedback ? (
         <FeedbackArea
-          showFeedback={showFeedback}
+          showFeedback={true}
           activeFeedbackTab={activeFeedbackTab}
           setActiveFeedbackTab={setActiveFeedbackTab}
           getInsightText={getInsightText}
