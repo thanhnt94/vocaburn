@@ -62,6 +62,7 @@ import {
   FlashcardHeader,
   FlashcardActionDock,
   FlashcardFlyToolbar,
+  FlashcardQuickControlsSheet,
   Flashcard3DCard,
   FlashcardDesktopLeftAside,
   FlashcardDesktopRightAside,
@@ -3751,6 +3752,30 @@ export default function FlashcardPlay() {
         // Study Console
         isStudyConsoleOpen={isStudyConsoleOpen}
         setIsStudyConsoleOpen={setIsStudyConsoleOpen}
+      />
+
+      {/* ═══════════ QUICK ACTION BOTTOM SHEET (Root-level Global Portal) ═══════════ */}
+      <FlashcardQuickControlsSheet
+        isOpen={isFlyToolbarOpen}
+        onClose={() => setIsFlyToolbarOpen(false)}
+        autoPlayAudio={autoPlayAudio}
+        setAutoPlayAudio={setAutoPlayAudio}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        effectiveAutoAdvance={isAutoAdvance || quickLearnEnabled}
+        setIsAutoAdvance={setIsAutoAdvance}
+        setQuickLearnEnabled={setQuickLearnEnabled}
+        showImages={showImages}
+        setShowImages={setShowImages}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
+        isSelectMode={isSelectMode}
+        setIsSelectMode={setIsSelectMode}
+        currentQuestion={currentQuestion}
+        handleStarQuestion={handleStarQuestion}
+        showFlipBackBtn={isFlipped && mainTab !== 'practice'}
+        setIsFlipped={setIsFlipped}
+        setIsSettingsModalOpen={setIsSettingsModalOpen}
       />
     </div>
   )
