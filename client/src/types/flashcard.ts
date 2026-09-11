@@ -57,6 +57,6 @@ export interface Question {
   }
 }
 
-export type LearningMode = 'fsrs' | 'new' | 'review' | 'flip' | 'roadmap' | 'speed_skim'
+export type LearningMode = 'fsrs' | 'skim' | 'review' | 'speed_skim' | 'new' | 'flip' | 'roadmap'
 export type CardBoxId = 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
 export type FilterMapMode = 'all' | CardBoxId

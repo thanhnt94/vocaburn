@@ -284,17 +284,18 @@ export function StudySettingsEditor({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 block">
-              Card Order Mode
+              Default Flashcard Mode
             </label>
             <SegmentedControl
-              value={(settings.quiz_learning_mode || settings.learning_mode || 'fsrs') as string}
+              value={(() => {
+                const cur = (settings.quiz_learning_mode || settings.learning_mode || 'fsrs') as string
+                return cur === 'speed_skim' ? 'skim' : cur
+              })()}
               onChange={(val) => onChange('quiz_learning_mode', val)}
               options={[
-                { id: 'fsrs', label: 'FSRS v6' },
-                { id: 'speed_skim', label: '⚡ Speed Skim' },
-                { id: 'sequential', label: 'Sequential' },
-                { id: 'unseen', label: 'New First' },
-                { id: 'random', label: 'Shuffle' },
+                { id: 'fsrs', label: '🧠 FSRS' },
+                { id: 'skim', label: '⚡ Skim' },
+                { id: 'review', label: '📚 Review' },
               ]}
               compact={compact}
             />

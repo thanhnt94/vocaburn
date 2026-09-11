@@ -48,6 +48,7 @@ export interface StudyHeaderTrackerProps {
   modeBadge?: { emoji: string; label: string; short: string; style: string }
   progressPillText?: string
   comboStreak?: number
+  onOpenStudyConsole?: () => void
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
@@ -215,7 +216,8 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
   activeMode,
   modeBadge,
   progressPillText,
-  comboStreak = 0
+  comboStreak = 0,
+  onOpenStudyConsole
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -472,19 +474,22 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   )}
 
-                  {/* Mode Badge */}
-                  <div 
+                  {/* Mode Badge - Clickable to open Study Console Modal */}
+                  <button 
+                    type="button"
+                    onClick={onOpenStudyConsole}
                     className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs text-white",
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs text-white transition-all",
+                      onOpenStudyConsole ? "cursor-pointer hover:opacity-90 hover:scale-105 active:scale-95" : "",
                       meta.style || "bg-gradient-to-r from-amber-500 to-amber-600"
                     )}
-                    title={currentStep?.label || meta.label}
+                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • Click to switch mode & order` : (currentStep?.label || meta.label)}
                   >
                     <span className="text-[10px] sm:text-xs">{meta.emoji}</span>
                     <span className="text-[10px] sm:text-[11px] font-black text-white">
                       {meta.short}
                     </span>
-                  </div>
+                  </button>
 
                   {/* Combo Streak Flame Badge */}
                   {comboStreak >= 3 && (

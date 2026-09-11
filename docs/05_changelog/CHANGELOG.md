@@ -3,6 +3,22 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-11]
+#### Tinh Gọn Hệ Thống Chế Độ Flashcard: Chuẩn Hóa 3 Chế Độ Cốt Lõi (FSRS, Speed Skim, Review) & Tuỳ Chọn Thứ Tự Thẻ Nhanh (Sequential / Random)
+- **Chuẩn Hóa 3 Chế Độ Cốt Lõi Duy Nhất Cho Flashcard**:
+  - **1. MODE FSRS** (`fsrs`): Thuật toán lặp lại ngắt quãng thông minh với 4 nút đánh giá chuẩn (Again / Hard / Good / Easy).
+  - **2. MODE SKIM** (`skim` / `speed_skim`): Xem và lướt thẻ siêu tốc 1 chạm / 1 phím Space, không đánh giá 4 nút, cộng +3 XP mỗi thẻ và đóng góp vào chỉ tiêu ngày.
+  - **3. MODE REVIEW (Ôn tập)** (`review`): Chỉ tập trung ôn các thẻ đến hạn (due) và các thẻ đã học trong quá khứ, không nạp thêm từ mới.
+  - Loại bỏ hoàn toàn sự rối rắm và phân mảnh từ các mode phụ (`flip`, `new`, `roadmap` biến thể) trong menu chọn flashcard.
+- **Tuỳ Chọn Thứ Tự Thẻ Nhanh (Card Order Quick Option)**:
+  - Tích hợp segmented control ngay tại các modal kích hoạt học tập (`DeckStudyModal`, `StudyConsoleModal`):
+    - `📋 Sequential`: Tải thẻ theo thứ tự tuần tự trong bộ thẻ.
+    - `🔀 Random`: Xáo trộn ngẫu nhiên thứ tự các thẻ trong hàng đợi ôn tập.
+  - Đồng bộ tức thì qua query param URL (`&order=sequential` / `&order=random`), Zustand store (`random_enabled`), và backend payload `next-card`.
+- **Nâng Cấp Tương Tác HUD & Header**:
+  - Huy hiệu chế độ trên thanh Live HUD (`StudyHeaderTracker.tsx`) được chuyển thành nút tương tác mở trực tiếp `StudyConsoleModal`, cho phép người học đổi chế độ học và thứ tự nạp thẻ ngay lập tức khi đang học mà không cần thoát ra ngoài.
+- **Tiêu Chuẩn Hóa Giao Diện Tiếng Anh (English-Only UI)**:
+  - Toàn bộ nhãn, phụ đề, và thẻ điều khiển trong `DeckQuickStudyLauncher.tsx`, `StudyConsoleModal.tsx`, `DeckStudyModal.tsx`, và `StudySettingsEditor.tsx` tuân thủ nghiêm ngặt quy tắc giao diện tiếng Anh.
+
 #### Tính Năng Thẻ Flashcard Lướt Nhanh (⚡ Speed Skim Mode) & Tích Hợp Lộ Trình Học Roadmap
 - **Mục Tiêu**: Loại bỏ hoàn toàn sự ức chế và độ trễ khi học thẻ mới hoặc ôn lướt nhanh, thay thế 4 nút đánh giá FSRS (Again/Hard/Good/Easy) bằng cơ chế lướt 1 chạm / 1 phím Space siêu tốc.
 - **Thao Tác 1-Chạm / 1-Phím Space Tối Ưu Hóa (1-Tap Fast Pace Flow)**:

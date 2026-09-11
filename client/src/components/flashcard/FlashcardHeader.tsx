@@ -43,6 +43,7 @@ export interface FlashcardHeaderProps {
   comboStreak?: number
   onCreateNewCard?: () => void
   rightAction?: React.ReactNode
+  onOpenStudyConsole?: () => void
 }
 
 export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
@@ -83,7 +84,8 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
   cardsRemaining,
   comboStreak,
   onCreateNewCard,
-  rightAction
+  rightAction,
+  onOpenStudyConsole
 }) => {
   return (
     <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-white/90 border-b border-indigo-100/70 text-slate-800 shadow-[0_4px_20px_-4px_rgba(99,102,241,0.07)]">
@@ -136,6 +138,7 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
             totalCards={totalCards}
             cardsRemaining={cardsRemaining}
             comboStreak={comboStreak}
+            onOpenStudyConsole={onOpenStudyConsole}
           />
         </div>
 

@@ -411,8 +411,8 @@ export default function FlashcardPlay() {
   const [activeMode, setActiveMode] = useState<string>(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'flip') {
-      return urlMode;
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'skim' || urlMode === 'flip') {
+      return urlMode === 'speed_skim' ? 'skim' : urlMode;
     }
     return userSettings.quiz_learning_mode || 'fsrs';
   })
@@ -423,8 +423,17 @@ export default function FlashcardPlay() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'flip') {
-      updateUserSettings({ quiz_learning_mode: urlMode as any });
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'skim' || urlMode === 'flip') {
+      const canonicalMode = urlMode === 'speed_skim' ? 'skim' : urlMode;
+      updateUserSettings({ quiz_learning_mode: canonicalMode as any });
+    }
+    const urlOrder = searchParams.get('order');
+    if (urlOrder === 'random') {
+      setRandomEnabled(true);
+      updateUserSettings({ random_enabled: true });
+    } else if (urlOrder === 'sequential') {
+      setRandomEnabled(false);
+      updateUserSettings({ random_enabled: false });
     }
   }, [])
 
@@ -2080,12 +2089,22 @@ export default function FlashcardPlay() {
     navigateToQuestion(nextIdx, updatedAnswers)
   }
 
-  const applyLearningMode = async (mode: string) => {
+  const applyLearningMode = async (mode: string, order?: 'sequential' | 'random') => {
     setFsrsCompletionData(null)
     setActiveMode(mode)
     updateUserSettings({ quiz_learning_mode: mode as any })
     saveGeneralSettings({ learning_mode: mode })
-    navigate(`/flashcard/${id}/play?mode=${mode}`, { replace: true })
+
+    let effectiveRandom = randomEnabled
+    if (order !== undefined) {
+      effectiveRandom = (order === 'random')
+      setRandomEnabled(effectiveRandom)
+      updateUserSettings({ random_enabled: effectiveRandom })
+      saveGeneralSettings({ random_enabled: effectiveRandom })
+    }
+
+    const orderParam = order ? `&order=${order}` : (effectiveRandom ? '&order=random' : '&order=sequential')
+    navigate(`/flashcard/${id}/play?mode=${mode}${orderParam}`, { replace: true })
 
     if (!session || !session.questions) return
 
@@ -2102,7 +2121,7 @@ export default function FlashcardPlay() {
         mode: mode,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,
-        random_enabled: randomEnabled
+        random_enabled: effectiveRandom
       })
       targetIdx = res.data.next_index
     } catch (err) {
@@ -3432,6 +3451,7 @@ export default function FlashcardPlay() {
               totalCards={totalCards}
               cardsRemaining={cardsRemaining}
               comboStreak={comboStreak}
+              onOpenStudyConsole={() => setIsStudyConsoleOpen(true)}
             />
           );
         })()}

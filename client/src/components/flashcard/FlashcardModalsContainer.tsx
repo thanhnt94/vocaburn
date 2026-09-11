@@ -100,7 +100,7 @@ export interface FlashcardModalsContainerProps {
   // Settings Modal
   isSettingsModalOpen: boolean
   setIsSettingsModalOpen: (val: boolean) => void
-  applyLearningMode: (mode: any) => void
+  applyLearningMode: (mode: any, order?: any) => void
   autoPlayAudio: string
   setAutoPlayAudio: (val: any) => void
   sfxEnabled: boolean
@@ -623,11 +623,11 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         onClose={() => setIsStudyConsoleOpen(false)}
         session={session}
         deckId={id}
-        onSelectMode={(selectedMode) => {
+        currentMode={activeMode}
+        currentOrder={randomEnabled ? 'random' : 'sequential'}
+        onSelectMode={(selectedMode, selectedOrder) => {
           setIsStudyConsoleOpen(false);
-          updateUserSettings({ quiz_learning_mode: selectedMode as any });
-          navigate(`/flashcard/${id}/play?mode=${selectedMode}`);
-          setActiveMode(selectedMode as any);
+          applyLearningMode(selectedMode, selectedOrder);
         }}
       />
     </>

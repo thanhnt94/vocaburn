@@ -116,7 +116,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
 
     if card:
         mode_val = data.get("mode") or data.get("practice_mode") or data.get("attempt_mode")
-        if mode_val == "speed_skim":
+        if mode_val in ("speed_skim", "skim"):
             is_practice_mode = False
             attempt_mode = "speed_skim"
         else:
@@ -129,7 +129,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 else:
                     attempt_mode = "practice"
             else:
-                attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review", "flip", "speed_skim"] else "play"
+                attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review", "flip", "speed_skim", "skim"] else "play"
         attempt_res = await db.execute(
             select(DeckAttempt)
             .filter(
@@ -157,7 +157,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
 
         # --- FSRS v6 Spaced Repetition Mastery Levels ---
         practice_mode = data.get("practice_mode", "mcq")  # mcq, typing, listening
-        is_speed_skim = (mode_val == "speed_skim")
+        is_speed_skim = (mode_val in ("speed_skim", "skim"))
         
         if not is_practice_mode and not is_speed_skim:
             from fsrs import Card, Scheduler, Rating, State
@@ -340,7 +340,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                     DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
                 ).where(
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim"])
+                    DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim", "skim"])
                 ).group_by(
                     UserAnswer.card_id
                 ).subquery()
@@ -354,33 +354,24 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                         first_answers.c.card_id != card_id
                     )
                 )
-                actual_done_today = count_today_res.scalar() or 0
+                count_other_cards = count_today_res.scalar() or 0
 
                 progress = UserDailyProgress(
                     goal_id=goal.id,
                     date=today_str,
-                    count_done=actual_done_today,
-                    is_target_met=(actual_done_today >= goal.daily_target)
+                    count_done=count_other_cards + 1,
+                    is_target_met=(count_other_cards + 1) >= goal.daily_target
                 )
                 db.add(progress)
-                await db.flush()
-            # Only count toward goal if this is a BRAND NEW card in FSRS
-            is_new_card = is_originally_new
-            
-            if is_new_card:
+            else:
                 progress.count_done += 1
-            just_completed = False
-            bonus_xp = 0
+                progress.is_target_met = (progress.count_done >= goal.daily_target)
             
-            if progress.count_done >= goal.daily_target and not progress.is_target_met:
-                progress.is_target_met = True
-                just_completed = True
-                
-                try:
-                    today_date = date.fromisoformat(today_str)
-                except Exception:
-                    today_date = datetime.utcnow().date()
-                
+            # Recalculate streak and rewards
+            just_completed = (progress.count_done == goal.daily_target)
+            bonus_xp = 0
+            if just_completed:
+                today_date = datetime.strptime(today_str, "%Y-%m-%d")
                 yesterday_str = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")
                 
                 if goal.last_completed_date == yesterday_str:
@@ -403,6 +394,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
             else:
                 msg = f"Excellent! You've done {progress.count_done}/{goal.daily_target} new cards today. Just {remaining} more to hit your goal, keep going! ⚡"
             
+            is_new_card = True
             # Only send goal toast update if this was a new card
             if is_new_card:
                 goal_update_info = {
@@ -427,9 +419,9 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
 
     base_xp = 0
     bonus_xp_gained = 0
-    if is_practice or mode_val == "speed_skim":
+    if is_practice or mode_val in ("speed_skim", "skim"):
         practice_mode = data.get("practice_mode", "mcq")
-        if mode_val == "speed_skim":
+        if mode_val in ("speed_skim", "skim"):
             base_xp = 3
             if is_first_ever:
                 bonus_xp_gained += 2
@@ -1481,7 +1473,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         else:
             target_mode = "fsrs_review" if st_helper.get("stage_1_done") else "new"
 
-    if target_mode in ("new", "speed_skim"):
+    if target_mode in ("new", "speed_skim", "skim"):
         unanswered_new = []
         all_new = []
         for idx, c_id in enumerate(card_ids):
@@ -1760,7 +1752,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         return {"next_index": min(current_index + 1, total - 1)}
 
-    elif mode == "flip":
+    elif mode in ("flip", "speed_skim", "skim"):
         pool = [idx for idx in range(total) if idx not in effective_answered]
         if pool:
             if random_enabled:
