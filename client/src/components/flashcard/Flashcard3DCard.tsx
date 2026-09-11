@@ -111,7 +111,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
         initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
         className="w-full h-full relative cursor-grab active:cursor-grabbing"
         drag={canDragRate ? true : false}
-        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragElastic={0.75}
         onDrag={handleCardDrag}
         onDragEnd={handleCardDragEnd}

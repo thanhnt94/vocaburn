@@ -1284,7 +1284,7 @@ export default function FlashcardPlay() {
     const shouldAutoAdvance = autoAdvance !== false;
 
     if (shouldAutoAdvance) {
-      const advanceDelay = autoAdvance === true ? 15 : 120;
+      const advanceDelay = autoAdvance === true ? 180 : 120;
       setTimeout(() => {
         handleNext(newAnswers);
       }, advanceDelay);
@@ -1619,12 +1619,12 @@ export default function FlashcardPlay() {
     }
   };
 
-  const handleCardDragEnd = async (
+  const handleCardDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
     if (!canDragRate || !activeDragGrade) {
-      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } });
+      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
       setDragOffset({ x: 0, y: 0 });
       setActiveDragGrade(null);
       return;
@@ -1636,18 +1636,17 @@ export default function FlashcardPlay() {
     const vy = info.velocity.y;
     const dir = activeDragGrade.direction;
 
-    // Strict directional commitment check:
-    // User must be dragging/flicking outward in the intended direction.
-    // If user pulled back towards center (velocity pointing opposite to offset or offset small), cancel cleanly!
+    // Responsive commitment check:
+    // If user dragged at least 55px in direction, or flicked fast outward: commit!
     let isCommitted = false;
     if (dir === 'good') {
-      isCommitted = (dx >= 85 && vx >= -60) || (dx >= 45 && vx > 320);
+      isCommitted = (dx >= 55 && vx >= -60) || (dx >= 25 && vx > 200);
     } else if (dir === 'again') {
-      isCommitted = (dx <= -85 && vx <= 60) || (dx <= -45 && vx < -320);
+      isCommitted = (dx <= -55 && vx <= 60) || (dx <= -25 && vx < -200);
     } else if (dir === 'hard') {
-      isCommitted = (dy >= 85 && vy >= -60) || (dy >= 45 && vy > 320);
+      isCommitted = (dy >= 55 && vy >= -60) || (dy >= 25 && vy > 200);
     } else if (dir === 'easy') {
-      isCommitted = (dy <= -85 && vy <= 60) || (dy <= -45 && vy < -320);
+      isCommitted = (dy <= -55 && vy <= 60) || (dy <= -25 && vy < -200);
     }
 
     if (isCommitted) {
@@ -1655,7 +1654,6 @@ export default function FlashcardPlay() {
       const targetGrade = activeDragGrade.grade;
 
       // Organic Tinder-like diagonal flyout trajectory:
-      // Rather than strictly orthogonal (targetY=0 or targetX=0), keep the user's natural angle & add arc rotation!
       let targetX = 0;
       let targetY = 0;
       let targetRotate = 0;
@@ -1681,29 +1679,32 @@ export default function FlashcardPlay() {
         targetRotate = dx >= 0 ? -12 : 12;
       }
 
-      await cardDragControls.start({
-        x: targetX,
-        y: targetY,
-        opacity: 0,
-        rotate: targetRotate,
-        transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] }
-      });
-
-      // Synchronously reset controls and state immediately before transitioning
-      cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-      setIsFlyingOut(false);
+      // Clear the stamp badge & offset
       setActiveDragGrade(null);
       setDragOffset({ x: 0, y: 0 });
 
+      // Play flyout animation safely (fire-and-forget, will never reject or crash!)
+      try {
+        cardDragControls.start({
+          x: targetX,
+          y: targetY,
+          opacity: 0,
+          rotate: targetRotate,
+          transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+        }).catch(() => {});
+      } catch (e) {}
+
+      // Immediately submit rating! This marks selectedOption (removing the 4 buttons)
+      // and triggers handleNext to load the next question at the end of the flyout!
       handleReviewRating(targetGrade, true);
     } else {
-      // User dragged lightly, or pulled back to cancel: smooth spring back to center
+      // Cancelled or dragged lightly: smooth spring back to center
       cardDragControls.start({
         x: 0,
         y: 0,
         rotate: 0,
         transition: { type: 'spring', stiffness: 500, damping: 32 }
-      });
+      }).catch(() => {});
       setDragOffset({ x: 0, y: 0 });
       setActiveDragGrade(null);
     }
