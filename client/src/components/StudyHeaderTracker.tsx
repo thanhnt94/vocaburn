@@ -478,60 +478,44 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   )}
 
-                  {/* Mode & Order Dual-Segmented Capsule */}
-                  <div className="flex items-center p-0.5 rounded-xl bg-slate-100/90 border border-slate-200/90 shadow-2xs gap-1 shrink-0">
-                    {/* Segment 1: Mode Badge - Clickable to open Study Console Modal */}
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onOpenStudyConsole?.()
-                      }}
-                      className={cn(
-                        "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-tight transition-all",
-                        onOpenStudyConsole ? "cursor-pointer hover:opacity-90 active:scale-95" : "",
-                        meta.style || "bg-amber-50 text-amber-950 border border-amber-300/80"
-                      )}
-                      title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • Click to switch mode` : currentStep?.label || meta.label}
-                    >
-                      <span className="text-[10px] sm:text-xs leading-none">{meta.emoji}</span>
-                      <span className="text-[10px] sm:text-[11px] font-black tracking-tight">
+                  {/* Single Integrated Mode & Order Badge */}
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onOpenStudyConsole?.()
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-tight transition-all cursor-pointer shadow-2xs hover:opacity-90 active:scale-95",
+                      meta.style || "bg-amber-50 text-amber-950 border border-amber-300/80"
+                    )}
+                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • ${isRandom ? 'Shuffle: ON (Random)' : 'Order: Sequential'} • Click to change mode or order` : currentStep?.label || meta.label}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10.5px] sm:text-xs leading-none">{meta.emoji}</span>
+                      <span className="text-[10.5px] sm:text-[11px] font-black tracking-tight">
                         {meta.short}
                       </span>
-                    </button>
+                    </div>
 
-                    {/* Segment 2: Order Indicator (⇅ SEQ vs 🔀 RND) - Clickable to toggle Order */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (onToggleOrder) {
-                          onToggleOrder()
-                        } else {
-                          onOpenStudyConsole?.()
-                        }
-                      }}
-                      className={cn(
-                        "flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-black shrink-0 tracking-tight transition-all cursor-pointer active:scale-95",
-                        isRandom 
-                          ? "bg-violet-600 text-white shadow-2xs hover:bg-violet-700" 
-                          : "bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
-                      )}
-                      title={isRandom ? "Shuffle: ON (Random Order) • Click to toggle" : "Order: Sequential (In-Order) • Click to toggle"}
-                    >
+                    {/* Integrated Micro Divider */}
+                    <span className="w-[1px] h-2.5 bg-current opacity-25" />
+
+                    {/* Integrated Order State */}
+                    <div className="flex items-center gap-0.5">
                       {isRandom ? (
                         <>
-                          <Shuffle className="w-2.5 h-2.5 stroke-[2.5]" />
-                          <span className="font-black uppercase tracking-wider">RND</span>
+                          <Shuffle className="w-2.5 h-2.5 stroke-[2.5] text-violet-600" />
+                          <span className="text-[9px] sm:text-[9.5px] font-black text-violet-700 tracking-tight uppercase">RND</span>
                         </>
                       ) : (
                         <>
-                          <ArrowUpDown className="w-2.5 h-2.5 text-slate-400 stroke-[2.5]" />
-                          <span className="font-bold uppercase tracking-wider text-slate-600">SEQ</span>
+                          <ArrowUpDown className="w-2.5 h-2.5 stroke-[2] opacity-60" />
+                          <span className="text-[9px] sm:text-[9.5px] font-bold tracking-tight opacity-75 uppercase">SEQ</span>
                         </>
                       )}
-                    </button>
-                  </div>
+                    </div>
+                  </button>
 
                   {/* Combo Streak Flame Badge */}
                   {comboStreak >= 3 && (
