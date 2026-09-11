@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, RotateCcw, Check, AlertCircle, Zap } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -98,9 +98,17 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   activeMode,
   handleNext
 }) => {
+  useEffect(() => {
+    if (cardDragControls) {
+      cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+    }
+  }, [currentIndex, cardDragControls]);
+
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
       <motion.div
+        key={currentQuestion?.id ?? currentIndex}
+        initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
         className="w-full h-full relative cursor-grab active:cursor-grabbing"
         drag={canDragRate ? true : false}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}

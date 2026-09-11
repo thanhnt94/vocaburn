@@ -1279,14 +1279,15 @@ export default function FlashcardPlay() {
 
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak)
 
-    const isPureSwipeMode = effectiveCardRatingMode === 'swipe_4way' || effectiveCardRatingMode === 'swipe_2way';
-    const effectiveAutoAdvance = isAutoAdvance || quickLearnEnabled;
-    const shouldAutoAdvance = Boolean(autoAdvance !== undefined ? autoAdvance : (effectiveAutoAdvance || isPureSwipeMode));
+    // Rating a card in review/study mode should ALWAYS advance to the next card immediately,
+    // unifying Button clicks, Swipe gestures, and Keyboard shortcuts into a consistent, seamless flow!
+    const shouldAutoAdvance = autoAdvance !== false;
 
     if (shouldAutoAdvance) {
+      const advanceDelay = autoAdvance === true ? 15 : 120;
       setTimeout(() => {
         handleNext(newAnswers);
-      }, 50);
+      }, advanceDelay);
     }
 
     try {
@@ -1685,17 +1686,16 @@ export default function FlashcardPlay() {
         y: targetY,
         opacity: 0,
         rotate: targetRotate,
-        transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+        transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] }
       });
 
-      handleReviewRating(targetGrade, true);
+      // Synchronously reset controls and state immediately before transitioning
+      cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+      setIsFlyingOut(false);
+      setActiveDragGrade(null);
+      setDragOffset({ x: 0, y: 0 });
 
-      setTimeout(() => {
-        setIsFlyingOut(false);
-        setActiveDragGrade(null);
-        setDragOffset({ x: 0, y: 0 });
-        cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-      }, 250);
+      handleReviewRating(targetGrade, true);
     } else {
       // User dragged lightly, or pulled back to cancel: smooth spring back to center
       cardDragControls.start({
@@ -2021,6 +2021,10 @@ export default function FlashcardPlay() {
     setTypingInput('')
     setTypingFeedback(null)
     setSelectedOption(null)
+    setIsFlyingOut(false)
+    setActiveDragGrade(null)
+    setDragOffset({ x: 0, y: 0 })
+    cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
 
     // Đóng toàn bộ các popup, toast, thông báo thành tựu khi chuyển sang câu mới
     setGoalToast(prev => prev ? { ...prev, visible: false } : null)
@@ -3816,12 +3820,13 @@ export default function FlashcardPlay() {
           <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0 min-h-0">
             
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false}>
             <motion.div 
               key={currentIndex}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
               className="flex-1 flex flex-col h-full w-full min-h-0"
             >
               {mainTab === 'practice' && practiceDisabled ? (
