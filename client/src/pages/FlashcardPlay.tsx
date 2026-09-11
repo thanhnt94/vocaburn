@@ -1601,7 +1601,7 @@ export default function FlashcardPlay() {
     const dist = Math.hypot(dx, dy);
 
     // 4-Way Compass Swipe: Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
-    if (dist < 25) {
+    if (dist < 35) {
       setActiveDragGrade(null);
     } else if (absX > absY) {
       if (dx < 0) {
@@ -1623,7 +1623,7 @@ export default function FlashcardPlay() {
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
     if (!canDragRate || !activeDragGrade) {
-      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 30 } });
+      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } });
       setDragOffset({ x: 0, y: 0 });
       setActiveDragGrade(null);
       return;
@@ -1631,41 +1631,79 @@ export default function FlashcardPlay() {
 
     const dx = info.offset.x;
     const dy = info.offset.y;
-    const dist = Math.hypot(dx, dy);
-    const vel = Math.hypot(info.velocity.x, info.velocity.y);
+    const vx = info.velocity.x;
+    const vy = info.velocity.y;
+    const dir = activeDragGrade.direction;
 
-    const isTriggered = dist >= 65 || vel > 400;
+    // Strict directional commitment check:
+    // User must be dragging/flicking outward in the intended direction.
+    // If user pulled back towards center (velocity pointing opposite to offset or offset small), cancel cleanly!
+    let isCommitted = false;
+    if (dir === 'good') {
+      isCommitted = (dx >= 85 && vx >= -60) || (dx >= 45 && vx > 320);
+    } else if (dir === 'again') {
+      isCommitted = (dx <= -85 && vx <= 60) || (dx <= -45 && vx < -320);
+    } else if (dir === 'hard') {
+      isCommitted = (dy >= 85 && vy >= -60) || (dy >= 45 && vy > 320);
+    } else if (dir === 'easy') {
+      isCommitted = (dy <= -85 && vy <= 60) || (dy <= -45 && vy < -320);
+    }
 
-    if (isTriggered && activeDragGrade) {
+    if (isCommitted) {
       setIsFlyingOut(true);
       const targetGrade = activeDragGrade.grade;
-      const direction = activeDragGrade.direction;
 
+      // Organic Tinder-like diagonal flyout trajectory:
+      // Rather than strictly orthogonal (targetY=0 or targetX=0), keep the user's natural angle & add arc rotation!
       let targetX = 0;
       let targetY = 0;
-      if (direction === 'again') targetX = -window.innerWidth * 0.85;
-      else if (direction === 'good') targetX = window.innerWidth * 0.85;
-      else if (direction === 'hard') targetY = window.innerHeight * 0.65;
-      else if (direction === 'easy') targetY = -window.innerHeight * 0.65;
+      let targetRotate = 0;
+
+      const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
+      const screenH = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+      if (dir === 'good') {
+        targetX = screenW * 1.35;
+        targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
+        targetRotate = Math.max(18, Math.min(35, (dx * 0.12) || 25));
+      } else if (dir === 'again') {
+        targetX = -screenW * 1.35;
+        targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
+        targetRotate = -Math.max(18, Math.min(35, (Math.abs(dx) * 0.12) || 25));
+      } else if (dir === 'hard') {
+        targetY = screenH * 0.95;
+        targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
+        targetRotate = dx >= 0 ? 12 : -12;
+      } else if (dir === 'easy') {
+        targetY = -screenH * 0.95;
+        targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
+        targetRotate = dx >= 0 ? -12 : 12;
+      }
 
       await cardDragControls.start({
         x: targetX,
         y: targetY,
         opacity: 0,
-        rotate: direction === 'again' ? -15 : direction === 'good' ? 15 : 0,
-        transition: { duration: 0.18, ease: 'easeOut' }
+        rotate: targetRotate,
+        transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
       });
 
       handleReviewRating(targetGrade, true);
-      
+
       setTimeout(() => {
         setIsFlyingOut(false);
         setActiveDragGrade(null);
         setDragOffset({ x: 0, y: 0 });
         cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-      }, 300);
+      }, 250);
     } else {
-      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 30 } });
+      // User dragged lightly, or pulled back to cancel: smooth spring back to center
+      cardDragControls.start({
+        x: 0,
+        y: 0,
+        rotate: 0,
+        transition: { type: 'spring', stiffness: 500, damping: 32 }
+      });
       setDragOffset({ x: 0, y: 0 });
       setActiveDragGrade(null);
     }
@@ -3814,6 +3852,7 @@ export default function FlashcardPlay() {
                   setIsFlipped={setIsFlipped}
                   isSelectMode={isSelectMode}
                   effectiveCardFlipTrigger={effectiveCardFlipTrigger}
+                  isFlyingOut={isFlyingOut}
                   setIsFlyToolbarOpen={setIsFlyToolbarOpen}
                   setShowFeedback={setShowFeedback}
                   setJustAnswered={setJustAnswered}

@@ -55,6 +55,7 @@ export interface Flashcard3DCardProps {
   renderFlyToolbarNode: (isCardSlot: boolean) => React.ReactNode
   activeMode?: string
   handleNext?: () => void
+  isFlyingOut?: boolean
 }
 
 export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
@@ -64,6 +65,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   setIsFlipped,
   isSelectMode,
   effectiveCardFlipTrigger,
+  isFlyingOut = false,
   setIsFlyToolbarOpen,
   setShowFeedback,
   setJustAnswered,
@@ -101,13 +103,13 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
       <motion.div
         className="w-full h-full relative cursor-grab active:cursor-grabbing"
         drag={canDragRate ? true : false}
-        dragDirectionLock
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-        dragElastic={0.65}
+        dragElastic={0.75}
         onDrag={handleCardDrag}
         onDragEnd={handleCardDragEnd}
         animate={cardDragControls}
         style={{
+          rotate: canDragRate && !isFlyingOut ? `${(dragOffset?.x || 0) * 0.11}deg` : undefined,
           touchAction: isSelectMode
             ? 'auto'
             : (canDragRate ? (hasBackOverflow ? 'pan-y' : 'none') : 'pan-y'),
@@ -632,7 +634,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
         {activeDragGrade && (
           <div 
             className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center"
-            style={{ opacity: Math.min(Math.max((Math.hypot(dragOffset.x, dragOffset.y) - 20) / 45, 0), 1) }}
+            style={{ opacity: Math.min(Math.max((Math.hypot(dragOffset.x, dragOffset.y) - 35) / 55, 0), 1) }}
           >
             <div
               className={cn(
