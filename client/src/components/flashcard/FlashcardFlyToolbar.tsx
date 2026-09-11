@@ -144,11 +144,13 @@ export interface FlashcardQuickControlsSheetProps {
   setIsSelectMode: React.Dispatch<React.SetStateAction<boolean>>
   currentQuestion: any
   handleStarQuestion: () => void
-  showFlipBackBtn: boolean
-  setIsFlipped: (val: boolean) => void
+  showFlipBackBtn?: boolean
+  setIsFlipped?: (val: boolean) => void
   setIsSettingsModalOpen: (val: boolean) => void
   activeMode?: string
   onSelectMode?: (mode: string) => void
+  ratingMode?: 'both' | 'swipe_4way' | 'buttons'
+  onCycleRatingMode?: () => void
   swipeToRate?: boolean
   onToggleSwipeToRate?: () => void
   showActionDock?: boolean
@@ -193,6 +195,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   setIsSettingsModalOpen,
   activeMode,
   onSelectMode,
+  ratingMode,
+  onCycleRatingMode,
   swipeToRate = true,
   onToggleSwipeToRate,
   showActionDock = true,
@@ -289,104 +293,254 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             )}
 
-            {/* Action Grid (4 Columns, iOS Control Center Style) */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-              {/* 1. Autoplay */}
-              {(() => {
-                const isAutoplay = autoPlayAudio !== 'none'
-                return (
+            {/* Action Grid (4 Columns x 2 Rows = 8 Buttons, Balanced iOS Control Center Layout) */}
+            {(() => {
+              const autoplayMeta = (() => {
+                switch (autoPlayAudio) {
+                  case 'always':
+                    return {
+                      label: 'BOTH',
+                      color: 'text-emerald-600',
+                      container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs',
+                      iconBox: 'bg-emerald-500 text-white shadow-2xs',
+                      icon: <Volume2 className="w-4 h-4" />,
+                      title: 'Autoplay: Both Sides'
+                    }
+                  case 'front':
+                    return {
+                      label: 'FRONT',
+                      color: 'text-sky-600',
+                      container: 'bg-sky-50 border-sky-300 text-sky-700 shadow-2xs',
+                      iconBox: 'bg-sky-500 text-white shadow-2xs',
+                      icon: <Volume2 className="w-4 h-4" />,
+                      title: 'Autoplay: Front Only'
+                    }
+                  case 'back':
+                    return {
+                      label: 'BACK',
+                      color: 'text-indigo-600',
+                      container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                      iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                      icon: <Volume2 className="w-4 h-4" />,
+                      title: 'Autoplay: Back Only'
+                    }
+                  default:
+                    return {
+                      label: 'OFF',
+                      color: 'text-slate-400',
+                      container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500',
+                      iconBox: 'bg-white text-slate-400 border border-slate-200/60',
+                      icon: <VolumeX className="w-4 h-4" />,
+                      title: 'Autoplay: OFF'
+                    }
+                }
+              })()
+
+              const handleCycleAutoplay = () => {
+                let nextVal = 'always'
+                let toastMsg = 'Autoplay: Both (Front & Back)'
+                if (autoPlayAudio === 'always') {
+                  nextVal = 'front'
+                  toastMsg = 'Autoplay: Front Only'
+                } else if (autoPlayAudio === 'front') {
+                  nextVal = 'back'
+                  toastMsg = 'Autoplay: Back Only'
+                } else if (autoPlayAudio === 'back') {
+                  nextVal = 'none'
+                  toastMsg = 'Autoplay: OFF'
+                } else {
+                  nextVal = 'always'
+                  toastMsg = 'Autoplay: Both (Front & Back)'
+                }
+                setAutoPlayAudio(nextVal)
+                showLocalToast?.(toastMsg, 'info')
+              }
+
+              const currentRatingMode: 'both' | 'swipe_4way' | 'buttons' = ratingMode || (
+                showActionDock && swipeToRate
+                  ? 'both'
+                  : showActionDock
+                  ? 'buttons'
+                  : 'swipe_4way'
+              )
+
+              const ratingModeMeta = (() => {
+                switch (currentRatingMode) {
+                  case 'both':
+                    return {
+                      label: 'BOTH',
+                      color: 'text-emerald-600',
+                      container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs',
+                      iconBox: 'bg-emerald-600 text-white shadow-2xs',
+                      icon: <Sparkles className="w-4 h-4" />,
+                      title: 'Rating: Both (Swipe + Buttons)'
+                    }
+                  case 'swipe_4way':
+                    return {
+                      label: 'SWIPE',
+                      color: 'text-indigo-600',
+                      container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                      iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                      icon: <MoveHorizontal className="w-4 h-4" />,
+                      title: 'Rating: Swipe Gestures Only'
+                    }
+                  case 'buttons':
+                    return {
+                      label: 'BUTTONS',
+                      color: 'text-teal-600',
+                      container: 'bg-teal-50 border-teal-300 text-teal-700 shadow-2xs',
+                      iconBox: 'bg-teal-600 text-white shadow-2xs',
+                      icon: <Layers className="w-4 h-4" />,
+                      title: 'Rating: On-Screen Buttons Only'
+                    }
+                }
+              })()
+
+              const handleCycleRating = () => {
+                if (onCycleRatingMode) {
+                  onCycleRatingMode()
+                  return
+                }
+                if (currentRatingMode === 'both') {
+                  onToggleActionDock?.()
+                } else if (currentRatingMode === 'swipe_4way') {
+                  onToggleSwipeToRate?.()
+                  onToggleActionDock?.()
+                } else {
+                  onToggleSwipeToRate?.()
+                }
+              }
+
+              const isImagesOn = showImages !== 'none'
+
+              return (
+                <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                  {/* ROW 1: Audio & Learning Flow */}
+                  {/* 1. Autoplay (Cycles: BOTH -> FRONT -> BACK -> OFF) */}
                   <button
                     type="button"
-                    onClick={() => setAutoPlayAudio(isAutoplay ? 'none' : 'always')}
+                    onClick={handleCycleAutoplay}
                     className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                      isAutoplay
-                        ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      autoplayMeta.container
+                    )}
+                    title={autoplayMeta.title}
+                  >
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", autoplayMeta.iconBox)}>
+                      {autoplayMeta.icon}
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Autoplay</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
+                        {autoplayMeta.label}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* 2. SFX Sounds */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !sfxEnabled
+                      setSfxEnabled(nextVal)
+                      showLocalToast?.(`SFX Sounds: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      sfxEnabled
+                        ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
                         : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                     )}
-                    title={`Autoplay: ${isAutoplay ? 'ON' : 'OFF'}`}
+                    title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
                   >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isAutoplay ? "bg-emerald-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      {isAutoplay ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                      <Sparkles className="w-4 h-4" />
                     </div>
-                    <span className="text-[10px] font-bold tracking-tight">Autoplay</span>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">SFX Audio</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", sfxEnabled ? "text-purple-600" : "text-slate-400")}>
+                        {sfxEnabled ? "ON" : "OFF"}
+                      </span>
+                    </div>
                   </button>
-                )
-              })()}
 
-              {/* 2. SFX Sounds */}
-              <button
-                type="button"
-                onClick={() => setSfxEnabled(!sfxEnabled)}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  sfxEnabled
-                    ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
-              >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold tracking-tight">SFX Audio</span>
-              </button>
-
-              {/* 3. Auto Advance */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isSpeedSkimMode) {
-                    if (showLocalToast) {
-                      showLocalToast("Auto Next is permanently active in Skim Mode", "info")
-                    }
-                    return
-                  }
-                  const nextVal = !effectiveAutoAdvance
-                  setIsAutoAdvance(nextVal)
-                  if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
-                }}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  effectiveAutoAdvance
-                    ? isSpeedSkimMode
-                      ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/25"
-                      : "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={isSpeedSkimMode ? "Auto Next: Permanently ON in Skim Mode" : `Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
-              >
-                <div className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center", 
-                  effectiveAutoAdvance 
-                    ? isSpeedSkimMode ? "bg-white/20 text-white" : "bg-amber-500 text-white shadow-2xs" 
-                    : "bg-white text-slate-400 border border-slate-200/60"
-                )}>
-                  <Zap className={cn("w-4 h-4", isSpeedSkimMode && "animate-pulse")} />
-                </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
-                  {isSpeedSkimMode ? (
-                    <span className="text-[8px] font-black uppercase tracking-wider text-amber-100">
-                      ⚡ Skim (ON)
-                    </span>
-                  ) : (
-                    <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
-                      {effectiveAutoAdvance ? "ON" : "OFF"}
-                    </span>
-                  )}
-                </div>
-              </button>
-
-              {/* 4. Card Images */}
-              {(() => {
-                const isImagesOn = showImages !== 'none'
-                return (
+                  {/* 3. Auto Advance */}
                   <button
                     type="button"
-                    onClick={() => setShowImages(isImagesOn ? 'none' : 'always')}
+                    onClick={() => {
+                      if (isSpeedSkimMode) {
+                        showLocalToast?.("Auto Next is permanently active in Skim Mode", "info")
+                        return
+                      }
+                      const nextVal = !effectiveAutoAdvance
+                      setIsAutoAdvance(nextVal)
+                      if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
+                      showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                    }}
                     className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      effectiveAutoAdvance
+                        ? isSpeedSkimMode
+                          ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/25"
+                          : "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                    )}
+                    title={isSpeedSkimMode ? "Auto Next: Permanently ON in Skim Mode" : `Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-xl flex items-center justify-center", 
+                      effectiveAutoAdvance 
+                        ? isSpeedSkimMode ? "bg-white/20 text-white" : "bg-amber-500 text-white shadow-2xs" 
+                        : "bg-white text-slate-400 border border-slate-200/60"
+                    )}>
+                      <Zap className={cn("w-4 h-4", isSpeedSkimMode && "animate-pulse")} />
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
+                      {isSpeedSkimMode ? (
+                        <span className="text-[8px] font-black uppercase tracking-wider text-amber-100">
+                          ⚡ Skim
+                        </span>
+                      ) : (
+                        <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
+                          {effectiveAutoAdvance ? "ON" : "OFF"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* 4. Rating Controls (Merged Swipe + Buttons, Cycles: BOTH -> SWIPE -> BUTTONS) */}
+                  <button
+                    type="button"
+                    onClick={handleCycleRating}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      ratingModeMeta.container
+                    )}
+                    title={ratingModeMeta.title}
+                  >
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", ratingModeMeta.iconBox)}>
+                      {ratingModeMeta.icon}
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Rate Mode</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
+                        {ratingModeMeta.label}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* ROW 2: Deck & Study Tools */}
+                  {/* 5. Card Images */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = isImagesOn ? 'none' : 'always'
+                      setShowImages(nextVal)
+                      showLocalToast?.(`Card Images: ${isImagesOn ? 'OFF' : 'ON'}`, 'info')
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
                       isImagesOn
                         ? "bg-sky-50 border-sky-300 text-sky-700 shadow-2xs"
                         : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
@@ -396,153 +550,100 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isImagesOn ? "bg-sky-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
                       {isImagesOn ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </div>
-                    <span className="text-[10px] font-bold tracking-tight">Images</span>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Images</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", isImagesOn ? "text-sky-600" : "text-slate-400")}>
+                        {isImagesOn ? "ON" : "OFF"}
+                      </span>
+                    </div>
                   </button>
-                )
-              })()}
 
-              {/* 5. Shuffle Order */}
-              <button
-                type="button"
-                onClick={() => {
-                  const nextVal = !randomEnabled
-                  if (onToggleRandom) {
-                    onToggleRandom(nextVal)
-                  } else {
-                    setRandomEnabled(nextVal)
-                  }
-                }}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  randomEnabled
-                    ? "bg-violet-500 border-violet-600 text-white shadow-md shadow-violet-500/25"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
-              >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-white/20 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <Shuffle className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
-                  <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-100" : "text-slate-400")}>
-                    {randomEnabled ? "ON" : "OFF"}
-                  </span>
-                </div>
-              </button>
+                  {/* 6. Shuffle Order */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !randomEnabled
+                      if (onToggleRandom) {
+                        onToggleRandom(nextVal)
+                      } else {
+                        setRandomEnabled(nextVal)
+                      }
+                      showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      randomEnabled
+                        ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs"
+                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                    )}
+                    title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
+                  >
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                      <Shuffle className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-600" : "text-slate-400")}>
+                        {randomEnabled ? "ON" : "OFF"}
+                      </span>
+                    </div>
+                  </button>
 
-              {/* 6. Swipe to Rate */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (swipeToRate && !showActionDock) {
-                    showLocalToast?.("Cannot disable Swipe Rating while Rating Buttons are hidden. At least one rating method must remain active!", "warning");
-                    return;
-                  }
-                  onToggleSwipeToRate?.();
-                }}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  swipeToRate
-                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={`Swipe to Rate: ${swipeToRate ? 'ON' : 'OFF'}`}
-              >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", swipeToRate ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <MoveHorizontal className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[10px] font-bold tracking-tight">Swipe</span>
-                  <span className={cn("text-[8px] font-black uppercase tracking-wider", swipeToRate ? "text-indigo-600" : "text-slate-400")}>
-                    {swipeToRate ? "ON" : "OFF"}
-                  </span>
-                </div>
-              </button>
+                  {/* 7. Select Text Mode */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectMode(prev => {
+                        const next = !prev
+                        showLocalToast?.(next ? "Select Text Mode: ON (Card gestures paused)" : "Select Text Mode: OFF (Card gestures resumed)", "info")
+                        return next
+                      })
+                      onClose()
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      isSelectMode
+                        ? "bg-rose-50 border-rose-300 text-rose-700 shadow-2xs"
+                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                    )}
+                    title={isSelectMode ? "Select Text: ACTIVE" : "Select Text: OFF"}
+                  >
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                      <MousePointer className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Select Text</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", isSelectMode ? "text-rose-600" : "text-slate-400")}>
+                        {isSelectMode ? "ACTIVE" : "OFF"}
+                      </span>
+                    </div>
+                  </button>
 
-              {/* 7. Action Buttons (Dock) */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (showActionDock && !swipeToRate) {
-                    showLocalToast?.("Cannot hide Rating Buttons while Swipe to Rate is disabled. At least one rating method must remain active!", "warning");
-                    return;
-                  }
-                  onToggleActionDock?.();
-                }}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  showActionDock
-                    ? "bg-teal-50 border-teal-300 text-teal-700 shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={`Rating Buttons: ${showActionDock ? 'ON' : 'OFF'}`}
-              >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showActionDock ? "bg-teal-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <Layers className="w-4 h-4" />
+                  {/* 8. Star Card */}
+                  <button
+                    type="button"
+                    onClick={handleStarQuestion}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                      currentQuestion?.is_starred
+                        ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                    )}
+                    title={currentQuestion?.is_starred ? "Card is Starred (Click to Unstar)" : "Star this Card"}
+                  >
+                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                      <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[10px] font-bold tracking-tight">Star</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", currentQuestion?.is_starred ? "text-amber-600" : "text-slate-400")}>
+                        {currentQuestion?.is_starred ? "STARRED" : "OFF"}
+                      </span>
+                    </div>
+                  </button>
                 </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[10px] font-bold tracking-tight">Buttons</span>
-                  <span className={cn("text-[8px] font-black uppercase tracking-wider", showActionDock ? "text-teal-600" : "text-slate-400")}>
-                    {showActionDock ? "ON" : "OFF"}
-                  </span>
-                </div>
-              </button>
-
-              {/* 6. Select Text Mode */}
-              <button
-                type="button"
-                onClick={() => setIsSelectMode(prev => !prev)}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  isSelectMode
-                    ? "bg-rose-50 border-rose-300 text-rose-700 shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={isSelectMode ? "Select Mode: ON" : "Select Mode: OFF"}
-              >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <MousePointer className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-bold tracking-tight">Select Text</span>
-              </button>
-
-              {/* 7. Star Card */}
-              <button
-                type="button"
-                onClick={handleStarQuestion}
-                className={cn(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  currentQuestion?.is_starred
-                    ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                )}
-                title={currentQuestion?.is_starred ? "Unstar Card" : "Star Card"}
-              >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
-                </div>
-                <span className="text-[10px] font-bold tracking-tight">{currentQuestion?.is_starred ? "Starred" : "Star"}</span>
-              </button>
-
-              {/* 8. Flip Back (if back face) */}
-              {showFlipBackBtn && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsFlipped(false)
-                    onClose()
-                  }}
-                  className="flex flex-col items-center justify-center p-2 rounded-2xl border bg-cyan-50 border-cyan-300 text-cyan-700 transition-all active:scale-95 text-center min-h-[72px] gap-1.5 shadow-2xs cursor-pointer"
-                  title="Flip Back to Front"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-2xs">
-                    <RotateCcw className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold tracking-tight">Flip Back</span>
-                </button>
-              )}
-            </div>
+              )
+            })()}
 
             {/* Bottom Bar: Full Settings Button */}
             <button

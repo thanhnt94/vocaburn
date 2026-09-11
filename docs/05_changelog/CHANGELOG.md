@@ -3,6 +3,27 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Tối Ưu Hóa Bảng Điều Khiển Nhanh (Quick Controls): Autoplay 4 Trạng Thái, Hợp Nhất Nút Đánh Giá (Rate Mode) & Lưới 8 Nút Chuẩn iOS Control Center
+- **Nút Autoplay Xoay Vòng 4 Trạng Thái (`BOTH` $\rightarrow$ `FRONT` $\rightarrow$ `BACK` $\rightarrow$ `OFF`)**:
+  - Thay thế toggle On/Off nhị phân cơ bản bằng nút bấm chu kỳ 4 nấc trực quan:
+    1. `BOTH` (Xanh lục): Phát âm thanh tự động cả 2 mặt trước và sau.
+    2. `FRONT` (Xanh da trời): Chỉ tự động phát âm mặt trước (câu hỏi/từ vựng).
+    3. `BACK` (Chàm tím): Chỉ tự động phát âm mặt sau (giải nghĩa/ví dụ).
+    4. `OFF` (Xám): Tắt hoàn toàn tự động phát âm.
+  - Tích hợp toast thông báo rõ ràng cho từng bước chuyển và lưu cấu hình bền vững vào cơ sở dữ liệu.
+- **Hợp Nhất Nút Đánh Giá Thành 1 Nút Duy Nhất (`Rate Mode: BOTH` $\rightarrow$ `SWIPE` $\rightarrow$ `BUTTONS`)**:
+  - Gom 2 nút bấm riêng rẽ gây chiếm diện tích (`Swipe: ON/OFF` và `Buttons: ON/OFF`) thành 1 nút điều khiển thông minh duy nhất:
+    1. `BOTH`: Kích hoạt đồng thời cả cử chỉ quẹt (Swipe) và thanh nút bấm đánh giá dưới đáy (Buttons).
+    2. `SWIPE`: Chỉ dùng cử chỉ quẹt 4 hướng, ẩn thanh nút dock bên dưới để mở rộng không gian đọc thẻ.
+    3. `BUTTONS`: Chỉ dùng thanh nút bấm 4 mức FSRS dưới đáy, khóa cử chỉ quẹt để tránh quẹt nhầm.
+  - Đảm bảo cơ chế chống kẹt thao tác: không bao giờ rơi vào trạng thái tắt cả 2.
+- **Thiết Kế Lưới 8 Nút Cân Đối Hoàn Hảo (2 Hàng $\times$ 4 Cột - Lấy Cảm Hứng Từ iOS Control Center)**:
+  - Loại bỏ hoàn toàn tình trạng nút lẻ loi mồ côi ở hàng thứ 3 (Star button).
+  - Sắp xếp logic theo 2 nhóm chức năng liên quan mật thiết:
+    - **Hàng 1 (Âm thanh & Luồng tiến trình học)**: `[ Autoplay ]` $\rightarrow$ `[ SFX Audio ]` $\rightarrow$ `[ Auto Next ]` $\rightarrow$ `[ Rate Mode ]`.
+    - **Hàng 2 (Hiển thị thẻ & Công cụ bổ trợ)**: `[ Images ]` $\rightarrow$ `[ Shuffle ]` $\rightarrow$ `[ Select Text ]` $\rightarrow$ `[ Star ]`.
+  - Chuẩn hóa đồng nhất 100% cấu trúc thẻ (Icon 32px + Tiêu đề `text-[10px]` + Badge trạng thái viết hoa `text-[8px]`), đảm bảo chiều cao các nút bằng phẳng tuyệt đối và chuẩn mobile-first.
+
 #### Đơn Giản Hóa Tương Tác Thẻ: Tap Lật Mặc Định Vĩnh Viễn, 2 Toggle Đánh Giá (Buttons & Swipe) & Nút Nổi Thoát Chế Độ Chọn Chữ
 - **Đồng Bộ Hoàn Hảo Thanh Điều Khiển (Action Dock) Giữa 2 Mặt Thẻ**:
   - **Mặt trước**: Luôn duy trì nút `FLIP CARD` nằm trên thanh dock ngay trên thanh điều hướng để đồng bộ vị trí cố định.

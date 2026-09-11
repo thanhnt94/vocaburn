@@ -336,6 +336,32 @@ export default function FlashcardPlay() {
     showLocalToast(nextSwipe ? "Swipe to Rate: ON" : "Swipe to Rate: OFF", "info");
   }, [swipeToRate, showActionDock, updateUserSettings, saveGeneralSettings, showLocalToast]);
 
+  const handleCycleRatingMode = useCallback(() => {
+    let nextMode: 'both' | 'swipe_4way' | 'buttons' = 'both';
+    let nextDock = true;
+    let nextSwipe = true;
+
+    if (effectiveCardRatingMode === 'both') {
+      nextMode = 'swipe_4way';
+      nextDock = false;
+      nextSwipe = true;
+    } else if (effectiveCardRatingMode === 'swipe_4way') {
+      nextMode = 'buttons';
+      nextDock = true;
+      nextSwipe = false;
+    } else {
+      nextMode = 'both';
+      nextDock = true;
+      nextSwipe = true;
+    }
+
+    updateUserSettings({ show_action_dock: nextDock, swipe_to_rate: nextSwipe, card_rating_mode: nextMode });
+    saveGeneralSettings({ card_rating_mode: nextMode, show_action_dock: nextDock, swipe_to_rate: nextSwipe });
+
+    const toastLabel = nextMode === 'both' ? 'Both (Buttons & Swipe)' : nextMode === 'swipe_4way' ? 'Swipe Gestures Only' : 'Buttons Only';
+    showLocalToast(`Rating Mode: ${toastLabel}`, "info");
+  }, [effectiveCardRatingMode, updateUserSettings, saveGeneralSettings, showLocalToast]);
+
   const {
     playCardAudio,
     stopAudio,
@@ -4205,6 +4231,8 @@ export default function FlashcardPlay() {
           applyLearningMode(targetMode, randomEnabled ? 'random' : 'sequential')
           showLocalToast(`Switched to ${targetMode.toUpperCase()} mode`, 'info')
         }}
+        ratingMode={effectiveCardRatingMode}
+        onCycleRatingMode={handleCycleRatingMode}
         swipeToRate={swipeToRate}
         onToggleSwipeToRate={handleToggleSwipeToRate}
         showActionDock={showActionDock}
