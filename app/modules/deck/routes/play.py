@@ -1473,6 +1473,14 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         else:
             target_mode = "fsrs_review" if st_helper.get("stage_1_done") else "new"
 
+    if target_mode == "autoplay":
+        if random_enabled and total > 1:
+            import random
+            candidates = [idx for idx in range(total) if idx != current_index and idx not in ignored_indexes]
+            return {"next_index": random.choice(candidates) if candidates else 0, "phase": "autoplay"}
+        next_seq = (current_index + 1) if (current_index + 1 < total) else 0
+        return {"next_index": next_seq, "phase": "autoplay"}
+
     if target_mode in ("new", "speed_skim", "skim"):
         unanswered_new = []
         all_new = []

@@ -412,7 +412,7 @@ export default function FlashcardPlay() {
     const searchParams = new URLSearchParams(window.location.search);
     const rawUrlMode = searchParams.get('mode');
     const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'skim') {
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'skim' || urlMode === 'autoplay') {
       return urlMode;
     }
     return userSettings.quiz_learning_mode || 'fsrs';
@@ -421,11 +421,62 @@ export default function FlashcardPlay() {
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
   const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
 
+  // AutoPlay Mode state & Screen Wake Lock
+  const [isAutoPlayPaused, setIsAutoPlayPaused] = useState(false);
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false);
+  const wakeLockRef = useRef<any>(null);
+
+  const requestWakeLock = async () => {
+    if (typeof window === 'undefined' || !('wakeLock' in navigator)) return;
+    try {
+      if (!wakeLockRef.current) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        setIsWakeLockActive(true);
+        wakeLockRef.current.addEventListener('release', () => {
+          setIsWakeLockActive(false);
+        });
+      }
+    } catch (err) {
+      // Wake Lock may fail if battery saver is active or tab not active
+      setIsWakeLockActive(false);
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      try {
+        wakeLockRef.current.release().catch(() => {});
+      } catch (err) {}
+      wakeLockRef.current = null;
+      setIsWakeLockActive(false);
+    }
+  };
+
+  // Keep screen awake while AutoPlay is active and not paused
+  useEffect(() => {
+    if (activeMode === 'autoplay' && !isAutoPlayPaused) {
+      requestWakeLock();
+
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible' && activeMode === 'autoplay' && !isAutoPlayPaused) {
+          requestWakeLock();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibility);
+        releaseWakeLock();
+      };
+    } else {
+      releaseWakeLock();
+    }
+  }, [activeMode, isAutoPlayPaused]);
+
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const rawUrlMode = searchParams.get('mode');
     const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
-    if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim'].includes(urlMode)) {
+    if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
       setActiveMode(urlMode);
       updateUserSettings({ quiz_learning_mode: urlMode as any });
     }
@@ -584,17 +635,17 @@ export default function FlashcardPlay() {
     }
 
     if (isFlipped) {
-      if (autoPlayAudio === 'always' || autoPlayAudio === 'back') {
+      if (autoPlayAudio === 'always' || autoPlayAudio === 'back' || (activeMode === 'autoplay' && autoPlayAudio !== 'none')) {
         lastAutoplayKeyRef.current = autoplayKey;
         playCardAudio('back');
       }
     } else {
-      if (autoPlayAudio === 'always' || autoPlayAudio === 'front') {
+      if (autoPlayAudio === 'always' || autoPlayAudio === 'front' || (activeMode === 'autoplay' && autoPlayAudio !== 'none')) {
         lastAutoplayKeyRef.current = autoplayKey;
         playCardAudio('front');
       }
     }
-  }, [currentIndex, isFlipped, currentQuestion?.id, autoPlayAudio]);
+  }, [currentIndex, isFlipped, currentQuestion?.id, autoPlayAudio, activeMode]);
 
   const [currentTime, setCurrentTime] = useState(new Date())
   useEffect(() => {
@@ -750,7 +801,7 @@ export default function FlashcardPlay() {
       const searchParams = new URLSearchParams(window.location.search);
       const rawUrlMode = searchParams.get('mode');
       const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
-      if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim'].includes(urlMode)) {
+      if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
         setActiveMode(urlMode);
         updateUserSettings({ quiz_learning_mode: urlMode as any });
       } else if (effectiveStudy.learning_mode) {
@@ -1502,7 +1553,7 @@ export default function FlashcardPlay() {
     }
   }
 
-  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
+  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -1963,6 +2014,21 @@ export default function FlashcardPlay() {
     saveSession(activeAnswers, idx)
   }
 
+  const handlePrev = () => {
+    cancelAllAudio();
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    if (!session || !session.questions || session.questions.length === 0) return;
+    const total = session.questions.length;
+    const prevIdx = currentIndex > 0 ? currentIndex - 1 : total - 1;
+    navigateToQuestion(prevIdx);
+  };
+
   const handleNext = async (customAnswers?: Record<number, any> | React.MouseEvent) => {
     cancelAllAudio();
     // Immediately stop any actively playing server audio and clear speech synthesis queues when transitioning
@@ -1978,6 +2044,22 @@ export default function FlashcardPlay() {
 
     const questions = session.questions
     const total = questions.length
+
+    // Auto Play mode: purely hands-free navigation with zero grading/XP
+    if (activeMode === 'autoplay') {
+      let nextIdx = 0;
+      if (randomEnabled && total > 1) {
+        let rand = Math.floor(Math.random() * total);
+        while (rand === currentIndex) {
+          rand = Math.floor(Math.random() * total);
+        }
+        nextIdx = rand;
+      } else {
+        nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+      }
+      navigateToQuestion(nextIdx);
+      return;
+    }
 
     if ((activeMode === 'flip' || isSpeedSkimMode) && currentQuestion) {
       const alreadyRated = sessionAnswers[currentIndex] !== undefined;
@@ -2156,6 +2238,61 @@ export default function FlashcardPlay() {
     currentIndex
   ]);
 
+  // Auto Play Hands-Free Loop Effect
+  useEffect(() => {
+    if (activeMode !== 'autoplay' || isAutoPlayPaused) {
+      return;
+    }
+    if (
+      isFlyToolbarOpen ||
+      isSettingsModalOpen ||
+      isQuitModalOpen ||
+      isFeedbackOpen ||
+      isMapOpen ||
+      isStatsOpen ||
+      isSessionSummaryOpen
+    ) {
+      return;
+    }
+
+    if (isPlayingAudio || isLoadingAudio) {
+      // Audio is actively playing or loading; wait for it to finish
+      return;
+    }
+
+    if (!isFlipped) {
+      // Front face -> Auto-flip to Back face
+      const frontDelay = autoPlayAudio !== 'none' ? 1200 : 2500;
+      const timer = setTimeout(() => {
+        setIsFlipped(true);
+        setJustAnswered(true);
+      }, frontDelay);
+      return () => clearTimeout(timer);
+    } else {
+      // Back face -> Auto-advance to Next card
+      const backDelay = autoPlayAudio !== 'none' ? 1400 : 3000;
+      const timer = setTimeout(() => {
+        handleNext();
+      }, backDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    activeMode,
+    isAutoPlayPaused,
+    isFlipped,
+    isPlayingAudio,
+    isLoadingAudio,
+    autoPlayAudio,
+    isFlyToolbarOpen,
+    isSettingsModalOpen,
+    isQuitModalOpen,
+    isFeedbackOpen,
+    isMapOpen,
+    isStatsOpen,
+    isSessionSummaryOpen,
+    currentIndex
+  ]);
+
   const applyLearningMode = async (mode: string, order?: 'sequential' | 'random') => {
     setFsrsCompletionData(null)
     setActiveMode(mode)
@@ -2284,6 +2421,13 @@ export default function FlashcardPlay() {
         return;
       }
 
+      // AutoPlay mode pause/resume shortcut (KeyP or Space when in autoplay)
+      if (activeMode === 'autoplay' && (e.code === 'KeyP' || e.code === 'Space')) {
+        e.preventDefault();
+        setIsAutoPlayPaused(prev => !prev);
+        return;
+      }
+
       // Space or Enter:
       // If card is not flipped -> flip it
       // If card is flipped & has rated -> go to next card
@@ -2300,7 +2444,7 @@ export default function FlashcardPlay() {
       }
 
       // Number keys 1, 2, 3, 4 for FSRS Rating when flipped
-      if (isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode) {
+      if (isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay') {
         if (e.code === 'Digit1' || e.code === 'Numpad1') {
           e.preventDefault();
           handleReviewRating(1);
@@ -2355,8 +2499,15 @@ export default function FlashcardPlay() {
         return;
       }
 
-      // ArrowRight: Next card (if rated or flip mode or speed_skim)
-      if (e.code === 'ArrowRight' && (hasRated || activeMode === 'flip' || isSpeedSkimMode)) {
+      // ArrowLeft: Prev card (in autoplay)
+      if (e.code === 'ArrowLeft' && activeMode === 'autoplay') {
+        e.preventDefault();
+        handlePrev();
+        return;
+      }
+
+      // ArrowRight: Next card (if rated or flip mode or speed_skim or autoplay)
+      if (e.code === 'ArrowRight' && (hasRated || activeMode === 'flip' || isSpeedSkimMode || activeMode === 'autoplay')) {
         e.preventDefault();
         handleNext();
         return;
@@ -3371,6 +3522,15 @@ export default function FlashcardPlay() {
             }).length : Object.keys(sessionAnswers).length;
 
             subCurr = initialLearnedCount + newlyAnsweredCount;
+          } else if (activeMode === 'autoplay') {
+            modeBadge = {
+              emoji: '🎧',
+              label: 'Auto Play (Hands-Free)',
+              short: 'AUTO',
+              style: 'bg-cyan-50 text-cyan-950 border border-cyan-300/80 shadow-2xs hover:bg-cyan-100/90'
+            };
+            subTotal = session?.questions?.length || 1;
+            subCurr = (currentIndex >= 0 ? currentIndex + 1 : 1);
           } else if (activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip') {
             modeBadge = {
               emoji: '⚡',
@@ -3703,6 +3863,10 @@ export default function FlashcardPlay() {
         handleNext={handleNext}
         handleUndoRating={handleUndoRating}
         activelyRatedCurrentCard={activelyRatedCurrentCard}
+        isAutoPlayPaused={isAutoPlayPaused}
+        onToggleAutoPlayPause={() => setIsAutoPlayPaused(prev => !prev)}
+        onPrevCard={handlePrev}
+        isWakeLockActive={isWakeLockActive}
         onOpenMap={() => {
           setIsMapOpen(true);
           setIsStatsOpen(false);

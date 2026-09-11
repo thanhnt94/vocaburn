@@ -54,6 +54,18 @@ export interface StudyHeaderTrackerProps {
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
+  autoplay: { 
+    emoji: '🎧', 
+    label: 'Auto Play (Hands-Free)', 
+    short: 'AUTO',
+    style: 'bg-cyan-50 text-cyan-950 border border-cyan-300/80 shadow-2xs hover:bg-cyan-100/90'
+  },
+  play: { 
+    emoji: '🎧', 
+    label: 'Auto Play (Hands-Free)', 
+    short: 'AUTO',
+    style: 'bg-cyan-50 text-cyan-950 border border-cyan-300/80 shadow-2xs hover:bg-cyan-100/90'
+  },
   speed_skim: { 
     emoji: '⚡', 
     label: 'Speed Skim', 

@@ -148,11 +148,12 @@ export interface FlashcardQuickControlsSheetProps {
   onSelectMode?: (mode: string) => void
 }
 
-const FLASHCARD_4_MODES = [
-  { id: 'fsrs', short: 'FSRS', name: 'FSRS Spaced Repetition', icon: '🧠', activeClass: 'bg-emerald-600 text-white shadow-xs font-black' },
-  { id: 'skim', short: 'SKIM', name: 'Speed Skim (1-Tap)', icon: '⚡', activeClass: 'bg-amber-500 text-white shadow-xs font-black' },
-  { id: 'review', short: 'REV', name: 'Review Due Cards', icon: '📚', activeClass: 'bg-sky-600 text-white shadow-xs font-black' },
-  { id: 'new', short: 'NEW', name: 'Learn New Cards', icon: '✨', activeClass: 'bg-indigo-600 text-white shadow-xs font-black' },
+const FLASHCARD_MODES = [
+  { id: 'fsrs', short: 'FSRS', name: 'FSRS Repetition', icon: '🧠', activeClass: 'bg-emerald-600 text-white shadow-xs font-black' },
+  { id: 'skim', short: 'SKIM', name: 'Speed Skim', icon: '⚡', activeClass: 'bg-amber-500 text-white shadow-xs font-black' },
+  { id: 'autoplay', short: 'AUTO', name: 'Auto Play (Hands-Free)', icon: '🎧', activeClass: 'bg-cyan-600 text-white shadow-xs font-black' },
+  { id: 'review', short: 'REV', name: 'Review Due', icon: '📚', activeClass: 'bg-sky-600 text-white shadow-xs font-black' },
+  { id: 'new', short: 'NEW', name: 'Learn New', icon: '✨', activeClass: 'bg-indigo-600 text-white shadow-xs font-black' },
 ]
 
 /**
@@ -239,7 +240,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </button>
             </div>
 
-            {/* 4 Flashcard Modes Quick Switcher */}
+            {/* 5 Flashcard Modes Quick Switcher */}
             {onSelectMode && (
               <div className="flex flex-col gap-1 text-left px-0.5">
                 <div className="flex items-center justify-between px-1">
@@ -247,11 +248,11 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     Flashcard Study Mode
                   </span>
                   <span className="text-[9px] font-bold text-slate-400">
-                    4 Modes Available
+                    5 Modes Available
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-2 p-1.5 rounded-2xl bg-slate-100 border border-slate-200/80">
-                  {FLASHCARD_4_MODES.map((m) => {
+                <div className="grid grid-cols-5 gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
+                  {FLASHCARD_MODES.map((m) => {
                     const isActive = activeMode === m.id || (m.id === 'skim' && (activeMode === 'speed_skim' || activeMode === 'flip'));
                     return (
                       <button
@@ -261,7 +262,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           onSelectMode(m.id);
                         }}
                         className={cn(
-                          "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all cursor-pointer select-none",
+                          "flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer select-none",
                           isActive
                             ? cn(m.activeClass, "scale-[1.02]")
                             : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
@@ -269,7 +270,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         title={m.name}
                       >
                         <span className="text-base leading-none mb-1">{m.icon}</span>
-                        <span className="text-[10px] font-black tracking-tight uppercase leading-tight">{m.short}</span>
+                        <span className="text-[9.5px] font-black tracking-tight uppercase leading-tight">{m.short}</span>
                       </button>
                     );
                   })}

@@ -43,6 +43,12 @@ export const StudyConsoleModal: React.FC<StudyConsoleModalProps> = ({
       desc: 'Rapid 1-tap/Space scanning without rating buttons (+3 XP)' 
     },
     { 
+      mode: 'autoplay', 
+      icon: '🎧', 
+      title: 'Auto Play (Hands-Free)', 
+      desc: 'Hands-free automatic card flipping with Screen Wake Lock' 
+    },
+    { 
       mode: 'review', 
       icon: '📚', 
       title: 'Review Mode', 

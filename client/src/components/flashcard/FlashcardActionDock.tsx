@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles } from 'lucide-react'
+import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles, Play, Pause, SkipBack, SkipForward, RotateCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +24,10 @@ export interface FlashcardActionDockProps {
   handleNext: () => void
   handleUndoRating: () => void
   activelyRatedCurrentCard: boolean
+  isAutoPlayPaused?: boolean
+  onToggleAutoPlayPause?: () => void
+  onPrevCard?: () => void
+  isWakeLockActive?: boolean
   onOpenMap: () => void
   onOpenFlashcard: () => void
   onOpenStats: () => void
@@ -51,6 +55,10 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   handleNext,
   handleUndoRating,
   activelyRatedCurrentCard,
+  isAutoPlayPaused = false,
+  onToggleAutoPlayPause,
+  onPrevCard,
+  isWakeLockActive = false,
   onOpenMap,
   onOpenFlashcard,
   onOpenStats,
@@ -122,6 +130,97 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </div>
                   </div>
                 )
+              ) : activeMode === 'autoplay' ? (
+                /* ── AUTOPLAY HANDS-FREE CONTROLLER ── */
+                <div className="w-full flex flex-col gap-1.5">
+                  {/* Status row */}
+                  <div className="flex items-center justify-between px-1 text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        "w-2 h-2 rounded-full",
+                        isAutoPlayPaused ? "bg-amber-500" : "bg-cyan-500 animate-pulse"
+                      )} />
+                      <span className="text-cyan-950 font-black tracking-wider uppercase text-[10px]">
+                        {isAutoPlayPaused ? 'Paused' : 'Auto Playing...'}
+                      </span>
+                      <span className="text-slate-300">·</span>
+                      <span className="text-slate-500 text-[10px] font-semibold">
+                        {isFlipped ? 'Back' : 'Front'}
+                      </span>
+                    </div>
+
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase border",
+                      isWakeLockActive 
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                        : "bg-slate-50 text-slate-500 border-slate-200"
+                    )}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full", isWakeLockActive ? "bg-emerald-500" : "bg-slate-400")} />
+                      <span>{isWakeLockActive ? 'Screen Awake' : 'Screen Normal'}</span>
+                    </div>
+                  </div>
+
+                  {/* Controller Action Bar */}
+                  <div className="flex items-center gap-2 h-12 sm:h-13 w-full">
+                    {/* Prev Card */}
+                    <button
+                      onClick={onPrevCard}
+                      className="h-full px-3.5 sm:px-4 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                      title="Previous Card"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                      <span className="hidden sm:inline">Prev</span>
+                    </button>
+
+                    {/* Pause / Resume Button */}
+                    <button
+                      onClick={onToggleAutoPlayPause}
+                      className={cn(
+                        "flex-1 h-full text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer",
+                        isAutoPlayPaused
+                          ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-300/40"
+                          : "bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-700 hover:to-indigo-700 shadow-cyan-300/40"
+                      )}
+                      title={isAutoPlayPaused ? "Resume Auto Play" : "Pause Auto Play"}
+                    >
+                      {isAutoPlayPaused ? (
+                        <>
+                          <Play className="w-4 h-4 fill-white" />
+                          <span>Resume</span>
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="w-4 h-4 fill-white" />
+                          <span>Pause</span>
+                        </>
+                      )}
+                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                    </button>
+
+                    {/* Manual Flip */}
+                    <button
+                      onClick={() => {
+                        setIsFlipped(!isFlipped);
+                        setJustAnswered(true);
+                      }}
+                      className="h-full px-3 sm:px-3.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer shrink-0"
+                      title="Flip Card"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Flip</span>
+                    </button>
+
+                    {/* Next Card */}
+                    <button
+                      onClick={handleNext}
+                      className="h-full px-3.5 sm:px-4 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                      title="Next Card"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               ) : !isFlipped ? (
                 /* ── FRONT FACE: BIG FLIP CARD CTA BUTTON ── */
                 <button 
@@ -140,7 +239,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
                   <ChevronRight className="w-4 h-4 rotate-90" />
                 </button>
-              ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' && activeMode !== 'skim' ? (
+              ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' && activeMode !== 'skim' && activeMode !== 'autoplay' ? (
                 /* ── BACK FACE: UNRATED (FSRS BUTTONS OR SWIPE GUIDE) ── */
                 effectiveCardRatingMode === 'buttons' || effectiveCardRatingMode === 'both' ? (
                   <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 w-full">
