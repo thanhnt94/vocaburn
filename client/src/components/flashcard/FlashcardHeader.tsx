@@ -42,6 +42,7 @@ export interface FlashcardHeaderProps {
   cardsRemaining?: number
   comboStreak?: number
   isRandom?: boolean
+  onToggleOrder?: () => void
   onCreateNewCard?: () => void
   rightAction?: React.ReactNode
   onOpenStudyConsole?: () => void
@@ -85,6 +86,7 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
   cardsRemaining,
   comboStreak,
   isRandom = false,
+  onToggleOrder,
   onCreateNewCard,
   rightAction,
   onOpenStudyConsole
@@ -141,6 +143,7 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
             cardsRemaining={cardsRemaining}
             comboStreak={comboStreak}
             isRandom={isRandom}
+            onToggleOrder={onToggleOrder}
             onOpenStudyConsole={onOpenStudyConsole}
           />
         </div>

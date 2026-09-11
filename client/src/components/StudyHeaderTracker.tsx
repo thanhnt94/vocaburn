@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Clock, Flame, Trophy, Zap, X, Target, Sparkles, Brain, Gauge, ArrowRightLeft, Shuffle } from 'lucide-react'
+import { Clock, Flame, Trophy, Zap, X, Target, Sparkles, Brain, Gauge, ArrowRightLeft, ArrowUpDown, Shuffle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
@@ -49,6 +49,7 @@ export interface StudyHeaderTrackerProps {
   progressPillText?: string
   comboStreak?: number
   isRandom?: boolean
+  onToggleOrder?: () => void
   onOpenStudyConsole?: () => void
 }
 
@@ -57,121 +58,121 @@ const MODE_META_DICT: Record<string, { emoji: string; label: string; short: stri
     emoji: '⚡', 
     label: 'Speed Skim', 
     short: 'SKIM',
-    style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs font-black'
+    style: 'bg-amber-50 text-amber-950 border border-amber-300/80 shadow-2xs hover:bg-amber-100/90'
   },
   skim: { 
     emoji: '⚡', 
     label: 'Speed Skim', 
     short: 'SKIM',
-    style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs font-black'
+    style: 'bg-amber-50 text-amber-950 border border-amber-300/80 shadow-2xs hover:bg-amber-100/90'
   },
   roadmap: { 
     emoji: '🛣️', 
     label: 'Roadmap Guided', 
     short: 'RM',
-    style: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-2xs font-black'
+    style: 'bg-teal-50 text-teal-950 border border-teal-300/80 shadow-2xs hover:bg-teal-100/90'
   },
   roadmap_new: { 
     emoji: '🛣️', 
     label: 'Roadmap - New Cards', 
     short: 'RM',
-    style: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-2xs font-black'
+    style: 'bg-teal-50 text-teal-950 border border-teal-300/80 shadow-2xs hover:bg-teal-100/90'
   },
   roadmap_review: { 
     emoji: '🛣️', 
     label: 'Roadmap - Review', 
     short: 'RM',
-    style: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-2xs font-black'
+    style: 'bg-teal-50 text-teal-950 border border-teal-300/80 shadow-2xs hover:bg-teal-100/90'
   },
   new_cards: { 
     emoji: '✨', 
     label: 'Learn New Cards', 
     short: 'NEW',
-    style: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-2xs font-black'
+    style: 'bg-indigo-50 text-indigo-950 border border-indigo-300/80 shadow-2xs hover:bg-indigo-100/90'
   },
   new: { 
     emoji: '✨', 
     label: 'Learn New Cards', 
     short: 'NEW',
-    style: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-2xs font-black'
+    style: 'bg-indigo-50 text-indigo-950 border border-indigo-300/80 shadow-2xs hover:bg-indigo-100/90'
   },
   fsrs_review: { 
     emoji: '🧠', 
     label: 'FSRS Review', 
     short: 'FSRS',
-    style: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-2xs font-black'
+    style: 'bg-emerald-50 text-emerald-950 border border-emerald-300/80 shadow-2xs hover:bg-emerald-100/90'
   },
   fsrs: { 
     emoji: '🧠', 
     label: 'FSRS v6 Spaced Repetition', 
     short: 'FSRS',
-    style: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-2xs font-black'
+    style: 'bg-emerald-50 text-emerald-950 border border-emerald-300/80 shadow-2xs hover:bg-emerald-100/90'
   },
   review: { 
     emoji: '📚', 
     label: 'Review Only', 
     short: 'REV',
-    style: 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-2xs font-black'
+    style: 'bg-sky-50 text-sky-950 border border-sky-300/80 shadow-2xs hover:bg-sky-100/90'
   },
   rev: { 
     emoji: '📚', 
     label: 'Review Only', 
     short: 'REV',
-    style: 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-2xs font-black'
+    style: 'bg-sky-50 text-sky-950 border border-sky-300/80 shadow-2xs hover:bg-sky-100/90'
   },
   flip: { 
     emoji: '🔄', 
     label: 'Free Flip Mode', 
     short: 'FLIP',
-    style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs font-black'
+    style: 'bg-slate-100 text-slate-900 border border-slate-300/80 shadow-2xs hover:bg-slate-200/90'
   },
   mcq: { 
     emoji: '🎯', 
     label: 'Multiple Choice MCQ', 
     short: 'MCQ',
-    style: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-2xs font-black'
+    style: 'bg-rose-50 text-rose-950 border border-rose-300/80 shadow-2xs hover:bg-rose-100/90'
   },
   roadmap_mcq: { 
     emoji: '🎯', 
     label: 'Roadmap MCQ', 
     short: 'MCQ',
-    style: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-2xs font-black'
+    style: 'bg-rose-50 text-rose-950 border border-rose-300/80 shadow-2xs hover:bg-rose-100/90'
   },
   typing: { 
     emoji: '⌨️', 
     label: 'Typing Mode', 
     short: 'TYP',
-    style: 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-2xs font-black'
+    style: 'bg-purple-50 text-purple-950 border border-purple-300/80 shadow-2xs hover:bg-purple-100/90'
   },
   roadmap_typing: { 
     emoji: '⌨️', 
     label: 'Roadmap Typing', 
     short: 'TYP',
-    style: 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-2xs font-black'
+    style: 'bg-purple-50 text-purple-950 border border-purple-300/80 shadow-2xs hover:bg-purple-100/90'
   },
   listening: { 
     emoji: '🎧', 
     label: 'Listening Mode', 
     short: 'LIS',
-    style: 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-2xs font-black'
+    style: 'bg-cyan-50 text-cyan-950 border border-cyan-300/80 shadow-2xs hover:bg-cyan-100/90'
   },
   audio: { 
     emoji: '🎧', 
     label: 'Listening Mode', 
     short: 'LIS',
-    style: 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-2xs font-black'
+    style: 'bg-cyan-50 text-cyan-950 border border-cyan-300/80 shadow-2xs hover:bg-cyan-100/90'
   },
   study_time: { 
     emoji: '⏱️', 
     label: 'Study Time', 
     short: 'TIME',
-    style: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xs font-black'
+    style: 'bg-amber-50 text-amber-950 border border-amber-300/80 shadow-2xs hover:bg-amber-100/90'
   },
   roadmap_test: { 
     emoji: '🏆', 
     label: 'Roadmap Test', 
     short: 'TEST',
-    style: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xs font-black'
+    style: 'bg-amber-50 text-amber-950 border border-amber-300/80 shadow-2xs hover:bg-amber-100/90'
   }
 }
 
@@ -219,6 +220,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
   progressPillText,
   comboStreak = 0,
   isRandom = false,
+  onToggleOrder,
   onOpenStudyConsole
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
@@ -476,45 +478,60 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   )}
 
-                  {/* Mode Badge - Clickable to open Study Console Modal */}
-                  <button 
-                    type="button"
-                    onClick={onOpenStudyConsole}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs text-white transition-all",
-                      onOpenStudyConsole ? "cursor-pointer hover:opacity-90 hover:scale-105 active:scale-95" : "",
-                      meta.style || "bg-gradient-to-r from-amber-500 to-amber-600"
-                    )}
-                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • ${isRandom ? 'Shuffle: ON (Random)' : 'Order: Sequential'} • Click to switch` : `${currentStep?.label || meta.label} • ${isRandom ? 'Random' : 'Sequential'}`}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs">{meta.emoji}</span>
-                      <span className="text-[10px] sm:text-[11px] font-black text-white tracking-tight">
+                  {/* Mode & Order Dual-Segmented Capsule */}
+                  <div className="flex items-center p-0.5 rounded-xl bg-slate-100/90 border border-slate-200/90 shadow-2xs gap-1 shrink-0">
+                    {/* Segment 1: Mode Badge - Clickable to open Study Console Modal */}
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenStudyConsole?.()
+                      }}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-tight transition-all",
+                        onOpenStudyConsole ? "cursor-pointer hover:opacity-90 active:scale-95" : "",
+                        meta.style || "bg-amber-50 text-amber-950 border border-amber-300/80"
+                      )}
+                      title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • Click to switch mode` : currentStep?.label || meta.label}
+                    >
+                      <span className="text-[10px] sm:text-xs leading-none">{meta.emoji}</span>
+                      <span className="text-[10px] sm:text-[11px] font-black tracking-tight">
                         {meta.short}
                       </span>
-                    </div>
+                    </button>
 
-                    {/* Order Indicator: Sequential (⇄ SEQ) vs Random (🔀 RND) */}
-                    <div className="flex items-center pl-1 border-l border-white/30 ml-0.5">
-                      {isRandom ? (
-                        <span 
-                          className="flex items-center gap-0.5 text-[8.5px] font-black bg-black/25 text-amber-200 px-1 py-0.2 rounded shadow-2xs"
-                          title="Shuffle: ON (Random Order)"
-                        >
-                          <Shuffle className="w-2.5 h-2.5 text-amber-300" />
-                          <span className="text-[8px] tracking-tight font-black uppercase">RND</span>
-                        </span>
-                      ) : (
-                        <span 
-                          className="flex items-center gap-0.5 text-[8.5px] font-black text-white/80 px-0.5"
-                          title="Sequential / In-Order is active"
-                        >
-                          <ArrowRightLeft className="w-2.5 h-2.5 opacity-75" />
-                          <span className="hidden sm:inline text-[8px] tracking-tight opacity-75 uppercase">SEQ</span>
-                        </span>
+                    {/* Segment 2: Order Indicator (⇅ SEQ vs 🔀 RND) - Clickable to toggle Order */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (onToggleOrder) {
+                          onToggleOrder()
+                        } else {
+                          onOpenStudyConsole?.()
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-black shrink-0 tracking-tight transition-all cursor-pointer active:scale-95",
+                        isRandom 
+                          ? "bg-violet-600 text-white shadow-2xs hover:bg-violet-700" 
+                          : "bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
                       )}
-                    </div>
-                  </button>
+                      title={isRandom ? "Shuffle: ON (Random Order) • Click to toggle" : "Order: Sequential (In-Order) • Click to toggle"}
+                    >
+                      {isRandom ? (
+                        <>
+                          <Shuffle className="w-2.5 h-2.5 stroke-[2.5]" />
+                          <span className="font-black uppercase tracking-wider">RND</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowUpDown className="w-2.5 h-2.5 text-slate-400 stroke-[2.5]" />
+                          <span className="font-bold uppercase tracking-wider text-slate-600">SEQ</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
 
                   {/* Combo Streak Flame Badge */}
                   {comboStreak >= 3 && (
