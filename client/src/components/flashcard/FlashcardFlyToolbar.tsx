@@ -37,6 +37,9 @@ export interface FlashcardFlyToolbarProps {
   setShowImages?: (val: any) => void
   randomEnabled?: boolean
   setRandomEnabled?: (val: boolean) => void
+  onToggleRandom?: (nextVal: boolean) => void
+  isSpeedSkimMode?: boolean
+  showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning') => void
   isSelectMode?: boolean
   setIsSelectMode?: React.Dispatch<React.SetStateAction<boolean>>
   currentQuestion?: any
@@ -131,6 +134,9 @@ export interface FlashcardQuickControlsSheetProps {
   setShowImages: (val: any) => void
   randomEnabled: boolean
   setRandomEnabled: (val: boolean) => void
+  onToggleRandom?: (nextVal: boolean) => void
+  isSpeedSkimMode?: boolean
+  showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning') => void
   isSelectMode: boolean
   setIsSelectMode: React.Dispatch<React.SetStateAction<boolean>>
   currentQuestion: any
@@ -158,6 +164,9 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   setShowImages,
   randomEnabled,
   setRandomEnabled,
+  onToggleRandom,
+  isSpeedSkimMode,
+  showLocalToast,
   isSelectMode,
   setIsSelectMode,
   currentQuestion,
@@ -266,6 +275,12 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               <button
                 type="button"
                 onClick={() => {
+                  if (isSpeedSkimMode) {
+                    if (showLocalToast) {
+                      showLocalToast("Auto Next is permanently active in Skim Mode", "info")
+                    }
+                    return
+                  }
                   const nextVal = !effectiveAutoAdvance
                   setIsAutoAdvance(nextVal)
                   if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
@@ -273,15 +288,33 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 className={cn(
                   "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
                   effectiveAutoAdvance
-                    ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                    ? isSpeedSkimMode
+                      ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/25"
+                      : "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
                     : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                 )}
-                title={`Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
+                title={isSpeedSkimMode ? "Auto Next: Permanently ON in Skim Mode" : `Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
               >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", effectiveAutoAdvance ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <Zap className="w-4 h-4" />
+                <div className={cn(
+                  "w-8 h-8 rounded-xl flex items-center justify-center", 
+                  effectiveAutoAdvance 
+                    ? isSpeedSkimMode ? "bg-white/20 text-white" : "bg-amber-500 text-white shadow-2xs" 
+                    : "bg-white text-slate-400 border border-slate-200/60"
+                )}>
+                  <Zap className={cn("w-4 h-4", isSpeedSkimMode && "animate-pulse")} />
                 </div>
-                <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
+                <div className="flex flex-col items-center leading-none gap-0.5">
+                  <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
+                  {isSpeedSkimMode ? (
+                    <span className="text-[8px] font-black uppercase tracking-wider text-amber-100">
+                      ⚡ Skim (ON)
+                    </span>
+                  ) : (
+                    <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
+                      {effectiveAutoAdvance ? "ON" : "OFF"}
+                    </span>
+                  )}
+                </div>
               </button>
 
               {/* 4. Card Images */}
@@ -310,19 +343,31 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               {/* 5. Shuffle Order */}
               <button
                 type="button"
-                onClick={() => setRandomEnabled(!randomEnabled)}
+                onClick={() => {
+                  const nextVal = !randomEnabled
+                  if (onToggleRandom) {
+                    onToggleRandom(nextVal)
+                  } else {
+                    setRandomEnabled(nextVal)
+                  }
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
                   randomEnabled
-                    ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs"
+                    ? "bg-violet-500 border-violet-600 text-white shadow-md shadow-violet-500/25"
                     : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                 )}
                 title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
               >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-violet-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-white/20 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
                   <Shuffle className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
+                <div className="flex flex-col items-center leading-none gap-0.5">
+                  <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
+                  <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-100" : "text-slate-400")}>
+                    {randomEnabled ? "ON" : "OFF"}
+                  </span>
+                </div>
               </button>
 
               {/* 6. Select Text Mode */}

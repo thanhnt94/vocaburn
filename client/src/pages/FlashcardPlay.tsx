@@ -179,14 +179,14 @@ export default function FlashcardPlay() {
   const [localToast, setLocalToast] = useState<{
     visible: boolean;
     message: string;
-    type: 'success' | 'warning' | 'error';
+    type: 'success' | 'warning' | 'error' | 'info';
   }>({ visible: false, message: '', type: 'success' })
 
-  const showLocalToast = (message: string, type: 'success' | 'warning' | 'error' = 'success') => {
+  const showLocalToast = (message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
     setLocalToast({ visible: true, message, type })
     setTimeout(() => {
       setLocalToast(prev => ({ ...prev, visible: false }))
-    }, 4500)
+    }, 4000)
   }
   
   const mainTab = 'fsrs' as 'fsrs' | 'practice'
@@ -422,10 +422,11 @@ export default function FlashcardPlay() {
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'skim' || urlMode === 'flip') {
-      const canonicalMode = urlMode === 'speed_skim' ? 'skim' : urlMode;
-      updateUserSettings({ quiz_learning_mode: canonicalMode as any });
+    const rawUrlMode = searchParams.get('mode');
+    const urlMode = rawUrlMode === 'speed_skim' ? 'skim' : rawUrlMode;
+    if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'flip'].includes(urlMode)) {
+      setActiveMode(urlMode);
+      updateUserSettings({ quiz_learning_mode: urlMode as any });
     }
     const urlOrder = searchParams.get('order');
     if (urlOrder === 'random') {
@@ -436,6 +437,19 @@ export default function FlashcardPlay() {
       updateUserSettings({ random_enabled: false });
     }
   }, [])
+
+  const handleToggleRandom = (nextVal: boolean) => {
+    setRandomEnabled(nextVal);
+    updateUserSettings({ random_enabled: nextVal });
+    saveGeneralSettings({ random_enabled: nextVal });
+
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('order', nextVal ? 'random' : 'sequential');
+    const newPath = window.location.pathname + '?' + searchParams.toString();
+    window.history.replaceState(null, '', newPath);
+
+    showLocalToast(nextVal ? "Card Order: Random (Shuffle ON)" : "Card Order: Sequential (Shuffle OFF)", "info");
+  };
 
   useEffect(() => {
     cancelAllAudio();
@@ -733,11 +747,29 @@ export default function FlashcardPlay() {
       syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin, userGlobal, profiles, activeProfId);
 
       const searchParams = new URLSearchParams(window.location.search);
-      const urlMode = searchParams.get('mode');
-      if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'flip') {
+      const rawUrlMode = searchParams.get('mode');
+      const urlMode = rawUrlMode === 'speed_skim' ? 'skim' : rawUrlMode;
+      if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'flip'].includes(urlMode)) {
         setActiveMode(urlMode);
+        updateUserSettings({ quiz_learning_mode: urlMode as any });
       } else if (effectiveStudy.learning_mode) {
-        setActiveMode(effectiveStudy.learning_mode);
+        const eff = effectiveStudy.learning_mode === 'speed_skim' ? 'skim' : effectiveStudy.learning_mode;
+        setActiveMode(eff);
+      }
+
+      const urlOrder = searchParams.get('order');
+      if (urlOrder === 'random') {
+        setRandomEnabled(true);
+        updateUserSettings({ random_enabled: true });
+        saveGeneralSettings({ random_enabled: true });
+        if (questions.length > 0) {
+          const randIdx = Math.floor(Math.random() * questions.length);
+          setCurrentIndex(randIdx);
+        }
+      } else if (urlOrder === 'sequential') {
+        setRandomEnabled(false);
+        updateUserSettings({ random_enabled: false });
+        saveGeneralSettings({ random_enabled: false });
       }
       
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
@@ -2065,7 +2097,7 @@ export default function FlashcardPlay() {
         step_type: activeStepType,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,
-        random_enabled: !!userSettings.random_enabled
+        random_enabled: randomEnabled ?? !!userSettings.random_enabled
       });
       if (res.data) {
         if (res.data.is_all_completed || res.data.next_index === -1) {
@@ -2088,6 +2120,39 @@ export default function FlashcardPlay() {
 
     navigateToQuestion(nextIdx, updatedAnswers)
   }
+
+  // Auto-advance timer in Skim Mode (when card is flipped to back face)
+  useEffect(() => {
+    if (!isSpeedSkimMode || !isFlipped || hasRated || isFlyToolbarOpen || isSettingsModalOpen || isQuitModalOpen) {
+      return;
+    }
+
+    if (isPlayingAudio || isLoadingAudio) {
+      // Audio is actively playing or loading. Once audio finishes, isPlayingAudio will transition to false.
+      return;
+    }
+
+    // Auto-advance after audio completion (800ms buffer) or comfortable reading pause (1800ms if no audio)
+    const advanceDelay = autoPlayAudio !== 'none' ? 800 : 1800;
+    const timer = setTimeout(() => {
+      handleNext();
+    }, advanceDelay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    isSpeedSkimMode,
+    isFlipped,
+    hasRated,
+    isPlayingAudio,
+    isLoadingAudio,
+    autoPlayAudio,
+    isFlyToolbarOpen,
+    isSettingsModalOpen,
+    isQuitModalOpen,
+    currentIndex
+  ]);
 
   const applyLearningMode = async (mode: string, order?: 'sequential' | 'random') => {
     setFsrsCompletionData(null)
@@ -3137,7 +3202,7 @@ export default function FlashcardPlay() {
     const showHintBtn = !isFlipped && !!currentQuestion?.hint;
     const showExplainBtn = isFlipped || mainTab === 'practice' || showFeedback;
     const showFlipBackBtn = isFlipped && mainTab !== 'practice';
-    const effectiveAutoAdvance = isAutoAdvance || quickLearnEnabled;
+    const effectiveAutoAdvance = isSpeedSkimMode || isAutoAdvance || quickLearnEnabled;
 
     return (
       <FlashcardFlyToolbar
@@ -3158,6 +3223,9 @@ export default function FlashcardPlay() {
         setShowImages={setShowImages}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
+        onToggleRandom={handleToggleRandom}
+        isSpeedSkimMode={isSpeedSkimMode}
+        showLocalToast={showLocalToast}
         isSelectMode={isSelectMode}
         setIsSelectMode={setIsSelectMode}
         currentQuestion={currentQuestion}
@@ -3310,7 +3378,7 @@ export default function FlashcardPlay() {
             };
             subTotal = session?.questions?.length || 1;
             subCurr = currentIndex + 1;
-          } else if (activeMode === 'speed_skim') {
+          } else if (activeMode === 'speed_skim' || activeMode === 'skim') {
             modeBadge = {
               emoji: '⚡',
               label: 'Speed Skim',
@@ -3829,13 +3897,16 @@ export default function FlashcardPlay() {
         setAutoPlayAudio={setAutoPlayAudio}
         sfxEnabled={sfxEnabled}
         setSfxEnabled={setSfxEnabled}
-        effectiveAutoAdvance={isAutoAdvance || quickLearnEnabled}
+        effectiveAutoAdvance={isSpeedSkimMode || isAutoAdvance || quickLearnEnabled}
         setIsAutoAdvance={setIsAutoAdvance}
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
         setShowImages={setShowImages}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
+        onToggleRandom={handleToggleRandom}
+        isSpeedSkimMode={isSpeedSkimMode}
+        showLocalToast={showLocalToast}
         isSelectMode={isSelectMode}
         setIsSelectMode={setIsSelectMode}
         currentQuestion={currentQuestion}
