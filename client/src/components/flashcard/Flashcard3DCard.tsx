@@ -241,8 +241,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
 
             {/* Bottom Slot on FRONT Face */}
             <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
-              <div className="absolute inset-0 rounded-full border border-transparent bg-transparent pointer-events-none" />
-              <div className="absolute left-[4px] bottom-1 z-30">
+              <div className="shrink-0 pl-1 z-30">
                 {renderFlyToolbarNode(true)}
               </div>
             </div>
@@ -601,35 +600,34 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               }
 
               return (
-                <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
-                  <div
-                    className={cn(
-                      "absolute inset-0 rounded-full border flex items-center justify-center font-bold transition-all duration-300 pointer-events-none px-4",
-                      isCardRated
-                        ? cn(
-                            "opacity-100",
-                            selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-                            selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
-                            selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
-                            "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          )
-                        : "opacity-0 border-transparent bg-transparent"
-                    )}
-                  >
+                <div className={cn(
+                  "mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center rounded-full border transition-all duration-300",
+                  isCardRated
+                    ? cn(
+                        selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+                        selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
+                        selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
+                        "bg-emerald-50 border-emerald-200 text-emerald-700"
+                      )
+                    : "border-transparent bg-transparent"
+                )}>
+                  {/* Left: Audio + Setting buttons */}
+                  <div className="shrink-0 pl-1 z-30">
+                    {renderFlyToolbarNode(true)}
+                  </div>
+
+                  {/* Remaining space: Centered unlock countdown banner */}
+                  <div className="flex-1 min-w-0 flex items-center justify-center pr-3 pl-1">
                     {isCardRated && (
-                      <div className="flex items-center justify-center gap-1.5 text-center truncate px-20">
-                        <span className="text-xs sm:text-sm font-black tracking-wide">
+                      <div className="flex items-center justify-center gap-1.5 text-center min-w-0 truncate">
+                        <span className="text-xs sm:text-sm font-black tracking-wide shrink-0">
                           ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
                         </span>
-                        <span className="opacity-80 text-xs font-semibold">
+                        <span className="opacity-80 text-[11px] sm:text-xs font-semibold truncate">
                           — Unlocks in {countdownStr} ⏳
                         </span>
                       </div>
                     )}
-                  </div>
-
-                  <div className="absolute left-[4px] bottom-1 z-30">
-                    {renderFlyToolbarNode(true)}
                   </div>
                 </div>
               );

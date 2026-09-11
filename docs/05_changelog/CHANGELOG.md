@@ -18,6 +18,11 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 - **Đồng Bộ Quy Tắc Tự Động Chuyển Thẻ (Auto Next) Cho Cả Vuốt & Nút Bấm**:
   - Khi **Auto Next = ON**: Vuốt thẻ (Swipe) hoặc bấm nút đánh giá (hoặc phím số 1-4) sẽ tự động chuyển sang thẻ kế tiếp (vuốt bay ra ngoài như Tinder và tự chuyển sau 180ms).
   - Khi **Auto Next = OFF**: Vuốt thẻ hoặc bấm nút đánh giá sẽ chỉ ghi nhận kết quả và giữ nguyên thẻ ở giữa màn hình (thẻ hồi về tâm, thanh điều khiển hiện `[ Undo ]` và `[ NEXT CARD ]`); người dùng có thể thoải mái đọc lại giải nghĩa/ghi chú và tự nhấn `NEXT CARD` (hoặc Space) khi đã sẵn sàng.
+- **Khắc Phục Xung Đột Bố Cục Cụm Nút Audio/Quick Settings & Thông Báo Unlock**:
+  - Chuyển đổi thanh đáy của thẻ sang bố cục Flexbox tự động co giãn (`flex items-center`):
+    - Cụm nút `[ 🔊 Audio ] [ 🎛️ Settings ]` nằm cố định bên trái (`shrink-0 pl-1`).
+    - Dòng thông báo trạng thái `✓ GOOD — Unlocks in 7d 7h...` tự động cách ra đúng bằng chiều rộng của cụm nút và căn giữa hoàn hảo trong toàn bộ khoảng trống còn lại (`flex-1 min-w-0 flex items-center justify-center`).
+    - Triệt tiêu 100% hiện tượng đè chữ hay che khuất trên mọi kích cỡ màn hình di động.
 - **Đồng Bộ Hoàn Toàn Trong Quick Controls & Play Settings Modal**:
   - Trong menu Quick Controls: Cập nhật 2 nút điều khiển nhanh `[ ↔ Swipe: ON/OFF ]` và `[ 🥞 Buttons: ON/OFF ]`.
   - Trong Settings Modal $\rightarrow$ Tab Gestures: Giải thích rõ Tap Flip là cử chỉ mặc định và cung cấp 2 toggle tương ứng.
