@@ -3974,6 +3974,7 @@ export default function PracticePlay() {
             totalCards={totalCards}
             cardsRemaining={cardsRemaining}
             activeMode={subMode || practiceSubMode || 'mcq'}
+            isRandom={randomEnabled}
             onSurgeChange={setIsHeaderSurging}
             onViewModeChange={setHeaderViewMode}
             onExit={() => navigate('/')}

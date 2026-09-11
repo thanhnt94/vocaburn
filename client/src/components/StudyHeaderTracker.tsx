@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Clock, Flame, Trophy, Zap, X, Target, Sparkles, Brain, Gauge, ArrowRightLeft } from 'lucide-react'
+import { Clock, Flame, Trophy, Zap, X, Target, Sparkles, Brain, Gauge, ArrowRightLeft, Shuffle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
@@ -48,6 +48,7 @@ export interface StudyHeaderTrackerProps {
   modeBadge?: { emoji: string; label: string; short: string; style: string }
   progressPillText?: string
   comboStreak?: number
+  isRandom?: boolean
   onOpenStudyConsole?: () => void
 }
 
@@ -217,6 +218,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
   modeBadge,
   progressPillText,
   comboStreak = 0,
+  isRandom = false,
   onOpenStudyConsole
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
@@ -479,16 +481,39 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     type="button"
                     onClick={onOpenStudyConsole}
                     className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs text-white transition-all",
+                      "flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-wide shadow-2xs text-white transition-all",
                       onOpenStudyConsole ? "cursor-pointer hover:opacity-90 hover:scale-105 active:scale-95" : "",
                       meta.style || "bg-gradient-to-r from-amber-500 to-amber-600"
                     )}
-                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • Click to switch mode & order` : (currentStep?.label || meta.label)}
+                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • ${isRandom ? 'Shuffle: ON (Random)' : 'Order: Sequential'} • Click to switch` : `${currentStep?.label || meta.label} • ${isRandom ? 'Random' : 'Sequential'}`}
                   >
-                    <span className="text-[10px] sm:text-xs">{meta.emoji}</span>
-                    <span className="text-[10px] sm:text-[11px] font-black text-white">
-                      {meta.short}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] sm:text-xs">{meta.emoji}</span>
+                      <span className="text-[10px] sm:text-[11px] font-black text-white tracking-tight">
+                        {meta.short}
+                      </span>
+                    </div>
+
+                    {/* Order Indicator: Sequential (⇄ SEQ) vs Random (🔀 RND) */}
+                    <div className="flex items-center pl-1 border-l border-white/30 ml-0.5">
+                      {isRandom ? (
+                        <span 
+                          className="flex items-center gap-0.5 text-[8.5px] font-black bg-black/25 text-amber-200 px-1 py-0.2 rounded shadow-2xs"
+                          title="Shuffle: ON (Random Order)"
+                        >
+                          <Shuffle className="w-2.5 h-2.5 text-amber-300" />
+                          <span className="text-[8px] tracking-tight font-black uppercase">RND</span>
+                        </span>
+                      ) : (
+                        <span 
+                          className="flex items-center gap-0.5 text-[8.5px] font-black text-white/80 px-0.5"
+                          title="Sequential / In-Order is active"
+                        >
+                          <ArrowRightLeft className="w-2.5 h-2.5 opacity-75" />
+                          <span className="hidden sm:inline text-[8px] tracking-tight opacity-75 uppercase">SEQ</span>
+                        </span>
+                      )}
+                    </div>
                   </button>
 
                   {/* Combo Streak Flame Badge */}

@@ -3519,6 +3519,7 @@ export default function FlashcardPlay() {
               totalCards={totalCards}
               cardsRemaining={cardsRemaining}
               comboStreak={comboStreak}
+              isRandom={randomEnabled}
               onOpenStudyConsole={() => setIsStudyConsoleOpen(true)}
             />
           );
