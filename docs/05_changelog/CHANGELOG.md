@@ -2,6 +2,24 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-11]
+#### Tính Năng Thẻ Flashcard Lướt Nhanh (⚡ Speed Skim Mode) & Tích Hợp Lộ Trình Học Roadmap
+- **Mục Tiêu**: Loại bỏ hoàn toàn sự ức chế và độ trễ khi học thẻ mới hoặc ôn lướt nhanh, thay thế 4 nút đánh giá FSRS (Again/Hard/Good/Easy) bằng cơ chế lướt 1 chạm / 1 phím Space siêu tốc.
+- **Thao Tác 1-Chạm / 1-Phím Space Tối Ưu Hóa (1-Tap Fast Pace Flow)**:
+  - **Chạm 1 (hoặc Space)**: Lật mặt sau xem giải nghĩa, phát âm từ vựng.
+  - **Chạm 2 (hoặc Space / Enter / Mũi tên Phải / Chạm mặt sau thẻ)**: Lập tức chuyển sang thẻ tiếp theo.
+  - Tự động hủy âm thanh phát trước đó (`cancelAllAudio()`) khi lật hoặc chuyển thẻ, chống hiện tượng chồng lồng giọng đọc.
+  - Vô hiệu hóa cử chỉ vuốt đánh giá và các phím số 1-4 để tránh đánh giá nhầm.
+- **Bảo Toàn Thuật Toán FSRS & Tích Hợp Daily Goal / XP**:
+  - **Không làm nhiễu đường cong ghi nhớ FSRS**: Các lượt lướt nhanh ghi nhận thẻ đã xem/làm quen nhưng không làm biến đổi thông số `stability`, `difficulty` hay `repetition` của FSRS v6.
+  - **Tích điểm XP & Đóng góp mục tiêu**: Cộng +3 XP nền mỗi thẻ lướt, ghi nhận tiến độ vào mục tiêu hàng ngày (Daily Target) và mở khóa các bước kiểm tra (MCQ, Typing) trong lộ trình Roadmap.
+- **Tích Hợp Toàn Diện Hai Cấp Độ Cấu Hình**:
+  - **Cấp độ Bộ Thẻ (Deck Study Settings)**: Thêm chế độ `⚡ Speed Skim` (`speed_skim`) vào Study Settings Editor, danh sách preset profiles (`preset-speed-skim`), và modal học tập nhanh `DeckStudyModal`.
+  - **Cấp độ Lộ Trình (Roadmap Pipeline)**: Hỗ trợ bước `⚡ Speed Skim` (`speed_skim`) trong cấu hình lộ trình `DeckRoadmapGoalForm` và thẻ pipeline `DeckRoadmapPipelineCard`, cho phép thiết lập số lượng thẻ lướt hàng ngày (10, 15, 20, 30 thẻ).
+- **Giao Diện Action Dock & Live HUD Động**:
+  - `FlashcardActionDock.tsx`: Ẩn toàn bộ 4 nút FSRS khi ở chế độ `speed_skim`; mặt trước hiển thị nút màu hổ phách rực rỡ `⚡ SKIM / FLIP`, mặt sau hiển thị nút nổi bật `⚡ NEXT CARD`.
+  - `StudyHeaderTracker.tsx`: Hiển thị huy hiệu `⚡ SKIM` (Speed Skim) với tiến độ hoàn thành thời gian thực.
+
 ### [2026-09-10]
 #### Khắc Phục Triệt Để Lỗi 2 Giọng Đọc & Cơ Chế Chống Duplicate Khi Bấm Phát Âm Liên Tục (Single-Voice TTS & Concurrency Deduplication)
 - **Loại Bỏ Fallback Sang Trình Duyệt (`speechSynthesis`)**:

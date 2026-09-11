@@ -53,6 +53,8 @@ export interface Flashcard3DCardProps {
   showAbsoluteLast: boolean
   setShowAbsoluteLast: React.Dispatch<React.SetStateAction<boolean>>
   renderFlyToolbarNode: (isCardSlot: boolean) => React.ReactNode
+  activeMode?: string
+  handleNext?: () => void
 }
 
 export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
@@ -90,7 +92,9 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   setShowAbsoluteFirst,
   showAbsoluteLast,
   setShowAbsoluteLast,
-  renderFlyToolbarNode
+  renderFlyToolbarNode,
+  activeMode,
+  handleNext
 }) => {
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
@@ -247,8 +251,12 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 return;
               }
               if (effectiveCardFlipTrigger !== 'button_only') {
-                setIsFlipped(false);
-                setIsFlyToolbarOpen(false);
+                if (activeMode === 'speed_skim') {
+                  handleNext?.();
+                } else {
+                  setIsFlipped(false);
+                  setIsFlyToolbarOpen(false);
+                }
               }
             }}
             className={cn(

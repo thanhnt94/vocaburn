@@ -129,13 +129,18 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     setIsFlipped(true);
                     setJustAnswered(true);
                   }}
-                  className="w-full h-12 sm:h-13 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
+                  className={cn(
+                    "w-full h-12 sm:h-13 font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white",
+                    activeMode === 'speed_skim'
+                      ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
+                      : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-300/50 hover:shadow-indigo-400/60"
+                  )}
                 >
-                  <span>FLIP CARD</span>
+                  <span>{activeMode === 'speed_skim' ? '⚡ SKIM / FLIP' : 'FLIP CARD'}</span>
                   <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
                   <ChevronRight className="w-4 h-4 rotate-90" />
                 </button>
-              ) : !hasRated && activeMode !== 'flip' ? (
+              ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' ? (
                 /* ── BACK FACE: UNRATED (FSRS BUTTONS OR SWIPE GUIDE) ── */
                 effectiveCardRatingMode === 'buttons' || effectiveCardRatingMode === 'both' ? (
                   <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 w-full">
@@ -208,7 +213,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   </div>
                 )
               ) : (
-                /* ── BACK FACE: RATED (OR FLIP MODE FLIPPED) ── */
+                /* ── BACK FACE: RATED (OR FLIP / SPEED_SKIM MODE FLIPPED) ── */
                 <div className="w-full flex items-center gap-2 h-12 sm:h-13">
                   {/* Undo button if rated */}
                   {activelyRatedCurrentCard && hasRated && (
@@ -225,9 +230,14 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   {/* NEXT CARD button */}
                   <button 
                     onClick={handleNext}
-                    className="flex-1 h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                    className={cn(
+                      "flex-1 h-full text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer",
+                      activeMode === 'speed_skim'
+                        ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
+                        : "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-300/50 hover:shadow-emerald-400/60"
+                    )}
                   >
-                    <span>NEXT CARD</span>
+                    <span>{activeMode === 'speed_skim' ? '⚡ NEXT CARD' : 'NEXT CARD'}</span>
                     <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
                     <ChevronRight className="w-4 h-4" />
                   </button>

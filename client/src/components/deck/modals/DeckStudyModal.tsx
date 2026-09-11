@@ -36,6 +36,7 @@ export function DeckStudyModal({
 
   const flashcardModes = [
     { mode: 'fsrs', icon: '🧠', title: 'FSRS Spaced Repetition', desc: 'Intelligent spaced repetition algorithm' },
+    { mode: 'speed_skim', icon: '⚡', title: 'Speed Skim (1-Tap)', desc: 'Rapid 1-tap/Space flip & next without FSRS rating' },
     { mode: 'roadmap', icon: '🗺️', title: 'Roadmap Mode', desc: 'Daily step-by-step learning targets' },
     { mode: 'flip', icon: '🔄', title: 'Flip Card', desc: 'Free flip flashcard rapid recall' },
     { mode: 'review', icon: '📚', title: 'Review Only', desc: 'Review previously learned cards only' },

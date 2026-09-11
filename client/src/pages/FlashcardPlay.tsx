@@ -411,7 +411,7 @@ export default function FlashcardPlay() {
   const [activeMode, setActiveMode] = useState<string>(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'flip') {
       return urlMode;
     }
     return userSettings.quiz_learning_mode || 'fsrs';
@@ -423,7 +423,7 @@ export default function FlashcardPlay() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'flip') {
       updateUserSettings({ quiz_learning_mode: urlMode as any });
     }
   }, [])
@@ -618,6 +618,19 @@ export default function FlashcardPlay() {
     }).length;
   }, [session, activeMode, currentTime, sessionAnswers, roadmapStatus]);
 
+  const isSpeedSkimMode = useMemo(() => {
+    if (activeMode === 'speed_skim') return true;
+    if (activeMode === 'roadmap') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlStep = searchParams.get('step');
+      const curStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
+      if (urlStep === 'speed_skim' || curStep?.type === 'speed_skim') return true;
+    }
+    return false;
+  }, [activeMode, roadmapStatus]);
+
+  const effectiveCardMode = isSpeedSkimMode ? 'speed_skim' : activeMode;
+
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
   const getFilteredCount = (mode: string) => {
@@ -712,7 +725,7 @@ export default function FlashcardPlay() {
 
       const searchParams = new URLSearchParams(window.location.search);
       const urlMode = searchParams.get('mode');
-      if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review') {
+      if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'flip') {
         setActiveMode(urlMode);
       } else if (effectiveStudy.learning_mode) {
         setActiveMode(effectiveStudy.learning_mode);
@@ -1446,7 +1459,7 @@ export default function FlashcardPlay() {
     }
   }
 
-  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
+  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -1908,6 +1921,7 @@ export default function FlashcardPlay() {
   }
 
   const handleNext = async (customAnswers?: Record<number, any> | React.MouseEvent) => {
+    cancelAllAudio();
     // Immediately stop any actively playing server audio and clear speech synthesis queues when transitioning
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
@@ -1922,28 +1936,36 @@ export default function FlashcardPlay() {
     const questions = session.questions
     const total = questions.length
 
-    if (activeMode === 'flip' && currentQuestion) {
+    if ((activeMode === 'flip' || isSpeedSkimMode) && currentQuestion) {
       const alreadyRated = sessionAnswers[currentIndex] !== undefined;
       if (!alreadyRated) {
         // Record the view on backend
         try {
-          await axios.post('/api/v1/deck/record_answer', {
+          const isSkim = isSpeedSkimMode;
+          const res = await axios.post('/api/v1/deck/record_answer', {
             question_id: currentQuestion.id,
             is_correct: true,
-            is_practice: true, // Bypass FSRS evaluation / scheduling updates
+            is_practice: !isSkim, // Flip mode is practice-like; speed_skim is introduction mode with XP & goal tracking
+            mode: isSkim ? 'speed_skim' : activeMode,
+            attempt_mode: isSkim ? 'speed_skim' : activeMode,
             rating: 3, // count as 'Good' / seen
             time_spent: timeLeftRef.current,
             local_date: new Date().toISOString().slice(0, 10)
           });
+          if (isSkim) {
+            const xpGained = res.data?.xp_gained || 3;
+            setSessionXP(prev => prev + xpGained);
+            addXp(xpGained);
+          }
         } catch (e) {
-          console.error("Failed to record flip view:", e);
+          console.error(`Failed to record ${activeMode} view:`, e);
         }
 
         // Update local state and stats
         const prevRatings = Array.isArray(sessionAnswers[currentIndex]) 
           ? (sessionAnswers[currentIndex] as number[]) 
           : (typeof sessionAnswers[currentIndex] === 'number' ? [sessionAnswers[currentIndex] as number] : [])
-        const newRatings = [...prevRatings, -2] // index -2 (studied but not evaluated/rated in flip mode)
+        const newRatings = [...prevRatings, -2] // index -2 (studied but not evaluated/rated in flip/speed_skim mode)
         const newAnswers = { ...sessionAnswers, [currentIndex]: newRatings }
         setSessionAnswers(newAnswers)
 
@@ -2185,14 +2207,14 @@ export default function FlashcardPlay() {
           setIsFlipped(true);
           setShowFeedback(true);
           setJustAnswered(true);
-        } else if (hasRated || activeMode === 'flip') {
+        } else if (hasRated || activeMode === 'flip' || isSpeedSkimMode) {
           handleNext();
         }
         return;
       }
 
       // Number keys 1, 2, 3, 4 for FSRS Rating when flipped
-      if (isFlipped && !hasRated && activeMode !== 'flip') {
+      if (isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode) {
         if (e.code === 'Digit1' || e.code === 'Numpad1') {
           e.preventDefault();
           handleReviewRating(1);
@@ -2247,8 +2269,8 @@ export default function FlashcardPlay() {
         return;
       }
 
-      // ArrowRight: Next card (if rated or flip mode)
-      if (e.code === 'ArrowRight' && (hasRated || activeMode === 'flip')) {
+      // ArrowRight: Next card (if rated or flip mode or speed_skim)
+      if (e.code === 'ArrowRight' && (hasRated || activeMode === 'flip' || isSpeedSkimMode)) {
         e.preventDefault();
         handleNext();
         return;
@@ -2263,6 +2285,7 @@ export default function FlashcardPlay() {
     isFlipped,
     hasRated,
     activeMode,
+    isSpeedSkimMode,
     activelyRatedCurrentCard,
     currentQuestion,
     isFeedbackOpen,
@@ -3003,7 +3026,7 @@ export default function FlashcardPlay() {
     setShowFeedback,
     showImages,
     setShowImages,
-    activeMode
+    activeMode: effectiveCardMode
   });
 
   const shouldShowRoadmapStepCompleteScreen = useMemo(() => {
@@ -3268,6 +3291,15 @@ export default function FlashcardPlay() {
             };
             subTotal = session?.questions?.length || 1;
             subCurr = currentIndex + 1;
+          } else if (activeMode === 'speed_skim') {
+            modeBadge = {
+              emoji: '⚡',
+              label: 'Speed Skim',
+              short: 'SKIM',
+              style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black shadow-xs'
+            };
+            subTotal = session?.questions?.length || 1;
+            subCurr = Object.keys(sessionAnswers).length;
           } else {
             // Standard guided Roadmap mode (mode === 'roadmap')
             const searchParams = new URLSearchParams(window.location.search);
@@ -3276,15 +3308,28 @@ export default function FlashcardPlay() {
               const explicitIdx = rawPipeline.findIndex((s: any) => s.type === urlStep);
               if (explicitIdx !== -1) displayStepIdx = explicitIdx;
             } else if (!isStage1Done || isNewCardSession || !isStage2Done) {
-              const newCardsIdx = rawPipeline.findIndex((s: any) => s.type === 'new_cards');
-              if (newCardsIdx !== -1) displayStepIdx = newCardsIdx;
+              const step1Idx = rawPipeline.findIndex((s: any) => s.type === 'speed_skim' || s.type === 'new_cards');
+              if (step1Idx !== -1) displayStepIdx = step1Idx;
             } else {
               const fsrsIdx = rawPipeline.findIndex((s: any) => s.type === 'fsrs_review');
               if (fsrsIdx !== -1) displayStepIdx = fsrsIdx;
             }
 
             const currentStep = rawPipeline?.[displayStepIdx];
-            if (currentStep?.type === 'new_cards') {
+            if (currentStep?.type === 'speed_skim') {
+              modeBadge = {
+                emoji: '⚡',
+                label: 'Roadmap - Speed Skim',
+                short: 'SKIM',
+                style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-black shadow-xs'
+              };
+              const targetCount = currentStep.daily_count || currentStep.progress?.target || 20;
+              const skimmedToday = currentStep.progress?.learned ?? 0;
+              const skimmedInSession = Object.keys(sessionAnswers).length;
+              subTotal = targetCount;
+              subCurr = Math.max(skimmedToday, skimmedInSession);
+              progressPillText = undefined;
+            } else if (currentStep?.type === 'new_cards') {
               modeBadge = {
                 emoji: '🛣️',
                 label: 'Roadmap - New Cards',
@@ -3524,6 +3569,8 @@ export default function FlashcardPlay() {
                   showAbsoluteLast={showAbsoluteLast}
                   setShowAbsoluteLast={setShowAbsoluteLast}
                   renderFlyToolbarNode={renderFlyToolbar}
+                  activeMode={effectiveCardMode}
+                  handleNext={handleNext}
                 />
               )}
             </motion.div>
@@ -3567,7 +3614,7 @@ export default function FlashcardPlay() {
         setIsFlipped={setIsFlipped}
         setJustAnswered={setJustAnswered}
         hasRated={selectedOption !== null}
-        activeMode={activeMode}
+        activeMode={effectiveCardMode}
         effectiveCardRatingMode={effectiveCardRatingMode}
         handleReviewRating={handleReviewRating}
         handleNext={handleNext}

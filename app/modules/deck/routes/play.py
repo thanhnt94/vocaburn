@@ -115,17 +115,21 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
     is_originally_new = False
 
     if card:
-        mode_val = data.get("mode") or data.get("practice_mode")
-        is_practice_mode = is_practice or (mode_val in ["practice", "roadmap_mcq", "roadmap_typing", "roadmap_test", "mcq", "typing", "listening"])
-        if is_practice_mode:
-            if mode_val in ["roadmap_mcq", "mcq"]:
-                attempt_mode = "roadmap_mcq"
-            elif mode_val in ["roadmap_typing", "typing"]:
-                attempt_mode = "roadmap_typing"
-            else:
-                attempt_mode = "practice"
+        mode_val = data.get("mode") or data.get("practice_mode") or data.get("attempt_mode")
+        if mode_val == "speed_skim":
+            is_practice_mode = False
+            attempt_mode = "speed_skim"
         else:
-            attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review", "flip"] else "play"
+            is_practice_mode = is_practice or (mode_val in ["practice", "roadmap_mcq", "roadmap_typing", "roadmap_test", "mcq", "typing", "listening"])
+            if is_practice_mode:
+                if mode_val in ["roadmap_mcq", "mcq"]:
+                    attempt_mode = "roadmap_mcq"
+                elif mode_val in ["roadmap_typing", "typing"]:
+                    attempt_mode = "roadmap_typing"
+                else:
+                    attempt_mode = "practice"
+            else:
+                attempt_mode = mode_val if mode_val in ["roadmap", "sequential", "play", "fsrs", "new", "review", "flip", "speed_skim"] else "play"
         attempt_res = await db.execute(
             select(DeckAttempt)
             .filter(
@@ -153,8 +157,9 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
 
         # --- FSRS v6 Spaced Repetition Mastery Levels ---
         practice_mode = data.get("practice_mode", "mcq")  # mcq, typing, listening
+        is_speed_skim = (mode_val == "speed_skim")
         
-        if not is_practice_mode:
+        if not is_practice_mode and not is_speed_skim:
             from fsrs import Card, Scheduler, Rating, State
             
             mastery_res = await db.execute(
@@ -335,7 +340,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                     DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id
                 ).where(
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
+                    DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim"])
                 ).group_by(
                     UserAnswer.card_id
                 ).subquery()
@@ -422,18 +427,22 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
 
     base_xp = 0
     bonus_xp_gained = 0
-    if is_practice:
+    if is_practice or mode_val == "speed_skim":
         practice_mode = data.get("practice_mode", "mcq")
-        if is_correct:
+        if mode_val == "speed_skim":
+            base_xp = 3
+            if is_first_ever:
+                bonus_xp_gained += 2
+        elif is_correct:
             if practice_mode == "typing":
                 base_xp = 5
             else:  # mcq, listening
                 base_xp = 3
-            if session_streak >= 5:
-                bonus_xp_gained = 1
         else:
             base_xp = 1
             bonus_xp_gained = 0
+        if session_streak >= 5:
+            bonus_xp_gained += 1
     else:
         if rating_val == 4:
             base_xp = 7
@@ -1465,12 +1474,14 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         if active_step_type == "fsrs_review":
             target_mode = "fsrs_review"
+        elif active_step_type == "speed_skim":
+            target_mode = "speed_skim"
         elif active_step_type == "new_cards":
             target_mode = "new"
         else:
             target_mode = "fsrs_review" if st_helper.get("stage_1_done") else "new"
 
-    if target_mode == "new":
+    if target_mode in ("new", "speed_skim"):
         unanswered_new = []
         all_new = []
         for idx, c_id in enumerate(card_ids):
@@ -1496,7 +1507,16 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             else:
                 return {"next_index": all_new[0], "phase": "new"}
         else:
-            return {"next_index": min(current_index + 1, total - 1), "phase": "free"}
+            # Free play or all new cards skimmed: pick next unread card or advance sequentially
+            unanswered_all = [idx for idx in range(total) if idx not in effective_answered and idx not in ignored_indexes]
+            if unanswered_all:
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(unanswered_all), "phase": "free"}
+                else:
+                    return {"next_index": unanswered_all[0], "phase": "free"}
+            next_seq = (current_index + 1) if (current_index + 1 < total) else 0
+            return {"next_index": next_seq, "phase": "free"}
 
     elif target_mode in ("fsrs", "fsrs_review"):
         pipeline = user_settings_dict.get("pipeline", []) if isinstance(user_settings_dict, dict) else []

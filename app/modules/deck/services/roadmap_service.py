@@ -118,7 +118,7 @@ class RoadmapService:
         ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
          .where(
              DeckAttempt.user_id == user_id,
-             DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
+             DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim"])
          )\
          .group_by(UserAnswer.card_id).subquery()
 
@@ -304,6 +304,31 @@ class RoadmapService:
                     },
                     "url": f"/flashcard/{deck_id}/play?mode=roadmap&step=new_cards",
                     "label": "All new cards learned" if is_all_learned else "Learn New Words"
+                })
+            elif stype == "speed_skim":
+                daily_count = int(st.get("daily_count", 20))
+                daily_new_target = daily_count
+                available_new_today = unlearned_cards + new_learned_today
+                effective_target = min(daily_count, available_new_today)
+                is_all_learned = (unlearned_cards == 0)
+                is_done = (
+                    (new_learned_today >= daily_count) or
+                    is_all_learned or
+                    (available_new_today > 0 and new_learned_today >= available_new_today)
+                )
+                step_data.update({
+                    "daily_count": daily_count,
+                    "effective_target": effective_target,
+                    "all_learned": is_all_learned,
+                    "done": is_done,
+                    "progress": {
+                        "learned": new_learned_today,
+                        "target": effective_target,
+                        "unlearned_cards": unlearned_cards,
+                        "all_learned": is_all_learned
+                    },
+                    "url": f"/flashcard/{deck_id}/play?mode=speed_skim&step=speed_skim",
+                    "label": "All cards skimmed" if is_all_learned else "Speed Skim New Words"
                 })
             elif stype == "fsrs_review":
                 overdue_hours = int(st.get("overdue_hours", 24))

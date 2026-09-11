@@ -291,6 +291,7 @@ export function StudySettingsEditor({
               onChange={(val) => onChange('quiz_learning_mode', val)}
               options={[
                 { id: 'fsrs', label: 'FSRS v6' },
+                { id: 'speed_skim', label: '⚡ Speed Skim' },
                 { id: 'sequential', label: 'Sequential' },
                 { id: 'unseen', label: 'New First' },
                 { id: 'random', label: 'Shuffle' },

@@ -48,6 +48,7 @@ export function DeckRoadmapPipelineCard({
   const getStepIcon = (type: string) => {
     switch (type) {
       case 'new_cards': return '🎴'
+      case 'speed_skim': return '⚡'
       case 'mcq': return '🎯'
       case 'typing': return '⌨️'
       case 'fsrs_review': return '🔄'
@@ -149,6 +150,7 @@ export function DeckRoadmapPipelineCard({
                   </div>
                   <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
                     {step.type === 'new_cards' && `Học ${step.daily_count || 10} từ mới qua Flashcard`}
+                    {step.type === 'speed_skim' && `Lướt nhanh ${step.daily_count || 20} từ mới qua Flashcard (1-chạm)`}
                     {step.type === 'mcq' && `Làm bài test trắc nghiệm (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
                     {step.type === 'typing' && `Gõ chính xác từ vựng (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
                     {step.type === 'fsrs_review' && (

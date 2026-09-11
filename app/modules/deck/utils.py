@@ -110,7 +110,7 @@ def check_has_mcq_setup(practice_settings: Optional[dict]) -> bool:
 SYSTEM_STUDY_DEFAULTS = {
     "autoplay_audio": "none",       # 'none' | 'front' | 'back' | 'always'
     "show_images": "always",        # 'always' | 'front' | 'back' | 'none'
-    "learning_mode": "fsrs",        # 'fsrs' | 'roadmap' | 'new' | 'review' | 'hardest' | 'flip'
+    "learning_mode": "fsrs",        # 'fsrs' | 'roadmap' | 'new' | 'review' | 'hardest' | 'flip' | 'speed_skim'
     "front_valign": "center",       # 'center' | 'top'
     "front_halign": "left",         # 'left' | 'center'
     "front_font_size": "100%",      # '85%' | '100%' | '125%' | '150%' | '175%' | '200%'
@@ -128,6 +128,26 @@ SYSTEM_STUDY_DEFAULTS = {
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 
 SYSTEM_STUDY_PROFILES = [
+    {
+        "id": "preset-speed-skim",
+        "name": "Speed Skim",
+        "description": "High-speed rapid review: 1-tap/Space flip & next, hidden FSRS ratings, zero rating friction.",
+        "icon": "zap",
+        "is_system": True,
+        "settings": {
+            **SYSTEM_STUDY_DEFAULTS,
+            "learning_mode": "speed_skim",
+            "autoplay_audio": "front",
+            "show_images": "both",
+            "show_fsrs": False,
+            "card_flip_trigger": "both",
+            "card_rating_mode": "buttons",
+            "sfx_enabled": True,
+            "haptic_enabled": True,
+            "random_enabled": False,
+            "quick_learn_enabled": True
+        }
+    },
     {
         "id": "preset-minimal",
         "name": "Minimalist",

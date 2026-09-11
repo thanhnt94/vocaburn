@@ -53,6 +53,31 @@ export const DEFAULT_STUDY_SETTINGS: StudySettings = {
 
 export const SYSTEM_TEMPLATES: StudyTemplateItem[] = [
   {
+    id: 'preset-speed-skim',
+    name: 'Speed Skim',
+    icon: 'zap',
+    badge: '1-Tap Rapid',
+    desc: 'High-speed rapid review: 1-tap/Space flip & next, hidden FSRS ratings, zero rating friction.',
+    isSystem: true,
+    settings: {
+      autoplay_audio: 'front',
+      show_images: 'both',
+      quiz_learning_mode: 'speed_skim',
+      learning_mode: 'speed_skim',
+      front_valign: 'center',
+      front_halign: 'left',
+      back_valign: 'center',
+      back_halign: 'left',
+      random_enabled: false,
+      sfx_enabled: true,
+      haptic_enabled: true,
+      quick_learn_enabled: true,
+      show_fsrs: false,
+      card_flip_trigger: 'both',
+      card_rating_mode: 'buttons',
+    }
+  },
+  {
     id: 'preset-standard',
     name: 'Standard',
     icon: 'sparkles',

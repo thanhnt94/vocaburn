@@ -51,6 +51,18 @@ export interface StudyHeaderTrackerProps {
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
+  speed_skim: { 
+    emoji: '⚡', 
+    label: 'Speed Skim', 
+    short: 'SKIM',
+    style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs font-black'
+  },
+  skim: { 
+    emoji: '⚡', 
+    label: 'Speed Skim', 
+    short: 'SKIM',
+    style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs font-black'
+  },
   roadmap: { 
     emoji: '🛣️', 
     label: 'Roadmap Guided', 

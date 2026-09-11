@@ -139,19 +139,19 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
         if (!isFlipped) {
           setIsFlipped(true);
           setShowFeedback(true);
-        } else if (hasRated || activeMode === 'flip') {
+        } else if (hasRated || activeMode === 'flip' || activeMode === 'speed_skim') {
           handleNext();
         }
       } 
       // Handle next card (Enter or N)
       else if (e.key === 'Enter' || key === 'n') {
-        if (hasRated || activeMode === 'flip') {
+        if (hasRated || activeMode === 'flip' || activeMode === 'speed_skim') {
           e.preventDefault();
           handleNext();
         }
       } 
-      // Handle ratings (1, 2, 3, 4)
-      else if (isFlipped) {
+      // Handle ratings (1, 2, 3, 4) - only when not in flip or speed_skim mode
+      else if (isFlipped && activeMode !== 'flip' && activeMode !== 'speed_skim') {
         if (key === '1') { e.preventDefault(); handleReviewRating(1); }
         else if (key === '2') { e.preventDefault(); handleReviewRating(2); }
         else if (key === '3') { e.preventDefault(); handleReviewRating(3); }

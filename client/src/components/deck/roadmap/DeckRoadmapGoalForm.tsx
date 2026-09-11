@@ -18,7 +18,7 @@ import {
 import axios from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 
-export type StepType = 'new_cards' | 'mcq' | 'typing' | 'fsrs_review' | 'study_time'
+export type StepType = 'new_cards' | 'speed_skim' | 'mcq' | 'typing' | 'fsrs_review' | 'study_time'
 
 export interface PipelineStepConfig {
   id: string
@@ -44,6 +44,13 @@ const STEP_META: Record<StepType, { icon: string; label: string; desc: string; c
     desc: 'Học từ vựng mới chưa học qua Flashcard',
     color: 'text-indigo-600',
     badgeBg: 'bg-indigo-50 border-indigo-200 text-indigo-700'
+  },
+  speed_skim: {
+    icon: '⚡',
+    label: 'Lướt Nhanh (Speed Skim)',
+    desc: 'Lướt nhanh từ mới 1-chạm không chấm điểm FSRS',
+    color: 'text-amber-600',
+    badgeBg: 'bg-amber-50 border-amber-200 text-amber-700'
   },
   mcq: {
     icon: '🎯',
@@ -76,6 +83,16 @@ const STEP_META: Record<StepType, { icon: string; label: string; desc: string; c
 }
 
 const PRESETS: { name: string; icon: string; desc: string; steps: PipelineStepConfig[] }[] = [
+  {
+    name: 'Siêu Tốc (Speed Skim)',
+    icon: '⚡',
+    desc: 'Lướt nhanh ➔ MCQ Quiz ➔ Ôn FSRS',
+    steps: [
+      { id: 'p1', type: 'speed_skim', daily_count: 20 },
+      { id: 'p2', type: 'mcq', question_count: 20, pass_threshold: 80 },
+      { id: 'p3', type: 'fsrs_review', overdue_hours: 24 }
+    ]
+  },
   {
     name: 'Tiêu Chuẩn',
     icon: '⚡',
@@ -241,7 +258,7 @@ export function DeckRoadmapGoalForm({
     // Build cleaned pipeline for API
     const cleanedPipeline = steps.map(s => {
       const item: any = { type: s.type }
-      if (s.type === 'new_cards') {
+      if (s.type === 'new_cards' || s.type === 'speed_skim') {
         item.daily_count = Math.max(1, Number(s.daily_count) || 20)
       } else if (s.type === 'mcq') {
         item.question_count = Math.max(1, Number(s.question_count) || 20)
@@ -257,7 +274,7 @@ export function DeckRoadmapGoalForm({
       return item
     })
 
-    const newCardsStep = steps.find(s => s.type === 'new_cards')
+    const newCardsStep = steps.find(s => s.type === 'new_cards' || s.type === 'speed_skim')
     const testStep = steps.find(s => s.type === 'mcq' || s.type === 'typing')
 
     try {
@@ -499,6 +516,49 @@ export function DeckRoadmapGoalForm({
                     </div>
                   )}
 
+                  {/* TYPE: SPEED SKIM */}
+                  {step.type === 'speed_skim' && (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-600 whitespace-nowrap">
+                          Số từ lướt mỗi ngày:
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={step.daily_count ?? 20}
+                          onChange={(e) => {
+                            const val = Number(e.target.value)
+                            setSteps(prev => prev.map((s, i) => i === index ? { ...s, daily_count: val } : s))
+                          }}
+                          className="w-20 h-8 bg-white border border-slate-200 rounded-lg px-2 text-xs font-black text-slate-800 text-center focus:border-amber-500 outline-none"
+                        />
+                        <span className="text-xs font-bold text-slate-400">từ</span>
+                      </div>
+
+                      {/* Quick Choice Pills */}
+                      <div className="flex items-center gap-1">
+                        {[10, 15, 20, 30].map(cnt => (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => {
+                              setSteps(prev => prev.map((s, i) => i === index ? { ...s, daily_count: cnt } : s))
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                              step.daily_count === cnt
+                                ? 'bg-amber-500 text-white shadow-2xs'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {cnt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* TYPE: MCQ QUIZ */}
                   {step.type === 'mcq' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -649,6 +709,15 @@ export function DeckRoadmapGoalForm({
           >
             <Plus className="w-3.5 h-3.5" />
             <span>+ Thêm Học Từ Mới</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleAddStep('speed_skim')}
+            className="px-3 py-2 rounded-xl border border-dashed border-amber-300 hover:border-amber-400 hover:bg-amber-50/50 text-amber-700 hover:text-amber-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer bg-amber-50/20"
+          >
+            <Plus className="w-3.5 h-3.5 text-amber-600" />
+            <span>+ Thêm Lướt Nhanh (Speed Skim)</span>
           </button>
 
           <button
