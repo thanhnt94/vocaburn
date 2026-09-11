@@ -15,6 +15,9 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 - **Nút Nổi (Floating FAB) Thoát Chế Độ Chọn Chữ (Select Text Mode)**:
   - Khi bật chế độ Select Text, toàn bộ thao tác Tap để lật và Swipe bị vô hiệu hóa để người dùng tự do bôi đen, tra từ, sao chép văn bản trên thẻ.
   - Hiển thị nút nổi tiện lợi ở góc dưới bên phải màn hình (`fixed right-4 bottom-20 sm:bottom-24 z-[350]`) với chấm đỏ báo hiệu động `Done Selecting` kèm icon `X`. Nhấn vào nút này sẽ lập tức thoát chế độ chọn chữ và đưa thẻ về trạng thái bình thường.
+- **Đồng Bộ Quy Tắc Tự Động Chuyển Thẻ (Auto Next) Cho Cả Vuốt & Nút Bấm**:
+  - Khi **Auto Next = ON**: Vuốt thẻ (Swipe) hoặc bấm nút đánh giá (hoặc phím số 1-4) sẽ tự động chuyển sang thẻ kế tiếp (vuốt bay ra ngoài như Tinder và tự chuyển sau 180ms).
+  - Khi **Auto Next = OFF**: Vuốt thẻ hoặc bấm nút đánh giá sẽ chỉ ghi nhận kết quả và giữ nguyên thẻ ở giữa màn hình (thẻ hồi về tâm, thanh điều khiển hiện `[ Undo ]` và `[ NEXT CARD ]`); người dùng có thể thoải mái đọc lại giải nghĩa/ghi chú và tự nhấn `NEXT CARD` (hoặc Space) khi đã sẵn sàng.
 - **Đồng Bộ Hoàn Toàn Trong Quick Controls & Play Settings Modal**:
   - Trong menu Quick Controls: Cập nhật 2 nút điều khiển nhanh `[ ↔ Swipe: ON/OFF ]` và `[ 🥞 Buttons: ON/OFF ]`.
   - Trong Settings Modal $\rightarrow$ Tab Gestures: Giải thích rõ Tap Flip là cử chỉ mặc định và cung cấp 2 toggle tương ứng.

@@ -744,6 +744,7 @@ export default function FlashcardPlay() {
   }, [activeMode, roadmapStatus]);
 
   const effectiveCardMode = isSpeedSkimMode ? 'speed_skim' : activeMode;
+  const effectiveAutoAdvance = isSpeedSkimMode || isAutoAdvance || Boolean(quickLearnEnabled);
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
@@ -1286,9 +1287,8 @@ export default function FlashcardPlay() {
 
     saveSession(newAnswers, currentIndex, updatedXP, updatedStreak)
 
-    // Rating a card in review/study mode should ALWAYS advance to the next card immediately,
-    // unifying Button clicks, Swipe gestures, and Keyboard shortcuts into a consistent, seamless flow!
-    const shouldAutoAdvance = autoAdvance !== false;
+    // Advance to the next card only if Auto Next is enabled (or explicitly requested via autoAdvance)
+    const shouldAutoAdvance = autoAdvance !== undefined ? autoAdvance : effectiveAutoAdvance;
 
     if (shouldAutoAdvance) {
       const advanceDelay = autoAdvance === true ? 180 : 120;
@@ -1657,53 +1657,72 @@ export default function FlashcardPlay() {
     }
 
     if (isCommitted) {
-      setIsFlyingOut(true);
       const targetGrade = activeDragGrade.grade;
 
-      // Organic Tinder-like diagonal flyout trajectory:
-      let targetX = 0;
-      let targetY = 0;
-      let targetRotate = 0;
+      if (effectiveAutoAdvance) {
+        setIsFlyingOut(true);
 
-      const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
-      const screenH = typeof window !== 'undefined' ? window.innerHeight : 800;
+        // Organic Tinder-like diagonal flyout trajectory:
+        let targetX = 0;
+        let targetY = 0;
+        let targetRotate = 0;
 
-      if (dir === 'good') {
-        targetX = screenW * 1.35;
-        targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
-        targetRotate = Math.max(18, Math.min(35, (dx * 0.12) || 25));
-      } else if (dir === 'again') {
-        targetX = -screenW * 1.35;
-        targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
-        targetRotate = -Math.max(18, Math.min(35, (Math.abs(dx) * 0.12) || 25));
-      } else if (dir === 'hard') {
-        targetY = screenH * 0.95;
-        targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
-        targetRotate = dx >= 0 ? 12 : -12;
-      } else if (dir === 'easy') {
-        targetY = -screenH * 0.95;
-        targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
-        targetRotate = dx >= 0 ? -12 : 12;
-      }
+        const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
+        const screenH = typeof window !== 'undefined' ? window.innerHeight : 800;
 
-      // Clear the stamp badge & offset
-      setActiveDragGrade(null);
-      setDragOffset({ x: 0, y: 0 });
+        if (dir === 'good') {
+          targetX = screenW * 1.35;
+          targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
+          targetRotate = Math.max(18, Math.min(35, (dx * 0.12) || 25));
+        } else if (dir === 'again') {
+          targetX = -screenW * 1.35;
+          targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
+          targetRotate = -Math.max(18, Math.min(35, (Math.abs(dx) * 0.12) || 25));
+        } else if (dir === 'hard') {
+          targetY = screenH * 0.95;
+          targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
+          targetRotate = dx >= 0 ? 12 : -12;
+        } else if (dir === 'easy') {
+          targetY = -screenH * 0.95;
+          targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
+          targetRotate = dx >= 0 ? -12 : 12;
+        }
 
-      // Play flyout animation safely (fire-and-forget, will never reject or crash!)
-      try {
+        // Clear the stamp badge & offset
+        setActiveDragGrade(null);
+        setDragOffset({ x: 0, y: 0 });
+
+        // Play flyout animation safely (fire-and-forget, will never reject or crash!)
+        try {
+          cardDragControls.start({
+            x: targetX,
+            y: targetY,
+            opacity: 0,
+            rotate: targetRotate,
+            transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+          }).catch(() => {});
+        } catch (e) {}
+
+        // Immediately submit rating! This marks selectedOption (removing the 4 buttons)
+        // and triggers handleNext to load the next question at the end of the flyout!
+        handleReviewRating(targetGrade, true);
+      } else {
+        // Auto Next is OFF:
+        // Do NOT fly out off-screen. Animate card back to center and submit rating without auto-advancing
+        setIsFlyingOut(false);
+        setActiveDragGrade(null);
+        setDragOffset({ x: 0, y: 0 });
         cardDragControls.start({
-          x: targetX,
-          y: targetY,
-          opacity: 0,
-          rotate: targetRotate,
-          transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+          x: 0,
+          y: 0,
+          rotate: 0,
+          opacity: 1,
+          transition: { type: 'spring', stiffness: 500, damping: 32 }
         }).catch(() => {});
-      } catch (e) {}
 
-      // Immediately submit rating! This marks selectedOption (removing the 4 buttons)
-      // and triggers handleNext to load the next question at the end of the flyout!
-      handleReviewRating(targetGrade, true);
+        // Submit rating with autoAdvance = false (stays on back face, showing rated state & Next Card button)
+        handleReviewRating(targetGrade, false);
+      }
     } else {
       // Cancelled or dragged lightly: smooth spring back to center
       cardDragControls.start({
@@ -3436,7 +3455,6 @@ export default function FlashcardPlay() {
     const showHintBtn = !isFlipped && !!currentQuestion?.hint;
     const showExplainBtn = isFlipped || mainTab === 'practice' || showFeedback;
     const showFlipBackBtn = isFlipped && mainTab !== 'practice';
-    const effectiveAutoAdvance = isSpeedSkimMode || isAutoAdvance || quickLearnEnabled;
 
     return (
       <FlashcardFlyToolbar
