@@ -478,7 +478,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     </div>
                   )}
 
-                  {/* Single Integrated Mode & Order Badge */}
+                  {/* Ultra-Compact Mode & Order Badge */}
                   <button 
                     type="button"
                     onClick={(e) => {
@@ -486,35 +486,19 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                       onOpenStudyConsole?.()
                     }}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-tight transition-all cursor-pointer shadow-2xs hover:opacity-90 active:scale-95",
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black shrink-0 tracking-tight transition-all cursor-pointer shadow-2xs hover:opacity-90 active:scale-95",
                       meta.style || "bg-amber-50 text-amber-950 border border-amber-300/80"
                     )}
-                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • ${isRandom ? 'Shuffle: ON (Random)' : 'Order: Sequential'} • Click to change mode or order` : currentStep?.label || meta.label}
+                    title={onOpenStudyConsole ? `${currentStep?.label || meta.label} • ${isRandom ? 'Shuffle: ON (Random)' : 'Order: Sequential'} • Click to switch mode` : currentStep?.label || meta.label}
                   >
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10.5px] sm:text-xs leading-none">{meta.emoji}</span>
-                      <span className="text-[10.5px] sm:text-[11px] font-black tracking-tight">
-                        {meta.short}
-                      </span>
-                    </div>
-
-                    {/* Integrated Micro Divider */}
-                    <span className="w-[1px] h-2.5 bg-current opacity-25" />
-
-                    {/* Integrated Order State */}
-                    <div className="flex items-center gap-0.5">
-                      {isRandom ? (
-                        <>
-                          <Shuffle className="w-2.5 h-2.5 stroke-[2.5] text-violet-600" />
-                          <span className="text-[9px] sm:text-[9.5px] font-black text-violet-700 tracking-tight uppercase">RND</span>
-                        </>
-                      ) : (
-                        <>
-                          <ArrowUpDown className="w-2.5 h-2.5 stroke-[2] opacity-60" />
-                          <span className="text-[9px] sm:text-[9.5px] font-bold tracking-tight opacity-75 uppercase">SEQ</span>
-                        </>
-                      )}
-                    </div>
+                    {isRandom ? (
+                      <Shuffle className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5] text-violet-600 shrink-0" />
+                    ) : (
+                      <ArrowRightLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2] opacity-60 shrink-0" />
+                    )}
+                    <span className="text-[10px] sm:text-[11px] font-black tracking-tight">
+                      {meta.short}
+                    </span>
                   </button>
 
                   {/* Combo Streak Flame Badge */}

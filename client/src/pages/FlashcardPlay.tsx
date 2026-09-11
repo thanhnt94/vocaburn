@@ -3916,6 +3916,11 @@ export default function FlashcardPlay() {
         showFlipBackBtn={isFlipped && mainTab !== 'practice'}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
+        activeMode={activeMode}
+        onSelectMode={(targetMode) => {
+          applyLearningMode(targetMode, randomEnabled ? 'random' : 'sequential')
+          showLocalToast(`Switched to ${targetMode.toUpperCase()} mode`, 'info')
+        }}
       />
     </div>
   )

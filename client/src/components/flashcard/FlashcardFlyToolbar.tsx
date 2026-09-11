@@ -144,7 +144,17 @@ export interface FlashcardQuickControlsSheetProps {
   showFlipBackBtn: boolean
   setIsFlipped: (val: boolean) => void
   setIsSettingsModalOpen: (val: boolean) => void
+  activeMode?: string
+  onSelectMode?: (mode: string) => void
 }
+
+const FLASHCARD_5_MODES = [
+  { id: 'fsrs', short: 'FSRS', name: 'FSRS Spaced Repetition', icon: '🧠', activeClass: 'bg-emerald-600 text-white shadow-xs font-black' },
+  { id: 'skim', short: 'SKIM', name: 'Speed Skim (1-Tap)', icon: '⚡', activeClass: 'bg-amber-500 text-white shadow-xs font-black' },
+  { id: 'review', short: 'REV', name: 'Review Due Cards', icon: '📚', activeClass: 'bg-sky-600 text-white shadow-xs font-black' },
+  { id: 'new', short: 'NEW', name: 'Learn New Cards', icon: '✨', activeClass: 'bg-indigo-600 text-white shadow-xs font-black' },
+  { id: 'flip', short: 'FLIP', name: 'Free Flip Cards', icon: '🔄', activeClass: 'bg-slate-800 text-white shadow-xs font-black' },
+]
 
 /**
  * Standalone, root-level bottom sheet attached via Portal to document.body
@@ -174,6 +184,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   showFlipBackBtn,
   setIsFlipped,
   setIsSettingsModalOpen,
+  activeMode,
+  onSelectMode,
 }) => {
   if (typeof document === 'undefined') return null
 
@@ -227,6 +239,44 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {/* 5 Flashcard Modes Quick Switcher */}
+            {onSelectMode && (
+              <div className="flex flex-col gap-1 text-left px-0.5">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    Flashcard Study Mode
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400">
+                    5 Modes Available
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
+                  {FLASHCARD_5_MODES.map((m) => {
+                    const isActive = activeMode === m.id || (m.id === 'skim' && activeMode === 'speed_skim');
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          onSelectMode(m.id);
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all cursor-pointer select-none",
+                          isActive
+                            ? cn(m.activeClass, "scale-[1.02]")
+                            : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
+                        )}
+                        title={m.name}
+                      >
+                        <span className="text-base leading-none mb-1">{m.icon}</span>
+                        <span className="text-[9.5px] font-black tracking-tight uppercase leading-tight">{m.short}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Action Grid (4 Columns, iOS Control Center Style) */}
             <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
