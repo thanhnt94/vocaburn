@@ -16,7 +16,8 @@ import {
   Sliders,
   RotateCcw,
   Hand,
-  Layers
+  Layers,
+  MoveHorizontal
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -148,8 +149,8 @@ export interface FlashcardQuickControlsSheetProps {
   setIsSettingsModalOpen: (val: boolean) => void
   activeMode?: string
   onSelectMode?: (mode: string) => void
-  tapToFlip?: boolean
-  onToggleTapToFlip?: () => void
+  swipeToRate?: boolean
+  onToggleSwipeToRate?: () => void
   showActionDock?: boolean
   onToggleActionDock?: () => void
 }
@@ -192,8 +193,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   setIsSettingsModalOpen,
   activeMode,
   onSelectMode,
-  tapToFlip = true,
-  onToggleTapToFlip,
+  swipeToRate = true,
+  onToggleSwipeToRate,
   showActionDock = true,
   onToggleActionDock,
 }) => {
@@ -430,31 +431,31 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 </div>
               </button>
 
-              {/* 6. Tap Card to Flip */}
+              {/* 6. Swipe to Rate */}
               <button
                 type="button"
                 onClick={() => {
-                  if (tapToFlip && !showActionDock) {
-                    showLocalToast?.("Cannot disable Tap to Flip while Action Buttons are hidden!", "warning");
+                  if (swipeToRate && !showActionDock) {
+                    showLocalToast?.("Cannot disable Swipe Rating while Rating Buttons are hidden. At least one rating method must remain active!", "warning");
                     return;
                   }
-                  onToggleTapToFlip?.();
+                  onToggleSwipeToRate?.();
                 }}
                 className={cn(
                   "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
-                  tapToFlip
+                  swipeToRate
                     ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
                     : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                 )}
-                title={`Tap Card to Flip: ${tapToFlip ? 'ON' : 'OFF'}`}
+                title={`Swipe to Rate: ${swipeToRate ? 'ON' : 'OFF'}`}
               >
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", tapToFlip ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                  <Hand className="w-4 h-4" />
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", swipeToRate ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                  <MoveHorizontal className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[10px] font-bold tracking-tight">Tap Flip</span>
-                  <span className={cn("text-[8px] font-black uppercase tracking-wider", tapToFlip ? "text-indigo-600" : "text-slate-400")}>
-                    {tapToFlip ? "ON" : "OFF"}
+                  <span className="text-[10px] font-bold tracking-tight">Swipe</span>
+                  <span className={cn("text-[8px] font-black uppercase tracking-wider", swipeToRate ? "text-indigo-600" : "text-slate-400")}>
+                    {swipeToRate ? "ON" : "OFF"}
                   </span>
                 </div>
               </button>
@@ -463,8 +464,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               <button
                 type="button"
                 onClick={() => {
-                  if (showActionDock && !tapToFlip) {
-                    showLocalToast?.("Cannot hide Action Buttons while Tap to Flip is disabled!", "warning");
+                  if (showActionDock && !swipeToRate) {
+                    showLocalToast?.("Cannot hide Rating Buttons while Swipe to Rate is disabled. At least one rating method must remain active!", "warning");
                     return;
                   }
                   onToggleActionDock?.();
@@ -475,7 +476,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     ? "bg-teal-50 border-teal-300 text-teal-700 shadow-2xs"
                     : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                 )}
-                title={`Action Buttons: ${showActionDock ? 'ON' : 'OFF'}`}
+                title={`Rating Buttons: ${showActionDock ? 'ON' : 'OFF'}`}
               >
                 <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showActionDock ? "bg-teal-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
                   <Layers className="w-4 h-4" />

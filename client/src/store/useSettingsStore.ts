@@ -23,6 +23,7 @@ export interface UserSettings {
   card_rating_mode?: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
   tap_to_flip?: boolean
   show_action_dock?: boolean
+  swipe_to_rate?: boolean
   front_valign?: 'center' | 'top'
   front_halign?: 'left' | 'center'
   back_valign?: 'center' | 'top'
@@ -68,6 +69,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   card_rating_mode: 'both',
   tap_to_flip: true,
   show_action_dock: true,
+  swipe_to_rate: true,
   front_valign: 'center',
   front_halign: 'left',
   back_valign: 'center',

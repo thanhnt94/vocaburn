@@ -622,53 +622,56 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     </span>
 
                     {(() => {
-                      const tapToFlip = cardFlipTrigger !== 'button_only'
-                      const showActionDock = cardFlipTrigger !== 'tap'
-
-                      const handleToggleTapToFlip = (val: boolean) => {
-                        if (!val && !showActionDock) {
-                          alert("Cannot disable Tap to Flip while Action Buttons are hidden. At least one flip method must remain active!")
-                          return
-                        }
-                        const nextTrigger = val ? (showActionDock ? 'both' : 'tap') : 'button_only'
-                        if (setCardFlipTrigger) setCardFlipTrigger(nextTrigger)
-                      }
+                      const swipeToRate = cardRatingMode !== 'buttons'
+                      const showActionDock = cardRatingMode !== 'swipe_4way' && cardRatingMode !== 'swipe_2way'
 
                       const handleToggleActionDock = (val: boolean) => {
-                        if (!val && !tapToFlip) {
-                          alert("Cannot hide Action Buttons while Tap to Flip is disabled. At least one flip method must remain active!")
+                        if (!val && !swipeToRate) {
+                          alert("Cannot hide Rating Buttons while Swipe to Rate is disabled. At least one rating method must remain active!")
                           return
                         }
-                        const nextTrigger = val ? (tapToFlip ? 'both' : 'button_only') : 'tap'
-                        if (setCardFlipTrigger) setCardFlipTrigger(nextTrigger)
+                        const nextMode = val ? (swipeToRate ? 'both' : 'buttons') : 'swipe_4way'
+                        if (setCardRatingMode) setCardRatingMode(nextMode)
+                      }
+
+                      const handleToggleSwipeToRate = (val: boolean) => {
+                        if (!val && !showActionDock) {
+                          alert("Cannot disable Swipe to Rate while Rating Buttons are hidden. At least one rating method must remain active!")
+                          return
+                        }
+                        const nextMode = val ? (showActionDock ? 'both' : 'swipe_4way') : 'buttons'
+                        if (setCardRatingMode) setCardRatingMode(nextMode)
                       }
 
                       return (
                         <>
-                          <ToggleRow
-                            icon={Hand}
-                            label="Tap Card Body to Flip"
-                            desc="Touch the card body to flip between front and back face"
-                            checked={tapToFlip}
-                            onChange={handleToggleTapToFlip}
-                            compact={true}
-                          />
+                          <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-2 text-indigo-900">
+                            <Hand className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+                            <div className="text-left">
+                              <span className="font-bold text-xs block text-indigo-950">Tap Card Body to Flip</span>
+                              <p className="text-[11px] text-indigo-700 leading-relaxed mt-0.5">
+                                Permanent default gesture: tap or click the card body to flip between question and answer.
+                              </p>
+                            </div>
+                          </div>
 
                           <ToggleRow
                             icon={Layers}
-                            label="Bottom Action Buttons"
-                            desc="Display bottom dock with flip card, flip back, and 4 rating buttons"
+                            label="Rating Buttons Dock"
+                            desc="Display bottom rating dock (Again, Hard, Good, Easy + Flip Back) on card back"
                             checked={showActionDock}
                             onChange={handleToggleActionDock}
                             compact={true}
                           />
 
-                          <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/70 flex items-start gap-2 text-slate-500">
-                            <Move className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
-                            <p className="text-[11px] leading-relaxed">
-                              <span className="font-bold text-slate-700">4-Way Swipe Rating:</span> Always active on card back (Left = Again, Down = Hard, Right = Good, Up = Easy).
-                            </p>
-                          </div>
+                          <ToggleRow
+                            icon={Move}
+                            label="Swipe to Rate"
+                            desc="4-Way compass swipe gesture on card back (Left = Again, Down = Hard, Right = Good, Up = Easy)"
+                            checked={swipeToRate}
+                            onChange={handleToggleSwipeToRate}
+                            compact={true}
+                          />
                         </>
                       )
                     })()}

@@ -69,18 +69,31 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   if (shouldShowRoadmapStepCompleteScreen) return null
   if (mainTab === 'practice' && practiceNeedsSetup) return null
 
+  const hasActionButtons = Boolean(
+    showActionDock && (
+      mainTab === 'practice' ||
+      activeMode === 'autoplay' ||
+      activeMode === 'flip' ||
+      ((activeMode === 'speed_skim' || activeMode === 'skim') && !isFlipped) ||
+      (isFlipped && !hasRated && activeMode !== 'autoplay') ||
+      (isFlipped && hasRated && activeMode !== 'autoplay')
+    )
+  );
+
+  const hasHintContent = Boolean(showingHint && currentQuestion?.hint && !isFlipped);
+
   return (
     <footer className={cn(
       "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]",
       (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
-      !showActionDock && !showingHint && "md:hidden"
+      !hasActionButtons && !hasHintContent && "md:hidden"
     )}>
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
           <>
             {/* Hint Popup Bubble */}
             <AnimatePresence>
-              {showingHint && currentQuestion?.hint && !isFlipped && (
+              {hasHintContent && (
                 <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -109,7 +122,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
             </AnimatePresence>
 
             {/* PRIMARY ACTION ZONE (Single Clean Thumb-Reachable 1-Row Action Bar) */}
-            {showActionDock && (
+            {hasActionButtons && (
               <div className="w-full px-3 sm:px-4 py-2">
               {mainTab === 'practice' ? (
                 practiceAnswers[currentIndex] !== undefined ? (
@@ -226,23 +239,20 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   </div>
                 </div>
               ) : !isFlipped ? (
-                /* ── FRONT FACE: BIG FLIP CARD CTA BUTTON ── */
-                <button 
-                  onClick={() => {
-                    setIsFlipped(true);
-                    setJustAnswered(true);
-                  }}
-                  className={cn(
-                    "w-full h-12 sm:h-13 font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white",
-                    activeMode === 'speed_skim' || activeMode === 'skim'
-                      ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
-                      : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-300/50 hover:shadow-indigo-400/60"
-                  )}
-                >
-                  <span>{activeMode === 'speed_skim' || activeMode === 'skim' ? '⚡ SKIM / FLIP' : 'FLIP CARD'}</span>
-                  <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                  <ChevronRight className="w-4 h-4 rotate-90" />
-                </button>
+                /* ── FRONT FACE: ONLY SKIM MODE HAS FLIP BUTTON ── */
+                (activeMode === 'speed_skim' || activeMode === 'skim') ? (
+                  <button 
+                    onClick={() => {
+                      setIsFlipped(true);
+                      setJustAnswered(true);
+                    }}
+                    className="w-full h-12 sm:h-13 font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
+                  >
+                    <span>⚡ SKIM / FLIP</span>
+                    <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </button>
+                ) : null
               ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' && activeMode !== 'skim' && activeMode !== 'autoplay' ? (
                 /* ── BACK FACE: UNRATED (FLIP BACK BUTTON + 4 FSRS BUTTONS) ── */
                 <div className="grid grid-cols-5 gap-1 sm:gap-2 w-full">

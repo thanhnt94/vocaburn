@@ -28,6 +28,7 @@ export interface StudySettingsState {
   card_rating_mode?: CardRatingMode
   tap_to_flip?: boolean
   show_action_dock?: boolean
+  swipe_to_rate?: boolean
 }
 
 export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
@@ -47,7 +48,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   card_flip_trigger: 'both',
   card_rating_mode: 'both',
   tap_to_flip: true,
-  show_action_dock: true
+  show_action_dock: true,
+  swipe_to_rate: true
 }
 
 export function usePlaySettings(

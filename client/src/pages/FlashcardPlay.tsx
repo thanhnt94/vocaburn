@@ -293,41 +293,48 @@ export default function FlashcardPlay() {
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
-  const tapToFlip = userSettings.tap_to_flip !== undefined
-    ? userSettings.tap_to_flip
-    : (deckCardFlipTrigger ? deckCardFlipTrigger !== 'button_only' : userSettings.card_flip_trigger !== 'button_only');
+  // Tap card body to flip is the permanent default gesture
+  const tapToFlip = true;
+  const effectiveCardFlipTrigger = 'both';
 
   const showActionDock = userSettings.show_action_dock !== undefined
     ? userSettings.show_action_dock
-    : (deckCardFlipTrigger ? deckCardFlipTrigger !== 'tap' : userSettings.card_flip_trigger !== 'tap');
+    : (userSettings.card_rating_mode ? userSettings.card_rating_mode !== 'swipe_4way' && userSettings.card_rating_mode !== 'swipe_2way' : true);
 
-  const effectiveCardFlipTrigger = tapToFlip ? 'both' : 'button_only';
-  const effectiveCardRatingMode = deckCardRatingMode || userSettings.card_rating_mode || 'both';
+  const swipeToRate = userSettings.swipe_to_rate !== undefined
+    ? userSettings.swipe_to_rate
+    : (userSettings.card_rating_mode ? userSettings.card_rating_mode !== 'buttons' : true);
+
+  const effectiveCardRatingMode = showActionDock && swipeToRate
+    ? 'both'
+    : showActionDock
+    ? 'buttons'
+    : 'swipe_4way';
   const effectiveShowFsrs = userSettings.show_fsrs !== undefined ? userSettings.show_fsrs : showFsrs;
 
-  const handleToggleTapToFlip = useCallback(() => {
-    if (tapToFlip && !showActionDock) {
-      showLocalToast("Cannot disable Tap to Flip while Action Buttons are hidden. At least one flip method must remain active!", "warning");
-      return;
-    }
-    const nextTap = !tapToFlip;
-    const nextTrigger = nextTap ? (showActionDock ? 'both' : 'tap') : 'button_only';
-    updateUserSettings({ tap_to_flip: nextTap, card_flip_trigger: nextTrigger });
-    saveGeneralSettings({ card_flip_trigger: nextTrigger, tap_to_flip: nextTap });
-    showLocalToast(nextTap ? "Tap to Flip: ON" : "Tap to Flip: OFF", "info");
-  }, [tapToFlip, showActionDock, updateUserSettings, saveGeneralSettings, showLocalToast]);
-
   const handleToggleActionDock = useCallback(() => {
-    if (showActionDock && !tapToFlip) {
-      showLocalToast("Cannot hide Action Buttons while Tap to Flip is disabled. At least one flip method must remain active!", "warning");
+    if (showActionDock && !swipeToRate) {
+      showLocalToast("Cannot hide Rating Buttons while Swipe to Rate is disabled. At least one rating method must remain active!", "warning");
       return;
     }
     const nextDock = !showActionDock;
-    const nextTrigger = nextDock ? (tapToFlip ? 'both' : 'button_only') : 'tap';
-    updateUserSettings({ show_action_dock: nextDock, card_flip_trigger: nextTrigger });
-    saveGeneralSettings({ card_flip_trigger: nextTrigger, show_action_dock: nextDock });
-    showLocalToast(nextDock ? "Action Buttons: ON" : "Action Buttons: OFF", "info");
-  }, [showActionDock, tapToFlip, updateUserSettings, saveGeneralSettings, showLocalToast]);
+    const nextRatingMode = nextDock ? (swipeToRate ? 'both' : 'buttons') : 'swipe_4way';
+    updateUserSettings({ show_action_dock: nextDock, card_rating_mode: nextRatingMode });
+    saveGeneralSettings({ card_rating_mode: nextRatingMode, show_action_dock: nextDock });
+    showLocalToast(nextDock ? "Rating Buttons: ON" : "Rating Buttons: OFF", "info");
+  }, [showActionDock, swipeToRate, updateUserSettings, saveGeneralSettings, showLocalToast]);
+
+  const handleToggleSwipeToRate = useCallback(() => {
+    if (swipeToRate && !showActionDock) {
+      showLocalToast("Cannot disable Swipe to Rate while Rating Buttons are hidden. At least one rating method must remain active!", "warning");
+      return;
+    }
+    const nextSwipe = !swipeToRate;
+    const nextRatingMode = nextSwipe ? (showActionDock ? 'both' : 'swipe_4way') : 'buttons';
+    updateUserSettings({ swipe_to_rate: nextSwipe, card_rating_mode: nextRatingMode });
+    saveGeneralSettings({ card_rating_mode: nextRatingMode, swipe_to_rate: nextSwipe });
+    showLocalToast(nextSwipe ? "Swipe to Rate: ON" : "Swipe to Rate: OFF", "info");
+  }, [swipeToRate, showActionDock, updateUserSettings, saveGeneralSettings, showLocalToast]);
 
   const {
     playCardAudio,
@@ -1586,7 +1593,7 @@ export default function FlashcardPlay() {
     }
   }
 
-  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
+  const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -4125,6 +4132,31 @@ export default function FlashcardPlay() {
         setIsStudyConsoleOpen={setIsStudyConsoleOpen}
       />
 
+      {/* ═══════════ FLOATING EXIT BUTTON FOR SELECT TEXT MODE ═══════════ */}
+      <AnimatePresence>
+        {isSelectMode && (
+          <motion.button
+            type="button"
+            initial={{ scale: 0.8, opacity: 0, y: 15 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 15 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => {
+              setIsSelectMode(false);
+              showLocalToast("Exited Select Text mode", "info");
+            }}
+            className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-[350] flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-slate-900/95 backdrop-blur-md text-white shadow-xl shadow-slate-900/30 border border-slate-700/60 font-black text-xs cursor-pointer hover:bg-slate-800 transition-all active:scale-95 select-none"
+            title="Exit Select Text Mode and resume gestures"
+          >
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+            <span className="tracking-tight">Done Selecting</span>
+            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center ml-0.5 shrink-0">
+              <X className="w-3.5 h-3.5 text-white" />
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* ═══════════ QUICK ACTION BOTTOM SHEET (Root-level Global Portal) ═══════════ */}
       <FlashcardQuickControlsSheet
         isOpen={isFlyToolbarOpen}
@@ -4155,8 +4187,8 @@ export default function FlashcardPlay() {
           applyLearningMode(targetMode, randomEnabled ? 'random' : 'sequential')
           showLocalToast(`Switched to ${targetMode.toUpperCase()} mode`, 'info')
         }}
-        tapToFlip={tapToFlip}
-        onToggleTapToFlip={handleToggleTapToFlip}
+        swipeToRate={swipeToRate}
+        onToggleSwipeToRate={handleToggleSwipeToRate}
         showActionDock={showActionDock}
         onToggleActionDock={handleToggleActionDock}
       />

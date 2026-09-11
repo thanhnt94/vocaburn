@@ -2,6 +2,22 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-12]
+#### Đơn Giản Hóa Tương Tác Thẻ: Tap Lật Mặc Định Vĩnh Viễn, 2 Toggle Đánh Giá (Buttons & Swipe) & Nút Nổi Thoát Chế Độ Chọn Chữ
+- **Chạm Thân Thẻ (Tap to Flip) Là Cử Chỉ Mặc Định Vĩnh Viễn**:
+  - Chạm vào thân thẻ luôn luôn lật giữa mặt trước và mặt sau, không cần toggle bật/tắt (ngăn chặn hoàn toàn tình trạng mất logic không lật được thẻ).
+  - **Loại bỏ nút FLIP CARD to ở mặt trước**: Mặt trước của thẻ ở các chế độ học thông thường giải phóng 100% không gian, giao diện tinh giản, không còn nút bấm thừa thãi chiếm diện tích.
+- **2 Tùy Chọn Đánh Giá Rõ Ràng & Độc Lập**:
+  - `Rating Buttons (Nút Đánh Giá)`: Bật/Tắt thanh dock dưới đáy (4 nút FSRS: Again, Hard, Good, Easy + nút Back lật ngược). Khi tắt, ẩn sạch thanh dưới đáy.
+  - `Swipe to Rate (Đánh Giá Bằng Vuốt)`: Bật/Tắt cử chỉ vuốt 4 hướng trên mặt sau của thẻ (Trái = Again, Dưới = Hard, Phải = Good, Trên = Easy).
+  - **Cơ Chế Chống Deadlock**: Không cho phép tắt đồng thời cả Rating Buttons và Swipe to Rate. Nếu người dùng cố tắt tùy chọn đánh giá cuối cùng đang bật, hệ thống hiển thị toast cảnh báo: *"Cannot hide Rating Buttons while Swipe to Rate is disabled. At least one rating method must remain active!"* hoặc ngược lại.
+- **Nút Nổi (Floating FAB) Thoát Chế Độ Chọn Chữ (Select Text Mode)**:
+  - Khi bật chế độ Select Text, toàn bộ thao tác Tap để lật và Swipe bị vô hiệu hóa để người dùng tự do bôi đen, tra từ, sao chép văn bản trên thẻ.
+  - Hiển thị nút nổi tiện lợi ở góc dưới bên phải màn hình (`fixed right-4 bottom-20 sm:bottom-24 z-[350]`) với chấm đỏ báo hiệu động `Done Selecting` kèm icon `X`. Nhấn vào nút này sẽ lập tức thoát chế độ chọn chữ và đưa thẻ về trạng thái bình thường.
+- **Đồng Bộ Hoàn Toàn Trong Quick Controls & Play Settings Modal**:
+  - Trong menu Quick Controls: Cập nhật 2 nút điều khiển nhanh `[ ↔ Swipe: ON/OFF ]` và `[ 🥞 Buttons: ON/OFF ]`.
+  - Trong Settings Modal $\rightarrow$ Tab Gestures: Giải thích rõ Tap Flip là cử chỉ mặc định và cung cấp 2 toggle tương ứng.
+
 ### [2026-09-11]
 #### Chuẩn Hóa Cử Chỉ Lật Thẻ & Thanh Nút Đánh Giá (Loại Bỏ Hybrid, Swipe 4 Hướng Luôn Luôn Bật & Cơ Chế Chống Deadlock)
 - **Xóa Bỏ Hoàn Toàn Khái Niệm "Hybrid" Rối Rắm**:
