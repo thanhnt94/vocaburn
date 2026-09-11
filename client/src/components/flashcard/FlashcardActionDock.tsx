@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles, Play, Pause, SkipBack, SkipForward, RotateCw } from 'lucide-react'
+import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles, Play, Pause, SkipBack, SkipForward, RotateCw, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,7 @@ export interface FlashcardActionDockProps {
   isFeedbackOpen: boolean
   showingHint: boolean
   setShowingHint: (val: boolean) => void
+  showActionDock?: boolean
   currentQuestion: any
   isFlipped: boolean
   setIsFlipped: (val: boolean) => void
@@ -62,7 +63,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   onOpenMap,
   onOpenFlashcard,
   onOpenStats,
-  getFSRSIntervals
+  getFSRSIntervals,
+  showActionDock = true
 }) => {
   if (shouldShowRoadmapStepCompleteScreen) return null
   if (mainTab === 'practice' && practiceNeedsSetup) return null
@@ -70,7 +72,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   return (
     <footer className={cn(
       "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]",
-      (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative"
+      (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
+      !showActionDock && !showingHint && "md:hidden"
     )}>
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
@@ -106,7 +109,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
             </AnimatePresence>
 
             {/* PRIMARY ACTION ZONE (Single Clean Thumb-Reachable 1-Row Action Bar) */}
-            <div className="w-full px-3 sm:px-4 py-2">
+            {showActionDock && (
+              <div className="w-full px-3 sm:px-4 py-2">
               {mainTab === 'practice' ? (
                 practiceAnswers[currentIndex] !== undefined ? (
                   <button 
@@ -240,85 +244,101 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   <ChevronRight className="w-4 h-4 rotate-90" />
                 </button>
               ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' && activeMode !== 'skim' && activeMode !== 'autoplay' ? (
-                /* ── BACK FACE: UNRATED (FSRS BUTTONS OR SWIPE GUIDE) ── */
-                effectiveCardRatingMode === 'buttons' || effectiveCardRatingMode === 'both' ? (
-                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 w-full">
-                    {/* AGAIN (1) */}
-                    <button
-                      onClick={() => handleReviewRating(1)}
-                      className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100/90 text-rose-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                      title="Shortcut: 1"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-rose-600">AGAIN</span>
-                        <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-rose-300 bg-rose-100 text-rose-700">1</kbd>
-                      </div>
-                      <span className="text-[11px] sm:text-xs font-black text-rose-700 mt-0.5">
-                        {getFSRSIntervals(currentQuestion?.fsrs)?.[1] || "10m"}
-                      </span>
-                    </button>
+                /* ── BACK FACE: UNRATED (FLIP BACK BUTTON + 4 FSRS BUTTONS) ── */
+                <div className="grid grid-cols-5 gap-1 sm:gap-2 w-full">
+                  {/* FLIP BACK BUTTON */}
+                  <button
+                    onClick={() => setIsFlipped(false)}
+                    className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-slate-200 bg-slate-100/90 hover:bg-slate-200/90 text-slate-700 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                    title="Flip Back to Question (Esc)"
+                  >
+                    <div className="flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3 text-slate-500 group-hover:rotate-[-45deg] transition-transform" />
+                      <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-slate-600">BACK</span>
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 mt-0.5">
+                      Front
+                    </span>
+                  </button>
 
-                    {/* HARD (2) */}
-                    <button
-                      onClick={() => handleReviewRating(2)}
-                      className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-amber-200 bg-amber-50/80 hover:bg-amber-100/90 text-amber-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                      title="Shortcut: 2"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-amber-600">HARD</span>
-                        <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-amber-300 bg-amber-100 text-amber-700">2</kbd>
-                      </div>
-                      <span className="text-[11px] sm:text-xs font-black text-amber-700 mt-0.5">
-                        {getFSRSIntervals(currentQuestion?.fsrs)?.[2] || "1d"}
-                      </span>
-                    </button>
+                  {/* AGAIN (1) */}
+                  <button
+                    onClick={() => handleReviewRating(1)}
+                    className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-rose-200 bg-rose-50/80 hover:bg-rose-100/90 text-rose-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                    title="Shortcut: 1"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-rose-600">AGAIN</span>
+                      <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-rose-300 bg-rose-100 text-rose-700">1</kbd>
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-black text-rose-700 mt-0.5">
+                      {getFSRSIntervals(currentQuestion?.fsrs)?.[1] || "10m"}
+                    </span>
+                  </button>
 
-                    {/* GOOD (3) */}
-                    <button
-                      onClick={() => handleReviewRating(3)}
-                      className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border-2 border-indigo-300 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-600 shadow-xs ring-2 ring-indigo-400/20 active:scale-95 transition-all cursor-pointer group"
-                      title="Shortcut: 3"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-indigo-600">GOOD</span>
-                        <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-indigo-300 bg-indigo-100 text-indigo-700">3</kbd>
-                      </div>
-                      <span className="text-[11px] sm:text-xs font-black text-indigo-700 mt-0.5">
-                        {getFSRSIntervals(currentQuestion?.fsrs)?.[3] || "4d"}
-                      </span>
-                    </button>
+                  {/* HARD (2) */}
+                  <button
+                    onClick={() => handleReviewRating(2)}
+                    className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-amber-200 bg-amber-50/80 hover:bg-amber-100/90 text-amber-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                    title="Shortcut: 2"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-amber-600">HARD</span>
+                      <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-amber-300 bg-amber-100 text-amber-700">2</kbd>
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-black text-amber-700 mt-0.5">
+                      {getFSRSIntervals(currentQuestion?.fsrs)?.[2] || "1d"}
+                    </span>
+                  </button>
 
-                    {/* EASY (4) */}
-                    <button
-                      onClick={() => handleReviewRating(4)}
-                      className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                      title="Shortcut: 4"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-emerald-600">EASY</span>
-                        <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-emerald-300 bg-emerald-100 text-emerald-700">4</kbd>
-                      </div>
-                      <span className="text-[11px] sm:text-xs font-black text-emerald-700 mt-0.5">
-                        {getFSRSIntervals(currentQuestion?.fsrs)?.[4] || "12d"}
-                      </span>
-                    </button>
-                  </div>
-                ) : (
-                  /* SWIPE GUIDE INDICATOR */
-                  <div className="w-full h-11 bg-slate-100/80 rounded-2xl border border-slate-200/80 flex items-center justify-between px-4 text-xs font-black text-slate-500">
-                    <span className="flex items-center gap-1 text-rose-500">← Again</span>
-                    <span className="text-[10px] font-bold text-slate-400">Swipe card to rate</span>
-                    <span className="flex items-center gap-1 text-emerald-600">Good →</span>
-                  </div>
-                )
+                  {/* GOOD (3) */}
+                  <button
+                    onClick={() => handleReviewRating(3)}
+                    className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border-2 border-indigo-300 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-600 shadow-xs ring-2 ring-indigo-400/20 active:scale-95 transition-all cursor-pointer group"
+                    title="Shortcut: 3"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-indigo-600">GOOD</span>
+                      <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-indigo-300 bg-indigo-100 text-indigo-700">3</kbd>
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-black text-indigo-700 mt-0.5">
+                      {getFSRSIntervals(currentQuestion?.fsrs)?.[3] || "4d"}
+                    </span>
+                  </button>
+
+                  {/* EASY (4) */}
+                  <button
+                    onClick={() => handleReviewRating(4)}
+                    className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-600 shadow-xs active:scale-95 transition-all cursor-pointer group"
+                    title="Shortcut: 4"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-emerald-600">EASY</span>
+                      <kbd className="hidden md:inline-flex px-1 py-0.2 text-[8px] font-mono font-black rounded border border-emerald-300 bg-emerald-100 text-emerald-700">4</kbd>
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-black text-emerald-700 mt-0.5">
+                      {getFSRSIntervals(currentQuestion?.fsrs)?.[4] || "12d"}
+                    </span>
+                  </button>
+                </div>
               ) : (
                 /* ── BACK FACE: RATED (OR FLIP / SPEED_SKIM MODE FLIPPED) ── */
                 <div className="w-full flex items-center gap-2 h-12 sm:h-13">
+                  {/* Flip Back button */}
+                  <button
+                    onClick={() => setIsFlipped(false)}
+                    className="h-full px-3 sm:px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="Flip Back to Front"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="hidden sm:inline">Back</span>
+                  </button>
+
                   {/* Undo button if rated */}
                   {activelyRatedCurrentCard && hasRated && (
                     <button
                       onClick={handleUndoRating}
-                      className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                      className="h-full px-3 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
                       title="Undo Rating"
                     >
                       <Undo2 className="w-3.5 h-3.5" />
@@ -343,6 +363,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                 </div>
               )}
             </div>
+            )}
           </>
         )}
 

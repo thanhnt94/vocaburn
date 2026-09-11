@@ -21,6 +21,8 @@ export interface UserSettings {
   quick_add_columns?: string[]
   card_flip_trigger?: 'both' | 'tap' | 'button_only'
   card_rating_mode?: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
+  tap_to_flip?: boolean
+  show_action_dock?: boolean
   front_valign?: 'center' | 'top'
   front_halign?: 'left' | 'center'
   back_valign?: 'center' | 'top'
@@ -64,6 +66,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   quick_add_columns: ['front', 'back'],
   card_flip_trigger: 'both',
   card_rating_mode: 'both',
+  tap_to_flip: true,
+  show_action_dock: true,
   front_valign: 'center',
   front_halign: 'left',
   back_valign: 'center',

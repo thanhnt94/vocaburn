@@ -26,6 +26,7 @@ import {
   Eye,
   Star,
   Type,
+  Hand,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -620,38 +621,57 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       Card Interaction Triggers
                     </span>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Card Flip Trigger
-                      </label>
-                      <SegmentedControl
-                        value={cardFlipTrigger || 'both'}
-                        onChange={(val) => setCardFlipTrigger && setCardFlipTrigger(val)}
-                        options={[
-                          { id: 'both', label: 'Tap & Swipe' },
-                          { id: 'tap', label: 'Tap Card Body' },
-                          { id: 'button_only', label: 'Button Only' },
-                        ]}
-                        compact={true}
-                      />
-                    </div>
+                    {(() => {
+                      const tapToFlip = cardFlipTrigger !== 'button_only'
+                      const showActionDock = cardFlipTrigger !== 'tap'
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        FSRS Recall Rating Mode
-                      </label>
-                      <SegmentedControl
-                        value={cardRatingMode || 'both'}
-                        onChange={(val) => setCardRatingMode && setCardRatingMode(val)}
-                        options={[
-                          { id: 'both', label: 'Hybrid' },
-                          { id: 'swipe_4way', label: '4-Way Swipe' },
-                          { id: 'swipe_2way', label: '2-Way Swipe' },
-                          { id: 'buttons', label: 'Buttons Only' },
-                        ]}
-                        compact={true}
-                      />
-                    </div>
+                      const handleToggleTapToFlip = (val: boolean) => {
+                        if (!val && !showActionDock) {
+                          alert("Cannot disable Tap to Flip while Action Buttons are hidden. At least one flip method must remain active!")
+                          return
+                        }
+                        const nextTrigger = val ? (showActionDock ? 'both' : 'tap') : 'button_only'
+                        if (setCardFlipTrigger) setCardFlipTrigger(nextTrigger)
+                      }
+
+                      const handleToggleActionDock = (val: boolean) => {
+                        if (!val && !tapToFlip) {
+                          alert("Cannot hide Action Buttons while Tap to Flip is disabled. At least one flip method must remain active!")
+                          return
+                        }
+                        const nextTrigger = val ? (tapToFlip ? 'both' : 'button_only') : 'tap'
+                        if (setCardFlipTrigger) setCardFlipTrigger(nextTrigger)
+                      }
+
+                      return (
+                        <>
+                          <ToggleRow
+                            icon={Hand}
+                            label="Tap Card Body to Flip"
+                            desc="Touch the card body to flip between front and back face"
+                            checked={tapToFlip}
+                            onChange={handleToggleTapToFlip}
+                            compact={true}
+                          />
+
+                          <ToggleRow
+                            icon={Layers}
+                            label="Bottom Action Buttons"
+                            desc="Display bottom dock with flip card, flip back, and 4 rating buttons"
+                            checked={showActionDock}
+                            onChange={handleToggleActionDock}
+                            compact={true}
+                          />
+
+                          <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/70 flex items-start gap-2 text-slate-500">
+                            <Move className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
+                            <p className="text-[11px] leading-relaxed">
+                              <span className="font-bold text-slate-700">4-Way Swipe Rating:</span> Always active on card back (Left = Again, Down = Hard, Right = Good, Up = Easy).
+                            </p>
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
 
                   <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-2">

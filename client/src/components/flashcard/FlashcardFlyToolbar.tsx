@@ -14,7 +14,9 @@ import {
   Settings,
   X,
   Sliders,
-  RotateCcw
+  RotateCcw,
+  Hand,
+  Layers
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -146,6 +148,10 @@ export interface FlashcardQuickControlsSheetProps {
   setIsSettingsModalOpen: (val: boolean) => void
   activeMode?: string
   onSelectMode?: (mode: string) => void
+  tapToFlip?: boolean
+  onToggleTapToFlip?: () => void
+  showActionDock?: boolean
+  onToggleActionDock?: () => void
 }
 
 const FLASHCARD_MODES = [
@@ -186,6 +192,10 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   setIsSettingsModalOpen,
   activeMode,
   onSelectMode,
+  tapToFlip = true,
+  onToggleTapToFlip,
+  showActionDock = true,
+  onToggleActionDock,
 }) => {
   if (typeof document === 'undefined') return null
 
@@ -416,6 +426,64 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                   <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
                   <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-100" : "text-slate-400")}>
                     {randomEnabled ? "ON" : "OFF"}
+                  </span>
+                </div>
+              </button>
+
+              {/* 6. Tap Card to Flip */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (tapToFlip && !showActionDock) {
+                    showLocalToast?.("Cannot disable Tap to Flip while Action Buttons are hidden!", "warning");
+                    return;
+                  }
+                  onToggleTapToFlip?.();
+                }}
+                className={cn(
+                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
+                  tapToFlip
+                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
+                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                )}
+                title={`Tap Card to Flip: ${tapToFlip ? 'ON' : 'OFF'}`}
+              >
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", tapToFlip ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                  <Hand className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col items-center leading-none gap-0.5">
+                  <span className="text-[10px] font-bold tracking-tight">Tap Flip</span>
+                  <span className={cn("text-[8px] font-black uppercase tracking-wider", tapToFlip ? "text-indigo-600" : "text-slate-400")}>
+                    {tapToFlip ? "ON" : "OFF"}
+                  </span>
+                </div>
+              </button>
+
+              {/* 7. Action Buttons (Dock) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (showActionDock && !tapToFlip) {
+                    showLocalToast?.("Cannot hide Action Buttons while Tap to Flip is disabled!", "warning");
+                    return;
+                  }
+                  onToggleActionDock?.();
+                }}
+                className={cn(
+                  "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer",
+                  showActionDock
+                    ? "bg-teal-50 border-teal-300 text-teal-700 shadow-2xs"
+                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                )}
+                title={`Action Buttons: ${showActionDock ? 'ON' : 'OFF'}`}
+              >
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showActionDock ? "bg-teal-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col items-center leading-none gap-0.5">
+                  <span className="text-[10px] font-bold tracking-tight">Buttons</span>
+                  <span className={cn("text-[8px] font-black uppercase tracking-wider", showActionDock ? "text-teal-600" : "text-slate-400")}>
+                    {showActionDock ? "ON" : "OFF"}
                   </span>
                 </div>
               </button>

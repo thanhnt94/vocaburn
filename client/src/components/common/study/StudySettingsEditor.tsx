@@ -9,6 +9,7 @@ import {
   Shuffle,
   Eye,
   Type,
+  Hand,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SegmentedControl } from './SegmentedControl'
@@ -44,6 +45,34 @@ export function StudySettingsEditor({
     return 'Huge'
   }
 
+  const tapToFlip = settings.tap_to_flip !== undefined
+    ? settings.tap_to_flip
+    : (settings.card_flip_trigger !== 'button_only')
+
+  const showActionDock = settings.show_action_dock !== undefined
+    ? settings.show_action_dock
+    : (settings.card_flip_trigger !== 'tap')
+
+  const handleToggleTapToFlip = (val: boolean) => {
+    if (!val && !showActionDock) {
+      alert("Cannot disable Tap to Flip while Action Buttons are hidden. At least one flip method must remain active!")
+      return
+    }
+    const nextTrigger = val ? (showActionDock ? 'both' : 'tap') : 'button_only'
+    onChange('tap_to_flip', val)
+    onChange('card_flip_trigger', nextTrigger)
+  }
+
+  const handleToggleActionDock = (val: boolean) => {
+    if (!val && !tapToFlip) {
+      alert("Cannot hide Action Buttons while Tap to Flip is disabled. At least one flip method must remain active!")
+      return
+    }
+    const nextTrigger = val ? (tapToFlip ? 'both' : 'button_only') : 'tap'
+    onChange('show_action_dock', val)
+    onChange('card_flip_trigger', nextTrigger)
+  }
+
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-2 ${gap}`}>
       {/* GROUP 1: Gestures & Controls */}
@@ -55,37 +84,29 @@ export function StudySettingsEditor({
           </h4>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 block">
-            Card Flip Trigger
-          </label>
-          <SegmentedControl
-            value={settings.card_flip_trigger || 'both'}
-            onChange={(val) => onChange('card_flip_trigger', val)}
-            options={[
-              { id: 'both', label: 'Tap & Swipe' },
-              { id: 'tap', label: 'Tap Card Body' },
-              { id: 'button_only', label: 'Button Only' },
-            ]}
-            compact={compact}
-          />
-        </div>
+        <ToggleRow
+          icon={Hand}
+          label="Tap Card Body to Flip"
+          desc="Touch the card body to flip between front and back face"
+          checked={tapToFlip}
+          onChange={handleToggleTapToFlip}
+          compact={compact}
+        />
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 block">
-            FSRS Rating Mode
-          </label>
-          <SegmentedControl
-            value={settings.card_rating_mode || 'both'}
-            onChange={(val) => onChange('card_rating_mode', val)}
-            options={[
-              { id: 'both', label: 'Hybrid' },
-              { id: 'swipe_4way', label: '4-Way Swipe' },
-              { id: 'swipe_2way', label: '2-Way Swipe' },
-              { id: 'buttons', label: 'Buttons Only' },
-            ]}
-            compact={compact}
-          />
+        <ToggleRow
+          icon={Layers}
+          label="Bottom Action Buttons"
+          desc="Display bottom dock with flip card, flip back, and 4 rating buttons"
+          checked={showActionDock}
+          onChange={handleToggleActionDock}
+          compact={compact}
+        />
+
+        <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/70 flex items-start gap-2 text-slate-500">
+          <Move className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
+          <p className="text-[11px] leading-relaxed">
+            <span className="font-bold text-slate-700">4-Way Swipe Rating:</span> Always active on card back (Left = Again, Down = Hard, Right = Good, Up = Easy).
+          </p>
         </div>
 
         <ToggleRow

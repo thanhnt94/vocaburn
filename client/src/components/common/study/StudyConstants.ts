@@ -5,6 +5,8 @@
 export interface StudySettings {
   card_flip_trigger: 'both' | 'tap' | 'button_only'
   card_rating_mode: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
+  tap_to_flip?: boolean
+  show_action_dock?: boolean
   quiz_learning_mode?: string
   learning_mode?: string
   front_valign: 'center' | 'top'
@@ -36,6 +38,8 @@ export interface StudyTemplateItem {
 export const DEFAULT_STUDY_SETTINGS: StudySettings = {
   card_flip_trigger: 'both',
   card_rating_mode: 'both',
+  tap_to_flip: true,
+  show_action_dock: true,
   quiz_learning_mode: 'fsrs',
   front_valign: 'center',
   front_halign: 'left',

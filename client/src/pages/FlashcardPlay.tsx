@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, MousePointer, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight, RotateCcw } from 'lucide-react'
@@ -293,9 +293,41 @@ export default function FlashcardPlay() {
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
-  const effectiveCardFlipTrigger = deckCardFlipTrigger || userSettings.card_flip_trigger || 'both';
+  const tapToFlip = userSettings.tap_to_flip !== undefined
+    ? userSettings.tap_to_flip
+    : (deckCardFlipTrigger ? deckCardFlipTrigger !== 'button_only' : userSettings.card_flip_trigger !== 'button_only');
+
+  const showActionDock = userSettings.show_action_dock !== undefined
+    ? userSettings.show_action_dock
+    : (deckCardFlipTrigger ? deckCardFlipTrigger !== 'tap' : userSettings.card_flip_trigger !== 'tap');
+
+  const effectiveCardFlipTrigger = tapToFlip ? 'both' : 'button_only';
   const effectiveCardRatingMode = deckCardRatingMode || userSettings.card_rating_mode || 'both';
   const effectiveShowFsrs = userSettings.show_fsrs !== undefined ? userSettings.show_fsrs : showFsrs;
+
+  const handleToggleTapToFlip = useCallback(() => {
+    if (tapToFlip && !showActionDock) {
+      showLocalToast("Cannot disable Tap to Flip while Action Buttons are hidden. At least one flip method must remain active!", "warning");
+      return;
+    }
+    const nextTap = !tapToFlip;
+    const nextTrigger = nextTap ? (showActionDock ? 'both' : 'tap') : 'button_only';
+    updateUserSettings({ tap_to_flip: nextTap, card_flip_trigger: nextTrigger });
+    saveGeneralSettings({ card_flip_trigger: nextTrigger, tap_to_flip: nextTap });
+    showLocalToast(nextTap ? "Tap to Flip: ON" : "Tap to Flip: OFF", "info");
+  }, [tapToFlip, showActionDock, updateUserSettings, saveGeneralSettings, showLocalToast]);
+
+  const handleToggleActionDock = useCallback(() => {
+    if (showActionDock && !tapToFlip) {
+      showLocalToast("Cannot hide Action Buttons while Tap to Flip is disabled. At least one flip method must remain active!", "warning");
+      return;
+    }
+    const nextDock = !showActionDock;
+    const nextTrigger = nextDock ? (tapToFlip ? 'both' : 'button_only') : 'tap';
+    updateUserSettings({ show_action_dock: nextDock, card_flip_trigger: nextTrigger });
+    saveGeneralSettings({ card_flip_trigger: nextTrigger, show_action_dock: nextDock });
+    showLocalToast(nextDock ? "Action Buttons: ON" : "Action Buttons: OFF", "info");
+  }, [showActionDock, tapToFlip, updateUserSettings, saveGeneralSettings, showLocalToast]);
 
   const {
     playCardAudio,
@@ -1553,7 +1585,7 @@ export default function FlashcardPlay() {
     }
   }
 
-  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && effectiveCardRatingMode !== 'buttons' && !isFlyingOut;
+  const canDragRate = !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -1568,30 +1600,20 @@ export default function FlashcardPlay() {
     const absY = Math.abs(dy);
     const dist = Math.hypot(dx, dy);
 
-    if (effectiveCardRatingMode === 'swipe_2way') {
-      if (absX < 25) {
-        setActiveDragGrade(null);
-      } else if (dx < 0) {
+    // 4-Way Compass Swipe: Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
+    if (dist < 25) {
+      setActiveDragGrade(null);
+    } else if (absX > absY) {
+      if (dx < 0) {
         setActiveDragGrade({ direction: 'again', grade: 1, label: 'AGAIN', color: 'rose' });
       } else {
         setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
       }
     } else {
-      // 4-Way Compass Swipe
-      if (dist < 25) {
-        setActiveDragGrade(null);
-      } else if (absX > absY) {
-        if (dx < 0) {
-          setActiveDragGrade({ direction: 'again', grade: 1, label: 'AGAIN', color: 'rose' });
-        } else {
-          setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
-        }
+      if (dy > 0) {
+        setActiveDragGrade({ direction: 'hard', grade: 2, label: 'HARD', color: 'amber' });
       } else {
-        if (dy > 0) {
-          setActiveDragGrade({ direction: 'hard', grade: 2, label: 'HARD', color: 'amber' });
-        } else {
-          setActiveDragGrade({ direction: 'easy', grade: 4, label: 'EASY', color: 'emerald' });
-        }
+        setActiveDragGrade({ direction: 'easy', grade: 4, label: 'EASY', color: 'emerald' });
       }
     }
   };
@@ -2426,6 +2448,15 @@ export default function FlashcardPlay() {
         e.preventDefault();
         setIsAutoPlayPaused(prev => !prev);
         return;
+      }
+
+      // Escape or Backspace: Flip back to front face if currently flipped
+      if (e.code === 'Escape' || e.code === 'Backspace') {
+        if (isFlipped && !hasRated && activeMode !== 'practice') {
+          e.preventDefault();
+          setIsFlipped(false);
+          return;
+        }
       }
 
       // Space or Enter:
@@ -3852,6 +3883,7 @@ export default function FlashcardPlay() {
         isFeedbackOpen={isFeedbackOpen}
         showingHint={showingHint}
         setShowingHint={setShowingHint}
+        showActionDock={showActionDock}
         currentQuestion={currentQuestion}
         isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
@@ -4078,6 +4110,10 @@ export default function FlashcardPlay() {
           applyLearningMode(targetMode, randomEnabled ? 'random' : 'sequential')
           showLocalToast(`Switched to ${targetMode.toUpperCase()} mode`, 'info')
         }}
+        tapToFlip={tapToFlip}
+        onToggleTapToFlip={handleToggleTapToFlip}
+        showActionDock={showActionDock}
+        onToggleActionDock={handleToggleActionDock}
       />
     </div>
   )

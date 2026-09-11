@@ -3,7 +3,52 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-11]
-#### Chuẩn Hóa Toàn Diện 4 Chế Độ Flashcard Cốt Lõi, Tách Biệt Popup Riêng Biệt (Flashcard vs Practice) & Thống Nhất Tuyệt Đối Mode Skim
+#### Chuẩn Hóa Cử Chỉ Lật Thẻ & Thanh Nút Đánh Giá (Loại Bỏ Hybrid, Swipe 4 Hướng Luôn Luôn Bật & Cơ Chế Chống Deadlock)
+- **Xóa Bỏ Hoàn Toàn Khái Niệm "Hybrid" Rối Rắm**:
+  - Loại bỏ các lựa chọn phân nhánh nhập nhằng cũ (`card_rating_mode: 'both' | 'swipe_2way' | 'swipe_4way' | 'buttons'`).
+  - Cử chỉ vuốt thẻ (Swipe Rating) trên mặt sau **luôn luôn kích hoạt ở chế độ 4 hướng tương ứng 4 nút FSRS**:
+    - Vuốt Trái $\rightarrow$ `AGAIN` (1)
+    - Vuốt Xuống $\rightarrow$ `HARD` (2)
+    - Vuốt Phải $\rightarrow$ `GOOD` (3)
+    - Vuốt Lên $\rightarrow$ `EASY` (4)
+- **Đơn Giản Hóa Lật Thẻ (Tap to Flip) Thành 2 Trạng Thái Rõ Ràng**:
+  - `Tap to Flip: ON`: Chạm vào vùng thân thẻ để lật qua lại giữa mặt trước và mặt sau.
+  - `Tap to Flip: OFF`: Tắt hoàn toàn việc chạm thẻ để lật (ngăn chặn bấm nhầm khi đọc/chọn chữ).
+- **Thanh Điều Khiển Dưới Đáy (Action Buttons / Dock)**:
+  - `Action Buttons: ON`: Hiển thị thanh nút điều khiển:
+    - Mặt trước: Nút `FLIP CARD` (hoặc `⚡ SKIM / FLIP`).
+    - Mặt sau (FSRS chưa đánh giá): Bổ sung nút `[ ↩ BACK ]` lật về mặt trước bên cạnh 4 nút đánh giá (`Again`, `Hard`, `Good`, `Easy`) trong lưới 5 cột `grid-cols-5` đồng đều, tối ưu thao tác một tay.
+    - Mặt sau (đã đánh giá hoặc Skim): Bổ sung nút `[ ↩ Back ]` cạnh nút Undo và `NEXT CARD`.
+    - Hỗ trợ phím tắt `Escape` / `Backspace` để lật ngược lại mặt trước.
+  - `Action Buttons: OFF`: Ẩn hoàn toàn thanh nút điều khiển bên dưới (`tắt luôn cái thanh dưới đi`), tối ưu hóa tối đa chiều cao màn hình cho thẻ học (đặc biệt hữu ích trên di động và người dùng thích thao tác vuốt).
+- **Cơ Chế Chống Kẹt Thao Tác (Anti-Deadlock Safeguard)**:
+  - Hệ thống tự động kiểm tra logic tương tác: không cho phép người dùng tắt đồng thời cả "Tap to Flip" và "Action Buttons" (vì sẽ khiến không còn cách nào để lật thẻ).
+  - Nếu Action Buttons đang ẩn: Chặn không cho tắt Tap to Flip (kèm toast: *"Cannot disable Tap to Flip while Action Buttons are hidden. At least one flip method must remain active!"*).
+  - Nếu Tap to Flip đang tắt: Chặn không cho ẩn Action Buttons (kèm toast: *"Cannot hide Action Buttons while Tap to Flip is disabled. At least one flip method must remain active!"*).
+- **Tích Hợp Trực Tiếp Vào Quick Controls Sheet**:
+  - Bổ sung 2 ô điều khiển nhanh `[ ✋ Tap Flip: ON/OFF ]` và `[ 🥞 Buttons: ON/OFF ]` ngay trong menu Quick Controls để người dùng chuyển đổi tức thì chỉ với 1 chạm.
+
+#### Bổ Sung Chế Độ 🎧 Auto Play (Tự Động Lật Thẻ Rảnh Tay), Tích Hợp Chống Tắt Màn Hình (Screen Wake Lock API) & Tối Giản HUD
+- **Chế Độ 🎧 Auto Play (Hands-Free Mode)**:
+  - Tự động hóa hoàn toàn chu trình học thẻ: Mặt trước (phát âm từ vựng $\rightarrow$ chờ đọc xong $\rightarrow$ tự động lật mặt sau) $\rightarrow$ Mặt sau (phát âm giải nghĩa $\rightarrow$ chờ đọc xong $\rightarrow$ tự động chuyển tiếp thẻ kế tiếp).
+  - Hoàn toàn rảnh tay: Không cần chạm màn hình, không đánh giá 4 nút, không tính điểm XP hay làm thay đổi đường cong ghi nhớ FSRS.
+  - Hỗ trợ cả 2 thứ tự học: Tuần tự (*Sequential*) và Ngẫu nhiên (*Random/Shuffle*).
+- **Cơ Chế Chống Màn Hình Tự Tắt (Web Screen Wake Lock API)**:
+  - Tích hợp `navigator.wakeLock.request('screen')` chuẩn W3C trên các thiết bị di động (hỗ trợ Safari iOS 16.4+, Chrome Android, Edge).
+  - Tự động duy trì màn hình luôn sáng khi đang ở chế độ Auto Play; tự động giải phóng Wake Lock khi Pause hoặc chuyển tab để tiết kiệm pin.
+  - Tự động re-acquire Wake Lock khi tab quay trở lại hiển thị (`visibilitychange`).
+  - Badge trạng thái `💡 Screen Awake` thời gian thực trên thanh điều khiển.
+- **Thanh Điều Khiển Nổi Rảnh Tay (Action Dock Dedicated for Auto Play)**:
+  - Ẩn hoàn toàn 4 nút FSRS, hiển thị bộ điều khiển ngón tay cái: `[ ⏮ Prev ]`, `[ ⏸ Pause / ▶ Resume ]` (Phím tắt: `Space` hoặc `P`), `[ 🔄 Flip ]`, `[ ⏭ Next ]`.
+- **Hệ Thống 5 Chế Độ Flashcard Chuẩn Hóa**:
+  - `🧠 FSRS`: Ôn tập ngắt quãng thông minh FSRS v6 với 4 nút đánh giá.
+  - `⚡ SKIM`: Lướt nhanh 1 chạm / 1 Space có tính điểm XP.
+  - `🎧 AUTO`: Tự động lật và chuyển thẻ rảnh tay với Screen Wake Lock.
+  - `📚 REV`: Ôn tập các thẻ đến hạn (*Due Cards*).
+  - `✨ NEW`: Chỉ học các thẻ mới chưa từng học.
+- **Thiết Kế Live HUD Nhỏ Gọn & Tinh Tế**:
+  - Tích hợp biểu tượng thứ tự vào chung 1 pill: `[ ⇄ AUTO ]` (Tuần tự) và `[ 🔀 AUTO ]` (Ngẫu nhiên).
+  - Menu Quick Controls (5 cột) cho phép chuyển đổi nhanh tức thì giữa cả 5 mode.
 - **Chuẩn Hóa 4 Chế Độ Flashcard Cốt Lõi Duy Nhất**:
   - **1. 🧠 MODE FSRS** (`fsrs`): Thuật toán lặp lại ngắt quãng thông minh FSRS v6 với 4 nút đánh giá chuẩn (*Again, Hard, Good, Easy*).
   - **2. ⚡ MODE SKIM** (`skim`): Xem và lướt thẻ siêu tốc 1 chạm / 1 phím Space, không đánh giá 4 nút, cộng `+3 XP` mỗi thẻ và đóng góp vào chỉ tiêu ngày.

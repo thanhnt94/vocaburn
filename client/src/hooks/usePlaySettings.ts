@@ -26,6 +26,8 @@ export interface StudySettingsState {
   show_fsrs: boolean
   card_flip_trigger?: CardFlipTrigger
   card_rating_mode?: CardRatingMode
+  tap_to_flip?: boolean
+  show_action_dock?: boolean
 }
 
 export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
@@ -43,7 +45,9 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   quick_learn_enabled: false,
   show_fsrs: true,
   card_flip_trigger: 'both',
-  card_rating_mode: 'both'
+  card_rating_mode: 'both',
+  tap_to_flip: true,
+  show_action_dock: true
 }
 
 export function usePlaySettings(
@@ -67,6 +71,8 @@ export function usePlaySettings(
   const [backHalign, setBackHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.back_halign)
   const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
   const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode | undefined>(undefined)
+  const [tapToFlip, setTapToFlipState] = useState<boolean | undefined>(undefined)
+  const [showActionDock, setShowActionDockState] = useState<boolean | undefined>(undefined)
 
   // Creator baseline & user customization status & 3-tier origin & profiles
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
@@ -179,6 +185,18 @@ export function usePlaySettings(
         setCardFlipTriggerState(undefined)
       }
 
+      if (effectiveSettings.tap_to_flip !== undefined) {
+        setTapToFlipState(effectiveSettings.tap_to_flip)
+      } else if (effectiveSettings.card_flip_trigger !== undefined) {
+        setTapToFlipState(effectiveSettings.card_flip_trigger !== 'button_only')
+      }
+
+      if (effectiveSettings.show_action_dock !== undefined) {
+        setShowActionDockState(effectiveSettings.show_action_dock)
+      } else if (effectiveSettings.card_flip_trigger !== undefined) {
+        setShowActionDockState(effectiveSettings.card_flip_trigger !== 'tap')
+      }
+
       if (effectiveSettings.card_rating_mode !== undefined) {
         setCardRatingModeState(effectiveSettings.card_rating_mode)
       } else if (userStudySettings && userStudySettings.card_rating_mode !== undefined) {
@@ -206,9 +224,10 @@ export function usePlaySettings(
     if (updates.front_halign !== undefined) setFrontHalignState(updates.front_halign)
     if (updates.front_font_size !== undefined) setFrontFontSizeState(updates.front_font_size)
     if (updates.back_valign !== undefined) setBackValignState(updates.back_valign)
-    if (updates.back_halign !== undefined) setBackHalignState(updates.back_halign)
     if (updates.card_flip_trigger !== undefined) setCardFlipTriggerState(updates.card_flip_trigger)
     if (updates.card_rating_mode !== undefined) setCardRatingModeState(updates.card_rating_mode)
+    if (updates.tap_to_flip !== undefined) setTapToFlipState(updates.tap_to_flip)
+    if (updates.show_action_dock !== undefined) setShowActionDockState(updates.show_action_dock)
 
     setIsCustomized(true)
     setSettingOrigin('deck_override')
@@ -575,6 +594,10 @@ export function usePlaySettings(
     setCardFlipTrigger: setCardFlipTriggerState,
     cardRatingMode,
     setCardRatingMode: setCardRatingModeState,
+    tapToFlip,
+    setTapToFlip: setTapToFlipState,
+    showActionDock,
+    setShowActionDock: setShowActionDockState,
     creatorDefaults,
     userGlobalSettings,
     studyProfiles,
