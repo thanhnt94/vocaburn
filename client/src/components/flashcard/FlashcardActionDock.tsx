@@ -74,7 +74,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
       mainTab === 'practice' ||
       activeMode === 'autoplay' ||
       activeMode === 'flip' ||
-      ((activeMode === 'speed_skim' || activeMode === 'skim') && !isFlipped) ||
+      !isFlipped ||
       (isFlipped && !hasRated && activeMode !== 'autoplay') ||
       (isFlipped && hasRated && activeMode !== 'autoplay')
     )
@@ -239,37 +239,26 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   </div>
                 </div>
               ) : !isFlipped ? (
-                /* ── FRONT FACE: ONLY SKIM MODE HAS FLIP BUTTON ── */
-                (activeMode === 'speed_skim' || activeMode === 'skim') ? (
-                  <button 
-                    onClick={() => {
-                      setIsFlipped(true);
-                      setJustAnswered(true);
-                    }}
-                    className="w-full h-12 sm:h-13 font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
-                  >
-                    <span>⚡ SKIM / FLIP</span>
-                    <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                    <ChevronRight className="w-4 h-4 rotate-90" />
-                  </button>
-                ) : null
+                /* ── FRONT FACE: FLIP CARD CTA BUTTON ── */
+                <button 
+                  onClick={() => {
+                    setIsFlipped(true);
+                    setJustAnswered(true);
+                  }}
+                  className={cn(
+                    "w-full h-12 sm:h-13 font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white",
+                    activeMode === 'speed_skim' || activeMode === 'skim'
+                      ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
+                      : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-300/50 hover:shadow-indigo-400/60"
+                  )}
+                >
+                  <span>{activeMode === 'speed_skim' || activeMode === 'skim' ? '⚡ SKIM / FLIP' : 'FLIP CARD'}</span>
+                  <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </button>
               ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' && activeMode !== 'skim' && activeMode !== 'autoplay' ? (
-                /* ── BACK FACE: UNRATED (FLIP BACK BUTTON + 4 FSRS BUTTONS) ── */
-                <div className="grid grid-cols-5 gap-1 sm:gap-2 w-full">
-                  {/* FLIP BACK BUTTON */}
-                  <button
-                    onClick={() => setIsFlipped(false)}
-                    className="flex flex-col items-center justify-center py-2 sm:py-2.5 px-1 rounded-2xl border border-slate-200 bg-slate-100/90 hover:bg-slate-200/90 text-slate-700 shadow-xs active:scale-95 transition-all cursor-pointer group"
-                    title="Flip Back to Question (Esc)"
-                  >
-                    <div className="flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3 text-slate-500 group-hover:rotate-[-45deg] transition-transform" />
-                      <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-slate-600">BACK</span>
-                    </div>
-                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 mt-0.5">
-                      Front
-                    </span>
-                  </button>
+                /* ── BACK FACE: UNRATED (4 FSRS BUTTONS) ── */
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full">
 
                   {/* AGAIN (1) */}
                   <button

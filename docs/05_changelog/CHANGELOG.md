@@ -4,11 +4,12 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 
 ### [2026-09-12]
 #### Đơn Giản Hóa Tương Tác Thẻ: Tap Lật Mặc Định Vĩnh Viễn, 2 Toggle Đánh Giá (Buttons & Swipe) & Nút Nổi Thoát Chế Độ Chọn Chữ
-- **Chạm Thân Thẻ (Tap to Flip) Là Cử Chỉ Mặc Định Vĩnh Viễn**:
-  - Chạm vào thân thẻ luôn luôn lật giữa mặt trước và mặt sau, không cần toggle bật/tắt (ngăn chặn hoàn toàn tình trạng mất logic không lật được thẻ).
-  - **Loại bỏ nút FLIP CARD to ở mặt trước**: Mặt trước của thẻ ở các chế độ học thông thường giải phóng 100% không gian, giao diện tinh giản, không còn nút bấm thừa thãi chiếm diện tích.
+- **Đồng Bộ Hoàn Hảo Thanh Điều Khiển (Action Dock) Giữa 2 Mặt Thẻ**:
+  - **Mặt trước**: Luôn duy trì nút `FLIP CARD` nằm trên thanh dock ngay trên thanh điều hướng để đồng bộ vị trí cố định.
+  - **Mặt sau**: Khi lật thẻ, thanh dock chuyển đổi nhịp nhàng sang đúng **4 nút đánh giá FSRS (`AGAIN`, `HARD`, `GOOD`, `EASY`)** chia đều 4 cột (`grid-cols-4`).
+  - **Loại bỏ hoàn toàn nút Back** trên thanh đánh giá để không làm chật chội 4 nút FSRS. Khi muốn lật lại câu hỏi từ mặt sau mà không đánh giá, người dùng chỉ cần chạm nhẹ vào thân thẻ (Tap to Flip) hoặc bấm phím `Esc`.
 - **2 Tùy Chọn Đánh Giá Rõ Ràng & Độc Lập**:
-  - `Rating Buttons (Nút Đánh Giá)`: Bật/Tắt thanh dock dưới đáy (4 nút FSRS: Again, Hard, Good, Easy + nút Back lật ngược). Khi tắt, ẩn sạch thanh dưới đáy.
+  - `Rating Buttons (Nút Đánh Giá)`: Bật/Tắt thanh dock dưới đáy (Mặt trước: FLIP CARD; Mặt sau: 4 nút FSRS). Khi tắt, ẩn sạch thanh dock dưới đáy.
   - `Swipe to Rate (Đánh Giá Bằng Vuốt)`: Bật/Tắt cử chỉ vuốt 4 hướng trên mặt sau của thẻ (Trái = Again, Dưới = Hard, Phải = Good, Trên = Easy).
   - **Cơ Chế Chống Deadlock**: Không cho phép tắt đồng thời cả Rating Buttons và Swipe to Rate. Nếu người dùng cố tắt tùy chọn đánh giá cuối cùng đang bật, hệ thống hiển thị toast cảnh báo: *"Cannot hide Rating Buttons while Swipe to Rate is disabled. At least one rating method must remain active!"* hoặc ngược lại.
 - **Nút Nổi (Floating FAB) Thoát Chế Độ Chọn Chữ (Select Text Mode)**:
