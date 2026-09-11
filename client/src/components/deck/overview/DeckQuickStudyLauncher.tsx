@@ -30,23 +30,23 @@ export function DeckQuickStudyLauncher({
         </div>
       </div>
 
-      {/* 3 Core Flashcard Modes */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      {/* 4 Core Flashcard Modes */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-3">
         {/* 1. FSRS Spaced Repetition */}
         <Link
           to={`/flashcard/${deckId}/play?mode=fsrs`}
-          className="group relative p-4 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md shadow-indigo-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
+          className="group relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md shadow-indigo-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-lg shrink-0 group-hover:scale-110 transition-transform">
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-base sm:text-lg shrink-0 group-hover:scale-110 transition-transform">
               🧠
             </div>
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           </div>
           <div>
-            <span className="text-sm font-black tracking-tight block">FSRS Learning</span>
-            <p className="text-[11px] text-indigo-100 font-medium mt-0.5 line-clamp-1">
-              {dueCount > 0 ? `${dueCount} cards due for review` : 'Intelligent spaced repetition'}
+            <span className="text-xs sm:text-sm font-black tracking-tight block">FSRS Mode</span>
+            <p className="text-[10px] sm:text-[11px] text-indigo-100 font-medium mt-0.5 line-clamp-1">
+              {dueCount > 0 ? `${dueCount} cards due` : 'Spaced repetition'}
             </p>
           </div>
         </Link>
@@ -54,20 +54,20 @@ export function DeckQuickStudyLauncher({
         {/* 2. Speed Skim */}
         <Link
           to={`/flashcard/${deckId}/play?mode=skim`}
-          className="group relative p-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md shadow-amber-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
+          className="group relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md shadow-amber-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-lg shrink-0 group-hover:scale-110 transition-transform">
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-base sm:text-lg shrink-0 group-hover:scale-110 transition-transform">
               ⚡
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-white/20 text-white">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-white/20 text-white">
               +3 XP
             </span>
           </div>
           <div>
-            <span className="text-sm font-black tracking-tight block">Speed Skim</span>
-            <p className="text-[11px] text-amber-100 font-medium mt-0.5 line-clamp-1">
-              Rapid 1-tap card preview
+            <span className="text-xs sm:text-sm font-black tracking-tight block">Speed Skim</span>
+            <p className="text-[10px] sm:text-[11px] text-amber-100 font-medium mt-0.5 line-clamp-1">
+              Rapid 1-tap preview
             </p>
           </div>
         </Link>
@@ -75,18 +75,39 @@ export function DeckQuickStudyLauncher({
         {/* 3. Review Mode */}
         <Link
           to={`/flashcard/${deckId}/play?mode=review`}
-          className="group relative p-4 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
+          className="group relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-lg shrink-0 group-hover:scale-110 transition-transform">
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-base sm:text-lg shrink-0 group-hover:scale-110 transition-transform">
               📚
             </div>
-            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
           </div>
           <div>
-            <span className="text-sm font-black tracking-tight block">Review Mode</span>
-            <p className="text-[11px] text-emerald-100 font-medium mt-0.5 line-clamp-1">
-              Due & learned cards only
+            <span className="text-xs sm:text-sm font-black tracking-tight block">Review Mode</span>
+            <p className="text-[10px] sm:text-[11px] text-emerald-100 font-medium mt-0.5 line-clamp-1">
+              Due & learned only
+            </p>
+          </div>
+        </Link>
+
+        {/* 4. Learn New Cards */}
+        <Link
+          to={`/flashcard/${deckId}/play?mode=new`}
+          className="group relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md shadow-purple-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
+        >
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-base sm:text-lg shrink-0 group-hover:scale-110 transition-transform">
+              ✨
+            </div>
+            <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-white/20 text-white">
+              New
+            </span>
+          </div>
+          <div>
+            <span className="text-xs sm:text-sm font-black tracking-tight block">New Cards</span>
+            <p className="text-[10px] sm:text-[11px] text-purple-100 font-medium mt-0.5 line-clamp-1">
+              Unlearned cards only
             </p>
           </div>
         </Link>

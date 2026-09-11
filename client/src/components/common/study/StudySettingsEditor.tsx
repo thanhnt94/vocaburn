@@ -296,6 +296,7 @@ export function StudySettingsEditor({
                 { id: 'fsrs', label: '🧠 FSRS' },
                 { id: 'skim', label: '⚡ Skim' },
                 { id: 'review', label: '📚 Review' },
+                { id: 'new', label: '✨ New' },
               ]}
               compact={compact}
             />

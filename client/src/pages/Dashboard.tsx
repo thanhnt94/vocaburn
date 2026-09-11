@@ -1571,14 +1571,19 @@ export default function Dashboard() {
   const handleOpenStudyModal = (deck: any, tab: 'flashcard' | 'practice') => {
     const id = deck.deck_id || deck.id
     const status = deck.status || {}
-    setSelectedStudyQuiz({
+    const quizData = {
       id: id,
       title: deck.title,
       questions_count: status.total_cards || deck.total_cards || deck.questions_count || 0,
       practice_settings: deck.practice_settings
-    })
-    setStudyModalTab(tab)
-    setIsStudyModalOpen(true)
+    }
+    if (tab === 'practice') {
+      setSelectedPracticeQuiz(quizData)
+      setIsPracticeModalOpen(true)
+    } else {
+      setSelectedStudyQuiz(quizData)
+      setIsStudyModalOpen(true)
+    }
   }
 
   const renderTodayReviewWidget = () => {
@@ -2020,18 +2025,7 @@ export default function Dashboard() {
         <StudyModeModal
           isOpen={isStudyModalOpen}
           onClose={() => setIsStudyModalOpen(false)}
-          selectedStudyQuiz={selectedStudyQuiz}
-          studyModalTab={studyModalTab}
-          onSelectFlashcardMode={(mode) => {
-            setIsStudyModalOpen(false)
-            updateUserSettings({ quiz_learning_mode: mode as any })
-            navigate(`/flashcard/${selectedStudyQuiz.id}/play?mode=${mode}`)
-          }}
-          onSelectPracticeMode={(mode) => {
-            setIsStudyModalOpen(false)
-            updateUserSettings({ practice_submode: mode as any })
-            navigate(`/practice/${selectedStudyQuiz.id}/${mode}`)
-          }}
+          deck={selectedStudyQuiz}
         />
 
         <HomeCustomizeModal

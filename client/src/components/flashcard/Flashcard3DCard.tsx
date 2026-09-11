@@ -251,7 +251,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 return;
               }
               if (effectiveCardFlipTrigger !== 'button_only') {
-                if (activeMode === 'speed_skim') {
+                if (activeMode === 'speed_skim' || activeMode === 'skim') {
                   handleNext?.();
                 } else {
                   setIsFlipped(false);

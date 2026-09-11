@@ -3,21 +3,26 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-11]
-#### Tinh Gọn Hệ Thống Chế Độ Flashcard: Chuẩn Hóa 3 Chế Độ Cốt Lõi (FSRS, Speed Skim, Review) & Tuỳ Chọn Thứ Tự Thẻ Nhanh (Sequential / Random)
-- **Chuẩn Hóa 3 Chế Độ Cốt Lõi Duy Nhất Cho Flashcard**:
-  - **1. MODE FSRS** (`fsrs`): Thuật toán lặp lại ngắt quãng thông minh với 4 nút đánh giá chuẩn (Again / Hard / Good / Easy).
-  - **2. MODE SKIM** (`skim` / `speed_skim`): Xem và lướt thẻ siêu tốc 1 chạm / 1 phím Space, không đánh giá 4 nút, cộng +3 XP mỗi thẻ và đóng góp vào chỉ tiêu ngày.
-  - **3. MODE REVIEW (Ôn tập)** (`review`): Chỉ tập trung ôn các thẻ đến hạn (due) và các thẻ đã học trong quá khứ, không nạp thêm từ mới.
-  - Loại bỏ hoàn toàn sự rối rắm và phân mảnh từ các mode phụ (`flip`, `new`, `roadmap` biến thể) trong menu chọn flashcard.
-- **Tuỳ Chọn Thứ Tự Thẻ Nhanh (Card Order Quick Option)**:
-  - Tích hợp segmented control ngay tại các modal kích hoạt học tập (`DeckStudyModal`, `StudyConsoleModal`):
-    - `📋 Sequential`: Tải thẻ theo thứ tự tuần tự trong bộ thẻ.
-    - `🔀 Random`: Xáo trộn ngẫu nhiên thứ tự các thẻ trong hàng đợi ôn tập.
-  - Đồng bộ tức thì qua query param URL (`&order=sequential` / `&order=random`), Zustand store (`random_enabled`), và backend payload `next-card`.
-- **Nâng Cấp Tương Tác HUD & Header**:
-  - Huy hiệu chế độ trên thanh Live HUD (`StudyHeaderTracker.tsx`) được chuyển thành nút tương tác mở trực tiếp `StudyConsoleModal`, cho phép người học đổi chế độ học và thứ tự nạp thẻ ngay lập tức khi đang học mà không cần thoát ra ngoài.
-- **Tiêu Chuẩn Hóa Giao Diện Tiếng Anh (English-Only UI)**:
-  - Toàn bộ nhãn, phụ đề, và thẻ điều khiển trong `DeckQuickStudyLauncher.tsx`, `StudyConsoleModal.tsx`, `DeckStudyModal.tsx`, và `StudySettingsEditor.tsx` tuân thủ nghiêm ngặt quy tắc giao diện tiếng Anh.
+#### Chuẩn Hóa Toàn Diện 4 Chế Độ Flashcard Cốt Lõi, Tách Biệt Popup Riêng Biệt (Flashcard vs Practice) & Thống Nhất Tuyệt Đối Mode Skim
+- **Chuẩn Hóa 4 Chế Độ Flashcard Cốt Lõi Duy Nhất**:
+  - **1. 🧠 MODE FSRS** (`fsrs`): Thuật toán lặp lại ngắt quãng thông minh FSRS v6 với 4 nút đánh giá chuẩn (*Again, Hard, Good, Easy*).
+  - **2. ⚡ MODE SKIM** (`skim`): Xem và lướt thẻ siêu tốc 1 chạm / 1 phím Space, không đánh giá 4 nút, cộng `+3 XP` mỗi thẻ và đóng góp vào chỉ tiêu ngày.
+  - **3. 📚 MODE REVIEW (Ôn tập)** (`review`): Chỉ tập trung ôn các thẻ đến hạn (*due*) và các thẻ đã học trong quá khứ, không nạp thêm thẻ mới.
+  - **4. ✨ MODE NEW (Chỉ học mới)** (`new`): Chỉ tập trung nạp và làm quen các thẻ mới chưa từng học trong bộ thẻ.
+  - **Quy Hoạch Lại Tính Năng**: Roadmap là chức năng hệ thống (lộ trình hàng ngày), hoàn toàn không phải là một mode học đơn lẻ, đã được đưa ra khỏi danh sách mode flashcard. Loại bỏ triệt để các mode rườm rà (`flip`, `roadmap` biến thể).
+- **Thống Nhất Tuyệt Đối Đường Dẫn Mode Skim (Single Canonical Route `mode=skim`)**:
+  - Loại bỏ hoàn toàn sự phân mảnh hai đường dẫn (`speed_skim` và `skim`), chuẩn hóa query URL duy nhất: `?mode=skim`.
+  - Cập nhật toàn diện `isSpeedSkimMode`, `FlashcardActionDock`, `Flashcard3DCard`, `FlashcardPlay` nhận diện đồng nhất, loại bỏ lỗi không nhận diện mode lướt nhanh khi dùng query `skim`.
+- **Loại Bỏ Template Dư Thừa Chia Tab – Thiết Kế 2 Popup Riêng Biệt, Độc Lập & Sang Trọng**:
+  - **`FlashcardModeModal` (Popup Flashcard Riêng Biệt)**:
+    - Giao diện kính mờ cao cấp, bo góc tròn, tiêu đề chuẩn tiếng Anh *Flashcard Study Console*.
+    - Bổ sung thanh điều khiển nhanh **Card Order Quick Option** (`[ 📋 Sequential | 🔀 Random ]`) cho phép cả 4 mode tự do chọn thứ tự nạp thẻ.
+    - Danh sách 4 mode thẻ hiển thị gọn gàng, trực quan với badge phân loại (*Recommended, 1-Tap Fast, Due Only, Unseen*).
+  - **`PracticeModeModal` (Popup Practice Riêng Biệt)**:
+    - Thiết kế chuyên biệt cho luyện tập bài tập với 3 dạng bài: *MCQ Quiz*, *Vocabulary Typing*, *Listening Test*.
+    - Loại bỏ hoàn toàn thanh tab chia đôi Flashcard/Practice gây rối mắt.
+- **Đồng Bộ Tất Cả Các Màn Hình**:
+  - Dashboard (`Dashboard.tsx`), Quản lý bộ thẻ (`DecksPage.tsx`), Launcher tổng quan (`DeckQuickStudyLauncher.tsx`), Cài đặt học tập (`StudySettingsEditor.tsx`), và Modal trong khi học (`StudyConsoleModal.tsx`) đều được đồng bộ 100% theo đúng quy chuẩn 4 mode và 2 popup độc lập.
 
 #### Tính Năng Thẻ Flashcard Lướt Nhanh (⚡ Speed Skim Mode) & Tích Hợp Lộ Trình Học Roadmap
 - **Mục Tiêu**: Loại bỏ hoàn toàn sự ức chế và độ trễ khi học thẻ mới hoặc ôn lướt nhanh, thay thế 4 nút đánh giá FSRS (Again/Hard/Good/Easy) bằng cơ chế lướt 1 chạm / 1 phím Space siêu tốc.

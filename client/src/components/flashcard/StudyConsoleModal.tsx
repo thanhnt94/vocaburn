@@ -48,6 +48,12 @@ export const StudyConsoleModal: React.FC<StudyConsoleModalProps> = ({
       title: 'Review Mode', 
       desc: 'Focused review of due & previously learned cards only' 
     },
+    { 
+      mode: 'new', 
+      icon: '✨', 
+      title: 'Learn New Cards', 
+      desc: 'Study brand-new unlearned cards only' 
+    },
   ]
 
   return (

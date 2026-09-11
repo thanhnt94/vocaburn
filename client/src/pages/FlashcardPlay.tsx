@@ -628,12 +628,12 @@ export default function FlashcardPlay() {
   }, [session, activeMode, currentTime, sessionAnswers, roadmapStatus]);
 
   const isSpeedSkimMode = useMemo(() => {
-    if (activeMode === 'speed_skim') return true;
+    if (activeMode === 'speed_skim' || activeMode === 'skim') return true;
     if (activeMode === 'roadmap') {
       const searchParams = new URLSearchParams(window.location.search);
       const urlStep = searchParams.get('step');
       const curStep = roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0];
-      if (urlStep === 'speed_skim' || curStep?.type === 'speed_skim') return true;
+      if (urlStep === 'speed_skim' || urlStep === 'skim' || curStep?.type === 'speed_skim') return true;
     }
     return false;
   }, [activeMode, roadmapStatus]);

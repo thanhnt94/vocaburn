@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { 
   DeckStudyModal, 
+  PracticeModeModal,
   DeckJoinRoomModal, 
   DeckCreateModal,
   FolderModal,
@@ -115,6 +116,7 @@ export default function DecksPage() {
   // Modals State
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<Quiz | null>(null)
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
+  const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
   const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
 
   // Filter tag row & in-app confirmation modals
@@ -289,8 +291,11 @@ export default function DecksPage() {
 
   const handleStudyTrigger = (quiz: Quiz, tab: 'flashcard' | 'practice') => {
     setSelectedStudyQuiz(quiz)
-    setStudyModalTab(tab)
-    setIsStudyModalOpen(true)
+    if (tab === 'practice') {
+      setIsPracticeModalOpen(true)
+    } else {
+      setIsStudyModalOpen(true)
+    }
   }
 
   const handleLaunchDefaultStudy = (quiz: Quiz) => {
@@ -298,8 +303,9 @@ export default function DecksPage() {
     if (defMode === 'mcq') navigate(`/practice/${quiz.id}/mcq`)
     else if (defMode === 'typing') navigate(`/practice/${quiz.id}/typing`)
     else if (defMode === 'listening') navigate(`/practice/${quiz.id}/listening`)
-    else if (defMode === 'roadmap') navigate(`/flashcard/${quiz.id}/play?mode=roadmap`)
-    else if (defMode === 'flip') navigate(`/flashcard/${quiz.id}/play?mode=flip`)
+    else if (defMode === 'skim' || defMode === 'speed_skim') navigate(`/flashcard/${quiz.id}/play?mode=skim`)
+    else if (defMode === 'review') navigate(`/flashcard/${quiz.id}/play?mode=review`)
+    else if (defMode === 'new') navigate(`/flashcard/${quiz.id}/play?mode=new`)
     else navigate(`/flashcard/${quiz.id}/play?mode=fsrs`)
   }
 
@@ -1390,7 +1396,12 @@ export default function DecksPage() {
         isOpen={isStudyModalOpen}
         onClose={() => setIsStudyModalOpen(false)}
         deck={selectedStudyQuiz}
-        initialTab={studyModalTab}
+      />
+
+      <PracticeModeModal
+        isOpen={isPracticeModalOpen}
+        onClose={() => setIsPracticeModalOpen(false)}
+        deck={selectedStudyQuiz}
       />
 
       <FolderModal

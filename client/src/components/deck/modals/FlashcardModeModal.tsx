@@ -1,0 +1,209 @@
+import React from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { Brain, BrainCircuit, ChevronRight, X, Shuffle, ArrowUpDown } from 'lucide-react'
+import { useAppStore } from '@/store/useAppStore'
+import { cn } from '@/lib/utils'
+
+export interface FlashcardModeModalProps {
+  isOpen: boolean
+  onClose: () => void
+  deck: {
+    id: number | string
+    title: string
+    questions_count?: number
+    practice_settings?: any
+  } | null
+}
+
+export function FlashcardModeModal({
+  isOpen,
+  onClose,
+  deck
+}: FlashcardModeModalProps) {
+  const navigate = useNavigate()
+  const { userSettings, updateUserSettings } = useAppStore()
+  const [cardOrder, setCardOrder] = React.useState<'sequential' | 'random'>(
+    userSettings.random_enabled ? 'random' : 'sequential'
+  )
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setCardOrder(userSettings.random_enabled ? 'random' : 'sequential')
+    }
+  }, [userSettings.random_enabled, isOpen])
+
+  if (!isOpen || !deck) return null
+
+  const disabledModes = deck.practice_settings?.disabled_modes || []
+
+  const flashcardModes = [
+    { 
+      mode: 'fsrs', 
+      icon: '🧠', 
+      title: 'FSRS Spaced Repetition', 
+      desc: 'Intelligent spaced repetition with 4 rating buttons (Again, Hard, Good, Easy)',
+      badge: 'Recommended',
+      color: 'hover:border-indigo-500/40 hover:bg-indigo-50/15'
+    },
+    { 
+      mode: 'skim', 
+      icon: '⚡', 
+      title: 'Speed Skim', 
+      desc: 'Rapid 1-tap/Space card scanning without rating buttons (+3 XP)',
+      badge: '1-Tap Fast',
+      color: 'hover:border-amber-500/40 hover:bg-amber-50/15'
+    },
+    { 
+      mode: 'review', 
+      icon: '📚', 
+      title: 'Review Mode', 
+      desc: 'Focused review of due & previously learned cards only',
+      badge: 'Due Only',
+      color: 'hover:border-teal-500/40 hover:bg-teal-50/15'
+    },
+    { 
+      mode: 'new', 
+      icon: '✨', 
+      title: 'Learn New Cards', 
+      desc: 'Study brand-new unlearned cards only',
+      badge: 'Unseen',
+      color: 'hover:border-purple-500/40 hover:bg-purple-50/15'
+    },
+  ].filter(item => !disabledModes.includes(item.mode))
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="w-full max-w-lg bg-white rounded-3xl shadow-2xl relative z-10 p-5 sm:p-6 border border-slate-100 text-left overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3 relative z-10 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+                <Brain className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-tight leading-tight">
+                  Flashcard Study Console
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                  Select flashcard study mode
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Deck Info Banner */}
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-3 shrink-0 text-left">
+            <h4 className="text-xs sm:text-sm font-black text-indigo-700 tracking-wide line-clamp-1">
+              {deck.title}
+            </h4>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
+              <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
+              {deck.questions_count ?? '--'} cards in deck
+            </p>
+          </div>
+
+          {/* Quick Option: Card Order (Sequential vs Random) */}
+          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 mb-3 shrink-0">
+            <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider pl-1.5 flex items-center gap-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500" />
+              Card Order
+            </span>
+            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-xl gap-1">
+              <button
+                type="button"
+                onClick={() => setCardOrder('sequential')}
+                className={cn(
+                  "px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer",
+                  cardOrder === 'sequential'
+                    ? "bg-white text-indigo-600 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                📋 Sequential
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardOrder('random')}
+                className={cn(
+                  "px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1",
+                  cardOrder === 'random'
+                    ? "bg-white text-indigo-600 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <Shuffle className="w-3 h-3" />
+                Random
+              </button>
+            </div>
+          </div>
+
+          {/* Mode Options List */}
+          <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar min-h-0">
+            <div className="space-y-2">
+              {flashcardModes.map(item => (
+                <button
+                  key={item.mode}
+                  onClick={() => {
+                    onClose()
+                    const isRandom = cardOrder === 'random'
+                    updateUserSettings({ 
+                      quiz_learning_mode: item.mode as any,
+                      random_enabled: isRandom
+                    })
+                    navigate(`/flashcard/${deck.id}/play?mode=${item.mode}&order=${cardOrder}`)
+                  }}
+                  className={cn(
+                    "group w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-100 bg-white hover:shadow-xs active:scale-[0.99] transition-all text-left shadow-2xs cursor-pointer",
+                    item.color
+                  )}
+                >
+                  <span className="text-xl w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all shrink-0">
+                    {item.icon}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-800 block group-hover:text-indigo-600 transition-colors truncate">
+                        {item.title}
+                      </span>
+                      {item.badge && (
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 group-hover:bg-indigo-100 group-hover:text-indigo-700 transition-colors">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-400 block mt-0.5 leading-relaxed">
+                      {item.desc}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  )
+}
+
+export default FlashcardModeModal

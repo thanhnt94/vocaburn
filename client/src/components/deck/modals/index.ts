@@ -1,4 +1,6 @@
 export * from './DeckStudyModal'
+export * from './FlashcardModeModal'
+export * from './PracticeModeModal'
 export * from './DeckCreateModal'
 export * from './DeckJoinRoomModal'
 export * from './DeckActionSheet'
