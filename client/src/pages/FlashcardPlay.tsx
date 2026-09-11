@@ -410,9 +410,10 @@ export default function FlashcardPlay() {
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const [activeMode, setActiveMode] = useState<string>(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const urlMode = searchParams.get('mode');
-    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'speed_skim' || urlMode === 'skim' || urlMode === 'flip') {
-      return urlMode === 'speed_skim' ? 'skim' : urlMode;
+    const rawUrlMode = searchParams.get('mode');
+    const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
+    if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'skim') {
+      return urlMode;
     }
     return userSettings.quiz_learning_mode || 'fsrs';
   })
@@ -423,8 +424,8 @@ export default function FlashcardPlay() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const rawUrlMode = searchParams.get('mode');
-    const urlMode = rawUrlMode === 'speed_skim' ? 'skim' : rawUrlMode;
-    if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'flip'].includes(urlMode)) {
+    const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
+    if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim'].includes(urlMode)) {
       setActiveMode(urlMode);
       updateUserSettings({ quiz_learning_mode: urlMode as any });
     }
@@ -748,12 +749,13 @@ export default function FlashcardPlay() {
 
       const searchParams = new URLSearchParams(window.location.search);
       const rawUrlMode = searchParams.get('mode');
-      const urlMode = rawUrlMode === 'speed_skim' ? 'skim' : rawUrlMode;
-      if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'flip'].includes(urlMode)) {
+      const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
+      if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim'].includes(urlMode)) {
         setActiveMode(urlMode);
         updateUserSettings({ quiz_learning_mode: urlMode as any });
       } else if (effectiveStudy.learning_mode) {
-        const eff = effectiveStudy.learning_mode === 'speed_skim' ? 'skim' : effectiveStudy.learning_mode;
+        const rawEff = effectiveStudy.learning_mode;
+        const eff = (rawEff === 'speed_skim' || rawEff === 'flip') ? 'skim' : rawEff;
         setActiveMode(eff);
       }
 
@@ -3172,7 +3174,7 @@ export default function FlashcardPlay() {
         deckId={id}
         onFreeReview={() => {
           setFsrsCompletionData(null)
-          applyLearningMode('flip')
+          applyLearningMode('skim')
         }}
         onViewDeckDetail={() => navigate(`/decks/${id}`)}
         onBackToLibrary={() => navigate('/decks?tab=library')}
@@ -3369,16 +3371,7 @@ export default function FlashcardPlay() {
             }).length : Object.keys(sessionAnswers).length;
 
             subCurr = initialLearnedCount + newlyAnsweredCount;
-          } else if (activeMode === 'flip') {
-            modeBadge = {
-              emoji: '🔄',
-              label: 'Free Flip Mode',
-              short: 'FLIP',
-              style: 'bg-slate-100 text-slate-900 border border-slate-300/80 shadow-2xs hover:bg-slate-200/90'
-            };
-            subTotal = session?.questions?.length || 1;
-            subCurr = currentIndex + 1;
-          } else if (activeMode === 'speed_skim' || activeMode === 'skim') {
+          } else if (activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip') {
             modeBadge = {
               emoji: '⚡',
               label: 'Speed Skim',

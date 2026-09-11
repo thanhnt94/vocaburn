@@ -121,10 +121,10 @@ const MODE_META_DICT: Record<string, { emoji: string; label: string; short: stri
     style: 'bg-sky-50 text-sky-950 border border-sky-300/80 shadow-2xs hover:bg-sky-100/90'
   },
   flip: { 
-    emoji: '🔄', 
-    label: 'Free Flip Mode', 
-    short: 'FLIP',
-    style: 'bg-slate-100 text-slate-900 border border-slate-300/80 shadow-2xs hover:bg-slate-200/90'
+    emoji: '⚡', 
+    label: 'Speed Skim', 
+    short: 'SKIM',
+    style: 'bg-amber-50 text-amber-950 border border-amber-300/80 shadow-2xs hover:bg-amber-100/90'
   },
   mcq: { 
     emoji: '🎯', 
