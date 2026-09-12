@@ -5,22 +5,45 @@ export interface FsrsCompleteScreenProps {
   fsrsCompletionData: any
   session: any
   deckId: string | undefined
+  activeMode?: string
   onFreeReview: () => void
   onViewDeckDetail: () => void
   onBackToLibrary: () => void
+  onSwitchMode?: (mode: string) => void
 }
 
 export const FsrsCompleteScreen: React.FC<FsrsCompleteScreenProps> = ({
   fsrsCompletionData,
   session,
+  activeMode,
   onFreeReview,
   onViewDeckDetail,
-  onBackToLibrary
+  onBackToLibrary,
+  onSwitchMode
 }) => {
   const nextDueText = fsrsCompletionData?.next_due_text || 'In a few hours'
   const totalCards = fsrsCompletionData?.total_cards || session?.questions?.length || 0
-  const learnedCards = fsrsCompletionData?.learned_cards || totalCards
+  const learnedCards = fsrsCompletionData?.learned_cards ?? totalCards
   const customMessage = fsrsCompletionData?.message
+
+  const isNoLearned = fsrsCompletionData?.learned_cards === 0;
+  const isNewCardsCompleted = (activeMode === 'new') || (fsrsCompletionData?.unlearned_count === 0 && fsrsCompletionData?.phase === 'completed');
+
+  const screenTitle = isNoLearned
+    ? "📚 NO LEARNED CARDS YET"
+    : isNewCardsCompleted
+    ? "🎉 ALL NEW CARDS LEARNED!"
+    : "🎉 ALL DUE CARDS COMPLETED!";
+
+  const screenSubtitle = customMessage || (
+    isNoLearned
+      ? "You haven't learned any cards in this deck yet. Start by learning new cards first!"
+      : isNewCardsCompleted
+      ? "Congratulations! You have studied all brand-new cards in this deck."
+      : "You have completed all scheduled cards for review in this deck today."
+  );
+
+  const showCountdown = !isNoLearned && !isNewCardsCompleted && Boolean(fsrsCompletionData?.next_due_text);
 
   return (
     <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 p-6 md:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl shadow-indigo-100/40 min-h-[480px] w-full max-w-xl mx-auto my-auto animate-in zoom-in-95 duration-300">
@@ -32,26 +55,28 @@ export const FsrsCompleteScreen: React.FC<FsrsCompleteScreenProps> = ({
       {/* Title & Subtitle */}
       <div className="space-y-2 max-w-md">
         <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-          🎉 ALL DUE CARDS COMPLETED!
+          {screenTitle}
         </h2>
         <p className="text-xs md:text-sm font-medium text-slate-500 leading-relaxed">
-          {customMessage || "You have completed all scheduled cards for review in this deck today."}
+          {screenSubtitle}
         </p>
       </div>
 
-      {/* FSRS Waiting / Countdown Card */}
-      <div className="w-full max-w-md bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-pink-50/40 border border-indigo-100 rounded-3xl p-5 shadow-sm space-y-2">
-        <div className="flex items-center justify-center gap-1.5 text-indigo-700 font-bold text-xs">
-          <Clock className="w-4 h-4 text-indigo-600 animate-pulse" />
-          <span className="uppercase tracking-wider">Next review due in:</span>
+      {/* FSRS Waiting / Countdown Card (if applicable) */}
+      {showCountdown && (
+        <div className="w-full max-w-md bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-pink-50/40 border border-indigo-100 rounded-3xl p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-center gap-1.5 text-indigo-700 font-bold text-xs">
+            <Clock className="w-4 h-4 text-indigo-600 animate-pulse" />
+            <span className="uppercase tracking-wider">Next review due in:</span>
+          </div>
+          <div className="text-2xl md:text-3xl font-black text-indigo-900 tracking-tight py-1">
+            ⏳ {nextDueText}
+          </div>
+          <p className="text-[11px] text-slate-500 font-medium leading-relaxed max-w-xs mx-auto">
+            Optimal review intervals are calculated by FSRS v6 based on your memory stability and retention target.
+          </p>
         </div>
-        <div className="text-2xl md:text-3xl font-black text-indigo-900 tracking-tight py-1">
-          ⏳ {nextDueText}
-        </div>
-        <p className="text-[11px] text-slate-500 font-medium leading-relaxed max-w-xs mx-auto">
-          Optimal review intervals are calculated by FSRS v6 based on your memory stability and retention target.
-        </p>
-      </div>
+      )}
 
       {/* Mini Stats Summary */}
       <div className="grid grid-cols-3 gap-3 w-full max-w-md">
@@ -63,29 +88,47 @@ export const FsrsCompleteScreen: React.FC<FsrsCompleteScreenProps> = ({
         </div>
 
         <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Due Cards</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Unlearned</span>
           <span className="text-xl font-black text-indigo-600 block mt-0.5">
-            0
+            {Math.max(0, totalCards - learnedCards)}
           </span>
         </div>
 
         <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-center">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status</span>
           <span className="text-xl font-black text-purple-600 block mt-0.5">
-            Optimal 🧠
+            {isNoLearned ? "Ready 🚀" : "Optimal 🧠"}
           </span>
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="w-full max-w-md space-y-3 pt-2">
-        <button
-          onClick={onFreeReview}
-          className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>🔄 Free Practice (Card Skim)</span>
-        </button>
+        {isNoLearned ? (
+          <button
+            onClick={() => onSwitchMode ? onSwitchMode('new') : onFreeReview()}
+            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Brain className="w-4 h-4" />
+            <span>✨ Start Learning New Cards</span>
+          </button>
+        ) : isNewCardsCompleted ? (
+          <button
+            onClick={() => onSwitchMode ? onSwitchMode('review') : onFreeReview()}
+            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>📚 Continuous Review (Learned Cards)</span>
+          </button>
+        ) : (
+          <button
+            onClick={onFreeReview}
+            className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-800 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>🔄 Free Practice (Card Skim)</span>
+          </button>
+        )}
 
         <button
           onClick={onViewDeckDetail}

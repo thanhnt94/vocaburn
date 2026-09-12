@@ -1481,7 +1481,64 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         next_seq = (current_index + 1) if (current_index + 1 < total) else 0
         return {"next_index": next_seq, "phase": "autoplay"}
 
-    if target_mode in ("new", "speed_skim", "skim"):
+    if target_mode == "review":
+        learned_cards = []
+        for idx, c_id in enumerate(card_ids):
+            if idx in ignored_indexes:
+                continue
+            m = mastery_map.get(c_id)
+            is_new = not m or (m["state"] == 0 and m["last_review"] is None)
+            if not is_new:
+                learned_cards.append(idx)
+
+        if not learned_cards:
+            return {
+                "next_index": -1,
+                "phase": "completed",
+                "is_all_completed": True,
+                "unlearned_count": total,
+                "total_cards": total,
+                "learned_cards": 0,
+                "message": "No learned cards in this deck to review yet! Please learn some new cards first."
+            }
+
+        unanswered_learned = [i for i in learned_cards if i not in effective_answered]
+        if unanswered_learned:
+            candidates = [i for i in unanswered_learned if i != current_index]
+            if not candidates:
+                candidates = unanswered_learned
+            if random_enabled:
+                import random
+                next_idx = random.choice(candidates)
+            else:
+                forward = [i for i in candidates if i > current_index]
+                next_idx = forward[0] if forward else candidates[0]
+            return {
+                "next_index": next_idx,
+                "phase": "review",
+                "learned_cards": len(learned_cards),
+                "total_cards": total
+            }
+
+        # All learned cards reviewed in this session -> Loop continuously in a cycle!
+        candidates = [i for i in learned_cards if i != current_index]
+        if not candidates:
+            candidates = learned_cards
+        if random_enabled:
+            import random
+            next_idx = random.choice(candidates)
+        else:
+            forward = [i for i in candidates if i > current_index]
+            next_idx = forward[0] if forward else candidates[0]
+
+        return {
+            "next_index": next_idx,
+            "phase": "review",
+            "learned_cards": len(learned_cards),
+            "total_cards": total
+        }
+
+    elif target_mode == "new":
         unanswered_new = []
         all_new = []
         for idx, c_id in enumerate(card_ids):
@@ -1495,30 +1552,92 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     unanswered_new.append(idx)
 
         if unanswered_new:
+            candidates = [i for i in unanswered_new if i != current_index]
+            if not candidates:
+                candidates = unanswered_new
             if random_enabled:
                 import random
-                return {"next_index": random.choice(unanswered_new), "phase": "new"}
+                next_idx = random.choice(candidates)
             else:
-                return {"next_index": unanswered_new[0], "phase": "new"}
-        elif all_new:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(all_new), "phase": "new"}
-            else:
-                return {"next_index": all_new[0], "phase": "new"}
+                forward = [i for i in candidates if i > current_index]
+                next_idx = forward[0] if forward else candidates[0]
+            return {
+                "next_index": next_idx,
+                "phase": "new",
+                "unlearned_count": len(all_new),
+                "total_cards": total
+            }
         else:
-            # Free play or all new cards skimmed: pick next unread card or advance sequentially
-            unanswered_all = [idx for idx in range(total) if idx not in effective_answered and idx not in ignored_indexes]
-            if unanswered_all:
+            # All new cards in deck have been learned!
+            return {
+                "next_index": -1,
+                "phase": "completed",
+                "is_all_completed": True,
+                "unlearned_count": 0,
+                "total_cards": total,
+                "learned_cards": total - len(all_new),
+                "message": "All new cards in this deck have been learned!"
+            }
+
+    elif target_mode in ("speed_skim", "skim", "flip"):
+        if is_roadmap and active_step_type == "speed_skim":
+            unanswered_new = []
+            all_new = []
+            for idx, c_id in enumerate(card_ids):
+                if idx in ignored_indexes:
+                    continue
+                m = mastery_map.get(c_id)
+                is_new = not m or (m["state"] == 0 and m["last_review"] is None)
+                if is_new:
+                    all_new.append(idx)
+                    if idx not in effective_answered:
+                        unanswered_new.append(idx)
+
+            if unanswered_new:
                 if random_enabled:
                     import random
-                    return {"next_index": random.choice(unanswered_all), "phase": "free"}
+                    return {"next_index": random.choice(unanswered_new), "phase": "speed_skim"}
                 else:
-                    return {"next_index": unanswered_all[0], "phase": "free"}
-            next_seq = (current_index + 1) if (current_index + 1 < total) else 0
-            return {"next_index": next_seq, "phase": "free"}
+                    return {"next_index": unanswered_new[0], "phase": "speed_skim"}
+            elif all_new:
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(all_new), "phase": "speed_skim"}
+                else:
+                    return {"next_index": all_new[0], "phase": "speed_skim"}
+            else:
+                return {
+                    "next_index": -1,
+                    "phase": "completed",
+                    "is_all_completed": True,
+                    "message": "All new cards skimmed!"
+                }
 
-    elif target_mode in ("fsrs", "fsrs_review", "review"):
+        # Free Speed Skim / Flip mode: skims through all cards in deck in order or random
+        unanswered_all = [idx for idx in range(total) if idx not in effective_answered and idx not in ignored_indexes]
+        if unanswered_all:
+            candidates = [idx for idx in unanswered_all if idx != current_index]
+            if not candidates:
+                candidates = unanswered_all
+            if random_enabled:
+                import random
+                return {"next_index": random.choice(candidates), "phase": "skim"}
+            else:
+                forward = [idx for idx in candidates if idx > current_index]
+                return {"next_index": forward[0] if forward else candidates[0], "phase": "skim"}
+
+        # When all cards have been skimmed in session, loop continuously in a cycle
+        all_candidates = [idx for idx in range(total) if idx not in ignored_indexes and idx != current_index]
+        if not all_candidates:
+            all_candidates = [idx for idx in range(total) if idx not in ignored_indexes]
+        if random_enabled:
+            import random
+            return {"next_index": random.choice(all_candidates) if all_candidates else 0, "phase": "skim"}
+        else:
+            forward = [idx for idx in all_candidates if idx > current_index]
+            return {"next_index": forward[0] if forward else (all_candidates[0] if all_candidates else 0), "phase": "skim"}
+
+    elif target_mode in ("fsrs", "fsrs_review"):
         pipeline = user_settings_dict.get("pipeline", []) if isinstance(user_settings_dict, dict) else []
         fsrs_step = next((st for st in pipeline if st.get("type") == "fsrs_review"), None)
         is_roadmap_review = (target_mode == "fsrs_review") or (original_mode == "roadmap")
@@ -1604,8 +1723,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 "learned_cards": len(all_learned_cards)
             }
 
-        # If in review-only mode (roadmap review step or fsrs_review), NEVER introduce new cards!
-        if is_roadmap_review or target_mode in ("fsrs_review", "review"):
+        # If in roadmap review step, NEVER introduce new cards!
+        if is_roadmap_review or target_mode == "fsrs_review":
             min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
             wait_sec = 600
             wait_text = "No cards due"
@@ -1731,19 +1850,6 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         return {"next_index": min(current_index + 1, total - 1)}
 
-    elif mode in ("flip", "speed_skim", "skim"):
-        pool = [idx for idx in range(total) if idx not in effective_answered]
-        if pool:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(pool)}
-            else:
-                for idx in pool:
-                    if idx > current_index:
-                        return {"next_index": idx}
-                return {"next_index": pool[0]}
-
-        return {"next_index": min(current_index + 1, total - 1)}
         
     return {"next_index": min(current_index + 1, total - 1)}
 

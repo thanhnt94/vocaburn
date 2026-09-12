@@ -2399,7 +2399,7 @@ export default function FlashcardPlay() {
         }
       }
       if (nextIdx === -1 || nextIdx === currentIndex) {
-        if (effectiveMode === 'review' || effectiveMode === 'fsrs_review') {
+        if (effectiveMode === 'fsrs_review' || effectiveMode === 'new' || (effectiveMode === 'review' && res?.data?.learned_cards === 0)) {
           setFsrsCompletionData(res?.data || { is_all_completed: true, next_index: -1 });
           return;
         }
@@ -2411,7 +2411,7 @@ export default function FlashcardPlay() {
       try {
         cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
       } catch (e) {}
-      if (effectiveMode === 'review' || effectiveMode === 'fsrs_review') {
+      if (effectiveMode === 'fsrs_review' || effectiveMode === 'new') {
         setFsrsCompletionData({ is_all_completed: true, next_index: -1 });
         return;
       }
@@ -3552,7 +3552,7 @@ export default function FlashcardPlay() {
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
     return Boolean(
-      (activeMode === 'fsrs' || activeMode === 'review' || activeMode === 'roadmap' || activeMode === 'fsrs_review') &&
+      (activeMode === 'fsrs' || activeMode === 'new' || activeMode === 'roadmap' || activeMode === 'fsrs_review' || (activeMode === 'review' && fsrsCompletionData?.learned_cards === 0)) &&
       (fsrsCompletionData?.is_all_completed || fsrsCompletionData?.next_index === -1)
     );
   }, [activeMode, fsrsCompletionData]);
@@ -3569,9 +3569,14 @@ export default function FlashcardPlay() {
         fsrsCompletionData={fsrsCompletionData}
         session={session}
         deckId={id}
+        activeMode={activeMode}
         onFreeReview={() => {
           setFsrsCompletionData(null)
           applyLearningMode('skim')
+        }}
+        onSwitchMode={(nextMode) => {
+          setFsrsCompletionData(null)
+          applyLearningMode(nextMode)
         }}
         onViewDeckDetail={() => navigate(`/decks/${id}`)}
         onBackToLibrary={() => navigate('/decks?tab=library')}
