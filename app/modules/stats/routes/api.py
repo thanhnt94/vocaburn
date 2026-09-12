@@ -40,6 +40,18 @@ async def get_daily_comparison(request: Request, db: AsyncSession = Depends(get_
     except Exception as e:
         return {"error": str(e)}
 
+@router.get("/stats/daily-summary")
+async def get_daily_summary(request: Request, tz_offset: int = -420, db: AsyncSession = Depends(get_db)):
+    user = await AuthService.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        return await AnalyticsService.get_daily_summary(db, user.id, tz_offset=tz_offset)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/dashboard/data")
 async def get_dashboard_data(request: Request, only_created: bool = False, db: AsyncSession = Depends(get_db)):

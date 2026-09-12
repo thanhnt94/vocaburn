@@ -3,6 +3,22 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Bổ Sung Tab Daily (Daily Activity Hub): Thống Kê Hoạt Động & Lịch Sử Học Tập Trong Ngày
+- **Bổ Sung Endpoint Tổng Hợp Thống Kê Trong Ngày (`GET /api/v1/stats/daily-summary`)**:
+  - Tự động phân tích toàn bộ dữ liệu học tập trong ngày theo múi giờ người dùng (`tz_offset`), bao gồm:
+    - **Tổng thời gian học thực tế (`total_minutes`)**: Tính toán chính xác từ thời lượng các phiên học (`DeckAttempt.time_spent` và `UserAnswer.response_time_ms`).
+    - **Số thẻ đã học & tỷ lệ chính xác (`cards_studied`, `new_cards`, `review_cards`, `accuracy_rate`)**: Bóc tách chi tiết số lượng từ mới học lần đầu vs số lượt ôn tập lặp lại, cùng tỷ lệ trả lời đúng theo thời gian thực.
+    - **Điểm kinh nghiệm & điểm thưởng (`xp_earned`, `points_earned`, `streak_count`)**: Tổng hợp từ nhật ký giao dịch XP và Point trong ngày.
+    - **Biểu đồ nhịp độ học tập 24 giờ (`hourly_distribution`)**: Trực quan hóa tần suất học thẻ theo từng khung giờ trong ngày (00:00 - 23:00) với thanh tiến độ pulse sinh động.
+    - **Nhật ký phiên học gần nhất trong ngày (`recent_sessions`)**: Liệt kê chi tiết từng phiên học (tên bộ thẻ, chế độ `FSRS`, `Continuous Review`, `Learn New`, `Speed Skim`, `MCQ`, `Typing`, `Listening`, số thẻ, điểm số, thời lượng, độ chính xác).
+    - **Phân bổ theo bộ thẻ & chế độ học (`decks_studied`, `mode_breakdown`)** và trạng thái hoàn thành mục tiêu lộ trình (`roadmap_goals_completed`).
+- **Giao Diện Dashboard Daily Section Chuẩn Mobile-First & Tiếng Anh Toàn Cục**:
+  - Thiết kế tab `Daily` nằm ngay cạnh tab `Learning` trên thanh điều hướng đầu trang Dashboard (`Roadmap` | `Learning` | `Daily`).
+  - Hỗ trợ cử chỉ vuốt 3 chiều mượt mà trên điện thoại di động: Vuốt trái/phải linh hoạt giữa `Roadmap` $\leftrightarrow$ `Learning` $\leftrightarrow$ `Daily`.
+  - Trên màn hình máy tính (Desktop View), tích hợp bộ chuyển đổi chế độ xem nhanh giữa `Roadmap Hub` và `Daily Stats` ngay tại Cột 1 với bố cục 9 cột hiển thị trực quan, rộng rãi.
+  - Tích hợp lựa chọn `Daily` vào bảng cài đặt tab mặc định `HomeCustomizeModal` và lưu trữ trực tiếp vào cơ sở dữ liệu (Zero localStorage).
+  - Trạng thái trống (Empty State) thân thiện, động viên người học bắt đầu học với nút điều hướng tức thì sang tab `Learning`.
+
 #### Tinh Chỉnh Giao Diện Modal Học Thẻ & Thanh Đáy Deck Detail: Tràn Viền 100% & Khắc Phục Đè Lớp Bottom Nav
 - **Khắc Phục Lỗi Mobile Bottom Nav Đè Lên Bảng Chọn Chế Độ Học (Z-Index Stacking Context Fix)**:
   - **Nguyên nhân**: Thanh điều hướng toàn cục của Layout (`Layout.tsx`) có `z-[120]`, trong khi bảng chọn chế độ học (`Flashcard / Practice Modal Sheets`) nằm bên trong `DeckDetailPage` vốn có `fixed inset-0 bottom-[60px]` và `z-50`. Điều này khiến bảng chọn chế độ học bị kẹt trong stacking context con và bị thanh bottom nav đè lên một nửa danh sách các chế độ ở đáy màn hình.

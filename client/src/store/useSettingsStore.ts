@@ -30,7 +30,7 @@ export interface UserSettings {
   back_halign?: 'left' | 'center'
   study_profiles?: StudyProfile[]
   active_profile_id?: string | null
-  home_active_tab?: 'roadmap' | 'learning'
+  home_active_tab?: 'roadmap' | 'learning' | 'daily'
   roadmap_display_mode?: 'carousel' | 'vertical' | 'compact'
   roadmap_deck_order?: number[]
   learning_deck_order?: number[]

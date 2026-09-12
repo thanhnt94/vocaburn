@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   CheckSquare,
   Square,
-  Plus
+  Plus,
+  Activity
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -38,7 +39,7 @@ export function HomeCustomizeModal({
   const { userSettings, updateUserSettings } = useAppStore()
 
   const [activeTab, setActiveTab] = useState<'display' | 'roadmap_order' | 'learning_order'>('display')
-  const [defaultTab, setDefaultTab] = useState<'roadmap' | 'learning'>('roadmap')
+  const [defaultTab, setDefaultTab] = useState<'roadmap' | 'learning' | 'daily'>('roadmap')
   const [displayMode, setDisplayMode] = useState<'carousel' | 'vertical' | 'compact'>('carousel')
   const [learningDisplayMode, setLearningDisplayMode] = useState<'shortcuts' | 'grid' | 'compact'>('shortcuts')
   const [orderedRoadmapDecks, setOrderedRoadmapDecks] = useState<any[]>([])
@@ -307,7 +308,7 @@ export function HomeCustomizeModal({
                     <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
                       Default Home Tab
                     </label>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <button
                         type="button"
                         onClick={() => setDefaultTab('roadmap')}
@@ -345,14 +346,38 @@ export function HomeCustomizeModal({
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                             <BookOpen className="w-3.5 h-3.5 text-orange-500" />
-                            Learning Decks
+                            Learning
                           </span>
                           {defaultTab === 'learning' && (
                             <CheckCircle2 className="w-4 h-4 text-orange-600" />
                           )}
                         </div>
                         <p className="text-[10px] font-medium text-slate-500 leading-tight">
-                          Show all your enrolled decks & FSRS due cards
+                          Show all enrolled decks & FSRS due cards
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDefaultTab('daily')}
+                        className={cn(
+                          "p-3 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col gap-1",
+                          defaultTab === 'daily'
+                            ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                            <Activity className="w-3.5 h-3.5 text-orange-500" />
+                            Daily Stats
+                          </span>
+                          {defaultTab === 'daily' && (
+                            <CheckCircle2 className="w-4 h-4 text-orange-600" />
+                          )}
+                        </div>
+                        <p className="text-[10px] font-medium text-slate-500 leading-tight">
+                          Review study time, sessions & progress
                         </p>
                       </button>
                     </div>

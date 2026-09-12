@@ -652,3 +652,262 @@ class AnalyticsService:
             }
         }
 
+    @staticmethod
+    async def get_daily_summary(db: AsyncSession, user_id: int, tz_offset: int = -420):
+        from app.modules.deck.models import UserDeckGoal, UserDailyProgress
+        from app.modules.gamification.models import PointTransaction
+        from sqlalchemy.orm import joinedload
+
+        now_utc = datetime.utcnow()
+        now_local = now_utc - timedelta(minutes=tz_offset)
+        today_local_date = now_local.date()
+        today_start_utc = datetime.combine(today_local_date, datetime.min.time()) + timedelta(minutes=tz_offset)
+        today_end_utc = today_start_utc + timedelta(days=1)
+
+        # 1. Fetch all user answers today with attempt info
+        answers_stmt = (
+            select(
+                UserAnswer.id,
+                UserAnswer.card_id,
+                UserAnswer.is_correct,
+                UserAnswer.active_time,
+                UserAnswer.rating,
+                UserAnswer.created_at,
+                DeckAttempt.deck_id,
+                DeckAttempt.mode,
+                DeckAttempt.id.label("attempt_id")
+            )
+            .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+            .where(
+                DeckAttempt.user_id == user_id,
+                UserAnswer.created_at >= today_start_utc,
+                UserAnswer.created_at < today_end_utc
+            )
+            .order_by(UserAnswer.created_at.asc())
+        )
+        answers_res = await db.execute(answers_stmt)
+        today_answers = answers_res.all()
+
+        total_cards_studied = len(today_answers)
+        correct_count = sum(1 for a in today_answers if a.is_correct)
+        wrong_count = total_cards_studied - correct_count
+        accuracy = round((correct_count / total_cards_studied) * 100, 1) if total_cards_studied > 0 else 0
+        active_time_seconds = sum((a.active_time or 0.0) for a in today_answers)
+        study_minutes = round(active_time_seconds / 60.0, 1)
+
+        # 2. Distinct new cards learned today (first time answered ever by this user)
+        first_answers_sub = (
+            select(
+                UserAnswer.card_id,
+                func.min(UserAnswer.created_at).label("first_answered_at")
+            )
+            .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+            .where(DeckAttempt.user_id == user_id)
+            .group_by(UserAnswer.card_id)
+            .having(func.min(UserAnswer.created_at) >= today_start_utc)
+        ).subquery()
+
+        first_answers_res = await db.execute(select(func.count(first_answers_sub.c.card_id)))
+        new_cards_learned = first_answers_res.scalar() or 0
+        cards_reviewed = max(0, total_cards_studied - new_cards_learned)
+
+        # 3. Hourly Activity Distribution (0 to 23 hours local time)
+        hourly_counts = [0] * 24
+        for a in today_answers:
+            if a.created_at:
+                local_dt = a.created_at - timedelta(minutes=tz_offset)
+                hour = local_dt.hour
+                if 0 <= hour < 24:
+                    hourly_counts[hour] += 1
+
+        # 4. Fetch Attempts/Sessions today
+        attempts_stmt = (
+            select(DeckAttempt)
+            .options(joinedload(DeckAttempt.answers))
+            .where(
+                DeckAttempt.user_id == user_id,
+                DeckAttempt.started_at >= today_start_utc,
+                DeckAttempt.started_at < today_end_utc
+            )
+            .order_by(DeckAttempt.started_at.desc())
+        )
+        attempts_res = await db.execute(attempts_stmt)
+        today_attempts = attempts_res.unique().scalars().all()
+
+        deck_ids = list(set(att.deck_id for att in today_attempts if att.deck_id).union(
+            set(a.deck_id for a in today_answers if a.deck_id)
+        ))
+        deck_map = {}
+        if deck_ids:
+            decks_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id.in_(deck_ids)))
+            for d in decks_res.scalars().all():
+                deck_map[d.id] = d
+
+        sessions_data = []
+        for att in today_attempts:
+            d = deck_map.get(att.deck_id)
+            att_answers = att.answers or []
+            att_correct = sum(1 for ans in att_answers if ans.is_correct)
+            att_total = len(att_answers) if att_answers else (att.total_cards or 0)
+            att_time = sum((ans.active_time or 0.0) for ans in att_answers)
+            if att_time <= 0.0 and att.completed_at and att.started_at:
+                att_time = max(0.0, (att.completed_at - att.started_at).total_seconds())
+
+            local_start = att.started_at - timedelta(minutes=tz_offset) if att.started_at else None
+            local_end = att.completed_at - timedelta(minutes=tz_offset) if att.completed_at else None
+
+            estimated_xp = (att_correct * 3) + (5 if att_total >= 5 and (att_correct / att_total) >= 0.8 else 0)
+
+            sessions_data.append({
+                "attempt_id": att.id,
+                "deck_id": att.deck_id,
+                "deck_title": d.title if d else f"Deck #{att.deck_id}",
+                "deck_cover": d.cover_image if d else None,
+                "mode": att.mode or "fsrs",
+                "score": att.score or 0,
+                "total_cards": att_total,
+                "correct_count": att_correct,
+                "accuracy": round((att_correct / att_total) * 100) if att_total > 0 else 0,
+                "duration_seconds": round(att_time),
+                "duration_minutes": round(att_time / 60.0, 1),
+                "started_at": local_start.strftime("%H:%M") if local_start else "",
+                "started_at_full": local_start.isoformat() if local_start else "",
+                "completed_at": local_end.strftime("%H:%M") if local_end else "",
+                "is_completed": att.completed_at is not None,
+                "xp_earned": estimated_xp
+            })
+
+        first_study_time = sessions_data[-1]["started_at"] if sessions_data else None
+        last_study_time = sessions_data[0]["started_at"] if sessions_data else None
+
+        # 5. Today's XP & Points
+        xp_res = await db.execute(
+            select(func.sum(XPTransaction.amount))
+            .where(XPTransaction.user_id == user_id, XPTransaction.created_at >= today_start_utc, XPTransaction.created_at < today_end_utc)
+        )
+        today_xp = xp_res.scalar() or 0
+
+        pts_res = await db.execute(
+            select(func.sum(PointTransaction.amount))
+            .where(PointTransaction.user_id == user_id, PointTransaction.created_at >= today_start_utc, PointTransaction.created_at < today_end_utc)
+        )
+        today_pts = pts_res.scalar() or 0
+
+        # 6. Gamification
+        gamify_res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
+        gamify = gamify_res.scalar_one_or_none()
+
+        # 7. Decks Studied Today Breakdown
+        decks_studied_map = {}
+        for a in today_answers:
+            did = a.deck_id
+            if not did:
+                continue
+            if did not in decks_studied_map:
+                d = deck_map.get(did)
+                decks_studied_map[did] = {
+                    "deck_id": did,
+                    "deck_title": d.title if d else f"Deck #{did}",
+                    "deck_cover": d.cover_image if d else None,
+                    "cards_count": 0,
+                    "correct_count": 0,
+                    "active_time": 0.0,
+                    "modes": set()
+                }
+            decks_studied_map[did]["cards_count"] += 1
+            if a.is_correct:
+                decks_studied_map[did]["correct_count"] += 1
+            decks_studied_map[did]["active_time"] += (a.active_time or 0.0)
+            if a.mode:
+                decks_studied_map[did]["modes"].add(a.mode)
+
+        decks_summary = []
+        for did, item in decks_studied_map.items():
+            total_c = item["cards_count"]
+            corr_c = item["correct_count"]
+            decks_summary.append({
+                "deck_id": item["deck_id"],
+                "deck_title": item["deck_title"],
+                "deck_cover": item["deck_cover"],
+                "cards_count": total_c,
+                "correct_count": corr_c,
+                "accuracy": round((corr_c / total_c) * 100) if total_c > 0 else 0,
+                "study_minutes": round(item["active_time"] / 60.0, 1),
+                "modes": list(item["modes"])
+            })
+        decks_summary.sort(key=lambda x: x["cards_count"], reverse=True)
+
+        # 8. Mode Breakdown
+        mode_breakdown = {}
+        for a in today_answers:
+            m = a.mode or "fsrs"
+            if m not in mode_breakdown:
+                mode_breakdown[m] = {"mode": m, "cards": 0, "correct": 0, "time_seconds": 0.0}
+            mode_breakdown[m]["cards"] += 1
+            if a.is_correct:
+                mode_breakdown[m]["correct"] += 1
+            mode_breakdown[m]["time_seconds"] += (a.active_time or 0.0)
+
+        mode_list = []
+        for m, v in mode_breakdown.items():
+            c = v["cards"]
+            mode_list.append({
+                "mode": m,
+                "cards": c,
+                "correct": v["correct"],
+                "accuracy": round((v["correct"] / c) * 100) if c > 0 else 0,
+                "study_minutes": round(v["time_seconds"] / 60.0, 1)
+            })
+        mode_list.sort(key=lambda x: x["cards"], reverse=True)
+
+        # 9. Roadmap Goals Completed Today
+        today_date_str = today_local_date.strftime("%Y-%m-%d")
+        goals_res = await db.execute(
+            select(UserDailyProgress, UserDeckGoal, FlashcardDeck)
+            .join(UserDeckGoal, UserDailyProgress.goal_id == UserDeckGoal.id)
+            .join(FlashcardDeck, UserDeckGoal.deck_id == FlashcardDeck.id)
+            .where(
+                UserDeckGoal.user_id == user_id,
+                UserDailyProgress.date == today_date_str
+            )
+        )
+        today_goals = []
+        for prog, goal, deck in goals_res.all():
+            today_goals.append({
+                "goal_id": goal.id,
+                "deck_id": goal.deck_id,
+                "deck_title": deck.title,
+                "deck_cover": deck.cover_image,
+                "target": goal.daily_target,
+                "done_today": prog.count_done,
+                "is_target_met": prog.is_target_met or (prog.count_done >= goal.daily_target)
+            })
+
+        return {
+            "date_str": today_local_date.strftime("%A, %b %d, %Y"),
+            "date_iso": today_local_date.isoformat(),
+            "summary": {
+                "total_cards": total_cards_studied,
+                "new_cards": new_cards_learned,
+                "reviewed_cards": cards_reviewed,
+                "correct_count": correct_count,
+                "wrong_count": wrong_count,
+                "accuracy": accuracy,
+                "total_time_seconds": round(active_time_seconds),
+                "total_time_minutes": study_minutes,
+                "total_sessions": len(sessions_data),
+                "first_session_time": first_study_time,
+                "last_session_time": last_study_time,
+                "xp_earned": today_xp,
+                "points_earned": today_pts,
+                "streak_count": gamify.streak_count if gamify else 0,
+                "streak_freeze_count": gamify.streak_freeze_count if gamify else 0,
+                "streak_completed_today": (total_cards_studied > 0)
+            },
+            "sessions": sessions_data,
+            "hourly_activity": hourly_counts,
+            "mode_breakdown": mode_list,
+            "decks_studied": decks_summary,
+            "roadmap_goals": today_goals
+        }
+

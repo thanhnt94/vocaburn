@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2, SlidersHorizontal } from 'lucide-react'
+import { Brain, Trophy, ChevronRight, LayoutGrid, Users, Zap, Flame, BrainCircuit, X, Play, Crown, Medal, Star, CheckCircle2, Circle, Swords, Settings, Target, RefreshCw, User, BookOpen, Sparkles, TrendingUp, Clock, Layers, Compass, ArrowRight, FileText, RotateCcw, Search, Plus, ArrowDown, Calendar, Keyboard, Volume2, SlidersHorizontal, Activity } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,6 +13,7 @@ import { PracticeModeModal } from '@/components/dashboard/PracticeModeModal'
 import { StudyModeModal } from '@/components/dashboard/StudyModeModal'
 import { DashboardRoadmapSection } from '@/components/dashboard/DashboardRoadmapSection'
 import { DashboardQuickDecksWidget } from '@/components/dashboard/DashboardQuickDecksWidget'
+import { DashboardDailySection } from '@/components/dashboard/DashboardDailySection'
 import { HomeCustomizeModal } from '@/components/dashboard/HomeCustomizeModal'
 
 
@@ -1241,7 +1242,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
 
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false)
-  const [activeHomeTab, setActiveHomeTab] = useState<'roadmap' | 'learning'>('roadmap')
+  const [activeHomeTab, setActiveHomeTab] = useState<'roadmap' | 'learning' | 'daily'>('roadmap')
 
   useEffect(() => {
     if (userSettings?.home_active_tab) {
@@ -1786,6 +1787,42 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* View Mode Toggle: Decks/Roadmap vs Daily Stats */}
+          <div className="flex items-center p-1 bg-white/90 border border-slate-200/80 rounded-2xl shadow-2xs gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHomeTab('roadmap')
+                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+              }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                activeHomeTab !== 'daily'
+                  ? "bg-orange-50 text-orange-600 shadow-2xs border border-orange-200/60"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Roadmap Hub</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHomeTab('daily')
+                updateUserSettings({ home_active_tab: 'daily' }).catch(console.error)
+              }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                activeHomeTab === 'daily'
+                  ? "bg-orange-50 text-orange-600 shadow-2xs border border-orange-200/60"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>Daily Stats</span>
+            </button>
+          </div>
+
           {/* Rich Leaderboard */}
           {leaderboardData && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
@@ -1795,33 +1832,49 @@ export default function Dashboard() {
           {heatmapData && heatmapData.length > 0 && <MiniHeatmap data={heatmapData} />}
         </aside>
 
-        {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
-        <section className="col-span-5 h-full overflow-hidden flex flex-col">
-          <DashboardRoadmapSection
-            roadmapDecks={sortedRoadmapDecks}
-            remainingTime={remainingTime}
-            selectedRoadmapIdx={selectedRoadmapIdx}
-            onSelectRoadmapIdx={setSelectedRoadmapIdx}
-            onOpenStudyModal={handleOpenStudyModal}
-            navigate={navigate}
-            isDesktop={true}
-            displayMode={userSettings?.roadmap_display_mode || 'carousel'}
-            onOpenCustomize={() => setIsCustomizeModalOpen(true)}
-          />
-        </section>
+        {/* DESKTOP CONTENT COLUMNS */}
+        {activeHomeTab === 'daily' ? (
+          <section className="col-span-9 h-full overflow-hidden flex flex-col bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200/80 shadow-xs">
+            <DashboardDailySection
+              navigate={navigate}
+              isDesktop={true}
+              onSwitchTab={(t) => {
+                setActiveHomeTab(t)
+                updateUserSettings({ home_active_tab: t }).catch(console.error)
+              }}
+            />
+          </section>
+        ) : (
+          <>
+            {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
+            <section className="col-span-5 h-full overflow-hidden flex flex-col">
+              <DashboardRoadmapSection
+                roadmapDecks={sortedRoadmapDecks}
+                remainingTime={remainingTime}
+                selectedRoadmapIdx={selectedRoadmapIdx}
+                onSelectRoadmapIdx={setSelectedRoadmapIdx}
+                onOpenStudyModal={handleOpenStudyModal}
+                navigate={navigate}
+                isDesktop={true}
+                displayMode={userSettings?.roadmap_display_mode || 'carousel'}
+                onOpenCustomize={() => setIsCustomizeModalOpen(true)}
+              />
+            </section>
 
-        {/* COLUMN 3: Quick Decks Hub (Col 4 of 12) */}
-        <section className="col-span-4 h-full overflow-hidden flex flex-col">
-          <DashboardQuickDecksWidget
-            todayReview={todayReview}
-            activeDecks={sortedActiveDecks}
-            allDecksCount={activeDecks?.length || 0}
-            onOpenStudyModal={handleOpenStudyModal}
-            navigate={navigate}
-            displayMode={userSettings?.learning_display_mode || 'shortcuts'}
-            onOpenCustomize={() => setIsCustomizeModalOpen(true)}
-          />
-        </section>
+            {/* COLUMN 3: Quick Decks Hub (Col 4 of 12) */}
+            <section className="col-span-4 h-full overflow-hidden flex flex-col">
+              <DashboardQuickDecksWidget
+                todayReview={todayReview}
+                activeDecks={sortedActiveDecks}
+                allDecksCount={activeDecks?.length || 0}
+                onOpenStudyModal={handleOpenStudyModal}
+                navigate={navigate}
+                displayMode={userSettings?.learning_display_mode || 'shortcuts'}
+                onOpenCustomize={() => setIsCustomizeModalOpen(true)}
+              />
+            </section>
+          </>
+        )}
       </div>
 
       {/* MOBILE FEED — Exact Mockup Design with Unified Header & Flame Logo */}
@@ -1847,16 +1900,28 @@ export default function Dashboard() {
             return;
           }
 
-          // Horizontal Swipe detection (Swipe left to Learning, Swipe right to Roadmap)
+          // Horizontal Swipe detection (Swipe left: Roadmap -> Learning -> Daily, Swipe right: Daily -> Learning -> Roadmap)
           if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
-            if (diffX < -40 && activeHomeTab !== 'learning') {
-              setActiveHomeTab('learning')
-              if (navigator.vibrate) navigator.vibrate(8)
-              updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
-            } else if (diffX > 40 && activeHomeTab !== 'roadmap') {
-              setActiveHomeTab('roadmap')
-              if (navigator.vibrate) navigator.vibrate(8)
-              updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+            if (diffX < -40) {
+              if (activeHomeTab === 'roadmap') {
+                setActiveHomeTab('learning')
+                if (navigator.vibrate) navigator.vibrate(8)
+                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+              } else if (activeHomeTab === 'learning') {
+                setActiveHomeTab('daily')
+                if (navigator.vibrate) navigator.vibrate(8)
+                updateUserSettings({ home_active_tab: 'daily' }).catch(console.error)
+              }
+            } else if (diffX > 40) {
+              if (activeHomeTab === 'daily') {
+                setActiveHomeTab('learning')
+                if (navigator.vibrate) navigator.vibrate(8)
+                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
+              } else if (activeHomeTab === 'learning') {
+                setActiveHomeTab('roadmap')
+                if (navigator.vibrate) navigator.vibrate(8)
+                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
+              }
             }
           }
         }}
@@ -1962,6 +2027,34 @@ export default function Dashboard() {
                   />
                 )}
               </button>
+
+              {/* Tab 3: Daily */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveHomeTab('daily')
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  updateUserSettings({ home_active_tab: 'daily' }).catch(console.error)
+                }}
+                className={cn(
+                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
+                  activeHomeTab === 'daily' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <Activity className={cn(
+                  "w-3.5 h-3.5 transition-colors",
+                  activeHomeTab === 'daily' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                )} />
+                <span className="text-[13px]">Daily</span>
+                {/* Clean Animated Orange Underline Indicator */}
+                {activeHomeTab === 'daily' && (
+                  <motion.div
+                    layoutId="homeTabUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                  />
+                )}
+              </button>
             </div>
 
             {/* Subtle Customize Button on Far Right */}
@@ -1993,7 +2086,7 @@ export default function Dashboard() {
               displayMode={userSettings?.roadmap_display_mode || 'carousel'}
               onOpenCustomize={() => setIsCustomizeModalOpen(true)}
             />
-          ) : (
+          ) : activeHomeTab === 'learning' ? (
             <div className="flex-1 overflow-hidden p-2.5 sm:p-3 flex flex-col min-h-0">
               <DashboardQuickDecksWidget
                 todayReview={todayReview}
@@ -2005,6 +2098,15 @@ export default function Dashboard() {
                 onOpenCustomize={() => setIsCustomizeModalOpen(true)}
               />
             </div>
+          ) : (
+            <DashboardDailySection
+              navigate={navigate}
+              isDesktop={false}
+              onSwitchTab={(t) => {
+                setActiveHomeTab(t)
+                updateUserSettings({ home_active_tab: t }).catch(console.error)
+              }}
+            />
           )}
         </div>
 
