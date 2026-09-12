@@ -32,11 +32,17 @@ export function DeckRecentHistory({ attempts = [], isLoading, deckId }: DeckRece
   const formatMode = (m: string) => {
     switch (m) {
       case 'fsrs': return { label: 'Flashcard FSRS', icon: '🧠', color: 'text-indigo-600 bg-indigo-50' }
-      case 'roadmap': return { label: 'Lộ Trình Ngày', icon: '🗺️', color: 'text-amber-600 bg-amber-50' }
-      case 'mcq': return { label: 'Trắc Nghiệm MCQ', icon: '🎯', color: 'text-emerald-600 bg-emerald-50' }
-      case 'typing': return { label: 'Gõ Từ Vựng', icon: '⌨️', color: 'text-purple-600 bg-purple-50' }
-      case 'listening': return { label: 'Luyện Nghe', icon: '🎧', color: 'text-sky-600 bg-sky-50' }
-      default: return { label: 'Lật Thẻ', icon: '🔄', color: 'text-slate-600 bg-slate-50' }
+      case 'skim':
+      case 'speed_skim': return { label: 'Speed Skim', icon: '⚡', color: 'text-amber-600 bg-amber-50' }
+      case 'review': return { label: 'Continuous Review', icon: '📚', color: 'text-teal-600 bg-teal-50' }
+      case 'new': return { label: 'Learn New Cards', icon: '✨', color: 'text-purple-600 bg-purple-50' }
+      case 'roadmap': return { label: 'Daily Roadmap', icon: '🗺️', color: 'text-amber-600 bg-amber-50' }
+      case 'mcq':
+      case 'roadmap_mcq': return { label: 'MCQ Quiz Test', icon: '🎯', color: 'text-emerald-600 bg-emerald-50' }
+      case 'typing':
+      case 'roadmap_typing': return { label: 'Typing Test', icon: '⌨️', color: 'text-purple-600 bg-purple-50' }
+      case 'listening': return { label: 'Listening Test', icon: '🎧', color: 'text-sky-600 bg-sky-50' }
+      default: return { label: 'Practice Session', icon: '🔄', color: 'text-slate-600 bg-slate-50' }
     }
   }
 
@@ -63,10 +69,10 @@ export function DeckRecentHistory({ attempts = [], isLoading, deckId }: DeckRece
           </div>
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">
-              Lịch Sử Luyện Tập Gần Đây
+              Recent Study History
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Ghi nhận các phiên học mới nhất của bạn
+              Latest study & practice sessions for this deck
             </p>
           </div>
         </div>
@@ -75,8 +81,8 @@ export function DeckRecentHistory({ attempts = [], isLoading, deckId }: DeckRece
       {attempts.length === 0 ? (
         <div className="p-6 text-center bg-slate-50/60 rounded-2xl border border-slate-100">
           <span className="text-2xl block mb-1">🌱</span>
-          <p className="text-xs font-bold text-slate-600">Chưa có lịch sử học tập</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Hãy chọn một chế độ bên trên để bắt đầu tích lũy XP!</p>
+          <p className="text-xs font-bold text-slate-600">No study history recorded yet</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Start a flashcard or practice session below to build your streak & XP!</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -105,10 +111,10 @@ export function DeckRecentHistory({ attempts = [], isLoading, deckId }: DeckRece
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <span className="text-xs font-black text-indigo-600 block">
-                      {att.score}/{att.total_cards} thẻ
+                      {att.score}/{att.total_cards} cards
                     </span>
                     <span className="text-[10px] font-bold text-emerald-600 block">
-                      {accuracy}% chính xác
+                      {accuracy}% accuracy
                     </span>
                   </div>
                 </div>

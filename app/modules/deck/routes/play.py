@@ -140,10 +140,30 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
             .order_by(DeckAttempt.id.desc())
         )
         attempt = attempt_res.scalar()
-        if not attempt:
-            attempt = DeckAttempt(user_id=user_id, deck_id=card.deck_id, mode=attempt_mode)
+        now_dt = datetime.utcnow()
+        is_fresh_session = True
+        if attempt and attempt.started_at:
+            time_since_last = (now_dt - (attempt.completed_at or attempt.started_at)).total_seconds()
+            if time_since_last < 2700: # 45 minutes of activity window
+                is_fresh_session = False
+
+        if is_fresh_session or not attempt:
+            attempt = DeckAttempt(
+                user_id=user_id,
+                deck_id=card.deck_id,
+                mode=attempt_mode,
+                score=1 if (is_correct or (rating_val and rating_val >= 3)) else 0,
+                total_cards=1,
+                started_at=now_dt,
+                completed_at=now_dt
+            )
             db.add(attempt)
             await db.flush()
+        else:
+            attempt.total_cards = (attempt.total_cards or 0) + 1
+            if is_correct or (rating_val and rating_val >= 3):
+                attempt.score = (attempt.score or 0) + 1
+            attempt.completed_at = now_dt
 
         db_answer = UserAnswer(
             attempt_id=attempt.id,
@@ -838,6 +858,57 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
     is_creator = bool(deck.creator_id == user_id or user_id == 1 or is_admin)
     can_edit = bool(is_creator or is_collaborator)
 
+    # Fetch recent study/practice attempts for this user on this deck
+    from app.modules.deck.models import DeckAttempt, UserAnswer
+    from sqlalchemy import case, or_
+
+    recent_attempts = []
+    if user_id:
+        attempts_q = await db.execute(
+            select(DeckAttempt)
+            .where(
+                DeckAttempt.deck_id == deck_id,
+                DeckAttempt.user_id == user_id
+            )
+            .order_by(DeckAttempt.id.desc())
+            .limit(15)
+        )
+        db_attempts = attempts_q.scalars().all()
+        for att in db_attempts:
+            # Check actual answers logged for this attempt
+            ans_stats = await db.execute(
+                select(
+                    func.count(UserAnswer.id).label("total"),
+                    func.sum(case((or_(UserAnswer.is_correct == True, UserAnswer.rating >= 3), 1), else_=0)).label("correct"),
+                    func.min(UserAnswer.created_at).label("first_answer"),
+                    func.max(UserAnswer.created_at).label("last_answer")
+                )
+                .where(UserAnswer.attempt_id == att.id)
+            )
+            row = ans_stats.one_or_none()
+            total = (row.total if row and row.total else 0) or (att.total_cards or 0)
+            correct = (row.correct if row and row.correct else 0) or (att.score or 0)
+
+            # Skip empty auto-enrolled attempts with 0 answers
+            if total == 0:
+                continue
+
+            started = (row.first_answer if row and row.first_answer else None) or att.started_at
+            completed = (row.last_answer if row and row.last_answer else None) or att.completed_at
+
+            recent_attempts.append({
+                "id": att.id,
+                "mode": att.mode or "play",
+                "score": int(correct),
+                "total_cards": int(total),
+                "accuracy": round((correct / total) * 100) if total > 0 else 0,
+                "started_at": started.isoformat() if started else "",
+                "completed_at": completed.isoformat() if completed else None
+            })
+
+            if len(recent_attempts) >= 5:
+                break
+
     return {
         "id": deck.id,
         "title": deck.title,
@@ -859,7 +930,8 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         "category_name": deck.category.name if deck.category else "General",
         "practice_settings": deck.practice_settings or {},
         "study_defaults": (deck.practice_settings or {}).get("study_defaults", {}),
-        "default_mode": (deck.practice_settings or {}).get("study_defaults", {}).get("learning_mode", "fsrs")
+        "default_mode": (deck.practice_settings or {}).get("study_defaults", {}).get("learning_mode", "fsrs"),
+        "recent_attempts": recent_attempts
     }
 
 def migrate_practice_settings(settings: Optional[dict]) -> dict:

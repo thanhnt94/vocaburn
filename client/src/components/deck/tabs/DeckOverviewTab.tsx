@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { DeckFsrsStatsCard } from '../overview/DeckFsrsStatsCard'
-import { DeckQuickStudyLauncher } from '../overview/DeckQuickStudyLauncher'
 import { DeckRecentHistory } from '../overview/DeckRecentHistory'
 import { BookOpen, Compass, Layers, Sparkles, Tag } from 'lucide-react'
 
@@ -87,22 +86,14 @@ export function DeckOverviewTab({
         </div>
       )}
 
-      {/* 1. Quick Study Launcher (Primary Study Actions) */}
-      <DeckQuickStudyLauncher
-        deckId={id!}
-        totalCards={totalCards}
-        dueCount={dueCount}
-        practiceSettings={deckData?.practice_settings}
-      />
-
-      {/* 2. FSRS Mastery Analytics Card */}
+      {/* 1. FSRS Mastery Analytics Card */}
       <DeckFsrsStatsCard
         stats={masteryData}
         isLoading={isMasteryLoading || isDeckLoading}
         totalCards={totalCards}
       />
 
-      {/* 3. Recent Practice History */}
+      {/* 2. Recent Practice History */}
       <DeckRecentHistory
         attempts={deckData?.recent_attempts || []}
         isLoading={isDeckLoading}

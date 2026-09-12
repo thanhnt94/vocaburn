@@ -3,21 +3,19 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
-#### Đảo Ngược Bố Cục Deck Detail Chuẩn Mobile-First (Tabs Lên Đỉnh, Docked Study Bar & Mode Selector Ở Đáy)
-- **Chuyển Toàn Bộ 4 Tab Phụ Lên Đầu Trang (`Overview | Cards | Roadmap | Settings`)**:
-  - Đưa thanh chuyển tab di động từ vị trí dưới đáy lên đỉnh ngay sát thanh tiêu đề bộ thẻ (`DeckDetailPage.tsx`).
-  - Hỗ trợ menu dropdown cài đặt (`Deck Settings` vs `My Settings`) xổ xuống mượt mà từ trên xuống.
-- **Thanh Hành Động Học Ở Đáy Ngón Cái (Docked Bottom Study Bar)**:
-  - Khi ở các tab `Overview`, `Roadmap`, `Settings`, đáy màn hình điện thoại được trang bị thanh học chuyên dụng gồm:
-    - **Nút Bộ Chọn Chế Độ Học (Study Mode Picker)**: Hiển thị chế độ hiện tại (`🧠 FSRS Mode ▾`, `⚡ Speed Skim ▾`, `📚 Review Mode ▾`, etc.). Bấm vào để mở Bottom Sheet chọn chế độ.
-    - **Nút Học Chính (Primary Study Now CTA)**: Nút gradient rực rỡ kèm số thẻ đến hạn (`due count`), biểu tượng sét và mũi tên tiến, cho phép học ngay chỉ với 1 chạm ngón cái tiện lợi.
-- **Bảng Chọn Chế Độ Học Đa Dạng (Study Mode Bottom Sheet Modal)**:
-  - Slide lên từ đáy màn hình với 2 nhóm chế độ rõ ràng:
-    - **Flashcard Memory Modes**: FSRS Spaced Repetition (kèm số thẻ đến hạn), Speed Skim (+3 XP), Review Mode (Continuous learned cards), New Cards (thẻ mới).
-    - **Practice & Quiz Tests**: MCQ Test (trắc nghiệm 4 đáp án), Typing Test (luyện gõ/chính tả), Listening Test (luyện nghe).
-  - Nhấp vào bất kỳ chế độ nào sẽ lưu lựa chọn và bắt đầu học ngay lập tức.
-- **Tối Ưu Trật Tự Nội Dung Tab Overview (`DeckOverviewTab.tsx`)**:
-  - Đưa khối `DeckQuickStudyLauncher` lên vị trí đầu tiên ngay dưới tab di động, giúp người dùng vừa vào bộ thẻ là nhìn thấy ngay các chế độ học mà không cần cuộn.
+#### Tinh Chỉnh Bố Cục Deck Detail: 2 Nút Học Đáy Màn Hình (Flashcard vs Practice) & Vá Lỗi Lịch Sử Luyện Tập
+- **Thay Thế Toàn Bộ Khối Start Learning Bằng 2 Nút Học Đáy (Docked Dual Study Buttons)**:
+  - **Loại bỏ hoàn toàn khối `DeckQuickStudyLauncher`** khỏi `DeckOverviewTab.tsx`, giúp trang Overview trở nên gọn gàng, tinh tế và tập trung tuyệt đối vào `Chỉ số trí nhớ FSRS` và `Lịch sử luyện tập gần đây`.
+  - **Loại bỏ nút `Study Now` ở header** trên mọi kích thước màn hình để tránh thừa thãi và tầm bấm quá cao.
+  - **Trang bị 2 nút học dưới đáy màn hình (`Flashcards` vs `Practice`)**:
+    - **Nút 1 - Học Flashcards (`⚡ Flashcards | ▾`)**: Tông tím chàm rực rỡ, hiển thị số thẻ đến hạn ôn (`due count`). Bấm thân nút để bắt đầu học FSRS ngay với 1 chạm; bấm mũi tên `▾` để mở bảng chọn các chế độ học thẻ (FSRS, Speed Skim, Continuous Review, Learn New Cards).
+    - **Nút 2 - Luyện tập (`🎯 Practice | ▾`)**: Tông xanh ngọc lục bảo, bấm thân nút để vào ngay trắc nghiệm 4 đáp án (MCQ Quiz); bấm mũi tên `▾` để mở bảng chọn các bài luyện tập (MCQ Test, Typing Test, Listening Test).
+- **Vá Triệt Để Lỗi "Chưa có lịch sử học tập" (Recent Practice History Bugfix)**:
+  - **Nguyên nhân gốc rễ**: Endpoint `GET /api/v1/deck/{deck_id}/data` trong backend trước đây không trả về trường `recent_attempts`, khiến component `DeckRecentHistory` luôn nhận danh sách rỗng `[]`. Đồng thời trong `record_answer`, bảng `deck_attempts` không được cập nhật số lượng thẻ `total_cards` và điểm `score`.
+  - **Khắc phục toàn diện**:
+    - Trong `play.py` (`get_deck_data`): Truy vấn và tính toán tự động số thẻ, tỷ lệ chính xác (`accuracy`), thời gian bắt đầu và hoàn thành của các phiên học gần nhất từ `DeckAttempt` và `UserAnswer`, trả về đầy đủ qua trường `recent_attempts`.
+    - Trong `record_answer`: Tự động nhóm các câu trả lời theo phiên học đang diễn ra (trong khoảng 45 phút), tự động cập nhật tích lũy `total_cards`, `score`, và mốc thời gian `completed_at` theo thời gian thực.
+    - Chuẩn hóa giao diện `DeckRecentHistory.tsx` theo chuẩn tiếng Anh (`Recent Study History`, `No study history recorded yet`), hỗ trợ hiển thị đầy đủ icon và nhãn của toàn bộ các chế độ học (`FSRS`, `Speed Skim`, `Review`, `New`, `MCQ`, `Typing`, `Listening`).
 
 #### Chuyển Đổi Trang Roadmap Bằng Cuộn Dọc (Vertical Snap Scroll) & Chuyển Tab Bằng Kéo Ngang (Horizontal Tab Swipe)
 - **Tách Biệt Tuyệt Đối 2 Trục Cử Chỉ (Separation of Gestures by Axis)**:
