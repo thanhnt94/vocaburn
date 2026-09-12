@@ -99,10 +99,10 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   handleNext
 }) => {
   useEffect(() => {
-    if (cardDragControls) {
+    if (cardDragControls && !isFlyingOut) {
       cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
     }
-  }, [currentIndex, cardDragControls]);
+  }, [currentIndex, currentQuestion?.id, isFlyingOut, cardDragControls]);
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">

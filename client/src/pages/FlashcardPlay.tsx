@@ -1684,17 +1684,30 @@ export default function FlashcardPlay() {
           setActiveDragGrade(null);
           setDragOffset({ x: 0, y: 0 });
 
-          cardDragControls.start({
-            x: targetX,
-            y: targetY,
-            opacity: 0,
-            rotate: targetRotate,
-            transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
-          }).then(() => {
+          // Play flyout animation safely (fire-and-forget, never hang on promise)
+          try {
+            cardDragControls.start({
+              x: targetX,
+              y: targetY,
+              opacity: 0,
+              rotate: targetRotate,
+              transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] }
+            }).catch(() => {});
+          } catch (e) {}
+
+          // Advance to next card via timer (guaranteed execution regardless of Framer Motion gesture state)
+          setTimeout(() => {
             handleNext();
-          }).catch(() => {
-            handleNext();
-          });
+          }, 160);
+
+          // Absolute failsafe: after 450ms, ensure the card state is never stuck off-screen or invisible
+          setTimeout(() => {
+            setIsFlyingOut(false);
+            try {
+              cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+            } catch (e) {}
+          }, 450);
+
           return;
         }
       } else if (dir === 'undo') {
@@ -1789,6 +1802,14 @@ export default function FlashcardPlay() {
         // Immediately submit rating! This marks selectedOption (removing the 4 buttons)
         // and triggers handleNext to load the next question at the end of the flyout!
         handleReviewRating(targetGrade, true);
+
+        // Absolute failsafe: ensure card is never stuck off-screen
+        setTimeout(() => {
+          setIsFlyingOut(false);
+          try {
+            cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+          } catch (e) {}
+        }, 500);
       } else {
         // Auto Next is OFF:
         // Do NOT fly out off-screen. Animate card back to center and submit rating without auto-advancing
@@ -2359,7 +2380,14 @@ export default function FlashcardPlay() {
       });
       if (res.data) {
         if (res.data.is_all_completed || res.data.next_index === -1) {
+          setIsFlyingOut(false);
+          try {
+            cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+          } catch (e) {}
           setFsrsCompletionData(res.data);
+          if (activeMode === 'roadmap' && refetchRoadmap) {
+            refetchRoadmap();
+          }
           return;
         } else {
           setFsrsCompletionData(null);
@@ -2373,7 +2401,18 @@ export default function FlashcardPlay() {
       }
     } catch (err) {
       console.error("Failed to fetch next card from backend", err)
+      setIsFlyingOut(false);
+      try {
+        cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+      } catch (e) {}
       nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+    }
+
+    if (nextIdx === currentIndex) {
+      setIsFlyingOut(false);
+      try {
+        cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+      } catch (e) {}
     }
 
     navigateToQuestion(nextIdx, updatedAnswers)
@@ -3491,7 +3530,10 @@ export default function FlashcardPlay() {
   };
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
-    return Boolean((activeMode === 'fsrs' || activeMode === 'review' || activeMode === 'roadmap') && fsrsCompletionData?.is_all_completed);
+    return Boolean(
+      (activeMode === 'fsrs' || activeMode === 'review' || activeMode === 'roadmap') &&
+      (fsrsCompletionData?.is_all_completed || fsrsCompletionData?.next_index === -1)
+    );
   }, [activeMode, fsrsCompletionData]);
 
   useEffect(() => {
