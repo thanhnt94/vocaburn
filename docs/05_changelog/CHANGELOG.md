@@ -3,6 +3,16 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Tinh Chỉnh Giao Diện Modal Học Thẻ & Thanh Đáy Deck Detail: Tràn Viền 100% & Khắc Phục Đè Lớp Bottom Nav
+- **Khắc Phục Lỗi Mobile Bottom Nav Đè Lên Bảng Chọn Chế Độ Học (Z-Index Stacking Context Fix)**:
+  - **Nguyên nhân**: Thanh điều hướng toàn cục của Layout (`Layout.tsx`) có `z-[120]`, trong khi bảng chọn chế độ học (`Flashcard / Practice Modal Sheets`) nằm bên trong `DeckDetailPage` vốn có `fixed inset-0 bottom-[60px]` và `z-50`. Điều này khiến bảng chọn chế độ học bị kẹt trong stacking context con và bị thanh bottom nav đè lên một nửa danh sách các chế độ ở đáy màn hình.
+  - **Khắc phục triệt để bằng `createPortal`**: Sử dụng `createPortal(..., document.body)` với `z-[300]` đưa thẳng modal sheet ra `document.body`. Lớp phủ backdrop tối mờ và bảng chọn chế độ học giờ đây phủ toàn diện lên trên thanh bottom nav, giúp hiển thị trọn vẹn và bấm chọn dễ dàng mọi chế độ học.
+- **Tràn Viền 100% Hai Bên Cạnh Màn Hình (Full-Width Edge-to-Edge Design)**:
+  - **Loại bỏ hoàn toàn khe hở thừa hai bên (`thừa thừa 2 bên`)** khi co nhỏ cửa sổ trình duyệt trên máy tính (narrow window / responsive test) cũng như trên điện thoại:
+    - Bỏ ràng buộc `max-w-lg` (512px) và `sm:items-center` / `sm:rounded-3xl` ở modal sheet. Bảng chọn chế độ học giờ đây neo cố định áp đáy màn hình (`items-end justify-center`) với `w-full rounded-t-3xl`, chạm sát 2 cạnh viền màn hình tuyệt đối sạch sẽ và chuyên nghiệp.
+    - Bên trong modal sheet, danh sách các nút chế độ học được bọc bởi `max-w-2xl mx-auto w-full` để giữ tỉ lệ hiển thị cân đối hoàn hảo trên màn hình lớn.
+    - Thanh chứa 2 nút học đáy màn hình (`Docked Bottom Study Bar`) được nâng cấp lên `max-w-[1700px] 2xl:max-w-[1900px] mx-auto`, đồng bộ chuẩn lề ngang với thanh header và nội dung các tab của toàn bộ trang Deck Detail.
+
 #### Tinh Chỉnh Bố Cục Deck Detail: 2 Nút Học Đáy Màn Hình (Flashcard vs Practice) & Vá Lỗi Lịch Sử Luyện Tập
 - **Thay Thế Toàn Bộ Khối Start Learning Bằng 2 Nút Học Đáy (Docked Dual Study Buttons)**:
   - **Loại bỏ hoàn toàn khối `DeckQuickStudyLauncher`** khỏi `DeckOverviewTab.tsx`, giúp trang Overview trở nên gọn gàng, tinh tế và tập trung tuyệt đối vào `Chỉ số trí nhớ FSRS` và `Lịch sử luyện tập gần đây`.

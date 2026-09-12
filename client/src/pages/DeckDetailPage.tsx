@@ -1,4 +1,5 @@
 import React, { useState, Suspense, lazy } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { 
@@ -713,8 +714,8 @@ export function DeckDetailPage() {
 
       {/* ═══════════ DOCKED BOTTOM STUDY BAR (TWO STUDY BUTTONS: FLASHCARD & PRACTICE) ═══════════ */}
       {activeTab !== 'cards' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <div className="w-full max-w-lg mx-auto flex items-center gap-2.5">
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2.5">
             {/* 1. Flashcard Study Button (Split: 1-Tap Start | ▾ Mode Menu) */}
             <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20 overflow-hidden">
               <button
@@ -766,208 +767,218 @@ export function DeckDetailPage() {
       )}
 
       {/* ═══════════ FLASHCARD MODES BOTTOM SHEET ═══════════ */}
-      <AnimatePresence>
-        {studySheetType === 'flashcard' && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
-              onClick={() => setStudySheetType(null)}
-            />
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {studySheetType === 'flashcard' && (
+            <div className="fixed inset-0 z-[300] flex items-end justify-center">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+                onClick={() => setStudySheetType(null)}
+              />
 
-            {/* Modal Sheet */}
-            <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/90 shadow-2xl p-4 sm:p-5 max-h-[85vh] flex flex-col z-10 text-left overflow-hidden pb-[max(1rem,env(safe-area-inset-bottom))]"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-9 h-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-base shadow-2xs">
-                    ⚡
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-800">Flashcard Study Modes</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Select a spaced repetition or review method</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStudySheetType(null)}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Modes List */}
-              <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
-                {STUDY_MODES.slice(0, 4).map((mode) => {
-                  const isSelected = selectedStudyMode === mode.id
-                  return (
+              {/* Modal Sheet */}
+              <motion.div
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="relative w-full bg-white rounded-t-3xl border-t border-slate-200/90 shadow-2xl p-4 sm:p-5 max-h-[85vh] flex flex-col z-10 text-left overflow-hidden pb-[max(1.75rem,env(safe-area-inset-bottom))]"
+              >
+                <div className="w-full max-w-2xl mx-auto flex flex-col flex-1 min-h-0">
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-9 h-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-base shadow-2xs">
+                        ⚡
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800">Flashcard Study Modes</h3>
+                        <p className="text-[11px] text-slate-400 font-medium">Select a spaced repetition or review method</p>
+                      </div>
+                    </div>
                     <button
-                      key={mode.id}
                       type="button"
-                      onClick={() => handleLaunchStudy(mode.id)}
-                      className={cn(
-                        "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
-                        isSelected
-                          ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
-                          : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
-                      )}
+                      onClick={() => setStudySheetType(null)}
+                      className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
-                          isSelected ? "bg-white shadow-xs" : "bg-slate-100"
-                        )}>
-                          {mode.emoji}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black text-slate-800 truncate">
-                              {mode.fullName}
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Modes List */}
+                  <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
+                    {STUDY_MODES.slice(0, 4).map((mode) => {
+                      const isSelected = selectedStudyMode === mode.id
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => handleLaunchStudy(mode.id)}
+                          className={cn(
+                            "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                            isSelected
+                              ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
+                              : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
+                              isSelected ? "bg-white shadow-xs" : "bg-slate-100"
+                            )}>
+                              {mode.emoji}
                             </span>
-                            {mode.badge && (
-                              <span className={cn(
-                                "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
-                                mode.badgeColor || "bg-slate-100 text-slate-600"
-                              )}>
-                                {mode.badge(dueCount)}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-800 truncate">
+                                  {mode.fullName}
+                                </span>
+                                {mode.badge && (
+                                  <span className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
+                                    mode.badgeColor || "bg-slate-100 text-slate-600"
+                                  )}>
+                                    {mode.badge(dueCount)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                {mode.desc}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
                               </span>
                             )}
+                            <ArrowRight className="w-4 h-4 text-slate-400" />
                           </div>
-                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                            {mode.desc}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        {isSelected && (
-                          <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                          </span>
-                        )}
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* ═══════════ PRACTICE MODES BOTTOM SHEET ═══════════ */}
-      <AnimatePresence>
-        {studySheetType === 'practice' && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
-              onClick={() => setStudySheetType(null)}
-            />
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {studySheetType === 'practice' && (
+            <div className="fixed inset-0 z-[300] flex items-end justify-center">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+                onClick={() => setStudySheetType(null)}
+              />
 
-            {/* Modal Sheet */}
-            <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/90 shadow-2xl p-4 sm:p-5 max-h-[85vh] flex flex-col z-10 text-left overflow-hidden pb-[max(1rem,env(safe-area-inset-bottom))]"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base shadow-2xs">
-                    🎯
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-800">Practice & Quiz Tests</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Test your memory with interactive quizzes & exercises</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStudySheetType(null)}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Modes List */}
-              <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
-                {STUDY_MODES.slice(4).map((mode) => {
-                  const isSelected = selectedStudyMode === mode.id
-                  return (
+              {/* Modal Sheet */}
+              <motion.div
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="relative w-full bg-white rounded-t-3xl border-t border-slate-200/90 shadow-2xl p-4 sm:p-5 max-h-[85vh] flex flex-col z-10 text-left overflow-hidden pb-[max(1.75rem,env(safe-area-inset-bottom))]"
+              >
+                <div className="w-full max-w-2xl mx-auto flex flex-col flex-1 min-h-0">
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base shadow-2xs">
+                        🎯
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-black text-slate-800">Practice & Quiz Tests</h3>
+                        <p className="text-[11px] text-slate-400 font-medium">Test your memory with interactive quizzes & exercises</p>
+                      </div>
+                    </div>
                     <button
-                      key={mode.id}
                       type="button"
-                      onClick={() => handleLaunchStudy(mode.id)}
-                      className={cn(
-                        "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
-                        isSelected
-                          ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs"
-                          : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
-                      )}
+                      onClick={() => setStudySheetType(null)}
+                      className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
-                          isSelected ? "bg-white shadow-xs" : "bg-slate-100"
-                        )}>
-                          {mode.emoji}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black text-slate-800 truncate">
-                              {mode.fullName}
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Modes List */}
+                  <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
+                    {STUDY_MODES.slice(4).map((mode) => {
+                      const isSelected = selectedStudyMode === mode.id
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => handleLaunchStudy(mode.id)}
+                          className={cn(
+                            "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                            isSelected
+                              ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs"
+                              : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
+                              isSelected ? "bg-white shadow-xs" : "bg-slate-100"
+                            )}>
+                              {mode.emoji}
                             </span>
-                            {mode.badge && (
-                              <span className={cn(
-                                "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
-                                mode.badgeColor || "bg-slate-100 text-slate-600"
-                              )}>
-                                {mode.badge(dueCount)}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-800 truncate">
+                                  {mode.fullName}
+                                </span>
+                                {mode.badge && (
+                                  <span className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
+                                    mode.badgeColor || "bg-slate-100 text-slate-600"
+                                  )}>
+                                    {mode.badge(dueCount)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                {mode.desc}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
                               </span>
                             )}
+                            <ArrowRight className="w-4 h-4 text-slate-400" />
                           </div>
-                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                            {mode.desc}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        {isSelected && (
-                          <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                          </span>
-                        )}
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }
