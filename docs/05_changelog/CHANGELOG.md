@@ -3,6 +3,21 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Thiết Kế Lại Thanh Thông Tin Đầu Thẻ (Card Top HUD): Bổ Sung Số Lần Xem, Tỷ Lệ Chính Xác & Gộp Cụm Tinh Tế
+- **Hiển Thị Tần Suất Học / Số Lần Xem Thẻ (`Review / View Count`)**:
+  - Bổ sung huy hiệu số lần xem (`currentQuestion.stats?.total`) với icon con mắt `Eye` trực quan: ví dụ `👁 3 views` (hoặc `👁 0 views` cho thẻ mới).
+  - Tích hợp tỷ lệ chính xác tức thì (`accuracy%`) ngay bên cạnh số lần xem (ví dụ: `👁 4 views • 75%`), đổi màu thông minh theo mức độ ghi nhớ (Xanh lục $\ge 80\%$, Vàng $\ge 50\%$, Đỏ $< 50\%$).
+  - Nhấp trực tiếp vào huy hiệu số lần xem để mở ngăn kéo thống kê chi tiết của thẻ (`handleOpenCardHub('stats')`) với tooltip giải thích đầy đủ (số lần đúng, tỷ lệ phần trăm, thời gian phản hồi trung bình).
+- **Thiết Kế Lại Giao Diện Hàng Đầu Thẻ Tinh Gọn, Đẹp Mắt & Chuẩn Mobile-First**:
+  - **Gộp Cụm Nhận Diện Thẻ Hợp Nhất (Unified Face & Index Pill)**:
+    - Thay thế 2 khối hộp thô tách rời bằng 1 pill liền mạch bo góc cao cấp: `[ FRONT • #12 ]` (tông xanh chàm `indigo-50` dịu mát) và `[ BACK • #12 ]` (tông xanh ngọc lục bảo `emerald-50`).
+  - **Tối Ưu Hóa Nhãn Trạng Thái Ghi Nhớ (Mastery Status Pill)**:
+    - Thu gọn padding và typography (`px-2 sm:px-2.5 py-1 text-[9px] sm:text-[9.5px]`), tạo bóng siêu nhẹ `shadow-2xs`, có thể nhấp để xem chi tiết mức độ thông thạo thẻ.
+  - **Nút Bookmark / Star Tinh Tế**:
+    - Chuẩn hóa kích thước `w-7 sm:w-7.5 h-7 sm:h-7.5` đồng bộ hoàn hảo với các pill xung quanh, hiệu ứng active bấm nảy mượt mà.
+  - **Khả Năng Co Giãn Hoàn Hảo (Responsive)**:
+    - Trên màn hình nhỏ di động (375px), pill lượt xem tự động rút gọn thành `👁 3x • 100%`, đảm bảo vừa vặn tuyệt đối trên 1 hàng duy nhất mà không bao giờ bị tràn dòng hay chật chội.
+
 #### Hỗ Trợ Cử Chỉ Vuốt Chuyển Câu (`NEXT CARD`) & Hoàn Tác (`UNDO`) Ở Cả 2 Mặt Thẻ Sau Khi Đã Đánh Giá
 - **Cho Phép Vuốt Chuyển Thẻ Kể Cả Khi Đã Lật Về Mặt Trước**:
   - **Vấn đề**: Trước đây, cờ `canDragPostRate` yêu cầu thẻ phải đang ở trạng thái lật mặt sau (`isFlipped === true`). Khi người học đã đánh giá thẻ xong (`hasRated === true`) và nhấp lật thẻ lại về mặt trước (`isFlipped === false`) để đọc lại từ vựng/câu hỏi, cử chỉ kéo vuốt bị vô hiệu hóa khiến người dùng không thể vuốt phải để sang câu tiếp theo.

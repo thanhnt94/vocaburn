@@ -4041,6 +4041,7 @@ export default function FlashcardPlay() {
                   renderFlyToolbarNode={renderFlyToolbar}
                   activeMode={effectiveCardMode}
                   handleNext={handleNext}
+                  handleOpenCardHub={handleOpenCardHub}
                 />
               )}
             </motion.div>
