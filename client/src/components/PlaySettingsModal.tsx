@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   RotateCcw,
   Settings,
+  Sliders,
   BookOpen,
   BookmarkPlus,
   BookmarkCheck,
@@ -42,7 +43,7 @@ import {
   type StudyTemplateItem,
 } from '@/components/common/study'
 
-export type PlaySettingsTab = 'mode' | 'gestures' | 'display' | 'audio' | 'templates'
+export type PlaySettingsTab = 'mode' | 'gestures' | 'display' | 'audio'
 
 interface PlaySettingsModalProps {
   isOpen: boolean;
@@ -408,14 +409,13 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
     }
   }
 
-  const isDeckDefaultActive = selectedProfileId === 'deck-default'
+  const isDeckDefaultActive = !isCustomized && (settingOrigin === 'deck_default' || selectedProfileId === 'deck-default')
 
   const TABS: { id: PlaySettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'mode', label: 'Mode', icon: Brain },
     { id: 'gestures', label: 'Gestures', icon: Move },
     { id: 'display', label: 'Display', icon: Layers },
     { id: 'audio', label: 'Audio', icon: Volume2 },
-    { id: 'templates', label: 'Presets', icon: BookmarkCheck },
   ]
 
   return (
@@ -445,32 +445,27 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             <div className="flex items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
-                  <BookmarkCheck className="w-4 h-4" />
+                  <Sliders className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 leading-tight">
-                      Study Settings
+                      Deck Settings
                     </h3>
-                    {isDeckDefaultActive ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                        <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
-                        Deck Default
-                      </span>
-                    ) : selectedProfileId === 'current-custom' ? (
+                    {isCustomized ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/80">
                         <Sparkles className="w-2.5 h-2.5 text-amber-600" />
                         Customized
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                        <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
-                        Template Active
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                        <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                        Deck Default
                       </span>
                     )}
                   </div>
                   <p className="text-[9.5px] font-bold text-slate-400 leading-none mt-0.5">
-                    Configure mode, gestures, display & audio for this session
+                    Configure learning mode, gestures, display & audio for this deck
                   </p>
                 </div>
               </div>
@@ -486,7 +481,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 
             {/* TAB NAVIGATION BAR */}
             <div className="px-4 pt-3 pb-1 bg-white border-b border-slate-100 shrink-0">
-              <div className="grid grid-cols-5 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
+              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
                 {TABS.map((tab) => {
                   const Icon = tab.icon
                   const isActive = activeTab === tab.id
@@ -512,33 +507,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 
             {/* MODAL BODY */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-              {/* ═══════════ TAB 1: TEMPLATES ═══════════ */}
-              {activeTab === 'templates' && (
-                <div className="space-y-3 animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                      Choose study template (instant apply)
-                    </span>
-                    {onCreateCustomProfile && (
-                      <button
-                        type="button"
-                        onClick={() => setIsSaveModalOpen(true)}
-                        className="text-[10.5px] font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
-                      >
-                        <BookmarkPlus className="w-3 h-3" />
-                        <span>Save Current as Template</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <StudyTemplateSelector
-                    templates={allTemplates}
-                    selectedId={selectedProfileId}
-                    onSelect={handleSelectTemplate}
-                    compact={true}
-                  />
-                </div>
-              )}
 
               {/* ═══════════ TAB 2: MODE ═══════════ */}
               {activeTab === 'mode' && (
@@ -1087,56 +1055,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Save New Template Modal */}
-            {isSaveModalOpen && (
-              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-                <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                      Save as New Template
-                    </span>
-                    <button 
-                      type="button" 
-                      onClick={() => setIsSaveModalOpen(false)}
-                      className="text-slate-400 hover:text-slate-700 cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    Save current configuration into a reusable template accessible across all decks.
-                  </p>
-                  <input
-                    type="text"
-                    value={newProfileName}
-                    onChange={(e) => setNewProfileName(e.target.value)}
-                    placeholder="e.g., Japanese Listening, Speedy Review..."
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-medium"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveProfile()
-                    }}
-                  />
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsSaveModalOpen(false)}
-                      className="px-3 py-1.5 text-[10.5px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!newProfileName.trim() || isSyncing}
-                      onClick={handleSaveProfile}
-                      className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                    >
-                      {isSyncing ? 'Saving...' : 'Save Template'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </motion.div>
         </div>
       )}

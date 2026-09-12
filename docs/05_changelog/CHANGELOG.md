@@ -3,6 +3,33 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Khắc Phục Lỗi Lưu Cài Đặt Nhanh (Quick Settings Persistence) & Đơn Giản Hóa Kiến Trúc Cài Đặt Bộ Thẻ
+- **Khắc Phục Triệt Để Lỗi Không Lưu Cài Đặt Khi F5 / Reload**:
+  - **Nguyên nhân gốc rễ**: Trước đây, `FlashcardPlay.tsx` đọc `showActionDock` và `swipeToRate` từ `userSettings` của `useAppStore()` (vốn chỉ đại diện cho bảng `user_global_settings` chung và không chứa 2 cờ này). Mỗi khi reload trang, giá trị trả về `undefined` khiến hệ thống tự động fallback về mặc định (`both`), ghi đè toàn bộ lựa chọn người dùng vừa chỉnh.
+  - **Khắc phục ở Backend (`app/modules/deck/utils.py`)**:
+    - Bổ sung chính thức `show_action_dock: True` và `swipe_to_rate: True` vào `SYSTEM_STUDY_DEFAULTS` và `STUDY_SETTINGS_KEYS`.
+    - Thêm kiểm tra và chuẩn hóa kiểu Boolean trong hàm `normalize_study_setting_value`.
+    - Cập nhật hàm `resolve_effective_study_settings` đảm bảo đồng bộ 2 chiều giữa `card_rating_mode`, `show_action_dock` và `swipe_to_rate` cả trong dữ liệu lưu trữ `UserDeckSettings` lẫn kết quả trả về cho client.
+  - **Khắc phục ở Frontend (`usePlaySettings.ts` & `FlashcardPlay.tsx`)**:
+    - `usePlaySettings` hook giờ đây quản lý và xuất trực tiếp `showActionDock`, `setShowActionDock`, `swipeToRate`, `setSwipeToRate`, `cardRatingMode`, `setCardRatingMode`.
+    - `FlashcardPlay.tsx` lấy trực tiếp các giá trị này từ `usePlaySettings` (gắn chặt với `deck_id`), loại bỏ hoàn toàn việc phụ thuộc vào store global `useAppStore`.
+    - Khi thay đổi trong Quick Settings hoặc Modal Cài Đặt, dữ liệu được ghi tức thì vào state của hook và lưu bền vững vào bảng `UserDeckSettings` của riêng người dùng trên bộ thẻ đó.
+    - Đồng bộ hóa tính năng `Auto Next`: gắn liền trực tiếp với cấu hình bền vững `quick_learn_enabled` trên backend, xóa bỏ biến cục bộ tạm thời gây mất trạng thái khi tải lại trang.
+
+#### Tối Giản Hóa Giao Diện Cài Đặt: Bỏ Tab Template / Preset Rối Rắm & Cá Nhân Hóa Độc Lập Từng Bộ Thẻ
+- **Loại Bỏ Hoàn Toàn Tab "Presets / Templates" Khỏi Giao Diện Học**:
+  - Loại bỏ các tầng thiết lập trung gian phức tạp (tạo mẫu cài đặt, quản lý template, preset cấu hình) vốn gây rối rắm và khó hiểu cho người học.
+  - Thu gọn thanh điều hướng `PlaySettingsModal` từ 5 tab về **4 tab chuẩn mực, cân đối và tập trung chuyên sâu**:
+    1. **Mode**: Lựa chọn chế độ học (FSRS, Speed Skim, Auto Play, Review Due, Learn New) và thứ tự xáo trộn thẻ (Shuffle).
+    2. **Gestures**: Tùy chỉnh cử chỉ chạm lật (Tap to Flip), chế độ đánh giá (Both / Swipe / Buttons), và hiển thị thanh nút dock.
+    3. **Display**: Căn lề thẻ (Trái / Giữa), cỡ chữ văn bản, chế độ hiển thị hình ảnh, và thông số FSRS.
+    4. **Audio**: Cài đặt Autoplay 4 nấc (Both / Front / Back / Off), hiệu ứng âm thanh (SFX), và rung phản hồi (Haptic).
+- **Cơ Chế Cá Nhân Hóa Thẻ Trực Quan, Tự Động & Độc Lập**:
+  - Người dùng chỉ cần tinh chỉnh trực tiếp trên bộ thẻ đang học thông qua bảng **Quick Controls** hoặc **Deck Settings**.
+  - Mọi thay đổi lưu độc lập cho riêng người dùng trên bộ thẻ đó (`UserDeckSettings`).
+  - Khi người dùng mở sang một bộ thẻ khác lần đầu, bộ thẻ mới sẽ tải chuẩn mực theo giá trị mặc định của người tạo bộ thẻ (`deck_default`). Người dùng có thể tùy ý cá nhân hóa độc lập mà không lo bị ghi đè chéo sang các bộ thẻ khác.
+  - Nút **Reset to Deck Default** ở chân modal cho phép người dùng khôi phục cài đặt gốc của bộ thẻ bất kỳ lúc nào với 1 chạm.
+
 #### Bổ Sung Cử Chỉ Vuốt Sau Khi Đánh Giá (Post-Rating Gestures): Vuốt Phải Chuyển Câu, Vuốt Trái Undo & Nhấp Thanh Đếm Ngược
 - **Cử Chỉ Vuốt Sang Phải $\rightarrow$ Chuyển Câu Tiếp Theo (`NEXT CARD`)**:
   - Khi đã đánh giá thẻ xong (mặt sau) và ở chế độ `Swipe Only` (hoặc tắt `Auto Next`):

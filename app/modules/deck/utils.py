@@ -122,7 +122,9 @@ SYSTEM_STUDY_DEFAULTS = {
     "quick_learn_enabled": False,   # boolean
     "show_fsrs": True,              # boolean
     "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
-    "card_rating_mode": "both"      # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
+    "card_rating_mode": "both",     # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
+    "show_action_dock": True,       # boolean
+    "swipe_to_rate": True           # boolean
 }
 
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
@@ -327,7 +329,7 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         if val_str in ("back", "mặt sau", "sau", "chỉ mặt sau"):
             return "back"
         return "always"
-    if key in ("random_enabled", "sfx_enabled", "haptic_enabled", "quick_learn_enabled", "show_fsrs"):
+    if key in ("random_enabled", "sfx_enabled", "haptic_enabled", "quick_learn_enabled", "show_fsrs", "show_action_dock", "swipe_to_rate"):
         if isinstance(val, bool):
             return val
         val_str = str(val).lower().strip()
@@ -371,6 +373,23 @@ def resolve_effective_study_settings(
     Tier 2 (User Default): User Global Account Settings (user_global_settings)
     Tier 3 (King / Highest): User Deck Overrides (UserDeckSettings.settings)
     """
+    import json
+    if isinstance(deck_practice_settings, str):
+        try:
+            deck_practice_settings = json.loads(deck_practice_settings)
+        except Exception:
+            deck_practice_settings = None
+    if isinstance(user_deck_settings, str):
+        try:
+            user_deck_settings = json.loads(user_deck_settings)
+        except Exception:
+            user_deck_settings = None
+    if isinstance(user_global_settings, str):
+        try:
+            user_global_settings = json.loads(user_global_settings)
+        except Exception:
+            user_global_settings = None
+
     creator_defaults = {}
     if deck_practice_settings and isinstance(deck_practice_settings, dict):
         raw_cd = deck_practice_settings.get("study_defaults")
@@ -412,10 +431,44 @@ def resolve_effective_study_settings(
                 if norm is not None:
                     user_overrides[k] = norm
 
+    # Keep card_rating_mode, show_action_dock, and swipe_to_rate harmonized in user overrides
+    if "card_rating_mode" in user_overrides:
+        crm = user_overrides["card_rating_mode"]
+        if crm == "buttons":
+            if "show_action_dock" not in user_overrides: user_overrides["show_action_dock"] = True
+            if "swipe_to_rate" not in user_overrides: user_overrides["swipe_to_rate"] = False
+        elif crm in ("swipe_4way", "swipe_2way"):
+            if "show_action_dock" not in user_overrides: user_overrides["show_action_dock"] = False
+            if "swipe_to_rate" not in user_overrides: user_overrides["swipe_to_rate"] = True
+        elif crm == "both":
+            if "show_action_dock" not in user_overrides: user_overrides["show_action_dock"] = True
+            if "swipe_to_rate" not in user_overrides: user_overrides["swipe_to_rate"] = True
+    elif "show_action_dock" in user_overrides or "swipe_to_rate" in user_overrides:
+        sad = user_overrides.get("show_action_dock", True)
+        str_val = user_overrides.get("swipe_to_rate", True)
+        if sad and str_val:
+            user_overrides["card_rating_mode"] = "both"
+        elif sad:
+            user_overrides["card_rating_mode"] = "buttons"
+        elif str_val:
+            user_overrides["card_rating_mode"] = "swipe_4way"
+
     # Merge: System Defaults <- Creator Defaults <- User Overrides
     effective = dict(SYSTEM_STUDY_DEFAULTS)
     effective.update(creator_defaults)
     effective.update(user_overrides)
+
+    # Re-harmonize effective rating controls
+    eff_crm = effective.get("card_rating_mode", "both")
+    if eff_crm == "buttons":
+        effective["show_action_dock"] = True
+        effective["swipe_to_rate"] = False
+    elif eff_crm in ("swipe_4way", "swipe_2way"):
+        effective["show_action_dock"] = False
+        effective["swipe_to_rate"] = True
+    elif eff_crm == "both":
+        effective["show_action_dock"] = True
+        effective["swipe_to_rate"] = True
 
     is_customized = len(user_overrides) > 0
     

@@ -72,9 +72,10 @@ export function usePlaySettings(
   const [backValign, setBackValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.back_valign)
   const [backHalign, setBackHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.back_halign)
   const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
-  const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode | undefined>(undefined)
+  const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode>(DEFAULT_STUDY_SETTINGS.card_rating_mode || 'both')
   const [tapToFlip, setTapToFlipState] = useState<boolean | undefined>(undefined)
-  const [showActionDock, setShowActionDockState] = useState<boolean | undefined>(undefined)
+  const [showActionDock, setShowActionDockState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_action_dock ?? true)
+  const [swipeToRate, setSwipeToRateState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.swipe_to_rate ?? true)
 
   // Creator baseline & user customization status & 3-tier origin & profiles
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
@@ -193,20 +194,33 @@ export function usePlaySettings(
         setTapToFlipState(effectiveSettings.card_flip_trigger !== 'button_only')
       }
 
-      if (effectiveSettings.show_action_dock !== undefined) {
-        setShowActionDockState(effectiveSettings.show_action_dock)
-      } else if (effectiveSettings.card_flip_trigger !== undefined) {
-        setShowActionDockState(effectiveSettings.card_flip_trigger !== 'tap')
-      }
-
       if (effectiveSettings.card_rating_mode !== undefined) {
-        setCardRatingModeState(effectiveSettings.card_rating_mode)
+        const mode = effectiveSettings.card_rating_mode
+        setCardRatingModeState(mode)
+        if (mode === 'buttons') {
+          setShowActionDockState(true)
+          setSwipeToRateState(false)
+        } else if (mode === 'swipe_4way' || mode === 'swipe_2way') {
+          setShowActionDockState(false)
+          setSwipeToRateState(true)
+        } else {
+          setShowActionDockState(true)
+          setSwipeToRateState(true)
+        }
       } else if (userStudySettings && userStudySettings.card_rating_mode !== undefined) {
         setCardRatingModeState(userStudySettings.card_rating_mode)
       } else if (creatorStudyDefaults && creatorStudyDefaults.card_rating_mode !== undefined) {
         setCardRatingModeState(creatorStudyDefaults.card_rating_mode)
-      } else {
-        setCardRatingModeState(undefined)
+      }
+
+      if (effectiveSettings.show_action_dock !== undefined) {
+        setShowActionDockState(Boolean(effectiveSettings.show_action_dock))
+      } else if (effectiveSettings.card_flip_trigger !== undefined) {
+        setShowActionDockState(effectiveSettings.card_flip_trigger !== 'tap')
+      }
+
+      if (effectiveSettings.swipe_to_rate !== undefined) {
+        setSwipeToRateState(Boolean(effectiveSettings.swipe_to_rate))
       }
     }
   }, [])
@@ -227,9 +241,22 @@ export function usePlaySettings(
     if (updates.front_font_size !== undefined) setFrontFontSizeState(updates.front_font_size)
     if (updates.back_valign !== undefined) setBackValignState(updates.back_valign)
     if (updates.card_flip_trigger !== undefined) setCardFlipTriggerState(updates.card_flip_trigger)
-    if (updates.card_rating_mode !== undefined) setCardRatingModeState(updates.card_rating_mode)
+    if (updates.card_rating_mode !== undefined) {
+      setCardRatingModeState(updates.card_rating_mode)
+      if (updates.card_rating_mode === 'buttons') {
+        setShowActionDockState(true)
+        setSwipeToRateState(false)
+      } else if (updates.card_rating_mode === 'swipe_4way' || updates.card_rating_mode === 'swipe_2way') {
+        setShowActionDockState(false)
+        setSwipeToRateState(true)
+      } else if (updates.card_rating_mode === 'both') {
+        setShowActionDockState(true)
+        setSwipeToRateState(true)
+      }
+    }
     if (updates.tap_to_flip !== undefined) setTapToFlipState(updates.tap_to_flip)
     if (updates.show_action_dock !== undefined) setShowActionDockState(updates.show_action_dock)
+    if (updates.swipe_to_rate !== undefined) setSwipeToRateState(updates.swipe_to_rate)
 
     setIsCustomized(true)
     setSettingOrigin('deck_override')
@@ -246,17 +273,29 @@ export function usePlaySettings(
     if (!deckId || deckId === 'quick') return
 
     try {
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         settings: {
           ...updates,
           study_settings: updates
         },
         is_creator: false
       })
+      if (res.data?.effective_study_settings) {
+        syncStudySettings(
+          res.data.effective_study_settings,
+          res.data.creator_study_defaults,
+          res.data.user_study_settings,
+          res.data.is_study_customized,
+          res.data.setting_origin,
+          res.data.user_global_settings,
+          res.data.study_profiles,
+          res.data.active_profile_id
+        )
+      }
     } catch (err) {
       console.error('[usePlaySettings] Error saving user deck study settings:', err)
     }
-  }, [deckId, modeSettings, setModeSettings])
+  }, [deckId, modeSettings, setModeSettings, syncStudySettings])
 
   // Explicit setters for individual options
   const setSfxEnabled = useCallback((enabled: boolean) => {
@@ -313,6 +352,18 @@ export function usePlaySettings(
     saveGeneralSettings({ back_halign: mode })
   }, [saveGeneralSettings])
 
+  const setCardRatingMode = useCallback((mode: CardRatingMode) => {
+    saveGeneralSettings({ card_rating_mode: mode })
+  }, [saveGeneralSettings])
+
+  const setShowActionDock = useCallback((enabled: boolean) => {
+    saveGeneralSettings({ show_action_dock: enabled })
+  }, [saveGeneralSettings])
+
+  const setSwipeToRate = useCallback((enabled: boolean) => {
+    saveGeneralSettings({ swipe_to_rate: enabled })
+  }, [saveGeneralSettings])
+
   // Reset learner overrides back to the deck creator's baseline
   const resetToCreatorDefaults = useCallback(async () => {
     if (!deckId || deckId === 'quick') return
@@ -350,8 +401,9 @@ export function usePlaySettings(
         setFrontFontSizeState(baseline.front_font_size || '100%')
         setBackValignState(baseline.back_valign)
         setBackHalignState(baseline.back_halign)
-        setCardFlipTriggerState(baseline.card_flip_trigger)
-        setCardRatingModeState(baseline.card_rating_mode)
+        setCardRatingModeState(baseline.card_rating_mode || 'both')
+        setShowActionDockState(baseline.show_action_dock ?? true)
+        setSwipeToRateState(baseline.swipe_to_rate ?? true)
         setIsCustomized(false)
         setSettingOrigin('deck_default')
       }
@@ -404,7 +456,9 @@ export function usePlaySettings(
       quick_learn_enabled: quickLearnEnabled,
       show_fsrs: showFsrs,
       card_flip_trigger: cardFlipTrigger || 'both',
-      card_rating_mode: cardRatingMode || 'both'
+      card_rating_mode: cardRatingMode || 'both',
+      show_action_dock: showActionDock,
+      swipe_to_rate: swipeToRate
     }
     try {
       const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -426,7 +480,7 @@ export function usePlaySettings(
     } catch (err) {
       console.error('[usePlaySettings] Failed to save as global settings:', err)
     }
-  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
+  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, showActionDock, swipeToRate, syncStudySettings])
 
   // Save current settings as the creator's deck defaults (baseline for all learners)
   const saveAsCreatorDefaults = useCallback(async () => {
@@ -446,7 +500,9 @@ export function usePlaySettings(
       quick_learn_enabled: quickLearnEnabled,
       show_fsrs: showFsrs,
       card_flip_trigger: cardFlipTrigger || 'both',
-      card_rating_mode: cardRatingMode || 'both'
+      card_rating_mode: cardRatingMode || 'both',
+      show_action_dock: showActionDock,
+      swipe_to_rate: swipeToRate
     }
     try {
       await axios.patch(`/api/v1/deck/${deckId}`, {
@@ -475,7 +531,7 @@ export function usePlaySettings(
     } catch (err) {
       console.error('[usePlaySettings] Failed to save creator defaults:', err)
     }
-  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
+  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, showActionDock, swipeToRate, syncStudySettings])
 
   // Apply a specific profile/template to this deck
   const applyProfile = useCallback(async (profileId: string) => {
@@ -595,11 +651,13 @@ export function usePlaySettings(
     cardFlipTrigger,
     setCardFlipTrigger: setCardFlipTriggerState,
     cardRatingMode,
-    setCardRatingMode: setCardRatingModeState,
+    setCardRatingMode,
     tapToFlip,
     setTapToFlip: setTapToFlipState,
     showActionDock,
-    setShowActionDock: setShowActionDockState,
+    setShowActionDock,
+    swipeToRate,
+    setSwipeToRate,
     creatorDefaults,
     userGlobalSettings,
     studyProfiles,

@@ -279,6 +279,10 @@ export default function FlashcardPlay() {
     setCardFlipTrigger,
     cardRatingMode: deckCardRatingMode,
     setCardRatingMode,
+    showActionDock,
+    setShowActionDock,
+    swipeToRate,
+    setSwipeToRate,
     creatorDefaults,
     isCustomized,
     settingOrigin,
@@ -297,20 +301,9 @@ export default function FlashcardPlay() {
   const tapToFlip = true;
   const effectiveCardFlipTrigger = 'both';
 
-  const showActionDock = userSettings.show_action_dock !== undefined
-    ? userSettings.show_action_dock
-    : (userSettings.card_rating_mode ? userSettings.card_rating_mode !== 'swipe_4way' && userSettings.card_rating_mode !== 'swipe_2way' : true);
-
-  const swipeToRate = userSettings.swipe_to_rate !== undefined
-    ? userSettings.swipe_to_rate
-    : (userSettings.card_rating_mode ? userSettings.card_rating_mode !== 'buttons' : true);
-
-  const effectiveCardRatingMode = showActionDock && swipeToRate
-    ? 'both'
-    : showActionDock
-    ? 'buttons'
-    : 'swipe_4way';
-  const effectiveShowFsrs = userSettings.show_fsrs !== undefined ? userSettings.show_fsrs : showFsrs;
+  const effectiveCardRatingMode: 'both' | 'swipe_4way' | 'buttons' =
+    (deckCardRatingMode as any) || (showActionDock && swipeToRate ? 'both' : showActionDock ? 'buttons' : 'swipe_4way');
+  const effectiveShowFsrs = showFsrs;
 
   const handleToggleActionDock = useCallback(() => {
     if (showActionDock && !swipeToRate) {
@@ -319,10 +312,9 @@ export default function FlashcardPlay() {
     }
     const nextDock = !showActionDock;
     const nextRatingMode = nextDock ? (swipeToRate ? 'both' : 'buttons') : 'swipe_4way';
-    updateUserSettings({ show_action_dock: nextDock, card_rating_mode: nextRatingMode });
     saveGeneralSettings({ card_rating_mode: nextRatingMode, show_action_dock: nextDock });
     showLocalToast(nextDock ? "Rating Buttons: ON" : "Rating Buttons: OFF", "info");
-  }, [showActionDock, swipeToRate, updateUserSettings, saveGeneralSettings, showLocalToast]);
+  }, [showActionDock, swipeToRate, saveGeneralSettings, showLocalToast]);
 
   const handleToggleSwipeToRate = useCallback(() => {
     if (swipeToRate && !showActionDock) {
@@ -331,10 +323,9 @@ export default function FlashcardPlay() {
     }
     const nextSwipe = !swipeToRate;
     const nextRatingMode = nextSwipe ? (showActionDock ? 'both' : 'swipe_4way') : 'buttons';
-    updateUserSettings({ swipe_to_rate: nextSwipe, card_rating_mode: nextRatingMode });
     saveGeneralSettings({ card_rating_mode: nextRatingMode, swipe_to_rate: nextSwipe });
     showLocalToast(nextSwipe ? "Swipe to Rate: ON" : "Swipe to Rate: OFF", "info");
-  }, [swipeToRate, showActionDock, updateUserSettings, saveGeneralSettings, showLocalToast]);
+  }, [swipeToRate, showActionDock, saveGeneralSettings, showLocalToast]);
 
   const handleCycleRatingMode = useCallback(() => {
     let nextMode: 'both' | 'swipe_4way' | 'buttons' = 'both';
@@ -355,12 +346,11 @@ export default function FlashcardPlay() {
       nextSwipe = true;
     }
 
-    updateUserSettings({ show_action_dock: nextDock, swipe_to_rate: nextSwipe, card_rating_mode: nextMode });
     saveGeneralSettings({ card_rating_mode: nextMode, show_action_dock: nextDock, swipe_to_rate: nextSwipe });
 
     const toastLabel = nextMode === 'both' ? 'Both (Buttons & Swipe)' : nextMode === 'swipe_4way' ? 'Swipe Gestures Only' : 'Buttons Only';
     showLocalToast(`Rating Mode: ${toastLabel}`, "info");
-  }, [effectiveCardRatingMode, updateUserSettings, saveGeneralSettings, showLocalToast]);
+  }, [effectiveCardRatingMode, saveGeneralSettings, showLocalToast]);
 
   const {
     playCardAudio,
@@ -1608,11 +1598,7 @@ export default function FlashcardPlay() {
                             !!(goalUpdate && goalUpdate.just_completed) || 
                             (updatedStreak === 10) || 
                             isHalfwayMilestone
-      if (!shouldAutoAdvance && quickLearnEnabled && quickAnswersCount < quickTotalCount && !hasMilestone) {
-        setTimeout(() => {
-          handleNext(newAnswers)
-        }, 200)
-      }
+
     } catch (e) {
       console.error("Failed to record answer to server:", e)
       showLocalToast("Warning: Your answer was not saved to the server.", "warning")
@@ -4280,8 +4266,11 @@ export default function FlashcardPlay() {
         setAutoPlayAudio={setAutoPlayAudio}
         sfxEnabled={sfxEnabled}
         setSfxEnabled={setSfxEnabled}
-        effectiveAutoAdvance={isSpeedSkimMode || isAutoAdvance || quickLearnEnabled}
-        setIsAutoAdvance={setIsAutoAdvance}
+        effectiveAutoAdvance={effectiveAutoAdvance}
+        setIsAutoAdvance={(val) => {
+          setIsAutoAdvance(val);
+          setQuickLearnEnabled(val);
+        }}
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
         setShowImages={setShowImages}
