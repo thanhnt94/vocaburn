@@ -3,6 +3,18 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Bổ Sung Cử Chỉ Vuốt Sau Khi Đánh Giá (Post-Rating Gestures): Vuốt Phải Chuyển Câu, Vuốt Trái Undo & Nhấp Thanh Đếm Ngược
+- **Cử Chỉ Vuốt Sang Phải $\rightarrow$ Chuyển Câu Tiếp Theo (`NEXT CARD`)**:
+  - Khi đã đánh giá thẻ xong (mặt sau) và ở chế độ `Swipe Only` (hoặc tắt `Auto Next`):
+  - Người dùng có thể vuốt thẻ sang phải bất kỳ lúc nào để chuyển tiếp sang câu mới.
+  - Hiển thị Stamp Badge nổi màu xanh lục `NEXT CARD ›` kèm hiệu ứng xoay nghiêng và lướt bay ra ngoài (flyout) mượt mà như Tinder.
+- **Cử Chỉ Vuốt Sang Trái $\rightarrow$ Hủy Đánh Giá Vừa Thực Hiện (`UNDO`)**:
+  - Vuốt thẻ sang trái sau khi đánh giá sẽ kích hoạt hoàn tác (`UNDO`), hiển thị Stamp Badge màu hổ phách `‹ UNDO`.
+  - Hệ thống tự động thu hồi điểm FSRS/XP và trả thẻ về trạng thái chờ đánh giá để người dùng chọn lại nếu lỡ tay đánh giá nhầm.
+- **Nhấp Trực Tiếp Vào Thanh Đếm Ngược Mở Khóa Ở Đáy Thẻ**:
+  - Thanh trạng thái `✓ GOOD — Unlocks in 1d 14h... ⏳` ở đáy thẻ giờ đây hỗ trợ nhấp chuột/chạm trực tiếp kèm icon mũi tên `›` để chuyển câu, mang lại lựa chọn tiện lợi song song với cử chỉ vuốt.
+  - Xóa bỏ 100% tình trạng bị tắc/kẹt thao tác khi tắt thanh nút bấm dưới đáy.
+
 #### Tối Ưu Hóa Bảng Điều Khiển Nhanh (Quick Controls): Autoplay 4 Trạng Thái, Hợp Nhất Nút Đánh Giá (Rate Mode) & Lưới 8 Nút Chuẩn iOS Control Center
 - **Nút Autoplay Xoay Vòng 4 Trạng Thái (`BOTH` $\rightarrow$ `FRONT` $\rightarrow$ `BACK` $\rightarrow$ `OFF`)**:
   - Thay thế toggle On/Off nhị phân cơ bản bằng nút bấm chu kỳ 4 nấc trực quan:

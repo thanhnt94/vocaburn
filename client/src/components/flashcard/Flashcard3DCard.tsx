@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, RotateCcw, Check, AlertCircle, Zap } from 'lucide-react'
+import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -616,16 +616,24 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                     {renderFlyToolbarNode(true)}
                   </div>
 
-                  {/* Remaining space: Centered unlock countdown banner */}
+                  {/* Remaining space: Centered unlock countdown banner (Clickable to advance to Next Card) */}
                   <div className="flex-1 min-w-0 flex items-center justify-center pr-3 pl-1">
                     {isCardRated && (
-                      <div className="flex items-center justify-center gap-1.5 text-center min-w-0 truncate">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNext?.();
+                        }}
+                        className="flex items-center justify-center gap-1.5 text-center min-w-0 truncate cursor-pointer hover:opacity-90 active:scale-98 transition-all group"
+                        title="Click or Swipe Right to Next Card"
+                      >
                         <span className="text-xs sm:text-sm font-black tracking-wide shrink-0">
                           ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
                         </span>
                         <span className="opacity-80 text-[11px] sm:text-xs font-semibold truncate">
                           — Unlocks in {countdownStr} ⏳
                         </span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
                       </div>
                     )}
                   </div>
@@ -648,12 +656,16 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 activeDragGrade.direction === 'good' && "border-indigo-500 text-indigo-600 bg-indigo-50/95 rotate-12 shadow-indigo-500/30",
                 activeDragGrade.direction === 'hard' && "border-amber-500 text-amber-600 bg-amber-50/95 shadow-amber-500/30",
                 activeDragGrade.direction === 'easy' && "border-emerald-500 text-emerald-600 bg-emerald-50/95 -rotate-6 shadow-emerald-500/30",
+                activeDragGrade.direction === 'next' && "border-emerald-500 text-emerald-600 bg-emerald-50/95 rotate-12 shadow-emerald-500/30",
+                activeDragGrade.direction === 'undo' && "border-amber-500 text-amber-600 bg-amber-50/95 -rotate-12 shadow-amber-500/30",
               )}
             >
               {activeDragGrade.direction === 'again' && <RotateCcw className="w-7 h-7 stroke-[2.5]" />}
               {activeDragGrade.direction === 'good' && <Check className="w-7 h-7 stroke-[2.5]" />}
               {activeDragGrade.direction === 'hard' && <AlertCircle className="w-7 h-7 stroke-[2.5]" />}
               {activeDragGrade.direction === 'easy' && <Zap className="w-7 h-7 stroke-[2.5]" />}
+              {activeDragGrade.direction === 'next' && <ChevronRight className="w-7 h-7 stroke-[2.5]" />}
+              {activeDragGrade.direction === 'undo' && <Undo2 className="w-7 h-7 stroke-[2.5]" />}
               <span>{activeDragGrade.label}</span>
             </div>
           </div>

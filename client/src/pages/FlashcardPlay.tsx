@@ -591,7 +591,7 @@ export default function FlashcardPlay() {
   const cardDragControls = useAnimationControls()
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [activeDragGrade, setActiveDragGrade] = useState<{
-    direction: 'again' | 'hard' | 'good' | 'easy';
+    direction: 'again' | 'hard' | 'good' | 'easy' | 'next' | 'undo';
     grade: number;
     label: string;
     color: string;
@@ -1620,12 +1620,14 @@ export default function FlashcardPlay() {
   }
 
   const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
+  const canDragPostRate = swipeToRate && !isSelectMode && isFlipped && hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
+  const isCardDraggable = canDragRate || canDragPostRate;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
-    if (isSelectMode || !canDragRate) return;
+    if (isSelectMode || !isCardDraggable) return;
     const dx = info.offset.x;
     const dy = info.offset.y;
     setDragOffset({ x: dx, y: dy });
@@ -1634,7 +1636,20 @@ export default function FlashcardPlay() {
     const absY = Math.abs(dy);
     const dist = Math.hypot(dx, dy);
 
-    // 4-Way Compass Swipe: Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
+    // ════════ POST-RATING GESTURES: Right = NEXT CARD, Left = UNDO ════════
+    if (hasRated) {
+      if (absX < 35) {
+        setActiveDragGrade(null);
+      } else if (dx > 0) {
+        setActiveDragGrade({ direction: 'next', grade: 0, label: 'NEXT CARD', color: 'emerald' });
+      } else {
+        setActiveDragGrade({ direction: 'undo', grade: 0, label: 'UNDO', color: 'amber' });
+      }
+      return;
+    }
+
+    // ════════ UNRATED CARD: 4-Way Compass Swipe ════════
+    // Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
     if (dist < 35) {
       setActiveDragGrade(null);
     } else if (absX > absY) {
@@ -1656,7 +1671,7 @@ export default function FlashcardPlay() {
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
-    if (!canDragRate || !activeDragGrade) {
+    if (!isCardDraggable || !activeDragGrade) {
       cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
       setDragOffset({ x: 0, y: 0 });
       setActiveDragGrade(null);
@@ -1669,6 +1684,62 @@ export default function FlashcardPlay() {
     const vy = info.velocity.y;
     const dir = activeDragGrade.direction;
 
+    // ════════ POST-RATING COMMITMENT ════════
+    if (hasRated) {
+      if (dir === 'next') {
+        const isCommitted = (dx >= 55 && vx >= -60) || (dx >= 25 && vx > 200);
+        if (isCommitted) {
+          setIsFlyingOut(true);
+          const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
+          const targetX = screenW * 1.35;
+          const targetY = (dy || 0) * 1.5;
+          const targetRotate = Math.max(18, Math.min(35, (dx * 0.12) || 25));
+
+          setActiveDragGrade(null);
+          setDragOffset({ x: 0, y: 0 });
+
+          cardDragControls.start({
+            x: targetX,
+            y: targetY,
+            opacity: 0,
+            rotate: targetRotate,
+            transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+          }).then(() => {
+            handleNext();
+          }).catch(() => {
+            handleNext();
+          });
+          return;
+        }
+      } else if (dir === 'undo') {
+        const isCommitted = (dx <= -55 && vx <= 60) || (dx <= -25 && vx < -200);
+        if (isCommitted) {
+          setActiveDragGrade(null);
+          setDragOffset({ x: 0, y: 0 });
+          cardDragControls.start({
+            x: 0,
+            y: 0,
+            rotate: 0,
+            transition: { type: 'spring', stiffness: 500, damping: 32 }
+          }).catch(() => {});
+          handleUndoRating();
+          return;
+        }
+      }
+
+      // Not committed: smooth spring back to center
+      cardDragControls.start({
+        x: 0,
+        y: 0,
+        rotate: 0,
+        transition: { type: 'spring', stiffness: 500, damping: 32 }
+      }).catch(() => {});
+      setDragOffset({ x: 0, y: 0 });
+      setActiveDragGrade(null);
+      return;
+    }
+
+    // ════════ UNRATED CARD COMMITMENT ════════
     // Responsive commitment check:
     // If user dragged at least 55px in direction, or flicked fast outward: commit!
     let isCommitted = false;
@@ -3926,7 +3997,7 @@ export default function FlashcardPlay() {
                   hasRated={selectedOption !== null}
                   activeDragGrade={activeDragGrade}
                   dragOffset={dragOffset}
-                  canDragRate={canDragRate}
+                  canDragRate={isCardDraggable}
                   hasBackOverflow={hasBackOverflow}
                   backScrollRef={backScrollRef}
                   handleCardDrag={handleCardDrag}
