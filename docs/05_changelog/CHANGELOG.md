@@ -21,13 +21,13 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
   - 💡 **AI Hint**: Bật/Tắt hoặc yêu cầu AI tạo gợi ý nhanh cho thẻ hiện tại (`handleToggleHint`).
 - **Nút Xoay Vòng Kích Cỡ Chữ Nhanh (Font Size Cycle)**:
   - Nút Font Size cho phép nhấp để xoay vòng nhanh các nấc tỷ lệ hiển thị chữ mặt trước: `100% (Normal)` $\rightarrow$ `125% (Large)` $\rightarrow$ `150% (Extra Large)` $\rightarrow$ `85% (Compact)` mà không cần mở modal cài đặt chi tiết.
-- **Tổ Chức Giao Diện Bảng Điều Khiển Nhanh Theo Chuẩn iOS Control Center**:
-  - Phân vùng 4 nhóm chức năng rõ ràng với tiêu đề phụ tinh tế:
-    1. **Audio & Flow**: Autoplay, SFX Audio, Haptic, Auto Next (4 cột).
-    2. **Display & Gestures**: Rate Mode, Images, Font Size, Shuffle (4 cột).
-    3. **Card Tools & AI**: Edit Card, Card Note, AI Explain, AI Hint (4 cột).
-    4. **Quick Utilities**: Star Card, Select Text Mode (dạng thẻ rộng 2 cột).
-  - Giữ nguyên nút chân trang **All Deck Settings** để truy cập bảng điều khiển nâng cao.
+- **Tổ Chức Giao Diện Bảng Điều Khiển Nhanh Chuẩn iOS Control Center & Phân Hóa Nút Bấm**:
+  - **Di Chuyển Nút All Deck Settings Lên Góc Phải Header**:
+    - Xóa bỏ nút full chân trang cồng kềnh, chuyển thành nút icon tròn `[ ⚙️ Settings ]` đặt cạnh nút `[ ✕ Close ]` ở góc trên cùng bên phải.
+    - Giúp ngăn kéo Quick Controls tiết kiệm đáng kể diện tích màn hình theo chiều dọc, loại bỏ khoảng cuộn thừa.
+  - **Phân Hóa Trực Quan Giữa Nút Toggle vs Nút Mở Modal/Drawer**:
+    - **Nút Toggle / Cấu hình trực tiếp (Lưới ô vuông 4 cột kiểu cũ)**: Dành cho các tính năng bật/tắt hoặc xoay vòng tại chỗ (`Autoplay`, `SFX Audio`, `Haptic`, `Auto Next`, `Rate Mode`, `Images`, `Font Size`, `Shuffle`, `Star Card`, `AI Hint`, `Select Text`, `FSRS Badges`).
+    - **Nút Mở Modal/Drawer (Thẻ hành động 2 cột kiểu mới)**: Dành cho các chức năng kích hoạt mở view mới (`Edit Card`, `Card Note`, `AI Explain`, `Card Stats`), thiết kế dạng thẻ ngang thanh lịch với icon nổi bật, tiêu đề, mô tả và mũi tên điều hướng tròn `›` (`ChevronRight`).
 
 #### Khắc Phục Lỗi Lưu Cài Đặt Nhanh (Quick Settings Persistence) & Đơn Giản Hóa Kiến Trúc Cài Đặt Bộ Thẻ
 - **Khắc Phục Triệt Để Lỗi Không Lưu Cài Đặt Khi F5 / Reload**:
