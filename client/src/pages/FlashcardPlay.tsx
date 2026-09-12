@@ -1606,7 +1606,7 @@ export default function FlashcardPlay() {
   }
 
   const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
-  const canDragPostRate = swipeToRate && !isSelectMode && isFlipped && hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
+  const canDragPostRate = swipeToRate && !isSelectMode && hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
   const isCardDraggable = canDragRate || canDragPostRate;
 
   const handleCardDrag = (
@@ -1851,7 +1851,8 @@ export default function FlashcardPlay() {
       if (res.data.status === 'ok') {
         const optionToRevert = selectedOption;
         
-        // 1. Revert local state — keep isFlipped=true so FSRS buttons re-appear on the back face
+        // 1. Revert local state — ensure isFlipped=true so FSRS buttons appear on the back face
+        setIsFlipped(true);
         setActivelyRatedCurrentCard(false);
         setJustAnswered(false);
         setSelectedOption(null);
@@ -4022,7 +4023,7 @@ export default function FlashcardPlay() {
                   setZoomedImage={setZoomedImage}
                   effectiveShowFsrs={effectiveShowFsrs}
                   selectedOption={selectedOption}
-                  hasRated={selectedOption !== null}
+                  hasRated={hasRated || selectedOption !== null}
                   activeDragGrade={activeDragGrade}
                   dragOffset={dragOffset}
                   canDragRate={isCardDraggable}

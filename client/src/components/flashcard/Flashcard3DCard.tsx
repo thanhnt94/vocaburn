@@ -119,7 +119,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           rotate: canDragRate && !isFlyingOut ? `${(dragOffset?.x || 0) * 0.11}deg` : undefined,
           touchAction: isSelectMode
             ? 'auto'
-            : (canDragRate ? (hasBackOverflow ? 'pan-y' : 'none') : 'pan-y'),
+            : (canDragRate ? (hasBackOverflow || !isFlipped ? 'pan-y' : 'none') : 'pan-y'),
         }}
       >
         <div
@@ -134,7 +134,13 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             onClick={(e) => {
               if (isSelectMode) return;
               const target = e.target as HTMLElement;
-              if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('[data-no-flip]')) {
+              if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
+                return;
+              }
+              if (Math.hypot(dragOffset?.x || 0, dragOffset?.y || 0) > 10 || isFlyingOut) {
+                return;
+              }
+              if (window.getSelection() && window.getSelection()!.toString().length > 0) {
                 return;
               }
               if (effectiveCardFlipTrigger !== 'button_only') {
@@ -145,9 +151,12 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               }
             }}
             className={cn(
-              "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40",
+              "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
               !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
-              isSelectMode && "cursor-text select-text"
+              isSelectMode && "cursor-text select-text",
+              activeDragGrade?.direction === 'next' ? "border-emerald-400 shadow-emerald-200/60 ring-2 ring-emerald-400/20" :
+              activeDragGrade?.direction === 'undo' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
+              "border-slate-100 shadow-indigo-100/40"
             )}
             style={{
               backfaceVisibility: 'hidden',
@@ -255,6 +264,9 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
                 return;
               }
+              if (Math.hypot(dragOffset?.x || 0, dragOffset?.y || 0) > 10 || isFlyingOut) {
+                return;
+              }
               if (window.getSelection() && window.getSelection()!.toString().length > 0) {
                 return;
               }
@@ -275,6 +287,8 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               activeDragGrade?.direction === 'good' ? "border-indigo-400 shadow-indigo-200/60 ring-2 ring-indigo-400/20" :
               activeDragGrade?.direction === 'hard' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
               activeDragGrade?.direction === 'easy' ? "border-emerald-400 shadow-emerald-200/60 ring-2 ring-emerald-400/20" :
+              activeDragGrade?.direction === 'next' ? "border-emerald-400 shadow-emerald-200/60 ring-2 ring-emerald-400/20" :
+              activeDragGrade?.direction === 'undo' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
               "border-slate-200 shadow-indigo-100/40"
             )}
             style={{

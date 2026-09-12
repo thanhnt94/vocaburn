@@ -3,6 +3,15 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Hỗ Trợ Cử Chỉ Vuốt Chuyển Câu (`NEXT CARD`) & Hoàn Tác (`UNDO`) Ở Cả 2 Mặt Thẻ Sau Khi Đã Đánh Giá
+- **Cho Phép Vuốt Chuyển Thẻ Kể Cả Khi Đã Lật Về Mặt Trước**:
+  - **Vấn đề**: Trước đây, cờ `canDragPostRate` yêu cầu thẻ phải đang ở trạng thái lật mặt sau (`isFlipped === true`). Khi người học đã đánh giá thẻ xong (`hasRated === true`) và nhấp lật thẻ lại về mặt trước (`isFlipped === false`) để đọc lại từ vựng/câu hỏi, cử chỉ kéo vuốt bị vô hiệu hóa khiến người dùng không thể vuốt phải để sang câu tiếp theo.
+  - **Khắc phục**:
+    - Trong `FlashcardPlay.tsx`, loại bỏ điều kiện `isFlipped` khỏi `canDragPostRate`: Một khi thẻ đã được đánh giá (`hasRated === true`), cử chỉ vuốt ngang chuyển thẻ (`NEXT CARD`) và hoàn tác (`UNDO`) luôn hoạt động linh hoạt ở cả mặt trước lẫn mặt sau.
+    - Trong `Flashcard3DCard.tsx`, bổ sung viền phát sáng (Border Highlight) động với hiệu ứng chuyển động mượt mà cho cả mặt trước (`activeDragGrade?.direction === 'next'` viền ngọc lục bảo `emerald`, `undo` viền vàng hổ phách `amber`).
+    - Bổ sung cơ chế chống lật ngoài ý muốn (`Math.hypot(dragOffset) > 10 || isFlyingOut`) trên sự kiện click của cả mặt trước và mặt sau nhằm ngăn việc thả tay sau khi vuốt bị nhận nhầm thành thao tác lật thẻ.
+    - Khi vuốt hoàn tác (`UNDO`) từ mặt trước, thẻ tự động lật sang mặt sau (`setIsFlipped(true)`) để sẵn sàng hiện thanh 4 nút đánh giá FSRS.
+
 #### Nâng Cấp Toàn Diện Quick Controls: Haptic Feedback, Chế Độ Ảnh Thẻ 4 Nấc, Bộ Công Cụ Sửa Thẻ & Cỡ Chữ
 - **Bổ Sung Rung Phản Hồi Xúc Giác (Haptic Feedback)**:
   - Thêm nút bật/tắt Haptic Feedback trực tiếp trong bảng Quick Controls (`FlashcardQuickControlsSheet`).
