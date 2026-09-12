@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -775,10 +775,14 @@ export function DashboardRoadmapSection({
   onOpenCustomize
 }: DashboardRoadmapSectionProps) {
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
-  const [slideDir, setSlideDir] = useState<'down' | 'up'>('down')
+  const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next')
   const isScrollingRef = useRef(false)
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const justSwipedRef = useRef(false)
+  const carouselContainerRef = useRef<HTMLDivElement>(null)
 
   const handleMascotTap = () => {
+    if (justSwipedRef.current) return
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate([15, 30, 15])
     }
@@ -866,30 +870,153 @@ export function DashboardRoadmapSection({
   const totalDecks = roadmapDecks.length
   const st = deck?.status || {}
 
+  const goToPrevDeck = useCallback(() => {
+    if (safeIdx > 0) {
+      setSlideDir('prev')
+      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+        window.navigator.vibrate(8)
+      }
+      onSelectRoadmapIdx(safeIdx - 1)
+    }
+  }, [safeIdx, onSelectRoadmapIdx])
+
+  const goToNextDeck = useCallback(() => {
+    if (safeIdx < totalDecks - 1) {
+      setSlideDir('next')
+      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+        window.navigator.vibrate(8)
+      }
+      onSelectRoadmapIdx(safeIdx + 1)
+    }
+  }, [safeIdx, totalDecks, onSelectRoadmapIdx])
+
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (totalDecks <= 1) return
-    if (Math.abs(e.deltaY) < 25) return
     if (isScrollingRef.current) return
 
-    if (e.deltaY > 0) {
+    const absX = Math.abs(e.deltaX)
+    const absY = Math.abs(e.deltaY)
+    const delta = absX > absY ? e.deltaX : e.deltaY
+
+    if (Math.abs(delta) < 20) return
+
+    if (delta > 0) {
       if (safeIdx < totalDecks - 1) {
         isScrollingRef.current = true
-        setSlideDir('down')
-        if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
-        onSelectRoadmapIdx(safeIdx + 1)
+        goToNextDeck()
         setTimeout(() => {
           isScrollingRef.current = false
-        }, 350)
+        }, 320)
       }
     } else {
       if (safeIdx > 0) {
         isScrollingRef.current = true
-        setSlideDir('up')
-        if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
-        onSelectRoadmapIdx(safeIdx - 1)
+        goToPrevDeck()
         setTimeout(() => {
           isScrollingRef.current = false
-        }, 350)
+        }, 320)
+      }
+    }
+  }
+
+  // Native non-passive wheel listener for smooth, scroll-free deck flipping on desktop
+  useEffect(() => {
+    const el = carouselContainerRef.current
+    if (!el || totalDecks <= 1) return
+
+    const onNativeWheel = (e: WheelEvent) => {
+      const absX = Math.abs(e.deltaX)
+      const absY = Math.abs(e.deltaY)
+      const delta = absX > absY ? e.deltaX : e.deltaY
+
+      if (Math.abs(delta) < 20) return
+
+      // Don't prevent default if rolling past the ends
+      if (delta > 0 && safeIdx >= totalDecks - 1) return
+      if (delta < 0 && safeIdx <= 0) return
+
+      e.preventDefault()
+
+      if (isScrollingRef.current) return
+
+      if (delta > 0 && safeIdx < totalDecks - 1) {
+        isScrollingRef.current = true
+        goToNextDeck()
+        setTimeout(() => {
+          isScrollingRef.current = false
+        }, 320)
+      } else if (delta < 0 && safeIdx > 0) {
+        isScrollingRef.current = true
+        goToPrevDeck()
+        setTimeout(() => {
+          isScrollingRef.current = false
+        }, 320)
+      }
+    }
+
+    el.addEventListener('wheel', onNativeWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', onNativeWheel)
+    }
+  }, [totalDecks, safeIdx, goToNextDeck, goToPrevDeck])
+
+  // Touch Swipe handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now()
+      }
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current || e.changedTouches.length === 0) return
+    const touchStart = touchStartRef.current
+    touchStartRef.current = null
+
+    if (totalDecks <= 1) return
+
+    const endX = e.changedTouches[0].clientX
+    const endY = e.changedTouches[0].clientY
+    const diffX = endX - touchStart.x
+    const diffY = endY - touchStart.y
+    const duration = Date.now() - touchStart.time
+
+    // Require distinct horizontal swipe: threshold 35px, horizontal dominance, under 700ms
+    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY) * 1.15 && duration < 700) {
+      justSwipedRef.current = true
+      setTimeout(() => {
+        justSwipedRef.current = false
+      }, 250)
+
+      if (diffX < -35) {
+        // Swiped Left -> Next Deck
+        if (safeIdx < totalDecks - 1) {
+          e.stopPropagation()
+          if (typeof window !== 'undefined') {
+            (window as any)._touchStartX = undefined
+            ;(window as any)._touchStartY = undefined
+          }
+          goToNextDeck()
+        }
+      } else if (diffX > 35) {
+        // Swiped Right -> Prev Deck
+        if (safeIdx > 0) {
+          e.stopPropagation()
+          if (typeof window !== 'undefined') {
+            (window as any)._touchStartX = undefined
+            ;(window as any)._touchStartY = undefined
+          }
+          goToPrevDeck()
+        } else {
+          e.stopPropagation()
+          if (typeof window !== 'undefined') {
+            (window as any)._touchStartX = undefined
+            ;(window as any)._touchStartY = undefined
+          }
+        }
       }
     }
   }
@@ -1002,7 +1129,13 @@ export function DashboardRoadmapSection({
 
   // ══════════════ CAROUSEL (SWIPE SINGLE CARD) VIEW ══════════════
   return (
-    <div className="h-full w-full flex flex-col overflow-hidden text-left select-none">
+    <div 
+      ref={carouselContainerRef}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
+      className="h-full w-full flex flex-col overflow-hidden text-left select-none touch-pan-y"
+    >
       {/* Subheader Bar */}
       <div className={cn(
         "px-3.5 sm:px-4 py-2 flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 gap-2",
@@ -1014,7 +1147,7 @@ export function DashboardRoadmapSection({
             <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
               <button
                 type="button"
-                onClick={() => onSelectRoadmapIdx(Math.max(0, safeIdx - 1))}
+                onClick={goToPrevDeck}
                 disabled={safeIdx === 0}
                 className={cn(
                   "w-5 h-5 rounded-full flex items-center justify-center transition-all",
@@ -1029,7 +1162,7 @@ export function DashboardRoadmapSection({
               </span>
               <button
                 type="button"
-                onClick={() => onSelectRoadmapIdx(Math.min(totalDecks - 1, safeIdx + 1))}
+                onClick={goToNextDeck}
                 disabled={safeIdx === totalDecks - 1}
                 className={cn(
                   "w-5 h-5 rounded-full flex items-center justify-center transition-all",
@@ -1082,17 +1215,16 @@ export function DashboardRoadmapSection({
         </div>
       </div>
 
-      {/* Roadmap Body with Mouse Wheel Flip */}
+      {/* Roadmap Body */}
       <div 
-        onWheel={handleWheel}
         className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 w-full"
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={safeIdx}
-            initial={{ opacity: 0, y: slideDir === 'down' ? 14 : -14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: slideDir === 'down' ? -14 : 14 }}
+            initial={{ opacity: 0, x: slideDir === 'next' ? 24 : -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: slideDir === 'next' ? -24 : 24 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full"
           >

@@ -3,6 +3,19 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Khôi Phục & Nâng Cấp Chuyển Đổi Trang Bộ Thẻ Roadmap Bằng Cử Chỉ Vuốt (Touch Swipe) & Cuộn Chuột / Trackpad (Desktop Wheel)
+- **Hỗ Trợ Vuốt Ngang Trên Thiết Bị Di Động (Mobile Touch Swipe)**:
+  - **Khắc phục lỗi bị nhảy tab**: Trước đây, `Dashboard.tsx` bắt sự kiện vuốt ngang trên toàn màn hình mobile feed và chuyển sang tab `Learning`. Do `DashboardRoadmapSection.tsx` không có bộ lắng nghe touch, mỗi khi người dùng vuốt trên thẻ Roadmap để sang bộ thẻ tiếp theo (`< 1/3 >`), sự kiện nổi bọt (bubble) lên cha làm văng sang tab `Learning`.
+  - **Cơ chế xử lý thông minh**: Bổ sung `onTouchStart` và `onTouchEnd` trực tiếp trên carousel container của `DashboardRoadmapSection.tsx`:
+    - Khi vuốt trái (`diffX < -35`): Chuyển sang bộ thẻ roadmap tiếp theo (`safeIdx + 1`), gọi `e.stopPropagation()` và xóa `window._touchStartX` để ngăn container ngoài chuyển tab. Khi đã ở bộ thẻ cuối cùng, cho phép nổi bọt để chuyển sang tab `Learning`.
+    - Khi vuốt phải (`diffX > 35`): Chuyển về bộ thẻ trước (`safeIdx - 1`), gọi `e.stopPropagation()`.
+    - Thêm cơ chế bảo vệ chống chạm nhầm mascot (`justSwipedRef`), tránh việc vừa vuốt thẻ vừa kích hoạt câu nói cổ vũ.
+- **Tối Ưu Hóa Cuộn Chuột & Trackpad Trên Máy Tính (Desktop Wheel & Trackpad Flip)**:
+  - Hỗ trợ cả `deltaX` (trackpad 2 ngón vuốt ngang) và `deltaY` (con lăn chuột tiêu chuẩn).
+  - Tích hợp bộ lắng nghe native non-passive wheel qua `useEffect` với `e.preventDefault()`, loại bỏ hoàn toàn hiện tượng giật cục hoặc cuộn dọc ngoài ý muốn khi đang lật thẻ roadmap trên máy tính.
+- **Hoạt Họa Chuyển Động Trục Ngang (Horizontal Slide Carousel Animation)**:
+  - Đồng bộ hoạt họa trượt ngang (`x: 24 / -24`) với hướng lướt và cặp nút `< 1/3 >` thay vì trượt dọc, đem lại cảm giác lật thẻ mượt mà và tự nhiên chuẩn native app.
+
 #### Tái Cấu Trúc Toàn Bộ Logic Các Chế Độ Học Flashcard (Review, New, Skim, FSRS)
 - **Chuẩn Hóa Chế Độ Ôn Tập (Review / REV Mode) - Vòng Lặp Tuần Hoàn Liên Tục (Continuous Cycle)**:
   - **Định nghĩa chuẩn**: Chế độ `review` là chế độ ôn tập **toàn bộ các thẻ đã từng học** (`state > 0` hoặc `last_review is not None`).
