@@ -4349,6 +4349,8 @@ export default function FlashcardPlay() {
         onOpenCardHub={handleOpenCardHub}
         handleToggleHint={handleToggleHint}
         showingHint={showingHint}
+        showFsrs={effectiveShowFsrs}
+        setShowFsrs={setShowFsrs}
       />
     </div>
   )

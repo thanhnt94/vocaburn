@@ -24,7 +24,10 @@ import {
   Type,
   FileText,
   Brain,
-  Lightbulb
+  Lightbulb,
+  ChevronRight,
+  TrendingUp,
+  Lock
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -172,6 +175,8 @@ export interface FlashcardQuickControlsSheetProps {
   onOpenCardHub?: (subTab: 'stats' | 'insight' | 'note' | 'community') => void
   handleToggleHint?: (e?: React.MouseEvent) => void
   showingHint?: boolean
+  showFsrs?: boolean
+  setShowFsrs?: (val: boolean) => void
 }
 
 const FLASHCARD_MODES = [
@@ -228,6 +233,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   onOpenCardHub,
   handleToggleHint,
   showingHint = false,
+  showFsrs = true,
+  setShowFsrs,
 }) => {
   if (typeof document === 'undefined') return null
 
@@ -272,14 +279,30 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
-                title="Close"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {/* All Deck Settings Button (Compact Header Icon) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose()
+                    setIsSettingsModalOpen(true)
+                  }}
+                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition-all active:scale-90 cursor-pointer border border-slate-200/60 shadow-2xs group"
+                  title="All Deck Settings"
+                >
+                  <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
+                </button>
+
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* 5 Flashcard Modes Quick Switcher */}
@@ -783,88 +806,42 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     </div>
                   </div>
 
-                  {/* ══════ SECTION 3: CARD TOOLS & AI ══════ */}
+                  {/* ══════ SECTION 3: STUDY HELPERS & TOGGLES (4 Columns, Standard Toggle Style) ══════ */}
                   <div className="flex flex-col gap-1.5 text-left px-0.5">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                        Card Tools & AI
+                        Study Shortcuts
                       </span>
                       <span className="text-[9px] font-bold text-slate-400">
-                        Editor & Insights
+                        Card State & Badges
                       </span>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-                      {/* 1. Edit Card */}
+                      {/* 1. Star Card */}
                       <button
                         type="button"
-                        disabled={!canEdit}
-                        onClick={() => {
-                          onClose()
-                          onOpenEditModal?.()
-                        }}
+                        onClick={handleStarQuestion}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 select-none",
-                          canEdit
-                            ? "bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100/80 cursor-pointer shadow-2xs"
-                            : "bg-slate-50 border-slate-200/70 text-slate-400 opacity-50 cursor-not-allowed"
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          currentQuestion?.is_starred
+                            ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                         )}
-                        title={canEdit ? "Edit Current Card Content" : "Card editing locked"}
+                        title={currentQuestion?.is_starred ? "Card is Starred (Click to Unstar)" : "Star this Card"}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", canEdit ? "bg-blue-600 text-white shadow-2xs" : "bg-slate-200 text-slate-400")}>
-                          <Pencil className="w-4 h-4" />
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Edit Card</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", canEdit ? "text-blue-600" : "text-slate-400")}>
-                            {canEdit ? "EDITOR" : "LOCKED"}
+                          <span className="text-[10px] font-bold tracking-tight">Star</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", currentQuestion?.is_starred ? "text-amber-600" : "text-slate-400")}>
+                            {currentQuestion?.is_starred ? "STARRED" : "OFF"}
                           </span>
                         </div>
                       </button>
 
-                      {/* 2. Card Note */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          onOpenCardHub?.('note')
-                        }}
-                        className="flex flex-col items-center justify-center p-2 rounded-2xl border bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100/80 transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none shadow-2xs"
-                        title="View & Edit Personal Card Notes"
-                      >
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-500 text-white shadow-2xs">
-                          <FileText className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Card Note</span>
-                          <span className="text-[8px] font-black uppercase tracking-wider text-amber-700">
-                            NOTES
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 3. AI Explain */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          onOpenCardHub?.('insight')
-                        }}
-                        className="flex flex-col items-center justify-center p-2 rounded-2xl border bg-purple-50 border-purple-300 text-purple-800 hover:bg-purple-100/80 transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none shadow-2xs"
-                        title="Open AI Explanations & In-Depth Insights"
-                      >
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-purple-600 text-white shadow-2xs">
-                          <Brain className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">AI Explain</span>
-                          <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">
-                            INSIGHT
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 4. AI Hint */}
+                      {/* 2. AI Hint (Toggle) */}
                       <button
                         type="button"
                         onClick={() => {
@@ -884,85 +861,202 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         <div className="flex flex-col items-center leading-none gap-0.5">
                           <span className="text-[10px] font-bold tracking-tight">AI Hint</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", showingHint ? "text-amber-700" : "text-slate-400")}>
-                            {showingHint ? "ACTIVE" : "HINT"}
+                            {showingHint ? "ACTIVE" : "OFF"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 3. Select Text Mode (Toggle) */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSelectMode(prev => {
+                            const next = !prev
+                            showLocalToast?.(next ? "Select Text Mode: ON (Card gestures paused)" : "Select Text Mode: OFF (Card gestures resumed)", "info")
+                            return next
+                          })
+                          onClose()
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          isSelectMode
+                            ? "bg-rose-50 border-rose-300 text-rose-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={isSelectMode ? "Select Text: ACTIVE" : "Select Text: OFF"}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <MousePointer className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Select Text</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", isSelectMode ? "text-rose-600" : "text-slate-400")}>
+                            {isSelectMode ? "ACTIVE" : "OFF"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 4. FSRS Stats Badges (Toggle) */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = !showFsrs
+                          setShowFsrs?.(nextVal)
+                          showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          showFsrs
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={`FSRS Badges: ${showFsrs ? 'SHOWN' : 'HIDDEN'}`}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Layers className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">FSRS Badges</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", showFsrs ? "text-emerald-600" : "text-slate-400")}>
+                            {showFsrs ? "SHOWN" : "OFF"}
                           </span>
                         </div>
                       </button>
                     </div>
                   </div>
 
-                  {/* ══════ SECTION 4: QUICK UTILITIES ══════ */}
-                  <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-                    {/* Star Card (Wide - 2 cols) */}
-                    <button
-                      type="button"
-                      onClick={handleStarQuestion}
-                      className={cn(
-                        "col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all active:scale-98 cursor-pointer select-none",
-                        currentQuestion?.is_starred
-                          ? "bg-amber-50 border-amber-300 text-amber-800 shadow-2xs"
-                          : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-600"
-                      )}
-                      title={currentQuestion?.is_starred ? "Card is Starred (Click to Unstar)" : "Star this Card"}
-                    >
-                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                        <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
-                      </div>
-                      <div className="flex flex-col text-left leading-none gap-0.5">
-                        <span className="text-[11px] font-bold tracking-tight">Star Card</span>
-                        <span className={cn("text-[8.5px] font-black uppercase tracking-wider", currentQuestion?.is_starred ? "text-amber-600" : "text-slate-400")}>
-                          {currentQuestion?.is_starred ? "STARRED" : "NOT STARRED"}
-                        </span>
-                      </div>
-                    </button>
+                  {/* ══════ SECTION 4: CARD ACTIONS & DRAWERS (Kiểu Mới: 2 Columns Action Cards) ══════ */}
+                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        Card Actions & Drawers
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        Open Modals & Panels
+                      </span>
+                    </div>
 
-                    {/* Select Text Mode (Wide - 2 cols) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSelectMode(prev => {
-                          const next = !prev
-                          showLocalToast?.(next ? "Select Text Mode: ON (Card gestures paused)" : "Select Text Mode: OFF (Card gestures resumed)", "info")
-                          return next
-                        })
-                        onClose()
-                      }}
-                      className={cn(
-                        "col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all active:scale-98 cursor-pointer select-none",
-                        isSelectMode
-                          ? "bg-rose-50 border-rose-300 text-rose-800 shadow-2xs"
-                          : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-600"
-                      )}
-                      title={isSelectMode ? "Select Text: ACTIVE" : "Select Text Mode"}
-                    >
-                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                        <MousePointer className="w-4 h-4" />
-                      </div>
-                      <div className="flex flex-col text-left leading-none gap-0.5">
-                        <span className="text-[11px] font-bold tracking-tight">Select Text</span>
-                        <span className={cn("text-[8.5px] font-black uppercase tracking-wider", isSelectMode ? "text-rose-600" : "text-slate-400")}>
-                          {isSelectMode ? "GESTURES PAUSED" : "OFF"}
-                        </span>
-                      </div>
-                    </button>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                      {/* 1. Edit Card */}
+                      <button
+                        type="button"
+                        disabled={!canEdit}
+                        onClick={() => {
+                          onClose()
+                          onOpenEditModal?.()
+                        }}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-2xl border transition-all active:scale-98 text-left select-none group shadow-2xs",
+                          canEdit
+                            ? "bg-slate-50 hover:bg-blue-50/70 border-slate-200/80 hover:border-blue-300 cursor-pointer"
+                            : "bg-slate-50/60 border-slate-200/50 opacity-60 cursor-not-allowed"
+                        )}
+                        title={canEdit ? "Open Card Editor Modal" : "Card editing locked"}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105",
+                            canEdit ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
+                          )}>
+                            <Pencil className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
+                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">Edit Card</span>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">
+                              {canEdit ? "Card Editor" : "Locked"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ml-1",
+                          canEdit
+                            ? "bg-slate-200/60 group-hover:bg-blue-100 text-slate-400 group-hover:text-blue-600"
+                            : "text-slate-300"
+                        )}>
+                          {canEdit ? (
+                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          ) : (
+                            <Lock className="w-3 h-3 text-slate-400" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* 2. Card Note */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose()
+                          onOpenCardHub?.('note')
+                        }}
+                        className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-300 transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer"
+                        title="Open Personal Notes Drawer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
+                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">Card Note</span>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">Personal Notes</span>
+                          </div>
+                        </div>
+                        <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-amber-100 flex items-center justify-center text-slate-400 group-hover:text-amber-600 shrink-0 transition-colors ml-1">
+                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+
+                      {/* 3. AI Explain */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose()
+                          onOpenCardHub?.('insight')
+                        }}
+                        className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer"
+                        title="Open AI Explanations Drawer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105">
+                            <Brain className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
+                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">AI Explain</span>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">Deep Insights</span>
+                          </div>
+                        </div>
+                        <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-purple-100 flex items-center justify-center text-slate-400 group-hover:text-purple-600 shrink-0 transition-colors ml-1">
+                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+
+                      {/* 4. Card Stats */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose()
+                          onOpenCardHub?.('stats')
+                        }}
+                        className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer"
+                        title="Open Detailed Card Stats & History"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105">
+                            <TrendingUp className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
+                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">Card Stats</span>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">FSRS & History</span>
+                          </div>
+                        </div>
+                        <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-teal-100 flex items-center justify-center text-slate-400 group-hover:text-teal-600 shrink-0 transition-colors ml-1">
+                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
             })()}
-
-            {/* Bottom Bar: Full Settings Button */}
-            <button
-              type="button"
-              onClick={() => {
-                onClose()
-                setIsSettingsModalOpen(true)
-              }}
-              className="w-full h-11 rounded-2xl bg-slate-900 hover:bg-indigo-600 text-white flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-all duration-150 active:scale-98 shadow-md group mt-1 cursor-pointer"
-              title="Open Full Settings Console"
-            >
-              <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform duration-300 text-slate-300 group-hover:text-white" />
-              <span>All Deck Settings</span>
-            </button>
           </motion.div>
         </div>
       )}
