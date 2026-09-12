@@ -3,6 +3,32 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Nâng Cấp Toàn Diện Quick Controls: Haptic Feedback, Chế Độ Ảnh Thẻ 4 Nấc, Bộ Công Cụ Sửa Thẻ & Cỡ Chữ
+- **Bổ Sung Rung Phản Hồi Xúc Giác (Haptic Feedback)**:
+  - Thêm nút bật/tắt Haptic Feedback trực tiếp trong bảng Quick Controls (`FlashcardQuickControlsSheet`).
+  - Khi bật/tắt, kích hoạt ngay lập tức xung rung xúc giác (`triggerHaptic('success')`) trên thiết bị di động, kèm lưu cấu hình đồng bộ trực tiếp vào cơ sở dữ liệu học tập.
+- **Nút Hiển Thị Hình Ảnh Thẻ 4 Trạng Thái Tuần Hoàn (`BOTH` $\rightarrow$ `FRONT` $\rightarrow$ `BACK` $\rightarrow$ `OFF`)**:
+  - Chuyển đổi nút Images từ công tắc nhị phân sang nút chu kỳ 4 nấc tương tự Autoplay Audio:
+    1. `BOTH` (Xanh lục): Hiển thị ảnh ở cả mặt trước và mặt sau.
+    2. `FRONT` (Xanh da trời): Chỉ hiển thị ảnh ở mặt trước của thẻ.
+    3. `BACK` (Chàm tím): Chỉ hiển thị ảnh ở mặt sau của thẻ.
+    4. `OFF` (Xám): Ẩn hoàn toàn hình ảnh ở cả hai mặt.
+  - Tương thích 100% với logic render trong `Flashcard3DCard.tsx` và lưu trữ qua `usePlaySettings`.
+- **Tích Hợp Trực Tiếp Bộ Công Cụ Thẻ & Trí Tuệ Nhân Tạo (Card Tools & AI)**:
+  - ✏️ **Edit Card**: Mở trực tiếp modal sửa nội dung thẻ (`FlashcardEditModal`) từ Quick Controls; tự động khóa trạng thái (`LOCKED`) nếu người học không có quyền sở hữu/cộng tác.
+  - 📝 **Card Note**: Mở trực tiếp tab ghi chú cá nhân của thẻ trong ngăn kéo Card Hub (`handleOpenCardHub('note')`).
+  - 🧠 **AI Explain**: Mở ngay tab giải nghĩa & phân tích chuyên sâu của AI trong Card Hub (`handleOpenCardHub('insight')`).
+  - 💡 **AI Hint**: Bật/Tắt hoặc yêu cầu AI tạo gợi ý nhanh cho thẻ hiện tại (`handleToggleHint`).
+- **Nút Xoay Vòng Kích Cỡ Chữ Nhanh (Font Size Cycle)**:
+  - Nút Font Size cho phép nhấp để xoay vòng nhanh các nấc tỷ lệ hiển thị chữ mặt trước: `100% (Normal)` $\rightarrow$ `125% (Large)` $\rightarrow$ `150% (Extra Large)` $\rightarrow$ `85% (Compact)` mà không cần mở modal cài đặt chi tiết.
+- **Tổ Chức Giao Diện Bảng Điều Khiển Nhanh Theo Chuẩn iOS Control Center**:
+  - Phân vùng 4 nhóm chức năng rõ ràng với tiêu đề phụ tinh tế:
+    1. **Audio & Flow**: Autoplay, SFX Audio, Haptic, Auto Next (4 cột).
+    2. **Display & Gestures**: Rate Mode, Images, Font Size, Shuffle (4 cột).
+    3. **Card Tools & AI**: Edit Card, Card Note, AI Explain, AI Hint (4 cột).
+    4. **Quick Utilities**: Star Card, Select Text Mode (dạng thẻ rộng 2 cột).
+  - Giữ nguyên nút chân trang **All Deck Settings** để truy cập bảng điều khiển nâng cao.
+
 #### Khắc Phục Lỗi Lưu Cài Đặt Nhanh (Quick Settings Persistence) & Đơn Giản Hóa Kiến Trúc Cài Đặt Bộ Thẻ
 - **Khắc Phục Triệt Để Lỗi Không Lưu Cài Đặt Khi F5 / Reload**:
   - **Nguyên nhân gốc rễ**: Trước đây, `FlashcardPlay.tsx` đọc `showActionDock` và `swipeToRate` từ `userSettings` của `useAppStore()` (vốn chỉ đại diện cho bảng `user_global_settings` chung và không chứa 2 cờ này). Mỗi khi reload trang, giá trị trả về `undefined` khiến hệ thống tự động fallback về mặc định (`both`), ghi đè toàn bộ lựa chọn người dùng vừa chỉnh.
