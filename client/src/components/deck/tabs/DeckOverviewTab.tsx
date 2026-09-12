@@ -87,19 +87,19 @@ export function DeckOverviewTab({
         </div>
       )}
 
-      {/* 1. FSRS Mastery Analytics Card */}
-      <DeckFsrsStatsCard
-        stats={masteryData}
-        isLoading={isMasteryLoading || isDeckLoading}
-        totalCards={totalCards}
-      />
-
-      {/* 2. Quick Study Launcher */}
+      {/* 1. Quick Study Launcher (Primary Study Actions) */}
       <DeckQuickStudyLauncher
         deckId={id!}
         totalCards={totalCards}
         dueCount={dueCount}
         practiceSettings={deckData?.practice_settings}
+      />
+
+      {/* 2. FSRS Mastery Analytics Card */}
+      <DeckFsrsStatsCard
+        stats={masteryData}
+        isLoading={isMasteryLoading || isDeckLoading}
+        totalCards={totalCards}
       />
 
       {/* 3. Recent Practice History */}

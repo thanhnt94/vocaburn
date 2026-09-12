@@ -3,6 +3,22 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Đảo Ngược Bố Cục Deck Detail Chuẩn Mobile-First (Tabs Lên Đỉnh, Docked Study Bar & Mode Selector Ở Đáy)
+- **Chuyển Toàn Bộ 4 Tab Phụ Lên Đầu Trang (`Overview | Cards | Roadmap | Settings`)**:
+  - Đưa thanh chuyển tab di động từ vị trí dưới đáy lên đỉnh ngay sát thanh tiêu đề bộ thẻ (`DeckDetailPage.tsx`).
+  - Hỗ trợ menu dropdown cài đặt (`Deck Settings` vs `My Settings`) xổ xuống mượt mà từ trên xuống.
+- **Thanh Hành Động Học Ở Đáy Ngón Cái (Docked Bottom Study Bar)**:
+  - Khi ở các tab `Overview`, `Roadmap`, `Settings`, đáy màn hình điện thoại được trang bị thanh học chuyên dụng gồm:
+    - **Nút Bộ Chọn Chế Độ Học (Study Mode Picker)**: Hiển thị chế độ hiện tại (`🧠 FSRS Mode ▾`, `⚡ Speed Skim ▾`, `📚 Review Mode ▾`, etc.). Bấm vào để mở Bottom Sheet chọn chế độ.
+    - **Nút Học Chính (Primary Study Now CTA)**: Nút gradient rực rỡ kèm số thẻ đến hạn (`due count`), biểu tượng sét và mũi tên tiến, cho phép học ngay chỉ với 1 chạm ngón cái tiện lợi.
+- **Bảng Chọn Chế Độ Học Đa Dạng (Study Mode Bottom Sheet Modal)**:
+  - Slide lên từ đáy màn hình với 2 nhóm chế độ rõ ràng:
+    - **Flashcard Memory Modes**: FSRS Spaced Repetition (kèm số thẻ đến hạn), Speed Skim (+3 XP), Review Mode (Continuous learned cards), New Cards (thẻ mới).
+    - **Practice & Quiz Tests**: MCQ Test (trắc nghiệm 4 đáp án), Typing Test (luyện gõ/chính tả), Listening Test (luyện nghe).
+  - Nhấp vào bất kỳ chế độ nào sẽ lưu lựa chọn và bắt đầu học ngay lập tức.
+- **Tối Ưu Trật Tự Nội Dung Tab Overview (`DeckOverviewTab.tsx`)**:
+  - Đưa khối `DeckQuickStudyLauncher` lên vị trí đầu tiên ngay dưới tab di động, giúp người dùng vừa vào bộ thẻ là nhìn thấy ngay các chế độ học mà không cần cuộn.
+
 #### Chuyển Đổi Trang Roadmap Bằng Cuộn Dọc (Vertical Snap Scroll) & Chuyển Tab Bằng Kéo Ngang (Horizontal Tab Swipe)
 - **Tách Biệt Tuyệt Đối 2 Trục Cử Chỉ (Separation of Gestures by Axis)**:
   - **Trục ngang (Kéo sang trái / phải)**: Luôn dùng để chuyển đổi giữa hai tab chính `Roadmap` $\leftrightarrow$ `Learning` trên toàn màn hình Dashboard. Không bị thẻ con chặn bắt, đem lại trải nghiệm đổi tab mượt mà và trực quan.

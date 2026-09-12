@@ -17,7 +17,8 @@ import {
   Plus,
   ChevronDown,
   User,
-  Check
+  Check,
+  ArrowRight
 } from 'lucide-react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -33,6 +34,98 @@ const DeckSettingsTab = lazy(() => import('@/components/deck/tabs/DeckSettingsTa
 const DeckRoadmapTab = lazy(() => import('@/components/deck/tabs/DeckRoadmapTab'))
 
 export type DeckDetailTab = 'overview' | 'cards' | 'roadmap' | 'settings'
+
+export interface StudyModeOption {
+  id: string
+  name: string
+  fullName: string
+  emoji: string
+  desc: string
+  badge?: (due: number) => string
+  badgeColor?: string
+  color: string
+  getUrl: (deckId: string | number) => string
+}
+
+export const STUDY_MODES: StudyModeOption[] = [
+  {
+    id: 'fsrs',
+    name: 'FSRS Mode',
+    fullName: 'FSRS Spaced Repetition',
+    emoji: '🧠',
+    desc: 'Spaced repetition based on memory stability & retention',
+    badge: (due: number) => due > 0 ? `${due} due` : 'SRS',
+    badgeColor: 'bg-indigo-100 text-indigo-700',
+    color: 'from-indigo-600 to-purple-600',
+    getUrl: (id) => `/flashcard/${id}/play?mode=fsrs`
+  },
+  {
+    id: 'skim',
+    name: 'Speed Skim',
+    fullName: 'Speed Skim (Flash View)',
+    emoji: '⚡',
+    desc: 'Rapid 1-tap card preview without grading pressure',
+    badge: () => '+3 XP',
+    badgeColor: 'bg-amber-100 text-amber-700',
+    color: 'from-amber-500 to-orange-500',
+    getUrl: (id) => `/flashcard/${id}/play?mode=skim`
+  },
+  {
+    id: 'review',
+    name: 'Review Mode',
+    fullName: 'Continuous Review',
+    emoji: '📚',
+    desc: 'Review all learned cards in a continuous cycle',
+    badge: () => 'Learned',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
+    color: 'from-teal-600 to-emerald-600',
+    getUrl: (id) => `/flashcard/${id}/play?mode=review`
+  },
+  {
+    id: 'new',
+    name: 'New Cards',
+    fullName: 'Learn New Vocabulary',
+    emoji: '✨',
+    desc: 'Focus solely on unlearned vocabulary cards',
+    badge: () => 'NEW',
+    badgeColor: 'bg-purple-100 text-purple-700',
+    color: 'from-purple-600 to-pink-600',
+    getUrl: (id) => `/flashcard/${id}/play?mode=new`
+  },
+  {
+    id: 'mcq',
+    name: 'MCQ Test',
+    fullName: '4-Choice Quiz Test',
+    emoji: '🎯',
+    desc: 'Rapid reflex 4 choices multiple choice test',
+    badge: () => 'Quiz',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
+    color: 'from-emerald-500 to-teal-600',
+    getUrl: (id) => `/practice/${id}/mcq`
+  },
+  {
+    id: 'typing',
+    name: 'Typing Test',
+    fullName: 'Spelling Recall Test',
+    emoji: '⌨️',
+    desc: 'Deep recall spelling and character typing',
+    badge: () => 'Typing',
+    badgeColor: 'bg-purple-100 text-purple-700',
+    color: 'from-purple-600 to-indigo-600',
+    getUrl: (id) => `/practice/${id}/typing`
+  },
+  {
+    id: 'listening',
+    name: 'Listening Test',
+    fullName: 'Audio Comprehension',
+    emoji: '🎧',
+    desc: 'Audio comprehension and listening recall',
+    badge: () => 'Audio',
+    badgeColor: 'bg-sky-100 text-sky-700',
+    color: 'from-sky-500 to-blue-600',
+    getUrl: (id) => `/practice/${id}/listening`
+  }
+]
 
 export function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -59,6 +152,10 @@ export function DeckDetailPage() {
   // Settings Pull Dropdown Menu State
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false)
 
+  // Study Mode Selector & Modal State
+  const [selectedStudyMode, setSelectedStudyMode] = useState<string>('fsrs')
+  const [isModeModalOpen, setIsModeModalOpen] = useState(false)
+
   // Fetch Deck Metadata
   const { data: deckMeta, isLoading } = useQuery({
     queryKey: ['quiz', id],
@@ -70,6 +167,30 @@ export function DeckDetailPage() {
     enabled: !!id,
     staleTime: 60 * 1000,
   })
+
+  // Fetch Mastery Stats (for due count in Study Bar)
+  const { data: masteryData } = useQuery({
+    queryKey: ['quiz-mastery', id],
+    queryFn: async () => {
+      if (!id) return null
+      const res = await axios.get(`/api/v1/deck/${id}/mastery`)
+      return res.data
+    },
+    enabled: !!id,
+    staleTime: 30 * 1000,
+  })
+
+  const dueCount = masteryData?.due_count ?? 0
+  const currentMode = STUDY_MODES.find(m => m.id === selectedStudyMode) || STUDY_MODES[0]
+
+  const handleLaunchStudy = (modeId?: string) => {
+    const targetMode = STUDY_MODES.find(m => m.id === (modeId || selectedStudyMode)) || STUDY_MODES[0]
+    if (id) {
+      if (modeId) setSelectedStudyMode(modeId)
+      setIsModeModalOpen(false)
+      navigate(targetMode.getUrl(id))
+    }
+  }
 
   const isOwner = Boolean(
     deckMeta?.is_creator || 
@@ -309,36 +430,148 @@ export function DeckDetailPage() {
               })}
             </div>
 
-            {/* Right: Start Learning CTA */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {id && (() => {
-                const targetMode = deckMeta?.practice_settings?.study_defaults?.learning_mode || deckMeta?.default_mode || 'fsrs'
-                let targetUrl = `/flashcard/${id}/play?mode=fsrs`
-                if (targetMode === 'mcq') targetUrl = `/practice/${id}/mcq`
-                else if (targetMode === 'typing') targetUrl = `/practice/${id}/typing`
-                else if (targetMode === 'listening') targetUrl = `/practice/${id}/listening`
-                else if (targetMode === 'roadmap') targetUrl = `/flashcard/${id}/play?mode=roadmap`
-                else if (targetMode === 'flip') targetUrl = `/flashcard/${id}/play?mode=flip`
-                else if (targetMode === 'new') targetUrl = `/flashcard/${id}/play?mode=new`
-                else if (targetMode === 'review') targetUrl = `/flashcard/${id}/play?mode=review`
-
-                return (
-                  <Link
-                    to={targetUrl}
-                    className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Study Now</span>
-                  </Link>
-                )
-              })()}
+            {/* Right: Start Learning CTA (Desktop only) */}
+            <div className="hidden md:flex items-center gap-1.5 shrink-0">
+              {id && (
+                <Link
+                  to={currentMode.getUrl(id)}
+                  className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Study Now</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
       </div>
 
+      {/* ═══════════ MOBILE TOP TAB SWITCHER (Directly below Header) ═══════════ */}
+      <div className="md:hidden shrink-0 z-20 bg-white/95 backdrop-blur-xl border-b border-slate-200/70 px-2.5 py-1.5 shadow-2xs">
+        <div className="max-w-md mx-auto flex items-center w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5">
+          {visibleTabs.map((tab) => {
+            const isSettingsTab = tab.id === 'settings'
+            const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
+            const label = isSettingsTab ? getSettingsTabLabel() : tab.label
+            const isActive = activeTab === tab.id
+
+            if (isSettingsTab && isOwner) {
+              return (
+                <div key={tab.id} className="relative flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
+                    className={cn(
+                      "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeDeckDetailTopTabPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                      />
+                    )}
+                    <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                    <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
+                    <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
+                  </button>
+
+                  {/* Dropdown Menu (Pops DOWNWARDS on Mobile because it's at the top!) */}
+                  <AnimatePresence>
+                    {isSettingsMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                          transition={{ duration: 0.12 }}
+                          className="absolute top-full mt-2 right-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleSelectScope('deck')}
+                            className={cn(
+                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                              isActive && settingsScope === 'deck'
+                                ? "bg-indigo-50 text-indigo-900 font-black"
+                                : "hover:bg-slate-50 text-slate-700"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
+                                <SettingsIcon className="w-3.5 h-3.5" />
+                              </span>
+                              <div>
+                                <span className="block text-xs font-black">Deck Settings</span>
+                                <span className="block text-[10px] text-slate-400 font-medium">Cài đặt bộ thẻ</span>
+                              </div>
+                            </div>
+                            {isActive && settingsScope === 'deck' && (
+                              <Check className="w-4 h-4 text-indigo-600" />
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectScope('personal')}
+                            className={cn(
+                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                              isActive && settingsScope === 'personal'
+                                ? "bg-orange-50 text-orange-950 font-black"
+                                : "hover:bg-slate-50 text-slate-700"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
+                                <User className="w-3.5 h-3.5" />
+                              </span>
+                              <div>
+                                <span className="block text-xs font-black">My Settings</span>
+                                <span className="block text-[10px] text-slate-400 font-medium">Cài đặt cá nhân</span>
+                              </div>
+                            </div>
+                            {isActive && settingsScope === 'personal' && (
+                              <Check className="w-4 h-4 text-orange-600" />
+                            )}
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            }
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "relative flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                  isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeDeckDetailTopTabPill"
+                    className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                  />
+                )}
+                <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* ═══════════ TAB CONTENT AREA (INTERNAL SCROLLABLE - FLEX-1) ═══════════ */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto custom-scrollbar pb-16 md:pb-0">
         <Suspense
           fallback={
             <div className="py-24 text-center">
@@ -490,143 +723,215 @@ export function DeckDetailPage() {
         )
       })()}
 
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-2 sm:px-4 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="max-w-sm sm:max-w-md mx-auto flex items-center justify-center">
-          {/* Tabs Segmented Switcher */}
-          <div className="flex items-center w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5">
-            {visibleTabs.map((tab) => {
-              const isSettingsTab = tab.id === 'settings'
-              const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
-              const label = isSettingsTab ? getSettingsTabLabel() : tab.label
-              const isActive = activeTab === tab.id
+      {/* ═══════════ ONE-HAND BOTTOM DOCKED STUDY BAR (MOBILE ONLY) ═══════════ */}
+      {activeTab !== 'cards' && (
+        <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="max-w-md mx-auto flex items-center gap-2">
+            {/* Mode Selection Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsModeModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 active:scale-95 border border-slate-200/80 text-slate-800 transition-all text-xs font-black shrink-0 cursor-pointer shadow-2xs"
+              title="Choose study mode"
+            >
+              <span className="text-sm">{currentMode.emoji}</span>
+              <span className="max-w-[85px] sm:max-w-none truncate">{currentMode.name}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            </button>
 
-              const getTabFlexClass = () => {
-                if (tab.id === 'settings' && isOwner && activeTab === 'settings') {
-                  return 'flex-[1.35] min-w-0'
-                }
-                if (tab.id === 'cards' && activeTab === 'settings' && isOwner) {
-                  return 'flex-[0.85] min-w-0'
-                }
-                return 'flex-1 min-w-0'
-              }
-
-              if (isSettingsTab && isOwner) {
-                return (
-                  <div key={tab.id} className={cn("relative", getTabFlexClass())}>
-                    <button
-                      type="button"
-                      onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
-                      className={cn(
-                        "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                        isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeDeckDetailBottomTabPill"
-                          className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                        />
-                      )}
-                      <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                      <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
-                      <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
-                    </button>
-
-                    {/* Pull Dropdown Menu (Pops Upwards on Mobile) */}
-                    <AnimatePresence>
-                      {isSettingsMenuOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
-                          <motion.div
-                            initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 6, scale: 0.95 }}
-                            transition={{ duration: 0.12 }}
-                            className="absolute bottom-full mb-3 right-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleSelectScope('deck')}
-                              className={cn(
-                                "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                                isActive && settingsScope === 'deck'
-                                  ? "bg-indigo-50 text-indigo-900 font-black"
-                                  : "hover:bg-slate-50 text-slate-700"
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
-                                  <SettingsIcon className="w-3.5 h-3.5" />
-                                </span>
-                                <div>
-                                  <span className="block text-xs font-black">Deck Settings</span>
-                                  <span className="block text-[10px] text-slate-400 font-medium">Cài đặt bộ thẻ</span>
-                                </div>
-                              </div>
-                              {isActive && settingsScope === 'deck' && (
-                                <Check className="w-4 h-4 text-indigo-600" />
-                              )}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleSelectScope('personal')}
-                              className={cn(
-                                "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                                isActive && settingsScope === 'personal'
-                                  ? "bg-orange-50 text-orange-950 font-black"
-                                  : "hover:bg-slate-50 text-slate-700"
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
-                                  <User className="w-3.5 h-3.5" />
-                                </span>
-                                <div>
-                                  <span className="block text-xs font-black">My Settings</span>
-                                  <span className="block text-[10px] text-slate-400 font-medium">Cài đặt cá nhân</span>
-                                </div>
-                              </div>
-                              {isActive && settingsScope === 'personal' && (
-                                <Check className="w-4 h-4 text-orange-600" />
-                              )}
-                            </button>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )
-              }
-
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "relative flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                    getTabFlexClass(),
-                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeDeckDetailBottomTabPill"
-                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                    />
-                  )}
-                  <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                  <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
-                </button>
-              )
-            })}
+            {/* Primary Study Now Action Button */}
+            <button
+              type="button"
+              onClick={() => handleLaunchStudy()}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-white font-black text-xs sm:text-sm shadow-md active:scale-[0.98] transition-all cursor-pointer bg-gradient-to-r",
+                currentMode.color,
+                "shadow-indigo-500/20"
+              )}
+            >
+              <Zap className="w-4 h-4 fill-current shrink-0 animate-pulse" />
+              <span>Study Now</span>
+              {dueCount > 0 && selectedStudyMode === 'fsrs' && (
+                <span className="px-1.5 py-0.5 rounded-full bg-white/25 text-[10px] font-bold">
+                  {dueCount} due
+                </span>
+              )}
+              <ArrowRight className="w-4 h-4 shrink-0 stroke-[2.5]" />
+            </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* ═══════════ STUDY MODE SELECTION BOTTOM SHEET (MOBILE & TABLET) ═══════════ */}
+      <AnimatePresence>
+        {isModeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+              onClick={() => setIsModeModalOpen(false)}
+            />
+
+            {/* Modal Sheet */}
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/90 shadow-2xl p-4 sm:p-5 max-h-[85vh] flex flex-col z-10 text-left overflow-hidden pb-[max(1rem,env(safe-area-inset-bottom))]"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                    ⚡
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800">Choose Study Mode</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">Select a mode to start immediately</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModeModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modes List (Scrollable) */}
+              <div className="flex-1 overflow-y-auto py-3 space-y-4 custom-scrollbar pr-1">
+                {/* Section 1: Flashcard Memory Modes */}
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 mb-2">
+                    Flashcard Memory Modes
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {STUDY_MODES.slice(0, 4).map((mode) => {
+                      const isSelected = selectedStudyMode === mode.id
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => handleLaunchStudy(mode.id)}
+                          className={cn(
+                            "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                            isSelected
+                              ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
+                              : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
+                              isSelected ? "bg-white shadow-xs" : "bg-slate-100"
+                            )}>
+                              {mode.emoji}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-800 truncate">
+                                  {mode.fullName}
+                                </span>
+                                {mode.badge && (
+                                  <span className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
+                                    mode.badgeColor || "bg-slate-100 text-slate-600"
+                                  )}>
+                                    {mode.badge(dueCount)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                {mode.desc}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                            <ArrowRight className="w-4 h-4 text-slate-400" />
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Practice & Quiz Tests */}
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 mb-2">
+                    Practice & Quiz Tests
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {STUDY_MODES.slice(4).map((mode) => {
+                      const isSelected = selectedStudyMode === mode.id
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => handleLaunchStudy(mode.id)}
+                          className={cn(
+                            "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                            isSelected
+                              ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
+                              : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
+                              isSelected ? "bg-white shadow-xs" : "bg-slate-100"
+                            )}>
+                              {mode.emoji}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-800 truncate">
+                                  {mode.fullName}
+                                </span>
+                                {mode.badge && (
+                                  <span className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
+                                    mode.badgeColor || "bg-slate-100 text-slate-600"
+                                  )}>
+                                    {mode.badge(dueCount)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                {mode.desc}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                            <ArrowRight className="w-4 h-4 text-slate-400" />
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
