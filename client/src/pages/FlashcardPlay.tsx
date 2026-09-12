@@ -4339,6 +4339,16 @@ export default function FlashcardPlay() {
         onToggleSwipeToRate={handleToggleSwipeToRate}
         showActionDock={showActionDock}
         onToggleActionDock={handleToggleActionDock}
+        hapticEnabled={hapticEnabled}
+        setHapticEnabled={setHapticEnabled}
+        triggerHaptic={triggerHaptic}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
+        canEdit={canEdit}
+        onOpenEditModal={openEditModal}
+        onOpenCardHub={handleOpenCardHub}
+        handleToggleHint={handleToggleHint}
+        showingHint={showingHint}
       />
     </div>
   )

@@ -17,7 +17,14 @@ import {
   RotateCcw,
   Hand,
   Layers,
-  MoveHorizontal
+  MoveHorizontal,
+  Vibrate,
+  VibrateOff,
+  Pencil,
+  Type,
+  FileText,
+  Brain,
+  Lightbulb
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -155,6 +162,16 @@ export interface FlashcardQuickControlsSheetProps {
   onToggleSwipeToRate?: () => void
   showActionDock?: boolean
   onToggleActionDock?: () => void
+  hapticEnabled?: boolean
+  setHapticEnabled?: (val: boolean) => void
+  triggerHaptic?: (type?: any) => void
+  frontFontSize?: string
+  setFrontFontSize?: (size: string) => void
+  canEdit?: boolean
+  onOpenEditModal?: () => void
+  onOpenCardHub?: (subTab: 'stats' | 'insight' | 'note' | 'community') => void
+  handleToggleHint?: (e?: React.MouseEvent) => void
+  showingHint?: boolean
 }
 
 const FLASHCARD_MODES = [
@@ -201,6 +218,16 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   onToggleSwipeToRate,
   showActionDock = true,
   onToggleActionDock,
+  hapticEnabled = true,
+  setHapticEnabled,
+  triggerHaptic,
+  frontFontSize = '100%',
+  setFrontFontSize,
+  canEdit = false,
+  onOpenEditModal,
+  onOpenCardHub,
+  handleToggleHint,
+  showingHint = false,
 }) => {
   if (typeof document === 'undefined') return null
 
@@ -293,8 +320,9 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             )}
 
-            {/* Action Grid (4 Columns x 2 Rows = 8 Buttons, Balanced iOS Control Center Layout) */}
+            {/* Action Grid (Structured iOS Control Center Layout) */}
             {(() => {
+              // 1. Autoplay cycle & meta
               const autoplayMeta = (() => {
                 switch (autoPlayAudio) {
                   case 'always':
@@ -356,6 +384,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 showLocalToast?.(toastMsg, 'info')
               }
 
+              // 2. Rating mode cycle & meta
               const currentRatingMode: 'both' | 'swipe_4way' | 'buttons' = ratingMode || (
                 showActionDock && swipeToRate
                   ? 'both'
@@ -411,236 +440,512 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 }
               }
 
-              const isImagesOn = showImages !== 'none'
+              // 3. Card Images cycle & meta (Both -> Front -> Back -> Off)
+              const imagesMeta = (() => {
+                const str = String(showImages)
+                if (str === 'always' || showImages === true || str === 'true') {
+                  return {
+                    label: 'BOTH',
+                    color: 'text-emerald-600',
+                    container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs',
+                    iconBox: 'bg-emerald-500 text-white shadow-2xs',
+                    icon: <Eye className="w-4 h-4" />,
+                    title: 'Card Images: Both Sides'
+                  }
+                }
+                if (str === 'front') {
+                  return {
+                    label: 'FRONT',
+                    color: 'text-sky-600',
+                    container: 'bg-sky-50 border-sky-300 text-sky-700 shadow-2xs',
+                    iconBox: 'bg-sky-500 text-white shadow-2xs',
+                    icon: <Eye className="w-4 h-4" />,
+                    title: 'Card Images: Front Only'
+                  }
+                }
+                if (str === 'back') {
+                  return {
+                    label: 'BACK',
+                    color: 'text-indigo-600',
+                    container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                    iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                    icon: <Eye className="w-4 h-4" />,
+                    title: 'Card Images: Back Only'
+                  }
+                }
+                return {
+                  label: 'OFF',
+                  color: 'text-slate-400',
+                  container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500',
+                  iconBox: 'bg-white text-slate-400 border border-slate-200/60',
+                  icon: <EyeOff className="w-4 h-4" />,
+                  title: 'Card Images: Hidden'
+                }
+              })()
+
+              const handleCycleImages = () => {
+                const str = String(showImages)
+                let nextVal: 'always' | 'front' | 'back' | 'none' = 'always'
+                let toastMsg = 'Card Images: Both Sides'
+                if (str === 'always' || showImages === true || str === 'true') {
+                  nextVal = 'front'
+                  toastMsg = 'Card Images: Front Only'
+                } else if (str === 'front') {
+                  nextVal = 'back'
+                  toastMsg = 'Card Images: Back Only'
+                } else if (str === 'back') {
+                  nextVal = 'none'
+                  toastMsg = 'Card Images: OFF'
+                } else {
+                  nextVal = 'always'
+                  toastMsg = 'Card Images: Both Sides'
+                }
+                setShowImages(nextVal)
+                showLocalToast?.(toastMsg, 'info')
+              }
+
+              // 4. Font Size cycle & meta (100% Normal -> 125% Large -> 150% XL -> 85% Compact)
+              const fontMeta = (() => {
+                const match = String(frontFontSize || '100%').match(/\d+/)
+                const pct = match ? parseInt(match[0], 10) : 100
+                if (pct <= 85) return { label: '85%', sub: 'Compact', active: true, color: 'text-amber-600' }
+                if (pct <= 105) return { label: '100%', sub: 'Normal', active: false, color: 'text-slate-500' }
+                if (pct <= 135) return { label: '125%', sub: 'Large', active: true, color: 'text-indigo-600' }
+                return { label: '150%', sub: 'XL', active: true, color: 'text-purple-600' }
+              })()
+
+              const handleCycleFontSize = () => {
+                const match = String(frontFontSize || '100%').match(/\d+/)
+                const pct = match ? parseInt(match[0], 10) : 100
+                let nextVal = '100%'
+                let toastMsg = 'Font Size: 100% (Normal)'
+                if (pct <= 85) {
+                  nextVal = '100%'
+                  toastMsg = 'Font Size: 100% (Normal)'
+                } else if (pct <= 105) {
+                  nextVal = '125%'
+                  toastMsg = 'Font Size: 125% (Large)'
+                } else if (pct <= 135) {
+                  nextVal = '150%'
+                  toastMsg = 'Font Size: 150% (Extra Large)'
+                } else {
+                  nextVal = '85%'
+                  toastMsg = 'Font Size: 85% (Compact)'
+                }
+                setFrontFontSize?.(nextVal)
+                showLocalToast?.(toastMsg, 'info')
+              }
 
               return (
-                <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-                  {/* ROW 1: Audio & Learning Flow */}
-                  {/* 1. Autoplay (Cycles: BOTH -> FRONT -> BACK -> OFF) */}
-                  <button
-                    type="button"
-                    onClick={handleCycleAutoplay}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      autoplayMeta.container
-                    )}
-                    title={autoplayMeta.title}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", autoplayMeta.iconBox)}>
-                      {autoplayMeta.icon}
-                    </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Autoplay</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
-                        {autoplayMeta.label}
+                <div className="flex flex-col gap-3">
+                  {/* ══════ SECTION 1: AUDIO & FLOW ══════ */}
+                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        Audio & Flow
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        Sound & Pacing
                       </span>
                     </div>
-                  </button>
 
-                  {/* 2. SFX Sounds */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !sfxEnabled
-                      setSfxEnabled(nextVal)
-                      showLocalToast?.(`SFX Sounds: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      sfxEnabled
-                        ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      <Sparkles className="w-4 h-4" />
+                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                      {/* 1. Autoplay */}
+                      <button
+                        type="button"
+                        onClick={handleCycleAutoplay}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          autoplayMeta.container
+                        )}
+                        title={autoplayMeta.title}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", autoplayMeta.iconBox)}>
+                          {autoplayMeta.icon}
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Autoplay</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
+                            {autoplayMeta.label}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 2. SFX Sounds */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = !sfxEnabled
+                          setSfxEnabled(nextVal)
+                          showLocalToast?.(`SFX Sounds: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          sfxEnabled
+                            ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">SFX Audio</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", sfxEnabled ? "text-purple-600" : "text-slate-400")}>
+                            {sfxEnabled ? "ON" : "OFF"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 3. Haptic Feedback */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = !hapticEnabled
+                          setHapticEnabled?.(nextVal)
+                          if (nextVal) triggerHaptic?.('success')
+                          showLocalToast?.(`Haptic Feedback: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          hapticEnabled
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={`Haptic Vibration: ${hapticEnabled ? 'ON' : 'OFF'}`}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", hapticEnabled ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          {hapticEnabled ? <Vibrate className="w-4 h-4" /> : <VibrateOff className="w-4 h-4" />}
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Haptic</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", hapticEnabled ? "text-emerald-600" : "text-slate-400")}>
+                            {hapticEnabled ? "ON" : "OFF"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 4. Auto Next */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isSpeedSkimMode) {
+                            showLocalToast?.("Auto Next is permanently active in Skim Mode", "info")
+                            return
+                          }
+                          const nextVal = !effectiveAutoAdvance
+                          setIsAutoAdvance(nextVal)
+                          if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
+                          showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          effectiveAutoAdvance
+                            ? isSpeedSkimMode
+                              ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/25"
+                              : "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={isSpeedSkimMode ? "Auto Next: Permanently ON in Skim Mode" : `Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
+                      >
+                        <div className={cn(
+                          "w-8 h-8 rounded-xl flex items-center justify-center",
+                          effectiveAutoAdvance
+                            ? isSpeedSkimMode ? "bg-white/20 text-white" : "bg-amber-500 text-white shadow-2xs"
+                            : "bg-white text-slate-400 border border-slate-200/60"
+                        )}>
+                          <Zap className={cn("w-4 h-4", isSpeedSkimMode && "animate-pulse")} />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
+                          {isSpeedSkimMode ? (
+                            <span className="text-[8px] font-black uppercase tracking-wider text-amber-100">
+                              ⚡ Skim
+                            </span>
+                          ) : (
+                            <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
+                              {effectiveAutoAdvance ? "ON" : "OFF"}
+                            </span>
+                          )}
+                        </div>
+                      </button>
                     </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">SFX Audio</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", sfxEnabled ? "text-purple-600" : "text-slate-400")}>
-                        {sfxEnabled ? "ON" : "OFF"}
+                  </div>
+
+                  {/* ══════ SECTION 2: DISPLAY & GESTURES ══════ */}
+                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        Display & Gestures
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        Visuals & Controls
                       </span>
                     </div>
-                  </button>
 
-                  {/* 3. Auto Advance */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isSpeedSkimMode) {
-                        showLocalToast?.("Auto Next is permanently active in Skim Mode", "info")
-                        return
-                      }
-                      const nextVal = !effectiveAutoAdvance
-                      setIsAutoAdvance(nextVal)
-                      if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
-                      showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      effectiveAutoAdvance
-                        ? isSpeedSkimMode
-                          ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/25"
-                          : "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title={isSpeedSkimMode ? "Auto Next: Permanently ON in Skim Mode" : `Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
-                  >
-                    <div className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center", 
-                      effectiveAutoAdvance 
-                        ? isSpeedSkimMode ? "bg-white/20 text-white" : "bg-amber-500 text-white shadow-2xs" 
-                        : "bg-white text-slate-400 border border-slate-200/60"
-                    )}>
-                      <Zap className={cn("w-4 h-4", isSpeedSkimMode && "animate-pulse")} />
+                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                      {/* 1. Rating Mode */}
+                      <button
+                        type="button"
+                        onClick={handleCycleRating}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          ratingModeMeta.container
+                        )}
+                        title={ratingModeMeta.title}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", ratingModeMeta.iconBox)}>
+                          {ratingModeMeta.icon}
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Rate Mode</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
+                            {ratingModeMeta.label}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 2. Card Images (Cycles: BOTH -> FRONT -> BACK -> OFF) */}
+                      <button
+                        type="button"
+                        onClick={handleCycleImages}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          imagesMeta.container
+                        )}
+                        title={imagesMeta.title}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", imagesMeta.iconBox)}>
+                          {imagesMeta.icon}
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Images</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", imagesMeta.color)}>
+                            {imagesMeta.label}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 3. Font Size (Cycles: 100% -> 125% -> 150% -> 85%) */}
+                      <button
+                        type="button"
+                        onClick={handleCycleFontSize}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          fontMeta.active
+                            ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={`Font Size: ${fontMeta.label} (${fontMeta.sub})`}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", fontMeta.active ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Type className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Font Size</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", fontMeta.color)}>
+                            {fontMeta.label}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 4. Shuffle Order */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = !randomEnabled
+                          if (onToggleRandom) {
+                            onToggleRandom(nextVal)
+                          } else {
+                            setRandomEnabled(nextVal)
+                          }
+                          showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          randomEnabled
+                            ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Shuffle className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-600" : "text-slate-400")}>
+                            {randomEnabled ? "ON" : "OFF"}
+                          </span>
+                        </div>
+                      </button>
                     </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
-                      {isSpeedSkimMode ? (
-                        <span className="text-[8px] font-black uppercase tracking-wider text-amber-100">
-                          ⚡ Skim
-                        </span>
-                      ) : (
-                        <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
-                          {effectiveAutoAdvance ? "ON" : "OFF"}
-                        </span>
+                  </div>
+
+                  {/* ══════ SECTION 3: CARD TOOLS & AI ══════ */}
+                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        Card Tools & AI
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        Editor & Insights
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                      {/* 1. Edit Card */}
+                      <button
+                        type="button"
+                        disabled={!canEdit}
+                        onClick={() => {
+                          onClose()
+                          onOpenEditModal?.()
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 select-none",
+                          canEdit
+                            ? "bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100/80 cursor-pointer shadow-2xs"
+                            : "bg-slate-50 border-slate-200/70 text-slate-400 opacity-50 cursor-not-allowed"
+                        )}
+                        title={canEdit ? "Edit Current Card Content" : "Card editing locked"}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", canEdit ? "bg-blue-600 text-white shadow-2xs" : "bg-slate-200 text-slate-400")}>
+                          <Pencil className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Edit Card</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", canEdit ? "text-blue-600" : "text-slate-400")}>
+                            {canEdit ? "EDITOR" : "LOCKED"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 2. Card Note */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose()
+                          onOpenCardHub?.('note')
+                        }}
+                        className="flex flex-col items-center justify-center p-2 rounded-2xl border bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100/80 transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none shadow-2xs"
+                        title="View & Edit Personal Card Notes"
+                      >
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-500 text-white shadow-2xs">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">Card Note</span>
+                          <span className="text-[8px] font-black uppercase tracking-wider text-amber-700">
+                            NOTES
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 3. AI Explain */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose()
+                          onOpenCardHub?.('insight')
+                        }}
+                        className="flex flex-col items-center justify-center p-2 rounded-2xl border bg-purple-50 border-purple-300 text-purple-800 hover:bg-purple-100/80 transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none shadow-2xs"
+                        title="Open AI Explanations & In-Depth Insights"
+                      >
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-purple-600 text-white shadow-2xs">
+                          <Brain className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">AI Explain</span>
+                          <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">
+                            INSIGHT
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 4. AI Hint */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleToggleHint?.()
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          showingHint
+                            ? "bg-amber-100 border-amber-400 text-amber-900 shadow-2xs"
+                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                        )}
+                        title={showingHint ? "Hide AI Hint" : "Reveal / Ask AI Hint"}
+                      >
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showingHint ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Lightbulb className={cn("w-4 h-4", showingHint && "fill-white")} />
+                        </div>
+                        <div className="flex flex-col items-center leading-none gap-0.5">
+                          <span className="text-[10px] font-bold tracking-tight">AI Hint</span>
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", showingHint ? "text-amber-700" : "text-slate-400")}>
+                            {showingHint ? "ACTIVE" : "HINT"}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ══════ SECTION 4: QUICK UTILITIES ══════ */}
+                  <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                    {/* Star Card (Wide - 2 cols) */}
+                    <button
+                      type="button"
+                      onClick={handleStarQuestion}
+                      className={cn(
+                        "col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all active:scale-98 cursor-pointer select-none",
+                        currentQuestion?.is_starred
+                          ? "bg-amber-50 border-amber-300 text-amber-800 shadow-2xs"
+                          : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-600"
                       )}
-                    </div>
-                  </button>
+                      title={currentQuestion?.is_starred ? "Card is Starred (Click to Unstar)" : "Star this Card"}
+                    >
+                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                        <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
+                      </div>
+                      <div className="flex flex-col text-left leading-none gap-0.5">
+                        <span className="text-[11px] font-bold tracking-tight">Star Card</span>
+                        <span className={cn("text-[8.5px] font-black uppercase tracking-wider", currentQuestion?.is_starred ? "text-amber-600" : "text-slate-400")}>
+                          {currentQuestion?.is_starred ? "STARRED" : "NOT STARRED"}
+                        </span>
+                      </div>
+                    </button>
 
-                  {/* 4. Rating Controls (Merged Swipe + Buttons, Cycles: BOTH -> SWIPE -> BUTTONS) */}
-                  <button
-                    type="button"
-                    onClick={handleCycleRating}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      ratingModeMeta.container
-                    )}
-                    title={ratingModeMeta.title}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", ratingModeMeta.iconBox)}>
-                      {ratingModeMeta.icon}
-                    </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Rate Mode</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
-                        {ratingModeMeta.label}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* ROW 2: Deck & Study Tools */}
-                  {/* 5. Card Images */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = isImagesOn ? 'none' : 'always'
-                      setShowImages(nextVal)
-                      showLocalToast?.(`Card Images: ${isImagesOn ? 'OFF' : 'ON'}`, 'info')
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      isImagesOn
-                        ? "bg-sky-50 border-sky-300 text-sky-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title={`Card Images: ${isImagesOn ? 'ON' : 'OFF'}`}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isImagesOn ? "bg-sky-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      {isImagesOn ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Images</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", isImagesOn ? "text-sky-600" : "text-slate-400")}>
-                        {isImagesOn ? "ON" : "OFF"}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* 6. Shuffle Order */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !randomEnabled
-                      if (onToggleRandom) {
-                        onToggleRandom(nextVal)
-                      } else {
-                        setRandomEnabled(nextVal)
-                      }
-                      showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      randomEnabled
-                        ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      <Shuffle className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-600" : "text-slate-400")}>
-                        {randomEnabled ? "ON" : "OFF"}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* 7. Select Text Mode */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSelectMode(prev => {
-                        const next = !prev
-                        showLocalToast?.(next ? "Select Text Mode: ON (Card gestures paused)" : "Select Text Mode: OFF (Card gestures resumed)", "info")
-                        return next
-                      })
-                      onClose()
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      isSelectMode
-                        ? "bg-rose-50 border-rose-300 text-rose-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title={isSelectMode ? "Select Text: ACTIVE" : "Select Text: OFF"}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      <MousePointer className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Select Text</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", isSelectMode ? "text-rose-600" : "text-slate-400")}>
-                        {isSelectMode ? "ACTIVE" : "OFF"}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* 8. Star Card */}
-                  <button
-                    type="button"
-                    onClick={handleStarQuestion}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                      currentQuestion?.is_starred
-                        ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                    )}
-                    title={currentQuestion?.is_starred ? "Card is Starred (Click to Unstar)" : "Star this Card"}
-                  >
-                    <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                      <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
-                    </div>
-                    <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[10px] font-bold tracking-tight">Star</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", currentQuestion?.is_starred ? "text-amber-600" : "text-slate-400")}>
-                        {currentQuestion?.is_starred ? "STARRED" : "OFF"}
-                      </span>
-                    </div>
-                  </button>
+                    {/* Select Text Mode (Wide - 2 cols) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSelectMode(prev => {
+                          const next = !prev
+                          showLocalToast?.(next ? "Select Text Mode: ON (Card gestures paused)" : "Select Text Mode: OFF (Card gestures resumed)", "info")
+                          return next
+                        })
+                        onClose()
+                      }}
+                      className={cn(
+                        "col-span-2 flex items-center gap-2.5 p-2.5 rounded-2xl border transition-all active:scale-98 cursor-pointer select-none",
+                        isSelectMode
+                          ? "bg-rose-50 border-rose-300 text-rose-800 shadow-2xs"
+                          : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-600"
+                      )}
+                      title={isSelectMode ? "Select Text: ACTIVE" : "Select Text Mode"}
+                    >
+                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                        <MousePointer className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col text-left leading-none gap-0.5">
+                        <span className="text-[11px] font-bold tracking-tight">Select Text</span>
+                        <span className={cn("text-[8.5px] font-black uppercase tracking-wider", isSelectMode ? "text-rose-600" : "text-slate-400")}>
+                          {isSelectMode ? "GESTURES PAUSED" : "OFF"}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               )
             })()}
