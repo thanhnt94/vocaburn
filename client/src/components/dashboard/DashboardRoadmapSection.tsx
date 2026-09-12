@@ -775,14 +775,10 @@ export function DashboardRoadmapSection({
   onOpenCustomize
 }: DashboardRoadmapSectionProps) {
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
-  const [slideDir, setSlideDir] = useState<'next' | 'prev'>('next')
   const isScrollingRef = useRef(false)
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
-  const justSwipedRef = useRef(false)
-  const carouselContainerRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const handleMascotTap = () => {
-    if (justSwipedRef.current) return
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate([15, 30, 15])
     }
@@ -870,156 +866,64 @@ export function DashboardRoadmapSection({
   const totalDecks = roadmapDecks.length
   const st = deck?.status || {}
 
-  const goToPrevDeck = useCallback(() => {
-    if (safeIdx > 0) {
-      setSlideDir('prev')
-      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-        window.navigator.vibrate(8)
-      }
-      onSelectRoadmapIdx(safeIdx - 1)
+  const scrollToDeck = useCallback((targetIdx: number, smooth: boolean = true) => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const clamped = Math.max(0, Math.min(totalDecks - 1, targetIdx))
+    const targetTop = clamped * container.clientHeight
+    container.scrollTo({
+      top: targetTop,
+      behavior: smooth ? 'smooth' : 'auto'
+    })
+    onSelectRoadmapIdx(clamped)
+    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+      window.navigator.vibrate(8)
     }
-  }, [safeIdx, onSelectRoadmapIdx])
+  }, [totalDecks, onSelectRoadmapIdx])
 
-  const goToNextDeck = useCallback(() => {
-    if (safeIdx < totalDecks - 1) {
-      setSlideDir('next')
-      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-        window.navigator.vibrate(8)
-      }
-      onSelectRoadmapIdx(safeIdx + 1)
+  const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget
+    if (!container || container.clientHeight <= 0) return
+    const idx = Math.round(container.scrollTop / container.clientHeight)
+    const clamped = Math.max(0, Math.min(totalDecks - 1, idx))
+    if (clamped !== safeIdx) {
+      onSelectRoadmapIdx(clamped)
     }
-  }, [safeIdx, totalDecks, onSelectRoadmapIdx])
+  }
 
+  // Smooth wheel handling on desktop to scroll exactly 1 deck per wheel notch
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (totalDecks <= 1) return
     if (isScrollingRef.current) return
+    if (Math.abs(e.deltaY) < 25) return
 
-    const absX = Math.abs(e.deltaX)
-    const absY = Math.abs(e.deltaY)
-    const delta = absX > absY ? e.deltaX : e.deltaY
-
-    if (Math.abs(delta) < 20) return
-
-    if (delta > 0) {
-      if (safeIdx < totalDecks - 1) {
-        isScrollingRef.current = true
-        goToNextDeck()
-        setTimeout(() => {
-          isScrollingRef.current = false
-        }, 320)
-      }
-    } else {
-      if (safeIdx > 0) {
-        isScrollingRef.current = true
-        goToPrevDeck()
-        setTimeout(() => {
-          isScrollingRef.current = false
-        }, 320)
-      }
-    }
-  }
-
-  // Native non-passive wheel listener for smooth, scroll-free deck flipping on desktop
-  useEffect(() => {
-    const el = carouselContainerRef.current
-    if (!el || totalDecks <= 1) return
-
-    const onNativeWheel = (e: WheelEvent) => {
-      const absX = Math.abs(e.deltaX)
-      const absY = Math.abs(e.deltaY)
-      const delta = absX > absY ? e.deltaX : e.deltaY
-
-      if (Math.abs(delta) < 20) return
-
-      // Don't prevent default if rolling past the ends
-      if (delta > 0 && safeIdx >= totalDecks - 1) return
-      if (delta < 0 && safeIdx <= 0) return
-
-      e.preventDefault()
-
-      if (isScrollingRef.current) return
-
-      if (delta > 0 && safeIdx < totalDecks - 1) {
-        isScrollingRef.current = true
-        goToNextDeck()
-        setTimeout(() => {
-          isScrollingRef.current = false
-        }, 320)
-      } else if (delta < 0 && safeIdx > 0) {
-        isScrollingRef.current = true
-        goToPrevDeck()
-        setTimeout(() => {
-          isScrollingRef.current = false
-        }, 320)
-      }
-    }
-
-    el.addEventListener('wheel', onNativeWheel, { passive: false })
-    return () => {
-      el.removeEventListener('wheel', onNativeWheel)
-    }
-  }, [totalDecks, safeIdx, goToNextDeck, goToPrevDeck])
-
-  // Touch Swipe handlers for mobile
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 1) {
-      touchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        time: Date.now()
-      }
-    }
-  }
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStartRef.current || e.changedTouches.length === 0) return
-    const touchStart = touchStartRef.current
-    touchStartRef.current = null
-
-    if (totalDecks <= 1) return
-
-    const endX = e.changedTouches[0].clientX
-    const endY = e.changedTouches[0].clientY
-    const diffX = endX - touchStart.x
-    const diffY = endY - touchStart.y
-    const duration = Date.now() - touchStart.time
-
-    // Require distinct horizontal swipe: threshold 35px, horizontal dominance, under 700ms
-    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY) * 1.15 && duration < 700) {
-      justSwipedRef.current = true
+    if (e.deltaY > 0 && safeIdx < totalDecks - 1) {
+      isScrollingRef.current = true
+      scrollToDeck(safeIdx + 1)
       setTimeout(() => {
-        justSwipedRef.current = false
-      }, 250)
-
-      if (diffX < -35) {
-        // Swiped Left -> Next Deck
-        if (safeIdx < totalDecks - 1) {
-          e.stopPropagation()
-          if (typeof window !== 'undefined') {
-            (window as any)._touchStartX = undefined
-            ;(window as any)._touchStartY = undefined
-          }
-          goToNextDeck()
-        }
-      } else if (diffX > 35) {
-        // Swiped Right -> Prev Deck
-        if (safeIdx > 0) {
-          e.stopPropagation()
-          if (typeof window !== 'undefined') {
-            (window as any)._touchStartX = undefined
-            ;(window as any)._touchStartY = undefined
-          }
-          goToPrevDeck()
-        } else {
-          e.stopPropagation()
-          if (typeof window !== 'undefined') {
-            (window as any)._touchStartX = undefined
-            ;(window as any)._touchStartY = undefined
-          }
-        }
-      }
+        isScrollingRef.current = false
+      }, 350)
+    } else if (e.deltaY < 0 && safeIdx > 0) {
+      isScrollingRef.current = true
+      scrollToDeck(safeIdx - 1)
+      setTimeout(() => {
+        isScrollingRef.current = false
+      }, 350)
     }
   }
+
+  // Sync scroll position if safeIdx changes externally
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container || container.clientHeight <= 0) return
+    const targetTop = safeIdx * container.clientHeight
+    if (Math.abs(container.scrollTop - targetTop) > 15) {
+      container.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      })
+    }
+  }, [safeIdx])
 
   // ══════════════ COMPACT CARDS VIEW ══════════════
   if (displayMode === 'compact') {
@@ -1127,15 +1031,9 @@ export function DashboardRoadmapSection({
     )
   }
 
-  // ══════════════ CAROUSEL (SWIPE SINGLE CARD) VIEW ══════════════
+  // ══════════════ CAROUSEL (VERTICAL SNAP SCROLL) VIEW ══════════════
   return (
-    <div 
-      ref={carouselContainerRef}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onWheel={handleWheel}
-      className="h-full w-full flex flex-col overflow-hidden text-left select-none touch-pan-y"
-    >
+    <div className="h-full w-full flex flex-col overflow-hidden text-left select-none">
       {/* Subheader Bar */}
       <div className={cn(
         "px-3.5 sm:px-4 py-2 flex items-center justify-between flex-shrink-0 text-xs font-semibold text-slate-500 gap-2",
@@ -1147,7 +1045,7 @@ export function DashboardRoadmapSection({
             <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
               <button
                 type="button"
-                onClick={goToPrevDeck}
+                onClick={() => scrollToDeck(safeIdx - 1)}
                 disabled={safeIdx === 0}
                 className={cn(
                   "w-5 h-5 rounded-full flex items-center justify-center transition-all",
@@ -1162,7 +1060,7 @@ export function DashboardRoadmapSection({
               </span>
               <button
                 type="button"
-                onClick={goToNextDeck}
+                onClick={() => scrollToDeck(safeIdx + 1)}
                 disabled={safeIdx === totalDecks - 1}
                 className={cn(
                   "w-5 h-5 rounded-full flex items-center justify-center transition-all",
@@ -1215,30 +1113,29 @@ export function DashboardRoadmapSection({
         </div>
       </div>
 
-      {/* Roadmap Body */}
+      {/* Roadmap Reel Body with Real Vertical Snap Scroll */}
       <div 
-        className="flex-1 flex flex-col justify-between p-3 sm:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden gap-3 min-h-0 w-full"
+        ref={scrollContainerRef}
+        onScroll={handleContainerScroll}
+        onWheel={handleWheel}
+        className="flex-1 overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth min-h-0 w-full [&::-webkit-scrollbar]:hidden touch-pan-y"
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={safeIdx}
-            initial={{ opacity: 0, x: slideDir === 'next' ? 24 : -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: slideDir === 'next' ? -24 : 24 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full"
+        {roadmapDecks.map((d: any, i: number) => (
+          <div 
+            key={d.deck_id || i}
+            className="h-full min-h-full w-full snap-start snap-always shrink-0 p-3 sm:p-4 flex flex-col justify-between"
           >
             <DetailedRoadmapCard
-              deck={deck}
-              idx={safeIdx}
+              deck={d}
+              idx={i}
               totalDecks={totalDecks}
               onOpenStudyModal={onOpenStudyModal}
               navigate={navigate}
               onMascotTap={handleMascotTap}
-              mascotCheer={mascotCheer}
+              mascotCheer={i === safeIdx ? mascotCheer : null}
             />
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        ))}
       </div>
     </div>
   )
