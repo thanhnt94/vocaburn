@@ -1518,7 +1518,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             next_seq = (current_index + 1) if (current_index + 1 < total) else 0
             return {"next_index": next_seq, "phase": "free"}
 
-    elif target_mode in ("fsrs", "fsrs_review"):
+    elif target_mode in ("fsrs", "fsrs_review", "review"):
         pipeline = user_settings_dict.get("pipeline", []) if isinstance(user_settings_dict, dict) else []
         fsrs_step = next((st for st in pipeline if st.get("type") == "fsrs_review"), None)
         is_roadmap_review = (target_mode == "fsrs_review") or (original_mode == "roadmap")
@@ -1608,7 +1608,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         if is_roadmap_review or target_mode in ("fsrs_review", "review"):
             min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
             wait_sec = 600
-            wait_text = "10 phút nữa"
+            wait_text = "No cards due"
             if min_future_due:
                 diff_sec = int((min_future_due - now_utc).total_seconds())
                 wait_sec = max(60, diff_sec)
@@ -1617,12 +1617,13 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 days = hours // 24
                 if days > 0:
                     rem_h = hours % 24
-                    wait_text = f"{days} ngày {rem_h} giờ nữa" if rem_h > 0 else f"{days} ngày nữa"
+                    wait_text = f"{days}d {rem_h}h" if rem_h > 0 else f"{days}d"
                 elif hours > 0:
-                    wait_text = f"{hours} giờ {minutes} phút nữa" if minutes > 0 else f"{hours} giờ nữa"
+                    wait_text = f"{hours}h {minutes}m" if minutes > 0 else f"{hours}h"
                 else:
-                    wait_text = f"{max(1, minutes)} phút nữa"
+                    wait_text = f"{max(1, minutes)}m"
 
+            msg = "All due review cards completed!" if all_learned_cards else "No cards due for review in this deck!"
             return {
                 "next_index": -1,
                 "phase": "completed",
@@ -1635,7 +1636,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 "unlearned_count": len(all_new_cards),
                 "total_cards": total,
                 "learned_cards": len(all_learned_cards),
-                "message": "All due review cards completed!"
+                "message": msg
             }
 
         # 2. PRIORITY 2: New Cards (Chế độ FSRS tự do: tiếp tục nạp từ mới nếu chưa có từ nào đến hạn ôn)
@@ -1662,7 +1663,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         min_future_due = min(future_due_dates) if future_due_dates else (all_learned_cards[0]["due"] if all_learned_cards and all_learned_cards[0].get("due") else None)
 
         wait_sec = 600
-        wait_text = "10 phút nữa"
+        wait_text = "10m"
         if min_future_due:
             diff_sec = int((min_future_due - now_utc).total_seconds())
             wait_sec = max(60, diff_sec)
@@ -1673,11 +1674,11 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
             if days > 0:
                 rem_h = hours % 24
-                wait_text = f"{days} ngày {rem_h} giờ nữa" if rem_h > 0 else f"{days} ngày nữa"
+                wait_text = f"{days}d {rem_h}h" if rem_h > 0 else f"{days}d"
             elif hours > 0:
-                wait_text = f"{hours} giờ {minutes} phút nữa" if minutes > 0 else f"{hours} giờ nữa"
+                wait_text = f"{hours}h {minutes}m" if minutes > 0 else f"{hours}h"
             else:
-                wait_text = f"{max(1, minutes)} phút nữa"
+                wait_text = f"{max(1, minutes)}m"
 
         return {
             "next_index": -1,
@@ -1694,36 +1695,6 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             "message": "All cards in deck learned and no cards due for review!"
         }
 
-    elif mode == "review":
-        deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)
-        review_candidates = []
-        for idx in range(total):
-            if idx in ignored_indexes or idx in effective_answered:
-                continue
-            c = deck_with_stats.cards[idx]
-            c_stats = getattr(c, "stats", None) or {}
-            if (c_stats.get("total") or 0) > 0:
-                review_candidates.append(idx)
-
-        if review_candidates:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(review_candidates)}
-            else:
-                for idx in review_candidates:
-                    if idx > current_index:
-                        return {"next_index": idx}
-                return {"next_index": review_candidates[0]}
-
-        unanswered = [idx for idx in range(total) if idx not in effective_answered]
-        if unanswered:
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(unanswered)}
-            else:
-                return {"next_index": unanswered[0]}
-
-        return {"next_index": min(current_index + 1, total - 1)}
 
     elif mode == "hardest":
         deck_with_stats = await DeckService.get_deck_with_stats(db, deck_id, user_id=user_id)

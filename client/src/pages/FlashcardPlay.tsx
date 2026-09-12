@@ -871,10 +871,6 @@ export default function FlashcardPlay() {
         setRandomEnabled(true);
         updateUserSettings({ random_enabled: true });
         saveGeneralSettings({ random_enabled: true });
-        if (questions.length > 0) {
-          const randIdx = Math.floor(Math.random() * questions.length);
-          setCurrentIndex(randIdx);
-        }
       } else if (urlOrder === 'sequential') {
         setRandomEnabled(false);
         updateUserSettings({ random_enabled: false });
@@ -942,6 +938,10 @@ export default function FlashcardPlay() {
           if (res.data) {
             if (res.data.is_all_completed || res.data.next_index === -1) {
               setFsrsCompletionData(res.data);
+              setCurrentIndex(-1);
+              setSelectedOption(null);
+              setShowFeedback(false);
+              return;
             } else {
               setFsrsCompletionData(null);
               if (res.data.next_index !== undefined) {
@@ -2358,6 +2358,11 @@ export default function FlashcardPlay() {
     const updatedAnswers = (customAnswers && !isEvent) ? (customAnswers as Record<number, any>) : { ...sessionAnswers }
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
     
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlMode = searchParams.get('mode');
+    const urlStep = searchParams.get('step');
+    const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
+    
     try {
       let rmStatus = roadmapStatus;
       if (!rmStatus && refetchRoadmap) {
@@ -2366,10 +2371,6 @@ export default function FlashcardPlay() {
       }
       const rawIdx = rmStatus?.current_step_index || 0;
       const rawStep = rmStatus?.pipeline?.[rawIdx];
-      const searchParams = new URLSearchParams(window.location.search);
-      const urlMode = searchParams.get('mode');
-      const urlStep = searchParams.get('step');
-      const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
       const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
@@ -2398,6 +2399,10 @@ export default function FlashcardPlay() {
         }
       }
       if (nextIdx === -1 || nextIdx === currentIndex) {
+        if (effectiveMode === 'review' || effectiveMode === 'fsrs_review') {
+          setFsrsCompletionData(res?.data || { is_all_completed: true, next_index: -1 });
+          return;
+        }
         nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
       }
     } catch (err) {
@@ -2406,6 +2411,10 @@ export default function FlashcardPlay() {
       try {
         cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
       } catch (e) {}
+      if (effectiveMode === 'review' || effectiveMode === 'fsrs_review') {
+        setFsrsCompletionData({ is_all_completed: true, next_index: -1 });
+        return;
+      }
       nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
     }
 
@@ -2541,7 +2550,18 @@ export default function FlashcardPlay() {
         current_index: currentIndex,
         random_enabled: effectiveRandom
       })
-      targetIdx = res.data.next_index
+      if (res.data) {
+        if (res.data.is_all_completed || res.data.next_index === -1) {
+          setFsrsCompletionData(res.data);
+          setCurrentIndex(-1);
+          return;
+        } else {
+          setFsrsCompletionData(null);
+          if (res.data.next_index !== undefined) {
+            targetIdx = res.data.next_index;
+          }
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch next card from backend for mode update", err)
       targetIdx = currentIndex
@@ -3532,7 +3552,7 @@ export default function FlashcardPlay() {
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
     return Boolean(
-      (activeMode === 'fsrs' || activeMode === 'review' || activeMode === 'roadmap') &&
+      (activeMode === 'fsrs' || activeMode === 'review' || activeMode === 'roadmap' || activeMode === 'fsrs_review') &&
       (fsrsCompletionData?.is_all_completed || fsrsCompletionData?.next_index === -1)
     );
   }, [activeMode, fsrsCompletionData]);
@@ -4072,6 +4092,7 @@ export default function FlashcardPlay() {
 
       <FlashcardActionDock
         shouldShowRoadmapStepCompleteScreen={shouldShowRoadmapStepCompleteScreen}
+        shouldShowFsrsCompleteScreen={shouldShowFsrsCompleteScreen}
         mainTab={mainTab}
         practiceNeedsSetup={practiceNeedsSetup}
         practiceAnswers={practiceAnswers}

@@ -3,6 +3,27 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-12]
+#### Khắc Phục Lỗi Chế Độ Ôn Tập (Review / REV Mode) Tự Ý Tải Thẻ Mới (New Cards)
+- **Nguyên nhân gốc rễ**:
+  1. **Backend (`app/modules/deck/routes/play.py`)**:
+     - Endpoint `POST /api/v1/deck/{deck_id}/next-card` kiểm tra `elif target_mode in ("fsrs", "fsrs_review"):`, bỏ sót `"review"`.
+     - Request với `mode: "review"` bị rơi xuống khối mã legacy cũ (`elif mode == "review":`), nơi logic kiểm tra `stats.total > 0` và khi không còn thẻ nào, đã fallback sang `unanswered = [idx for idx in range(total)...]` và chủ động chọn thẻ mới (`unanswered[0]` hoặc `random.choice(unanswered)`).
+  2. **Frontend (`FlashcardPlay.tsx`)**:
+     - Khi chuyển chế độ qua `applyLearningMode('review')`, frontend không gán `setFsrsCompletionData(res.data)` nếu `res.data.is_all_completed` hoặc `next_index === -1`, khiến thẻ mới đang xem bị giữ nguyên trên màn hình.
+     - Khi tải trang với `urlOrder === 'random'`, hàm `fetchSession` gán `setCurrentIndex(randIdx)` ngẫu nhiên trước khi API `/next-card` kịp phản hồi.
+     - Trong `handleNext`, khi hết thẻ ôn tập (`nextIdx === -1`), hệ thống rơi vào fallback tuần tự `(currentIndex + 1)` dẫn đến việc mở thẻ mới thay vì màn hình hoàn thành.
+- **Giải Pháp & Khắc Phục**:
+  1. **Backend**:
+     - Đưa `"review"` vào chung khối xử lý FSRS: `elif target_mode in ("fsrs", "fsrs_review", "review"):`.
+     - Tuyệt đối chỉ truy vấn các thẻ đến hạn ôn (`m["due"] <= cutoff_time`). Khi không còn thẻ nào đến hạn (hoặc toàn bộ bộ thẻ chưa có thẻ đến hạn ôn), trả về `next_index: -1`, `is_all_completed: True`, cùng thời gian đếm ngược chính xác đến đợt ôn kế tiếp theo thuật toán FSRS v6.
+     - Loại bỏ hoàn toàn khối legacy `elif mode == "review":` cũ để ngăn chặn triệt để tình trạng fallback sang thẻ mới.
+     - Chuẩn hóa thông báo và định dạng thời gian chờ sang tiếng Anh chuẩn (`No cards due`, `10m`, `2h 15m`, `3d 5h`).
+  2. **Frontend**:
+     - Cập nhật `applyLearningMode` để gọi `setFsrsCompletionData(res.data)` và gán `setCurrentIndex(-1)` ngay khi backend báo hết/chưa có thẻ đến hạn ôn tập.
+     - Cập nhật `initIndex` và `handleNext` trong `FlashcardPlay.tsx` để hiển thị ngay `FsrsCompleteScreen` thay vì fallback sang thẻ mới.
+     - Ẩn hoàn toàn thanh điều khiển dưới chân trang (`FlashcardActionDock`) khi màn hình hoàn thành FSRS xuất hiện (`shouldShowFsrsCompleteScreen`).
+     - Chuẩn hóa toàn bộ giao diện `FsrsCompleteScreen` sang tiếng Anh chuẩn theo quy định hệ sinh thái InMind.
+
 #### Thiết Kế Lại Thanh Thông Tin Đầu Thẻ (Card Top HUD): Bổ Sung Số Lần Xem, Tỷ Lệ Chính Xác & Gộp Cụm Tinh Tế
 - **Hiển Thị Tần Suất Học / Số Lần Xem Thẻ (`Review / View Count`)**:
   - Bổ sung huy hiệu số lần xem (`currentQuestion.stats?.total`) với icon con mắt `Eye` trực quan: ví dụ `👁 3 views` (hoặc `👁 0 views` cho thẻ mới).

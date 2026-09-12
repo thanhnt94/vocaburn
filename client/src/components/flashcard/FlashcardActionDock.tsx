@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 
 export interface FlashcardActionDockProps {
   shouldShowRoadmapStepCompleteScreen: boolean
+  shouldShowFsrsCompleteScreen?: boolean
   mainTab: string
   practiceNeedsSetup: boolean
   practiceAnswers: Record<number, any>
@@ -37,6 +38,7 @@ export interface FlashcardActionDockProps {
 
 export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   shouldShowRoadmapStepCompleteScreen,
+  shouldShowFsrsCompleteScreen = false,
   mainTab,
   practiceNeedsSetup,
   practiceAnswers,
@@ -66,7 +68,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   getFSRSIntervals,
   showActionDock = true
 }) => {
-  if (shouldShowRoadmapStepCompleteScreen) return null
+  if (shouldShowRoadmapStepCompleteScreen || shouldShowFsrsCompleteScreen) return null
   if (mainTab === 'practice' && practiceNeedsSetup) return null
 
   const hasActionButtons = Boolean(
