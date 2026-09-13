@@ -3,6 +3,23 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-13]
+#### Nâng Cấp Toàn Diện Hệ Thống Âm Thanh & TTS Pipeline (Audio & TTS Overhaul)
+- **Loại Bỏ Hoàn Toàn Fallback Sang `gTTS` (100% Microsoft Edge-TTS Chất Lượng Cao)**:
+  - Gỡ bỏ hoàn toàn thư viện và các đoạn mã fallback sang Google TTS (`gTTS`) trong [`AudioGenerator`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/app/modules/deck/services/audio_generator.py).
+  - Loại bỏ các tùy chọn `gtts:*` trong ma trận cấu hình giọng đọc của [`DeckAudioSettings.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/components/deck/settings/DeckAudioSettings.tsx), thay thế bằng các giọng đọc Neural chuẩn tự nhiên của Microsoft Edge TTS (Hoài My, Nam Minh, Nanami, Keita, Aria, Guy, Jenny, Sonia, Ryan, Xiaoxiao, Yunxi, SunHi, InJoon...).
+  - Đảm bảo 100% các file phát âm đều có giọng đọc tự nhiên, đồng nhất, không còn hiện tượng chuyển đổi giọng robot gắt tai.
+- **Cơ Chế Pacing & Chống Bị Microsoft Block IP (Giãn Cách Gọi Edge-TTS)**:
+  - Bổ sung module-level lock (`_tts_lock`) để tuần tự hóa các kết nối WebSocket tới Microsoft Edge-TTS.
+  - Triển khai hàm `_pace_request()` với khoảng giãn cách an toàn `MIN_PACE_DELAY_SECONDS = 0.8s` kèm random jitter ngẫu nhiên `0.1s - 0.3s` giữa các lượt gọi Edge-TTS.
+  - Bổ sung cơ chế thử lại (Exponential Backoff Retry) tối đa 3 lần cho mỗi phân đoạn âm thanh (`1.5s`, `3.5s` kèm jitter) khi gặp sự cố mạng hoặc rate limit, loại bỏ hoàn toàn tình trạng fail gián đoạn.
+- **Web Audio API Unlock Cho iOS Safari / Mobile (Zero-Delay Audio Playback)**:
+  - Thêm cơ chế `unlockAudio()` tự động kích hoạt trên lượt chạm/click đầu tiên của người dùng trong [`client/src/lib/audio.ts`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/lib/audio.ts), đánh thức AudioContext và kênh phần cứng âm thanh của thiết bị di động.
+  - Khắc phục triệt để lỗi chặn autoplay (`NotAllowedError`) và độ trễ khởi động âm thanh khi lật thẻ.
+- **Preload Tự Động Âm Thanh Cho 2-3 Thẻ Tiếp Theo Trong Hàng Đợi**:
+  - Tích hợp bộ nạp trước `preloadAudioUrls` trong cả hai chế độ học [`FlashcardPlay.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/pages/FlashcardPlay.tsx) và [`PracticePlay.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/pages/PracticePlay.tsx).
+  - Tự động tải trước dữ liệu âm thanh của 2 đến 3 thẻ kế tiếp vào bộ nhớ đệm trình duyệt, cho phép âm thanh phát tức thì (0ms latency) ngay khi người dùng chuyển thẻ.
+  - Tối ưu URL phát âm trong `useFlashcardAudio.ts` và `usePracticeAudio.ts` để sử dụng trực tiếp bộ nhớ cache đã preload, loại bỏ việc ép cache-buster làm vô hiệu hóa bộ nhớ đệm.
+
 #### Kiểm Tra Toàn Diện Backend, Khắc Phục Lỗi Hệ Thống & Bảo Mật Chuẩn Ecosystem (Backend Audit, Streak Sync, CentralAuth Compliance & Security Hardening)
 - **Kế Hoạch 1: Khắc Phục Lỗi Crash 500 & Ràng Buộc Khóa Ngoại Cascade Deletion**:
   - **Khắc phục Crash 500 trong `folder_routes.py`**: Sửa hàm `get_folder_play_data` gọi `estimate_intervals(scheduler, build_fsrs_card(m, now_utc), now_utc)` đủ 3 tham số và dự phòng interval mặc định cho thẻ chưa học.
