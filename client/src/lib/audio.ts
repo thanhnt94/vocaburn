@@ -2,6 +2,91 @@ let activeAudioElement: HTMLAudioElement | null = null;
 let activeStreamAbortController: AbortController | null = null;
 let activePlayToken = 0;
 
+// Web Audio API Context & iOS Safari / Mobile Unlock state
+let isAudioUnlocked = false;
+let sharedAudioContext: AudioContext | null = null;
+
+export const getAudioContext = (): AudioContext | null => {
+  if (typeof window === 'undefined') return null;
+  if (!sharedAudioContext) {
+    const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtxClass) {
+      sharedAudioContext = new AudioCtxClass();
+    }
+  }
+  return sharedAudioContext;
+};
+
+/**
+ * Unlocks Web Audio API and HTMLAudioElement playback on iOS Safari & Mobile browsers.
+ * Triggers on the very first user interaction (touch/click/keydown) to eliminate audio delays.
+ */
+export const unlockAudio = () => {
+  if (isAudioUnlocked || typeof window === 'undefined') return;
+  try {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    // Play a tiny 1-sample silent buffer to unlock the audio hardware channel
+    if (ctx) {
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    }
+    // Dummy silent audio play to satisfy HTMLAudioElement autoplay policy
+    const silentAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    silentAudio.play().then(() => {
+      silentAudio.pause();
+      isAudioUnlocked = true;
+    }).catch(() => {});
+  } catch (e) {
+    // Non-blocking catch
+  }
+};
+
+// Auto-register touch/click unlock listeners once on client boot
+if (typeof window !== 'undefined') {
+  const unlockEvents = ['touchstart', 'touchend', 'click', 'keydown'];
+  const handleUserInteraction = () => {
+    unlockAudio();
+    unlockEvents.forEach(evt => window.removeEventListener(evt, handleUserInteraction, true));
+  };
+  unlockEvents.forEach(evt => window.addEventListener(evt, handleUserInteraction, { capture: true, once: true }));
+}
+
+// Audio Preload Cache Pool (Keeps up to 40 preloaded audio elements in memory)
+const preloadedAudioUrls = new Set<string>();
+const preloadedAudioElements = new Map<string, HTMLAudioElement>();
+
+export const preloadAudioUrls = (urls: (string | null | undefined)[]) => {
+  if (typeof window === 'undefined') return;
+  urls.filter(Boolean).forEach(url => {
+    const cleanUrl = (url as string).trim();
+    if (!cleanUrl || preloadedAudioUrls.has(cleanUrl)) return;
+    preloadedAudioUrls.add(cleanUrl);
+    try {
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = cleanUrl;
+      // LRU-like eviction if cache grows beyond 40 items
+      if (preloadedAudioElements.size > 40) {
+        const firstKey = preloadedAudioElements.keys().next().value;
+        if (firstKey) {
+          const oldAudio = preloadedAudioElements.get(firstKey);
+          if (oldAudio) oldAudio.src = '';
+          preloadedAudioElements.delete(firstKey);
+        }
+      }
+      preloadedAudioElements.set(cleanUrl, audio);
+    } catch (e) {
+      // Silently catch audio construction errors if any
+    }
+  });
+};
+
 export const cancelAllAudio = () => {
   activePlayToken++;
   if (activeStreamAbortController) {

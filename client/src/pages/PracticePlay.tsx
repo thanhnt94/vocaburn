@@ -12,7 +12,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio, preloadAudioUrls } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
 import { getFSRSIntervals } from '@/lib/flashcard-utils'
@@ -426,6 +426,58 @@ export default function PracticePlay() {
     setShowAbsoluteFirst(false)
     setShowAbsoluteLast(false)
   }, [currentIndex])
+
+  // Asset preloading for the next 2-3 practice cards (audio & image) to guarantee zero-latency playback
+  useEffect(() => {
+    if (!session?.questions || currentIndex < 0) return;
+    const total = session.questions.length;
+    const preloadAheadCount = 3;
+
+    const audioUrlsToPreload: string[] = [];
+    const imgUrlsToPreload: string[] = [];
+
+    for (let offset = 1; offset <= preloadAheadCount; offset++) {
+      const targetIdx = currentIndex + offset;
+      if (targetIdx >= total) break;
+      const q = session.questions[targetIdx];
+      if (!q) continue;
+
+      const cardAudioUrls = [
+        resolveMediaUrl(q.front_audio_url),
+        resolveMediaUrl(q.back_audio_url),
+        resolveMediaUrl(q.audio),
+        ...(q.others ? Object.entries(q.others)
+            .filter(([k, v]) => (k.includes('audio') || k.includes('sound')) && typeof v === 'string')
+            .map(([, v]) => resolveMediaUrl(v as string)) : [])
+      ].filter(Boolean) as string[];
+
+      audioUrlsToPreload.push(...cardAudioUrls);
+
+      const cardImgUrls = [
+        resolveMediaUrl(q.image),
+        resolveMediaUrl(q.front_img),
+        resolveMediaUrl(q.back_img),
+        ...(q.others ? Object.entries(q.others)
+            .filter(([k, v]) => (k.includes('img') || k.includes('image') || k.includes('pic')) && typeof v === 'string')
+            .map(([, v]) => resolveMediaUrl(v as string)) : [])
+      ].filter(Boolean) as string[];
+
+      imgUrlsToPreload.push(...cardImgUrls);
+    }
+
+    if (audioUrlsToPreload.length > 0) {
+      preloadAudioUrls(audioUrlsToPreload);
+    }
+
+    imgUrlsToPreload.forEach(url => {
+      try {
+        const img = new window.Image();
+        img.src = url;
+      } catch (e) {
+        // Silently ignore
+      }
+    });
+  }, [currentIndex, session?.questions]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)

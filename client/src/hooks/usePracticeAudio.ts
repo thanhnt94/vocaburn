@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import axios from 'axios'
-import { speakWithEdgeTTS, speakEdgeTTSSequentially, registerAudioElement, cancelAllAudio } from '@/lib/audio'
+import { speakWithEdgeTTS, speakEdgeTTSSequentially, registerAudioElement, cancelAllAudio, unlockAudio } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
@@ -142,9 +142,9 @@ export function usePracticeAudio({
     }
 
     if (audioUrl) {
+      unlockAudio()
       const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl
-      const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
-      const audio = new Audio(cacheBustedUrl)
+      const audio = new Audio(resolvedUrl)
       audio.playbackRate = rate
       registerAudioElement(audio)
       activeAudioRef.current = audio
@@ -165,7 +165,7 @@ export function usePracticeAudio({
         if (playSeqRef.current === currentSeq) {
           setIsPlayingAudio(false)
         }
-        console.warn(`[TTS FALLBACK] Playback failed: ${cacheBustedUrl}`, err?.message)
+        console.warn(`[TTS FALLBACK] Playback failed: ${resolvedUrl}`, err?.message)
         if (err?.name !== 'NotAllowedError' && script && script.trim()) {
           if (playSeqRef.current === currentSeq) {
             speakWithEdgeTTS(script, pair?.lang)

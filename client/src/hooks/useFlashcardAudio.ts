@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import axios from 'axios';
-import { speakWithEdgeTTS, registerAudioElement, cancelAllAudio } from '@/lib/audio';
+import { speakWithEdgeTTS, registerAudioElement, cancelAllAudio, unlockAudio } from '@/lib/audio';
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -218,10 +218,10 @@ export function useFlashcardAudio(
     }
 
     if (audioUrl) {
+      unlockAudio();
       const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl;
-      const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${cacheBustedUrl}`);
-      const audio = new Audio(cacheBustedUrl);
+      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${resolvedUrl}`);
+      const audio = new Audio(resolvedUrl);
       registerAudioElement(audio);
       activeAudioRef.current = audio;
 

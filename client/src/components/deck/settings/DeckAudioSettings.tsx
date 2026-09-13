@@ -24,45 +24,41 @@ export const LANGUAGE_VOICE_OPTIONS: Record<string, { label: string; voices: { v
   ja: {
     label: 'Tiếng Nhật',
     voices: [
-      { value: 'ja-JP-NanamiNeural', label: 'Nanami - Nữ Tokyo' },
-      { value: 'ja-JP-KeitaNeural', label: 'Keita - Nam Tokyo' },
-      { value: 'ja-JP-Neural2-C', label: 'Ja Neural2-C - Nữ Google' },
-      { value: 'ja-JP-Neural2-D', label: 'Ja Neural2-D - Nam Google' },
-      { value: 'gtts:ja', label: 'Tiếng Nhật - gTTS' }
+      { value: 'ja-JP-NanamiNeural', label: 'Nanami - Nữ Tokyo (Edge TTS)' },
+      { value: 'ja-JP-KeitaNeural', label: 'Keita - Nam Tokyo (Edge TTS)' },
+      { value: 'ja-JP-AoiNeural', label: 'Aoi - Nữ (Edge TTS)' },
+      { value: 'ja-JP-DaichiNeural', label: 'Daichi - Nam (Edge TTS)' },
     ]
   },
   vi: {
     label: 'Tiếng Việt',
     voices: [
-      { value: 'vi-VN-HoaiMyNeural', label: 'Hoài My - Nữ' },
-      { value: 'vi-VN-NamMinhNeural', label: 'Nam Minh - Nam' },
-      { value: 'vi-VN-Neural2-A', label: 'Vi Neural2-A - Nữ Google' },
-      { value: 'vi-VN-Neural2-F', label: 'Vi Neural2-F - Nam Google' },
-      { value: 'gtts:vi', label: 'Tiếng Việt - gTTS' }
+      { value: 'vi-VN-HoaiMyNeural', label: 'Hoài My - Nữ Tự Nhiên (Edge TTS)' },
+      { value: 'vi-VN-NamMinhNeural', label: 'Nam Minh - Nam Tự Nhiên (Edge TTS)' },
     ]
   },
   en: {
     label: 'Tiếng Anh',
     voices: [
-      { value: 'en-US-AriaNeural', label: 'Aria - Nữ US' },
-      { value: 'en-US-GuyNeural', label: 'Guy - Nam US' },
-      { value: 'en-GB-SoniaNeural', label: 'Sonia - Nữ UK' },
-      { value: 'en-US-Neural2-H', label: 'En Neural2-H - Nữ Google' },
-      { value: 'gtts:en', label: 'Tiếng Anh - gTTS' }
+      { value: 'en-US-AriaNeural', label: 'Aria - Nữ US (Edge TTS)' },
+      { value: 'en-US-GuyNeural', label: 'Guy - Nam US (Edge TTS)' },
+      { value: 'en-US-JennyNeural', label: 'Jenny - Nữ US (Edge TTS)' },
+      { value: 'en-GB-SoniaNeural', label: 'Sonia - Nữ UK (Edge TTS)' },
+      { value: 'en-GB-RyanNeural', label: 'Ryan - Nam UK (Edge TTS)' },
     ]
   },
   zh: {
     label: 'Tiếng Trung',
     voices: [
-      { value: 'zh-CN-XiaoxiaoNeural', label: 'Xiaoxiao - Nữ' },
-      { value: 'gtts:zh', label: 'Tiếng Trung - gTTS' }
+      { value: 'zh-CN-XiaoxiaoNeural', label: 'Xiaoxiao - Nữ (Edge TTS)' },
+      { value: 'zh-CN-YunxiNeural', label: 'Yunxi - Nam (Edge TTS)' },
     ]
   },
   ko: {
     label: 'Tiếng Hàn',
     voices: [
-      { value: 'ko-KR-SunHiNeural', label: 'SunHi - Nữ' },
-      { value: 'gtts:ko', label: 'Tiếng Hàn - gTTS' }
+      { value: 'ko-KR-SunHiNeural', label: 'SunHi - Nữ (Edge TTS)' },
+      { value: 'ko-KR-InJoonNeural', label: 'InJoon - Nam (Edge TTS)' },
     ]
   }
 }

@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakWithEdgeTTS, cancelAllAudio } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakWithEdgeTTS, cancelAllAudio, preloadAudioUrls } from '@/lib/audio'
 import { triggerHaptic } from '@/lib/haptic'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors } from '@/lib/distractor'
@@ -118,45 +118,56 @@ export default function FlashcardPlay() {
     setShowingHint(false)
   }, [currentIndex])
 
-  // Asset preloading for the next card (image & audio)
+  // Asset preloading for the next 2-3 cards (image & audio) to ensure instant playback without delay
   useEffect(() => {
     if (!session?.questions || currentIndex < 0) return;
-    const nextIdx = currentIndex + 1;
-    if (nextIdx >= session.questions.length) return;
-    
-    const nextQ = session.questions[nextIdx];
-    if (!nextQ) return;
-    
-    // Preload audio
-    const audioUrls = [
-      resolveMediaUrl(nextQ.front_audio_url),
-      resolveMediaUrl(nextQ.back_audio_url),
-      resolveMediaUrl(nextQ.audio)
-    ].filter(Boolean) as string[];
-    
-    audioUrls.forEach(url => {
+    const total = session.questions.length;
+    const preloadAheadCount = 3; // Preload up to 3 cards ahead
+
+    const audioUrlsToPreload: string[] = [];
+    const imgUrlsToPreload: string[] = [];
+
+    for (let offset = 1; offset <= preloadAheadCount; offset++) {
+      const targetIdx = currentIndex + offset;
+      if (targetIdx >= total) break;
+      const q = session.questions[targetIdx];
+      if (!q) continue;
+
+      // Extract all audio URLs from standard and custom columns
+      const cardAudioUrls = [
+        resolveMediaUrl(q.front_audio_url),
+        resolveMediaUrl(q.back_audio_url),
+        resolveMediaUrl(q.audio),
+        ...(q.others ? Object.entries(q.others)
+            .filter(([k, v]) => (k.includes('audio') || k.includes('sound')) && typeof v === 'string')
+            .map(([, v]) => resolveMediaUrl(v as string)) : [])
+      ].filter(Boolean) as string[];
+
+      audioUrlsToPreload.push(...cardAudioUrls);
+
+      // Extract image URLs
+      const cardImgUrls = [
+        resolveMediaUrl(q.image),
+        resolveMediaUrl(q.front_img),
+        resolveMediaUrl(q.back_img),
+        ...(q.others ? Object.entries(q.others)
+            .filter(([k, v]) => (k.includes('img') || k.includes('image') || k.includes('pic')) && typeof v === 'string')
+            .map(([, v]) => resolveMediaUrl(v as string)) : [])
+      ].filter(Boolean) as string[];
+
+      imgUrlsToPreload.push(...cardImgUrls);
+    }
+
+    if (audioUrlsToPreload.length > 0) {
+      preloadAudioUrls(audioUrlsToPreload);
+    }
+
+    imgUrlsToPreload.forEach(url => {
       try {
-        const audio = new Audio();
-        audio.src = url;
-        audio.preload = 'auto';
-      } catch (e) {
-        // Silently catch audio construction errors if any
-      }
-    });
-    
-    // Preload images
-    const imgUrls = [
-      resolveMediaUrl(nextQ.image),
-      resolveMediaUrl(nextQ.front_img),
-      resolveMediaUrl(nextQ.back_img)
-    ].filter(Boolean) as string[];
-    
-    imgUrls.forEach(url => {
-      try {
-        const img = new Image();
+        const img = new window.Image();
         img.src = url;
       } catch (e) {
-        // Silently catch image preloading errors
+        // Silently ignore
       }
     });
   }, [currentIndex, session?.questions]);
