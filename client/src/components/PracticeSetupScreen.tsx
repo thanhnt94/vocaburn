@@ -41,25 +41,25 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             <Sliders className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-black text-slate-800">
-            Cài đặt Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm (MCQ)' : practiceSubMode === 'typing' ? 'Luyện gõ (Typing)' : 'Luyện nghe chép từ (Listening)'}
+            Practice Setup: {practiceSubMode === 'mcq' ? 'Multiple Choice (MCQ)' : practiceSubMode === 'typing' ? 'Typing Practice' : 'Listening / Dictation'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             {isListening
-              ? 'Chọn cột phát âm thanh và các cột đáp án được chấp nhận khi người học gõ lại.'
+              ? 'Select the audio playback column and acceptable answer columns when typing.'
               : isInputMode
-              ? 'Chọn cột câu hỏi và các cột đáp án được chấp nhận khi gõ từ vựng.'
-              : 'Chọn các cặp cột tương ứng giữa câu hỏi và đáp án.'}
+              ? 'Select question column and acceptable answer columns when typing vocabulary.'
+              : 'Map question and answer columns for practice cards.'}
           </p>
         </div>
 
         <div className="space-y-4 mb-6">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">
-              {isListening ? 'Cột Phát âm & Các cột Đáp án chấp nhận' : isInputMode ? 'Cặp Câu hỏi & Các cột Đáp án được chấp nhận' : 'Cặp Câu hỏi - Đáp án (Q&A Pairs)'}
+              {isListening ? 'Audio Column & Accepted Answer Columns' : isInputMode ? 'Question & Accepted Answer Columns' : 'Q&A Column Pairs'}
             </span>
             {isInputMode && (
               <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
-                Cho phép chọn nhiều cột đáp án
+                Multiple answer columns supported
               </span>
             )}
           </div>
@@ -74,7 +74,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                      {isListening ? 'Cột phát âm thanh (Audio)' : 'Cột Câu hỏi (Đề bài hiển thị)'}
+                      {isListening ? 'Audio Column' : 'Question Column (Prompt)'}
                     </label>
                     <select
                       value={pair.q}
@@ -97,7 +97,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
 
                       <div className="flex-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                          Cột Đáp án
+                          Answer Column
                         </label>
                         <select
                           value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}
@@ -123,7 +123,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                         setSetupPairs(newPairs);
                       }}
                       className="mt-4 p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all border border-rose-100 cursor-pointer"
-                      title="Xóa cặp này"
+                      title="Delete pair"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -133,7 +133,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                 {isInputMode && (
                   <div className="pt-2 border-t border-slate-200/60">
                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-2">
-                      Cột Đáp án được chấp nhận khi gõ (Nhấn để bật/tắt):
+                      Accepted Answer Columns (Tap to toggle):
                     </label>
                     <div className="flex flex-wrap gap-1.5">
                       {availableColumns.map((col) => {
@@ -171,7 +171,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                       })}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1.5 italic">
-                      * Khi làm bài, học viên gõ đúng nội dung của bất kỳ cột nào được chọn ở trên đều được tính là chính xác.
+                      * When practicing, typing the content of any selected column above is recognized as correct.
                     </p>
                   </div>
                 )}
@@ -183,7 +183,7 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
             onClick={() => setSetupPairs([...setupPairs, { q: isListening ? 'front' : (isInputMode ? 'back' : 'front'), a: isInputMode ? ['front'] : 'back' }])}
             className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>+ Thêm Cặp Q&A</span>
+            <span>+ Add Q&A Pair</span>
           </button>
         </div>
 

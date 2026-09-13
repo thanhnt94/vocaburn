@@ -55,7 +55,7 @@ export function DeckRoadmapTab({ embedded = false, deckId }: DeckRoadmapTabProps
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>Tiến Độ Hôm Nay</span>
+            <span>Today's Progress</span>
           </button>
 
           <button
@@ -67,7 +67,7 @@ export function DeckRoadmapTab({ embedded = false, deckId }: DeckRoadmapTabProps
             }`}
           >
             <SettingsIcon className="w-3.5 h-3.5" />
-            <span>Cài Đặt Mục Tiêu</span>
+            <span>Configure Goal</span>
           </button>
         </div>
 

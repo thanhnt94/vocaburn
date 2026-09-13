@@ -132,9 +132,9 @@ function formatRelativeTime(dateStr: string | null | undefined): { relative: str
 }
 
 function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full: string; overdue: boolean; severe: boolean } {
-  if (!dueIsoStr) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false };
+  if (!dueIsoStr) return { relative: 'none', full: 'No review due date', overdue: false, severe: false };
   const d = parseUTCDate(dueIsoStr);
-  if (isNaN(d.getTime())) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false };
+  if (isNaN(d.getTime())) return { relative: 'none', full: 'No review due date', overdue: false, severe: false };
 
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
@@ -144,10 +144,10 @@ function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full:
   const yearStr = d.getFullYear();
   const hourStr = String(d.getHours()).padStart(2, '0');
   const minStr = String(d.getMinutes()).padStart(2, '0');
-  const full = `Hạn ôn: ${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}`;
+  const full = `Due: ${yearStr}-${monthStr}-${dayStr} ${hourStr}:${minStr}`;
 
   if (diffMs <= 0) {
-    return { relative: 'Đúng hạn', full, overdue: false, severe: false };
+    return { relative: 'On time', full, overdue: false, severe: false };
   }
 
   const diffSec = Math.floor(diffMs / 1000);
@@ -170,7 +170,7 @@ function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full:
     relative = `${diffMin}m`;
     severe = false;
   } else {
-    relative = 'Vừa đến';
+    relative = 'Just due';
     severe = false;
   }
 
@@ -181,39 +181,39 @@ const getMapTitleInfo = (mode: string) => {
   switch (mode) {
     case 'unseen':
       return {
-        title: "Chưa học",
-        subtitle: "Các từ vựng mới tinh chưa bao giờ bắt đầu ôn luyện"
+        title: "Unlearned",
+        subtitle: "Brand new flashcards ready to study"
       };
     case 'learning':
       return {
-        title: "Đang học",
-        subtitle: "Các từ vựng đang học dở dang ở các cấp độ ghi nhớ"
+        title: "Learning",
+        subtitle: "Cards currently in learning or review stages"
       };
     case 'mastered':
       return {
-        title: "Đã thuộc",
-        subtitle: "Các từ vựng đã học thuộc lòng hoàn toàn"
+        title: "Mastered",
+        subtitle: "Flashcards completely memorized and retained"
       };
     case 'hard':
       return {
-        title: "Thẻ khó cần lưu ý",
-        subtitle: "Các từ vựng bạn hay gặp khó khăn hoặc trả lời sai nhiều"
+        title: "Hard Cards",
+        subtitle: "Cards you struggle with or frequently answer incorrectly"
       };
     case 'starred':
       return {
-        title: "Đã gắn sao",
-        subtitle: "Các từ vựng quan trọng do chính bạn đánh dấu ưu tiên"
+        title: "Starred",
+        subtitle: "High-priority cards flagged by you"
       };
     case 'ignored':
       return {
-        title: "Đã bỏ qua",
-        subtitle: "Các từ vựng đã loại trừ khỏi phiên học hiện tại"
+        title: "Skipped",
+        subtitle: "Cards excluded from the current session"
       };
     case 'all':
     default:
       return {
-        title: "Bản đồ thẻ học - Tất cả",
-        subtitle: "Theo dõi và tra cứu toàn bộ từ vựng trong phiên học"
+        title: "Card Map - All",
+        subtitle: "Review and inspect all cards in this session"
       };
   }
 };
@@ -221,12 +221,12 @@ const getMapTitleInfo = (mode: string) => {
 const SessionLoadingScreen = () => {
   const [tipIndex, setTipIndex] = useState(0);
   const tips = [
-    "Đang tối ưu hóa thuật toán FSRS cho bộ nhớ của bạn...",
-    "Ganbare! Hôm nay nhất định sẽ thuộc thêm nhiều từ mới! 🎌",
-    "Học tập có chu kỳ giúp lưu giữ từ vựng lâu gấp 10 lần. 🧠",
-    "Đang chuẩn bị giáo án và sắp xếp các thẻ học...",
-    "Luyện tập đều đặn mỗi ngày để duy trì Streak ngọn lửa nhé! 🔥",
-    "Tiến trình học của bạn đang được đồng bộ hóa an toàn..."
+    "Optimizing FSRS spaced-repetition algorithm...",
+    "Keep going! Master new vocabulary step by step! 🎌",
+    "Spaced retrieval practice boosts memory retention 10x. 🧠",
+    "Preparing your study deck and session cards...",
+    "Practice daily to keep your learning streak burning bright! 🔥",
+    "Securely syncing your learning progress..."
   ];
 
   useEffect(() => {
@@ -256,7 +256,7 @@ const SessionLoadingScreen = () => {
 
         {/* Loading text */}
         <h2 className="text-sm font-black text-slate-700 tracking-widest uppercase mb-2">
-          Đang chuẩn bị phiên học
+          Preparing study session
         </h2>
         
         {/* Rotating tip */}
@@ -945,28 +945,28 @@ export default function PracticePlay() {
 
   const getUnitName = (type: string) => {
     if (type === 'xp') return 'XP'
-    if (type === 'streak') return 'ngày'
-    if (type === 'questions') return 'câu'
+    if (type === 'streak') return 'days'
+    if (type === 'questions') return 'questions'
     return '%'
   }
   
   let leaderboardMsg = ""
   if (userRank === 1) {
-    leaderboardMsg = "Bạn đang dẫn đầu Bảng xếp hạng! Hãy giữ vững ngôi vương nhé! 👑"
+    leaderboardMsg = "You are leading the Leaderboard! Keep defending your crown! 👑"
   } else if (userRank > 1) {
     const topUser = xpLeaderboard.list[0]
     const prevUser = xpLeaderboard.list[userRank - 2]
     const unit = getUnitName(leaderboardType)
     if (topUser) {
       const xpToTop = topUser.value - userValue
-      leaderboardMsg = `Cần thêm ${xpToTop.toLocaleString()} ${unit} nữa để đạt Top 1! 🚀`
+      leaderboardMsg = `Need ${xpToTop.toLocaleString()} more ${unit} to reach Rank #1! 🚀`
     }
     if (prevUser) {
       const xpToPrev = prevUser.value - userValue
-      leaderboardMsg += ` Cách Hạng #${userRank - 1} (${prevUser.username}) ${xpToPrev.toLocaleString()} ${unit}! 💪`
+      leaderboardMsg += ` ${xpToPrev.toLocaleString()} ${unit} away from Rank #${userRank - 1} (${prevUser.username})! 💪`
     }
   } else {
-    leaderboardMsg = `Hãy tích lũy thêm ${getUnitName(leaderboardType)} để ghi danh lên Bảng xếp hạng! 🏆`
+    leaderboardMsg = `Earn more ${getUnitName(leaderboardType)} to climb the Leaderboard! 🏆`
   }
 
   useEffect(() => {
@@ -3649,10 +3649,10 @@ export default function PracticePlay() {
     return (
       <div className="bg-slate-50/80 rounded-[1.5rem] p-5 border border-slate-100/50">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">THỐNG KÊ LUYỆN TẬP</span>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PRACTICE SUMMARY</span>
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full text-white">
             <Target className="w-2.5 h-2.5" />
-            <span className="text-[9px] font-black">CHÍNH XÁC: {accuracy}%</span>
+            <span className="text-[9px] font-black">ACCURACY: {accuracy}%</span>
           </div>
         </div>
 
@@ -3665,8 +3665,8 @@ export default function PracticePlay() {
                 <HelpCircle className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">ĐÃ TRẢ LỜI</span>
-                <span className="text-[8px] font-medium text-slate-400">Số câu hỏi đã luyện tập</span>
+                <span className="text-[10px] font-bold text-slate-700">ANSWERED</span>
+                <span className="text-[8px] font-medium text-slate-400">Total questions practiced</span>
               </div>
             </div>
             <span className="text-xl font-black text-slate-700">{practiceTotalAnswered}</span>
@@ -3679,8 +3679,8 @@ export default function PracticePlay() {
                 <Check className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">ĐÚNG</span>
-                <span className="text-[8px] font-medium text-slate-400">Trả lời chính xác</span>
+                <span className="text-[10px] font-bold text-slate-700">CORRECT</span>
+                <span className="text-[8px] font-medium text-slate-400">Accurate answers</span>
               </div>
             </div>
             <span className="text-xl font-black text-emerald-600">{practiceCorrectCount}</span>
@@ -3693,8 +3693,8 @@ export default function PracticePlay() {
                 <Flame className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">STREAK HIỆN TẠI</span>
-                <span className="text-[8px] font-medium text-slate-400">Chuỗi trả lời đúng liên tiếp</span>
+                <span className="text-[10px] font-bold text-slate-700">CURRENT STREAK</span>
+                <span className="text-[8px] font-medium text-slate-400">Consecutive correct answers</span>
               </div>
             </div>
             <span className="text-xl font-black text-amber-600">{streak}</span>
@@ -3707,8 +3707,8 @@ export default function PracticePlay() {
                 <Trophy className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">XP TÍCH LŨY</span>
-                <span className="text-[8px] font-medium text-slate-400">XP nhận được trong phiên</span>
+                <span className="text-[10px] font-bold text-slate-700">XP EARNED</span>
+                <span className="text-[8px] font-medium text-slate-400">Experience points gained</span>
               </div>
             </div>
             <span className="text-xl font-black text-purple-600">+{sessionXP} XP</span>

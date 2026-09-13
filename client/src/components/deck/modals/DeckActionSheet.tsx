@@ -82,10 +82,10 @@ export function DeckActionSheet({
                 {deck.title}
               </h3>
               <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-bold">
-                <span>{deck.questions_count} thẻ</span>
+                <span>{deck.questions_count} cards</span>
                 <span>•</span>
                 <span className="text-indigo-600 font-bold">
-                  {learned > 0 ? `Đã học ${pct}% (${learned}/${deck.questions_count})` : 'Chưa học'}
+                  {learned > 0 ? `Learned ${pct}% (${learned}/${deck.questions_count})` : 'Not started'}
                 </span>
               </div>
             </div>
@@ -102,7 +102,7 @@ export function DeckActionSheet({
           <div className="py-3 space-y-2 flex-1 overflow-y-auto">
             {activeTab === 'my' && (
               <>
-                {/* 0. Lộ trình học (nếu đang bật) */}
+                {/* 0. Roadmap (if enabled) */}
                 {deck.has_roadmap && (
                   <button
                     onClick={() => {
@@ -116,9 +116,9 @@ export function DeckActionSheet({
                         <Compass className="w-4 h-4" />
                       </span>
                       <div className="text-left">
-                        <span className="text-xs sm:text-sm font-black block">Lộ Trình Học Hàng Ngày</span>
+                        <span className="text-xs sm:text-sm font-black block">Daily Study Roadmap</span>
                         <span className="text-[10px] text-white/80 font-medium block">
-                          Chinh phục mục tiêu từ mới, ôn tập & kiểm tra
+                          Master new words, review & test daily
                         </span>
                       </div>
                     </div>
@@ -126,7 +126,7 @@ export function DeckActionSheet({
                   </button>
                 )}
 
-                {/* 1. Học Flashcard */}
+                {/* 1. Study Flashcards */}
                 <button
                   onClick={() => {
                     onClose()
@@ -139,7 +139,7 @@ export function DeckActionSheet({
                       <Brain className="w-4 h-4" />
                     </span>
                     <div className="text-left">
-                      <span className="text-xs sm:text-sm font-black block">Học Flashcard</span>
+                      <span className="text-xs sm:text-sm font-black block">Study Flashcards</span>
                       <span className="text-[10px] text-white/80 font-medium block">
                         FSRS v6 Spaced Repetition & Roadmap
                       </span>
@@ -148,7 +148,7 @@ export function DeckActionSheet({
                   <ChevronRight className="w-4 h-4 text-white/70" />
                 </button>
 
-                {/* 2. Luyện tập MCQ / Typing */}
+                {/* 2. Multi-Mode Practice */}
                 <button
                   onClick={() => {
                     onClose()
@@ -162,17 +162,17 @@ export function DeckActionSheet({
                     </span>
                     <div className="text-left">
                       <span className="text-xs sm:text-sm font-black block text-emerald-900">
-                        Luyện Tập Đa Chế Độ
+                        Multi-Mode Practice
                       </span>
                       <span className="text-[10px] text-emerald-700/80 font-medium block">
-                        Trắc nghiệm 4 đáp án, gõ từ & nghe audio
+                        4-choice quiz, typing & audio dictation
                       </span>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-emerald-600" />
                 </button>
 
-                {/* 3. Xem Chi tiết bộ thẻ */}
+                {/* 3. View Deck Details */}
                 <button
                   onClick={() => {
                     onClose()
@@ -185,16 +185,16 @@ export function DeckActionSheet({
                       <BookOpen className="w-4 h-4" />
                     </span>
                     <div className="text-left">
-                      <span className="text-xs font-black text-slate-800 block">Xem Chi Tiết Bộ Thẻ</span>
+                      <span className="text-xs font-black text-slate-800 block">View Deck Details</span>
                       <span className="text-[10px] text-slate-400 font-medium block">
-                        Danh sách từ vựng, thông số & cài đặt
+                        Word list, statistics & settings
                       </span>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </button>
 
-                {/* 4. Ẩn vào kho lưu trữ */}
+                {/* 4. Archive Deck */}
                 {onArchive && (
                   <button
                     onClick={() => {
@@ -206,7 +206,7 @@ export function DeckActionSheet({
                     <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
                       <Archive className="w-4 h-4" />
                     </span>
-                    <span className="text-xs font-bold">Ẩn vào kho lưu trữ</span>
+                    <span className="text-xs font-bold">Archive Deck</span>
                   </button>
                 )}
               </>
@@ -227,9 +227,9 @@ export function DeckActionSheet({
                       +
                     </span>
                     <div className="text-left">
-                      <span className="text-xs sm:text-sm font-black block">Thêm Vào Học Ngay</span>
+                      <span className="text-xs sm:text-sm font-black block">Enroll & Study Now</span>
                       <span className="text-[10px] text-white/80 font-medium block">
-                        Đăng ký bộ thẻ này vào danh sách cá nhân
+                        Add this deck to your personal study list
                       </span>
                     </div>
                   </div>
@@ -248,7 +248,7 @@ export function DeckActionSheet({
                     <span className="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center">
                       <BookOpen className="w-4 h-4" />
                     </span>
-                    <span className="text-xs font-black text-slate-800">Xem trước nội dung</span>
+                    <span className="text-xs font-black text-slate-800">Preview Content</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </button>
@@ -268,7 +268,7 @@ export function DeckActionSheet({
                     <span className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white">
                       <RotateCcw className="w-4 h-4" />
                     </span>
-                    <span className="text-xs sm:text-sm font-black">Khôi phục về Đang Học</span>
+                    <span className="text-xs sm:text-sm font-black">Restore to Learning</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/70" />
                 </button>

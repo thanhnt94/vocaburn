@@ -258,7 +258,7 @@ export function DeckDetailPage() {
   const visibleTabs = allTabs
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[60px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-0 md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER (SHRINK-0) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
@@ -369,7 +369,7 @@ export function DeckDetailPage() {
                                   </span>
                                   <div>
                                     <span className="block text-xs font-black">Deck Settings</span>
-                                    <span className="block text-[10px] text-slate-400 font-medium">Cài đặt bộ thẻ</span>
+                                    <span className="block text-[10px] text-slate-400 font-medium">Deck configuration & visibility</span>
                                   </div>
                                 </div>
                                 {isActive && settingsScope === 'deck' && (
@@ -393,7 +393,7 @@ export function DeckDetailPage() {
                                   </span>
                                   <div>
                                     <span className="block text-xs font-black">My Settings</span>
-                                    <span className="block text-[10px] text-slate-400 font-medium">Cài đặt cá nhân</span>
+                                    <span className="block text-[10px] text-slate-400 font-medium">Your personal study preferences</span>
                                   </div>
                                 </div>
                                 {isActive && settingsScope === 'personal' && (
@@ -435,137 +435,13 @@ export function DeckDetailPage() {
         </div>
       </div>
 
-      {/* ═══════════ MOBILE TOP TAB SWITCHER (Directly below Header) ═══════════ */}
-      <div className="md:hidden shrink-0 z-20 bg-white/95 backdrop-blur-xl border-b border-slate-200/70 px-2.5 py-1.5 shadow-2xs">
-        <div className="max-w-md mx-auto flex items-center w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5">
-          {visibleTabs.map((tab) => {
-            const isSettingsTab = tab.id === 'settings'
-            const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
-            const label = isSettingsTab ? getSettingsTabLabel() : tab.label
-            const isActive = activeTab === tab.id
-
-            if (isSettingsTab && isOwner) {
-              return (
-                <div key={tab.id} className="relative flex-1 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
-                    className={cn(
-                      "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeDeckDetailTopTabPill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                      />
-                    )}
-                    <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                    <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
-                    <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
-                  </button>
-
-                  {/* Dropdown Menu (Pops DOWNWARDS on Mobile because it's at the top!) */}
-                  <AnimatePresence>
-                    {isSettingsMenuOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
-                        <motion.div
-                          initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                          transition={{ duration: 0.12 }}
-                          className="absolute top-full mt-2 right-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleSelectScope('deck')}
-                            className={cn(
-                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                              isActive && settingsScope === 'deck'
-                                ? "bg-indigo-50 text-indigo-900 font-black"
-                                : "hover:bg-slate-50 text-slate-700"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
-                                <SettingsIcon className="w-3.5 h-3.5" />
-                              </span>
-                              <div>
-                                <span className="block text-xs font-black">Deck Settings</span>
-                                <span className="block text-[10px] text-slate-400 font-medium">Cài đặt bộ thẻ</span>
-                              </div>
-                            </div>
-                            {isActive && settingsScope === 'deck' && (
-                              <Check className="w-4 h-4 text-indigo-600" />
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSelectScope('personal')}
-                            className={cn(
-                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                              isActive && settingsScope === 'personal'
-                                ? "bg-orange-50 text-orange-950 font-black"
-                                : "hover:bg-slate-50 text-slate-700"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
-                                <User className="w-3.5 h-3.5" />
-                              </span>
-                              <div>
-                                <span className="block text-xs font-black">My Settings</span>
-                                <span className="block text-[10px] text-slate-400 font-medium">Cài đặt cá nhân</span>
-                              </div>
-                            </div>
-                            {isActive && settingsScope === 'personal' && (
-                              <Check className="w-4 h-4 text-orange-600" />
-                            )}
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )
-            }
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabChange(tab.id)}
-                className={cn(
-                  "relative flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                  isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeDeckDetailTopTabPill"
-                    className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                  />
-                )}
-                <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
-                <span className="relative z-10 text-[10.5px] sm:text-xs font-black tracking-tight whitespace-nowrap">{label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
       {/* ═══════════ TAB CONTENT AREA (INTERNAL SCROLLABLE - FLEX-1) ═══════════ */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar pb-16 md:pb-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar pb-4">
         <Suspense
           fallback={
             <div className="py-24 text-center">
               <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-xs font-bold text-slate-400">Đang tải tab {activeTab}...</p>
+              <p className="text-xs font-bold text-slate-400">Loading {activeTab}...</p>
             </div>
           }
         >
@@ -608,7 +484,7 @@ export function DeckDetailPage() {
         </Suspense>
       </div>
 
-      {/* ═══════════ FIXED ACTION & PAGINATION BAR (CHỈ HIỆN KHI Ở TAB CARDS - NẰM NGAY TRÊN 4 TABS) ═══════════ */}
+      {/* ═══════════ FIXED ACTION & PAGINATION BAR (ONLY SHOWN IN CARDS TAB) ═══════════ */}
       {activeTab === 'cards' && (() => {
         const metaTotalCount = deckMeta?.questions_count ?? 0
         const metaTotalPages = metaTotalCount > 0 ? Math.max(1, Math.ceil(metaTotalCount / 50)) : 1
@@ -624,7 +500,7 @@ export function DeckDetailPage() {
                     <input
                       autoFocus
                       type="text"
-                      placeholder="Tìm từ vựng, kanji, nghĩa..."
+                      placeholder="Search words, kanji, meaning..."
                       value={cardsSearch}
                       onChange={(e) => setCardsSearch(e.target.value)}
                       className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-indigo-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 shadow-inner"
@@ -645,7 +521,7 @@ export function DeckDetailPage() {
                     }}
                     className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-all cursor-pointer shrink-0"
                   >
-                    Đóng
+                    Close
                   </button>
                 </div>
               ) : (
@@ -657,7 +533,7 @@ export function DeckDetailPage() {
                     onPageChange={setCardsPage}
                   />
 
-                  {/* Right: Quick actions (Tìm kiếm, Thêm nhanh, Paste, Thêm chi tiết) */}
+                  {/* Right: Quick actions */}
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setIsSearchOpen(true)}
@@ -667,7 +543,7 @@ export function DeckDetailPage() {
                           ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-bold"
                           : "bg-slate-50 hover:bg-slate-100 border-slate-200/80 text-slate-700"
                       )}
-                      title="Tìm kiếm thẻ từ vựng"
+                      title="Search flashcards"
                     >
                       <Search className="w-4 h-4" />
                     </button>
@@ -682,7 +558,7 @@ export function DeckDetailPage() {
                               ? "bg-orange-500 border-orange-500 text-white shadow-orange-500/20"
                               : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
                           )}
-                          title="Bật/tắt thanh thêm nhanh thẻ"
+                          title="Toggle quick add bar"
                         >
                           <Zap className="w-4 h-4 fill-current" />
                         </button>
@@ -690,7 +566,7 @@ export function DeckDetailPage() {
                         <button
                           onClick={() => setIsBatchPasteOpen(true)}
                           className="h-8.5 w-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
-                          title="Dán nhanh nhiều thẻ từ Excel / Google Sheets"
+                          title="Batch paste cards from Excel / Google Sheets"
                         >
                           <ClipboardPaste className="w-4 h-4 text-indigo-600" />
                         </button>
@@ -698,7 +574,7 @@ export function DeckDetailPage() {
                         <button
                           onClick={() => setIsEditModalOpen(true)}
                           className="h-8.5 w-8.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex items-center justify-center shadow-xs shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-                          title="Thêm thẻ mới (đầy đủ chi tiết)"
+                          title="Add new card (full details)"
                         >
                           <Plus className="w-4 h-4 stroke-[3]" />
                         </button>
@@ -714,7 +590,7 @@ export function DeckDetailPage() {
 
       {/* ═══════════ DOCKED BOTTOM STUDY BAR (TWO STUDY BUTTONS: FLASHCARD & PRACTICE) ═══════════ */}
       {activeTab !== 'cards' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2.5">
             {/* 1. Flashcard Study Button (Split: 1-Tap Start | ▾ Mode Menu) */}
             <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20 overflow-hidden">
@@ -765,6 +641,130 @@ export function DeckDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ═══════════ MOBILE DOCKED TAB SWITCHER (4 Tabs in Natural Thumb Reach) ═══════════ */}
+      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-xl border-t border-slate-200/70 px-2 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-2xs">
+        <div className="max-w-md mx-auto flex items-center w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5">
+          {visibleTabs.map((tab) => {
+            const isSettingsTab = tab.id === 'settings'
+            const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
+            const label = isSettingsTab ? getSettingsTabLabel() : tab.label
+            const isActive = activeTab === tab.id
+
+            if (isSettingsTab && isOwner) {
+              return (
+                <div key={tab.id} className="relative flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
+                    className={cn(
+                      "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeDeckDetailMobileBottomTabPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                      />
+                    )}
+                    <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                    <span className="relative z-10 text-[10.5px] font-black tracking-tight whitespace-nowrap">{label}</span>
+                    <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
+                  </button>
+
+                  {/* Dropdown Menu (Pops UPWARDS because it's docked at the bottom!) */}
+                  <AnimatePresence>
+                    {isSettingsMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                          transition={{ duration: 0.12 }}
+                          className="absolute bottom-full mb-2 right-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleSelectScope('deck')}
+                            className={cn(
+                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                              isActive && settingsScope === 'deck'
+                                ? "bg-indigo-50 text-indigo-900 font-black"
+                                : "hover:bg-slate-50 text-slate-700"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
+                                <SettingsIcon className="w-3.5 h-3.5" />
+                              </span>
+                              <div>
+                                <span className="block text-xs font-black">Deck Settings</span>
+                                <span className="block text-[10px] text-slate-400 font-medium">Deck configuration & visibility</span>
+                              </div>
+                            </div>
+                            {isActive && settingsScope === 'deck' && (
+                              <Check className="w-4 h-4 text-indigo-600" />
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectScope('personal')}
+                            className={cn(
+                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                              isActive && settingsScope === 'personal'
+                                ? "bg-orange-50 text-orange-950 font-black"
+                                : "hover:bg-slate-50 text-slate-700"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
+                                <User className="w-3.5 h-3.5" />
+                              </span>
+                              <div>
+                                <span className="block text-xs font-black">My Settings</span>
+                                <span className="block text-[10px] text-slate-400 font-medium">Your personal study preferences</span>
+                              </div>
+                            </div>
+                            {isActive && settingsScope === 'personal' && (
+                              <Check className="w-4 h-4 text-orange-600" />
+                            )}
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            }
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "relative flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
+                  isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeDeckDetailMobileBottomTabPill"
+                    className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                  />
+                )}
+                <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                <span className="relative z-10 text-[10.5px] font-black tracking-tight whitespace-nowrap">{label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       {/* ═══════════ FLASHCARD MODES BOTTOM SHEET ═══════════ */}
       {typeof document !== 'undefined' && createPortal(

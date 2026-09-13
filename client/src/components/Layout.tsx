@@ -44,14 +44,16 @@ export default function Layout() {
   const isFullscreenPlay = location.pathname.includes('/play') || 
                           location.pathname.includes('/practice/') || 
                           location.pathname.includes('/room/')
+  const isDeckDetail = /^\/decks\/[^/]+$/.test(location.pathname)
+  const isImmersiveView = isFullscreenPlay || isDeckDetail
   const showDesktopHeader = !isLandingPage && !isFullscreenPlay
-  const showBottomNav = isLoggedIn && !isFullscreenPlay
+  const showBottomNav = isLoggedIn && !isImmersiveView
 
   return (
     <div className={cn(
       "min-h-screen flex flex-col",
       isLoggedIn 
-        ? (isFullscreenPlay
+        ? (isImmersiveView
             ? "pb-0 h-screen h-[100dvh] overflow-hidden" 
             : "pb-28 md:pb-0 md:h-screen md:w-screen md:overflow-hidden")
         : ""

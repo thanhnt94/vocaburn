@@ -3,6 +3,19 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-13]
+#### Giai Đoạn 1: Chuẩn Hóa Công Thái Học Mobile & Loại Bỏ Xung Đột Điều Hướng (Mobile Ergonomics & 100% English UI)
+- **Tách Biệt Bố Cục Trang Chi Tiết Thẻ (`/decks/:id`) Khỏi Thanh Điều Hướng Toàn Cục**:
+  - Tự động ẩn Global Bottom Nav trong `Layout.tsx` khi truy cập `/decks/:id` (`isDeckDetail`), trả lại 100% không gian viewport cho màn hình học tập và quản lý bộ thẻ.
+  - Loại bỏ hoàn toàn tình trạng thanh điều hướng bị xếp chồng 2 tầng (Dual Stacked Bars) gây lãng phí ~140px chiều dọc màn hình điện thoại.
+- **Di Chuyển 4 Tab Điều Hướng Xuống Đáy Màn Hình (Docked Bottom Thumb Reachability)**:
+  - Loại bỏ cụm 4 tab nằm ngay dưới header trên mobile trong `DeckDetailPage.tsx`.
+  - Tích hợp cụm 4 tab (`Overview`, `Cards`, `Roadmap`, `Settings`) vào thanh đế cố định ở đáy màn hình nằm trong tầm với tự nhiên của ngón cái (One-Hand Thumb Reachable Navigation - Rule 5).
+  - Tích hợp menu đổi phạm vi cài đặt (`Deck Settings` vs `My Settings`) mở trượt hướng lên trên (`bottom-full mb-2`) mượt mà và trực quan.
+- **Tối Ưu Hóa Viewport Height & Khung Cuộn Nội Dung**:
+  - Điều chỉnh container trang `DeckDetailPage` tràn toàn màn hình (`bottom-0` thay vì `bottom-[60px]`), khóa cuộn toàn trang và kích hoạt khung cuộn độc lập cho nội dung tab.
+- **Chuẩn Hóa 100% Tiếng Anh Theo Ecosystem Rule 6**:
+  - Chuyển ngữ toàn bộ chuỗi tiếng Việt còn sót lại trong `RoadmapHub.tsx`, `DeckDetailPage.tsx`, `PracticePlay.tsx`, `PracticeSetupScreen.tsx`, `DeckRoadmapTab.tsx`, và `DeckActionSheet.tsx` sang tiếng Anh chuẩn, đảm bảo tính nhất quán tuyệt đối trong toàn hệ sinh thái.
+
 #### Tinh Gọn Thanh Điều Hướng Home: Tái Cấu Trúc Thống Kê Daily Sang Ngăn Kéo Bottom Sheet (Daily Activity Drawer)
 - **Loại Bỏ Hoàn Toàn 3 Tab Liên Tiếp Ở Đầu Trang Home (Zero Top Navigation Clutter)**:
   - **Khắc phục cảm giác chật chội & "nhìn hơi sợ"**: Việc đặt 3 tab liên tiếp (`Roadmap` | `Learning` | `Daily`) ở đỉnh trang khiến thanh điều hướng trở nên rối mắt và mất cân đối.
