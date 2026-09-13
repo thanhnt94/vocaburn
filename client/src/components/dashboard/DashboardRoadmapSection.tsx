@@ -789,7 +789,72 @@ export function DashboardRoadmapSection({
     }, 4000)
   }
 
-  const hasRoadmapDecks = roadmapDecks && roadmapDecks.length > 0
+  const safeDecks = roadmapDecks || []
+  const hasRoadmapDecks = safeDecks.length > 0
+  const totalDecks = safeDecks.length
+  const safeIdx = totalDecks > 0 ? Math.min(Math.max(0, selectedRoadmapIdx), totalDecks - 1) : 0
+  const deck = safeDecks[safeIdx] || null
+  const st = deck?.status || {}
+
+  const scrollToDeck = useCallback((targetIdx: number, smooth: boolean = true) => {
+    const container = scrollContainerRef.current
+    if (!container || totalDecks === 0) return
+    const clamped = Math.max(0, Math.min(totalDecks - 1, targetIdx))
+    const targetTop = clamped * container.clientHeight
+    container.scrollTo({
+      top: targetTop,
+      behavior: smooth ? 'smooth' : 'auto'
+    })
+    onSelectRoadmapIdx(clamped)
+    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+      window.navigator.vibrate(8)
+    }
+  }, [totalDecks, onSelectRoadmapIdx])
+
+  const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget
+    if (!container || container.clientHeight <= 0 || totalDecks === 0) return
+    const idx = Math.round(container.scrollTop / container.clientHeight)
+    const clamped = Math.max(0, Math.min(totalDecks - 1, idx))
+    if (clamped !== safeIdx) {
+      onSelectRoadmapIdx(clamped)
+    }
+  }
+
+  // Smooth wheel handling on desktop to scroll exactly 1 deck per wheel notch
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (totalDecks <= 1) return
+    if (isScrollingRef.current) return
+    if (Math.abs(e.deltaY) < 25) return
+
+    if (e.deltaY > 0 && safeIdx < totalDecks - 1) {
+      isScrollingRef.current = true
+      scrollToDeck(safeIdx + 1)
+      setTimeout(() => {
+        isScrollingRef.current = false
+      }, 350)
+    } else if (e.deltaY < 0 && safeIdx > 0) {
+      isScrollingRef.current = true
+      scrollToDeck(safeIdx - 1)
+      setTimeout(() => {
+        isScrollingRef.current = false
+      }, 350)
+    }
+  }
+
+  // Sync scroll position if safeIdx changes externally
+  useEffect(() => {
+    if (!hasRoadmapDecks) return
+    const container = scrollContainerRef.current
+    if (!container || container.clientHeight <= 0) return
+    const targetTop = safeIdx * container.clientHeight
+    if (Math.abs(container.scrollTop - targetTop) > 15) {
+      container.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      })
+    }
+  }, [hasRoadmapDecks, safeIdx])
 
   if (!hasRoadmapDecks) {
     return (
@@ -861,70 +926,6 @@ export function DashboardRoadmapSection({
     )
   }
 
-  const safeIdx = Math.min(Math.max(0, selectedRoadmapIdx), roadmapDecks.length - 1)
-  const deck = roadmapDecks[safeIdx] || roadmapDecks[0]
-  const totalDecks = roadmapDecks.length
-  const st = deck?.status || {}
-
-  const scrollToDeck = useCallback((targetIdx: number, smooth: boolean = true) => {
-    const container = scrollContainerRef.current
-    if (!container) return
-    const clamped = Math.max(0, Math.min(totalDecks - 1, targetIdx))
-    const targetTop = clamped * container.clientHeight
-    container.scrollTo({
-      top: targetTop,
-      behavior: smooth ? 'smooth' : 'auto'
-    })
-    onSelectRoadmapIdx(clamped)
-    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-      window.navigator.vibrate(8)
-    }
-  }, [totalDecks, onSelectRoadmapIdx])
-
-  const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget
-    if (!container || container.clientHeight <= 0) return
-    const idx = Math.round(container.scrollTop / container.clientHeight)
-    const clamped = Math.max(0, Math.min(totalDecks - 1, idx))
-    if (clamped !== safeIdx) {
-      onSelectRoadmapIdx(clamped)
-    }
-  }
-
-  // Smooth wheel handling on desktop to scroll exactly 1 deck per wheel notch
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (totalDecks <= 1) return
-    if (isScrollingRef.current) return
-    if (Math.abs(e.deltaY) < 25) return
-
-    if (e.deltaY > 0 && safeIdx < totalDecks - 1) {
-      isScrollingRef.current = true
-      scrollToDeck(safeIdx + 1)
-      setTimeout(() => {
-        isScrollingRef.current = false
-      }, 350)
-    } else if (e.deltaY < 0 && safeIdx > 0) {
-      isScrollingRef.current = true
-      scrollToDeck(safeIdx - 1)
-      setTimeout(() => {
-        isScrollingRef.current = false
-      }, 350)
-    }
-  }
-
-  // Sync scroll position if safeIdx changes externally
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container || container.clientHeight <= 0) return
-    const targetTop = safeIdx * container.clientHeight
-    if (Math.abs(container.scrollTop - targetTop) > 15) {
-      container.scrollTo({
-        top: targetTop,
-        behavior: 'smooth'
-      })
-    }
-  }, [safeIdx])
-
   // ══════════════ COMPACT CARDS VIEW ══════════════
   if (displayMode === 'compact') {
     return (
@@ -962,7 +963,7 @@ export function DashboardRoadmapSection({
 
         {/* Scrollable Compact List */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
-          {roadmapDecks.map((d: any, i: number) => (
+          {safeDecks.map((d: any, i: number) => (
             <CompactRoadmapCard
               key={d.deck_id || i}
               deck={d}
@@ -1013,7 +1014,7 @@ export function DashboardRoadmapSection({
 
         {/* Scrollable Stack List */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
-          {roadmapDecks.map((d: any, i: number) => (
+          {safeDecks.map((d: any, i: number) => (
             <div key={d.deck_id || i} className="bg-white border border-slate-200/90 rounded-3xl p-3.5 sm:p-4 shadow-sm">
               <DetailedRoadmapCard
                 deck={d}
@@ -1120,7 +1121,7 @@ export function DashboardRoadmapSection({
         onWheel={handleWheel}
         className="flex-1 overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth min-h-0 w-full [&::-webkit-scrollbar]:hidden touch-pan-y"
       >
-        {roadmapDecks.map((d: any, i: number) => (
+        {safeDecks.map((d: any, i: number) => (
           <div 
             key={d.deck_id || i}
             className="h-full min-h-full w-full snap-start snap-always shrink-0 p-3 sm:p-4 flex flex-col justify-between"
