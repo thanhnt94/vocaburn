@@ -1,5 +1,8 @@
 # 📚 Trung tâm Tài liệu Kỹ thuật Vocaburn (Documentation Hub)
 
+> **🚀 KHỞI ĐẦU DÀNH CHO AI & DEVELOPER**:
+> Hãy đọc file **[`START.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/START.md)** đầu tiên! File này hướng dẫn AI agent chính xác thứ tự tài liệu cần đọc, các file code trọng yếu và 10 quy tắc vàng bắt buộc tuân thủ trước khi bắt tay vào code.
+
 Chào mừng bạn đến với **Trung tâm Tài liệu Kỹ thuật Duy nhất (Single Source of Truth)** của dự án **Vocaburn**. Toàn bộ tài liệu được phân loại khoa học thành 5 phân nhóm chuyên trách dưới đây:
 
 ---
@@ -8,6 +11,7 @@ Chào mừng bạn đến với **Trung tâm Tài liệu Kỹ thuật Duy nhất
 
 ```
 docs/
+├── START.md                      # 🏁 Hướng dẫn Khởi đầu Dành Cho AI & Lập trình viên
 ├── 01_architecture/              # 🏗️ Kiến trúc Hệ thống & Cơ sở Dữ liệu
 │   ├── MODULE_STRUCTURE.md       # Cấu trúc 8 Modules Backend & Frontend Components
 │   ├── DATABASE_STRUCTURE.md     # Cấu trúc 24 Bảng Cơ sở Dữ liệu & Schema FSRS v6
@@ -19,7 +23,8 @@ docs/
 ├── 03_features_and_ui/           # 🎴 Tính năng Nghiệp vụ & Giao diện
 │   ├── STUDY_HEADER_TRACKER.md   # Hướng dẫn Live HUD Tracker Bar, 3D Flip & Power Surge
 │   ├── FLASHCARD_AND_PRACTICE_MODES.md # Kiến trúc 4 chế độ Flashcard, 4 chế độ Practice & Cử chỉ
-│   └── DASHBOARD_AND_DAILY_HUB.md # Bố cục 2-tab Home, snap-scroll dọc & Ngăn kéo Daily Activity
+│   ├── DASHBOARD_AND_DAILY_HUB.md # Bố cục 2-tab Home, snap-scroll dọc & Ngăn kéo Daily Activity
+│   └── AI_PROMPT_GUIDE.md        # Hướng dẫn kỹ thuật viết Prompt tiếng Việt & Thư viện mẫu chuẩn FSRS
 │
 ├── 04_development_and_ops/       # ⚙️ Quy chuẩn Phát triển & Vận hành
 │   ├── DEVELOPMENT_RULES.md      # Quy tắc Planning Mode, No-localStorage, Alembic & Deploy
@@ -46,6 +51,7 @@ docs/
 ---
 
 ### 3. 🎴 [Tính năng Nghiệp vụ & Giao diện](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/)
+* **[AI_PROMPT_GUIDE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/AI_PROMPT_GUIDE.md)**: Hướng dẫn kỹ thuật viết Prompt tiếng Việt cho trợ lý giải thích thẻ (`AI Explain`), sinh dữ liệu hàng loạt (`Bulk AI`) và thư viện Prompt mẫu chất lượng cao (giải thích từ vựng, chiết tự Hán tự, ví dụ giao tiếp song ngữ, mẹo ghi nhớ Mnemonic).
 * **[FLASHCARD_AND_PRACTICE_MODES.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/FLASHCARD_AND_PRACTICE_MODES.md)**: Kiến trúc toàn diện 4 chế độ Flashcard (FSRS, Continuous Review vòng lặp vô tận, Learn New Words, Speed Skim), 4 bài luyện tập Practice, thanh 2 nút đáy neo cố định, modal sheets tràn viền `createPortal`, cử chỉ vuốt chuyển câu và hoàn tác cả 2 mặt, Quick Controls haptic/image cycle/font size.
 * **[DASHBOARD_AND_DAILY_HUB.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/DASHBOARD_AND_DAILY_HUB.md)**: Bố cục chuẩn Mobile-First của Home Dashboard với 2 tab cốt lõi (`Roadmap` | `Learning`), phân tách độc lập 2 trục cử chỉ (snap-scroll dọc vs vuốt ngang), ngăn kéo thông minh Daily Activity Drawer trượt đáy qua `createPortal` và endpoint phân tích hoạt động theo múi giờ client.
 * **[STUDY_HEADER_TRACKER.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/STUDY_HEADER_TRACKER.md)**: Tài liệu chi tiết về thanh điều hướng `StudyHeaderTracker` với hệ thống lật 2 mặt 3D (Dual-Face Flip) và dải sáng động lực Power Surge.
