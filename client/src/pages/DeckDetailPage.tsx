@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react'
+import React, { useState, useRef, Suspense, lazy } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -236,6 +236,52 @@ export function DeckDetailPage() {
     }, { replace: true })
   }
 
+  // Touch swipe handling for horizontal tab navigation
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const diffX = touchStartX.current - e.changedTouches[0].clientX
+    const diffY = touchStartY.current - e.changedTouches[0].clientY
+
+    // Swipe left/right with minimum distance and horizontal dominance
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      const tabOrder: DeckDetailTab[] = isOwner 
+        ? ['overview', 'cards', 'roadmap', 'settings'] 
+        : ['overview', 'cards', 'roadmap']
+      const currentIndex = tabOrder.indexOf(activeTab)
+      if (diffX > 0 && currentIndex < tabOrder.length - 1) {
+        // Swiped left -> Next tab
+        if (navigator.vibrate) navigator.vibrate(8)
+        const nextTab = tabOrder[currentIndex + 1]
+        setIsSettingsMenuOpen(false)
+        setSearchParams((prev) => {
+          const updated = new URLSearchParams(prev)
+          updated.set('tab', nextTab)
+          return updated
+        }, { replace: true })
+      } else if (diffX < 0 && currentIndex > 0) {
+        // Swiped right -> Previous tab
+        if (navigator.vibrate) navigator.vibrate(8)
+        const prevTab = tabOrder[currentIndex - 1]
+        setIsSettingsMenuOpen(false)
+        setSearchParams((prev) => {
+          const updated = new URLSearchParams(prev)
+          updated.set('tab', prevTab)
+          return updated
+        }, { replace: true })
+      }
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
   const getSettingsTabLabel = () => {
     if (activeTab !== 'settings') return 'Settings'
     if (!isOwner) return 'Settings'
@@ -435,8 +481,12 @@ export function DeckDetailPage() {
         </div>
       </div>
 
-      {/* ═══════════ TAB CONTENT AREA (INTERNAL SCROLLABLE - FLEX-1) ═══════════ */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar pb-4">
+      {/* ═══════════ TAB CONTENT AREA (INTERNAL SCROLLABLE - FLEX-1 WITH TOUCH SWIPE) ═══════════ */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1 overflow-y-auto custom-scrollbar pb-4"
+      >
         <Suspense
           fallback={
             <div className="py-24 text-center">

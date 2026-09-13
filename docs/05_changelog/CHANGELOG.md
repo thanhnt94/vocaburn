@@ -3,6 +3,28 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-13]
+#### Giai Đoạn 2: Tinh Gọn Header Thư Viện Thẻ, Vuốt Ngang Đa Màn Hình & Chuẩn Hóa Safe-Area Inset (Mobile Gestures & Header Streamlining)
+- **Chuẩn Hóa Universal Safe-Area Inset Trên Toàn Bộ Ứng Dụng (iPhone Home Indicator Compatibility)**:
+  - Thay thế giá trị cứng `bottom-[68px]` thành giá trị linh hoạt `bottom-[calc(56px+env(safe-area-inset-bottom))]` trên cả 5 màn hình chính: `Stats.tsx`, `Dashboard.tsx`, `Profile.tsx`, `DecksPage.tsx`, `Settings.tsx`.
+  - Khắc phục triệt để hiện tượng nội dung chân trang bị che khuất bởi thanh điều hướng và Home Indicator trên các dòng iPhone tai thỏ / Dynamic Island, loại bỏ hoàn toàn tình trạng cắt cụt danh sách.
+- **Bổ Sung Cử Chỉ Vuốt Ngang Mượt Mà Kèm Phản Hồi Rung Haptic (Horizontal Touch Swipe Navigation)**:
+  - **Trang Chi Tiết Bộ Thẻ (`DeckDetailPage.tsx`)**: Cho phép người dùng vuốt ngón tay 1 tay để chuyển qua lại mượt mà giữa các tab `Overview` $\leftrightarrow$ `Cards` $\leftrightarrow$ `Roadmap` $\leftrightarrow$ `Settings` với phản hồi rung haptic xúc giác `navigator.vibrate(8)`.
+  - **Trang Thư Viện Bộ Thẻ (`DecksPage.tsx`)**: Cho phép vuốt ngang tự nhiên giữa 4 chế độ `My Decks` $\leftrightarrow$ `Folders` $\leftrightarrow$ `Discover` $\leftrightarrow$ `Archived` với thuật toán nhận diện góc vuốt ưu tiên trục ngang (`Math.abs(diffX) > Math.abs(diffY) * 1.4`), chống nhảy tab nhầm lẫn khi cuộn dọc.
+- **Tinh Gọn Header Thư Viện Bộ Thẻ Thành 2 Tầng Siêu Gọn (Inline iOS-Style Search & Zero Redundant Rows)**:
+  - Loại bỏ hoàn toàn hàng mở rộng tìm kiếm cồng kềnh (Collapsible Search Row) chiếm tới 44px chiều dọc trên mobile.
+  - Chuyển sang cơ chế tìm kiếm nội dòng phong cách iOS (Inline Search Transition): Khi bấm nút tìm kiếm, Hàng 1 trên mobile chuyển đổi mượt mà thành thanh nhập liệu chiếm toàn bộ bề ngang kèm nút `Cancel`, trả lại không gian tối đa cho danh sách bộ thẻ bên dưới.
+  - Tối ưu hóa padding của thanh phân đoạn 4 tab (Hàng 2) và thanh chip lọc trạng thái (Hàng 3), tiết kiệm hơn 50px không gian quý giá trên màn hình điện thoại.
+- **Chuẩn Hóa Tiếng Anh 100% Cho Toàn Bộ Cụm Quản Lý Thẻ (Card Management English Normalization - Rule 6)**:
+  - Chuyển ngữ hoàn toàn các chuỗi tiếng Việt sang tiếng Anh chuẩn trong:
+    - `DeckCardsTab.tsx`: Hộp thoại xóa/lưu thẻ, thanh công cụ chọn hàng loạt (Bulk toolbar), thông báo trống (Empty state).
+    - `DeckCardFilterBar.tsx`: Các chip lọc trạng thái (`All`, `Starred`, `Hidden`), nút chọn tất cả, thanh tác vụ hàng loạt.
+    - `DeckCardItem.tsx`: Nhãn thẻ (`Front`, `Back`, `Hint`), các nút thao tác nhanh (`Play pronunciation`, `Star card`, `Hide card`, `Edit card`, `Delete card`).
+    - `DeckCardQuickAdd.tsx`: Khung thêm nhanh thẻ (`Quick Add Card`, `Columns`, `Full Details`, `Reset`), lưu cấu hình cột tự động.
+    - `DeckCardBatchPasteModal.tsx`: Hộp thoại dán hàng loạt (`Batch Paste Multi-Column Cards`, preview table, reset columns).
+    - `DeckPagination.tsx`: Tooltips điều hướng phân trang di động (`Previous page`, `Next page`, `Jump to page`).
+    - `DeckFsrsStatsCard.tsx`: Thẻ chỉ số trí nhớ FSRS v6 (`FSRS v6 Memory Index`, `Due for Review`, `Stability`, `Retention Rate`, `Total Cards`).
+    - `DeckCreateModal.tsx` & `DeckJoinRoomModal.tsx`: Modal tạo bộ thẻ mới và tham gia phòng thi đấu Arena.
+
 #### Giai Đoạn 1: Chuẩn Hóa Công Thái Học Mobile & Loại Bỏ Xung Đột Điều Hướng (Mobile Ergonomics & 100% English UI)
 - **Tách Biệt Bố Cục Trang Chi Tiết Thẻ (`/decks/:id`) Khỏi Thanh Điều Hướng Toàn Cục**:
   - Tự động ẩn Global Bottom Nav trong `Layout.tsx` khi truy cập `/decks/:id` (`isDeckDetail`), trả lại 100% không gian viewport cho màn hình học tập và quản lý bộ thẻ.

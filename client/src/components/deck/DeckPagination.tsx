@@ -59,7 +59,7 @@ export function DeckPagination({
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
           className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
-          title="Trang trước"
+          title="Previous page"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -67,7 +67,7 @@ export function DeckPagination({
         <button
           onClick={handleOpenJump}
           className="px-3 h-8 rounded-xl bg-gradient-to-b from-white to-slate-50 border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 group shadow-2xs"
-          title="Bấm để nhảy tới trang bất kỳ"
+          title="Jump to page"
         >
           <span className="text-[11px] font-black text-slate-800 group-hover:text-indigo-600 tracking-wider">
             {currentPage}
@@ -82,7 +82,7 @@ export function DeckPagination({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
           className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 disabled:opacity-30 disabled:border-slate-150 shadow-2xs hover:border-indigo-300 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed active:scale-95"
-          title="Trang sau"
+          title="Next page"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

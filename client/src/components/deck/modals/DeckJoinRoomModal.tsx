@@ -24,7 +24,7 @@ export function DeckJoinRoomModal({ isOpen, onClose }: DeckJoinRoomModalProps) {
       onClose()
       navigate(`/room/${roomCode.trim().toUpperCase()}`)
     } catch (e) {
-      alert('Phòng không tồn tại hoặc đã kết thúc!')
+      alert('Room does not exist or has already ended!')
     } finally {
       setIsJoining(false)
     }
@@ -52,7 +52,7 @@ export function DeckJoinRoomModal({ isOpen, onClose }: DeckJoinRoomModalProps) {
                 <Users className="w-4 h-4" />
               </div>
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">
-                Tham Gia Phòng Đấu
+                Join Battle Room
               </h3>
             </div>
             <button
@@ -66,11 +66,11 @@ export function DeckJoinRoomModal({ isOpen, onClose }: DeckJoinRoomModalProps) {
           <div className="space-y-5">
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block ml-1">
-                Nhập mã phòng Arena
+                Enter Arena Room Code
               </label>
               <input
                 type="text"
-                placeholder="VD: AZ78K"
+                placeholder="e.g. AZ78K"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => {
@@ -86,7 +86,7 @@ export function DeckJoinRoomModal({ isOpen, onClose }: DeckJoinRoomModalProps) {
               disabled={!roomCode.trim() || isJoining}
               className="w-full h-12 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-md shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:bg-slate-200 disabled:shadow-none cursor-pointer"
             >
-              {isJoining ? 'ĐANG KẾT NỐI...' : 'VÀO PHÒNG NGAY 🚀'}
+              {isJoining ? 'CONNECTING...' : 'ENTER ROOM NOW 🚀'}
             </button>
           </div>
         </motion.div>

@@ -58,10 +58,10 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
           </div>
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">
-              Chỉ Số Trí Nhớ FSRS v6
+              FSRS v6 Memory Index
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Phân bố trạng thái ghi nhớ bộ thẻ
+              Card retention & memory distribution
             </p>
           </div>
         </div>
@@ -69,12 +69,12 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
         {due > 0 ? (
           <span className="px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200/60 text-amber-700 text-xs font-black flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-            <span>{due} thẻ cần ôn</span>
+            <span>{due} due cards</span>
           </span>
         ) : (
           <span className="px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-xs font-black flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Đã ôn hết</span>
+            <span>All caught up</span>
           </span>
         )}
       </div>
@@ -85,32 +85,32 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
           <div
             style={{ width: `${masteredPct}%` }}
             className="bg-emerald-500 h-full transition-all duration-500"
-            title={`Đã thuộc: ${mastered} (${masteredPct}%)`}
+            title={`Mastered: ${mastered} (${masteredPct}%)`}
           />
           <div
             style={{ width: `${learningPct}%` }}
             className="bg-amber-500 h-full transition-all duration-500"
-            title={`Đang học: ${learning} (${learningPct}%)`}
+            title={`Learning: ${learning} (${learningPct}%)`}
           />
           <div
             style={{ width: `${newPct}%` }}
             className="bg-slate-200 h-full transition-all duration-500"
-            title={`Chưa học: ${newCount} (${newPct}%)`}
+            title={`New: ${newCount} (${newPct}%)`}
           />
         </div>
 
         <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mt-2 px-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Đã thuộc: <strong className="text-slate-800">{mastered}</strong> ({masteredPct}%)
+            Mastered: <strong className="text-slate-800">{mastered}</strong> ({masteredPct}%)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            Đang học: <strong className="text-slate-800">{learning}</strong> ({learningPct}%)
+            Learning: <strong className="text-slate-800">{learning}</strong> ({learningPct}%)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-slate-300" />
-            Mới: <strong className="text-slate-800">{newCount}</strong>
+            New: <strong className="text-slate-800">{newCount}</strong>
           </span>
         </div>
       </div>
@@ -119,16 +119,16 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
         <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-            Cần Ôn Tập
+            Due for Review
           </span>
           <span className="text-lg font-black text-amber-600 block mt-0.5">
-            {due} <span className="text-xs text-slate-400 font-bold">thẻ</span>
+            {due} <span className="text-xs text-slate-400 font-bold">cards</span>
           </span>
         </div>
 
         <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-            Độ Ổn Định
+            Stability
           </span>
           <span className="text-lg font-black text-indigo-600 block mt-0.5">
             {stability ? `${stability}d` : '--'}
@@ -137,7 +137,7 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
 
         <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-            Tỷ Lệ Giữ Nhớ
+            Retention Rate
           </span>
           <span className="text-lg font-black text-emerald-600 block mt-0.5">
             {retention !== null ? `${retention}%` : '--'}
@@ -146,10 +146,10 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
 
         <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-            Tổng Thẻ
+            Total Cards
           </span>
           <span className="text-lg font-black text-slate-800 block mt-0.5">
-            {total} <span className="text-xs text-slate-400 font-bold">thẻ</span>
+            {total} <span className="text-xs text-slate-400 font-bold">cards</span>
           </span>
         </div>
       </div>

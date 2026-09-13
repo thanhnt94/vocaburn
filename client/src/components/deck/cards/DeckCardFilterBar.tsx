@@ -44,7 +44,7 @@ export function DeckCardFilterBar({
               : "text-slate-500 hover:text-slate-800"
           )}
         >
-          Tất cả ({totalCount})
+          All ({totalCount})
         </button>
 
         <button
@@ -57,7 +57,7 @@ export function DeckCardFilterBar({
           )}
         >
           <Star className="w-3 h-3 fill-current" />
-          <span>Có sao</span>
+          <span>Starred</span>
         </button>
 
         <button
@@ -70,7 +70,7 @@ export function DeckCardFilterBar({
           )}
         >
           <EyeOff className="w-3 h-3" />
-          <span>Đang ẩn</span>
+          <span>Hidden</span>
         </button>
       </div>
 
@@ -78,12 +78,12 @@ export function DeckCardFilterBar({
       <div className="flex items-center gap-2">
         {selectedCount > 0 && (
           <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-xl text-xs font-bold text-indigo-700">
-            <span>Đã chọn {selectedCount}</span>
+            <span>Selected {selectedCount}</span>
             {onBulkDelete && (
               <button
                 onClick={onBulkDelete}
                 className="p-1 hover:bg-rose-100 text-rose-600 rounded-lg transition-all cursor-pointer"
-                title="Xóa các thẻ đã chọn"
+                title="Delete selected cards"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -92,7 +92,7 @@ export function DeckCardFilterBar({
               <button
                 onClick={onBulkStar}
                 className="p-1 hover:bg-amber-100 text-amber-600 rounded-lg transition-all cursor-pointer"
-                title="Gắn sao các thẻ đã chọn"
+                title="Star selected cards"
               >
                 <Star className="w-3.5 h-3.5" />
               </button>
@@ -101,7 +101,7 @@ export function DeckCardFilterBar({
               <button
                 onClick={onBulkIgnore}
                 className="p-1 hover:bg-slate-200 text-slate-600 rounded-lg transition-all cursor-pointer"
-                title="Ẩn/Hiện các thẻ đã chọn"
+                title="Hide / Unhide selected cards"
               >
                 <EyeOff className="w-3.5 h-3.5" />
               </button>
@@ -110,7 +110,7 @@ export function DeckCardFilterBar({
               <button
                 onClick={onClearSelection}
                 className="p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-lg transition-all cursor-pointer"
-                title="Bỏ chọn"
+                title="Clear selection"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -128,7 +128,7 @@ export function DeckCardFilterBar({
             ) : (
               <Square className="w-4 h-4 text-slate-400" />
             )}
-            <span>Chọn tất cả ({filteredCount})</span>
+            <span>Select all ({filteredCount})</span>
           </button>
         )}
       </div>

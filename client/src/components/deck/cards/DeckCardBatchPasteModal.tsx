@@ -162,23 +162,23 @@ export function DeckCardBatchPasteModal({
     handleUpdateColumns(newCols)
   }
 
-  // Xóa cột
+  // Remove column
   const handleRemoveColumn = (id: string) => {
     if (columns.length <= 1) {
-      alert('Cần ít nhất 1 cột để dán dữ liệu!')
+      alert('At least 1 column is required!')
       return
     }
     const newCols = columns.filter(c => c.id !== id)
     handleUpdateColumns(newCols)
   }
 
-  // Danh sách các cột trong DB chưa được thêm vào
+  // Database columns not yet added
   const availableToAdd = useMemo(() => {
     const activeKeys = new Set(columns.map(c => c.key))
     return allDbColumns.filter(c => !activeKeys.has(c.key))
   }, [allDbColumns, columns])
 
-  // Parse dòng dán theo đúng thứ tự các cột
+  // Parse lines matching column order
   const { parsedCards, rawLinesCount } = useMemo(() => {
     if (!pasteText.trim()) return { parsedCards: [], rawLinesCount: 0 }
 
@@ -238,17 +238,17 @@ export function DeckCardBatchPasteModal({
     return { parsedCards: cards, rawLinesCount: lines.length }
   }, [pasteText, columns])
 
-  // Placeholder mẫu
+  // Placeholder example
   const placeholderExample = useMemo(() => {
     const headerRow = columns.map(c => c.label).join('\t')
-    const sampleRow = columns.map((c, i) => `Giá trị ${i + 1}`).join('\t')
-    return `Mẫu ${columns.length} cột (phân cách bằng Tab):\n${headerRow}\n${sampleRow}`
+    const sampleRow = columns.map((c, i) => `Value ${i + 1}`).join('\t')
+    return `Sample ${columns.length} columns (Tab separated):\n${headerRow}\n${sampleRow}`
   }, [columns])
 
   // Batch Submit
   const handleImport = async () => {
     if (parsedCards.length === 0) {
-      setError('Chưa có thẻ hợp lệ nào để nhập. Vui lòng dán dữ liệu vào ô dưới.')
+      setError('No valid cards to import. Please paste data in the text area below.')
       return
     }
 
@@ -273,7 +273,7 @@ export function DeckCardBatchPasteModal({
       setPasteText('')
       if (onSuccess) onSuccess()
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Có lỗi xảy ra khi dán thẻ hàng loạt.')
+      setError(err?.response?.data?.error || 'Failed to import cards in batch.')
     } finally {
       setIsSubmitting(false)
     }
@@ -309,10 +309,10 @@ export function DeckCardBatchPasteModal({
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-800 tracking-tight flex items-center gap-2">
-                  <span>Dán Thẻ Nhiều Cột & Tự Do Sắp Xếp</span>
+                  <span>Batch Paste Multi-Column Cards</span>
                 </h3>
                 <p className="text-xs text-slate-400 font-bold">
-                  Chọn các cột theo đúng file Excel/Sheets rồi dán vào
+                  Choose columns matching your Excel/Sheets layout, then paste data below
                 </p>
               </div>
             </div>
@@ -336,13 +336,13 @@ export function DeckCardBatchPasteModal({
           {/* Body Content */}
           <div className="p-4 sm:p-5 space-y-4 flex-1 overflow-y-auto custom-scrollbar min-h-0">
             
-            {/* ═══════════ KHU VỰC CẤU HÌNH THỨ TỰ CỘT ═══════════ */}
+            {/* ═══════════ COLUMN REORDER CONFIG ═══════════ */}
             <div className="space-y-2.5 p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/80">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-indigo-600" />
                   <span className="text-xs font-black text-slate-800">
-                    Thứ tự {columns.length} cột khi dán:
+                    Column import order ({columns.length}):
                   </span>
                 </div>
 
@@ -351,14 +351,14 @@ export function DeckCardBatchPasteModal({
                   type="button"
                   onClick={handleResetDefault}
                   className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                  title="Khôi phục về chỉ 2 cột front & back"
+                  title="Reset to default (front & back)"
                 >
                   <RotateCcw className="w-3 h-3 text-slate-500" />
-                  <span>Đặt lại (front, back)</span>
+                  <span>Reset (front, back)</span>
                 </button>
               </div>
 
-              {/* DRAGGABLE REORDER LIST (Kéo thả sắp xếp cột) */}
+              {/* DRAGGABLE REORDER LIST */}
               <div className="space-y-1">
                 <Reorder.Group 
                   axis="x" 
@@ -386,7 +386,7 @@ export function DeckCardBatchPasteModal({
                         type="button"
                         onClick={() => handleRemoveColumn(col.id)}
                         className="w-4.5 h-4.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer"
-                        title={`Xóa cột ${col.label}`}
+                        title={`Remove column ${col.label}`}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -395,11 +395,11 @@ export function DeckCardBatchPasteModal({
                 </Reorder.Group>
               </div>
 
-              {/* AVAILABLE COLUMNS POOL (Có cuộn giới hạn tránh vỡ layout) */}
+              {/* AVAILABLE COLUMNS POOL */}
               {availableToAdd.length > 0 && (
                 <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
                   <span className="text-[11px] font-bold text-slate-400 block">
-                    + Bấm để thêm cột từ Database:
+                    + Click to add column from database:
                   </span>
                   <div className="max-h-24 overflow-y-auto custom-scrollbar p-1.5 bg-white rounded-xl border border-slate-200/70 flex flex-wrap items-center gap-1.5">
                     {availableToAdd.map(f => (
@@ -418,13 +418,13 @@ export function DeckCardBatchPasteModal({
               )}
             </div>
 
-            {/* ═══════════ KHUNG NHẬP DỮ LIỆU DÁN ═══════════ */}
+            {/* ═══════════ DATA PASTE INPUT ═══════════ */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                <span>Dán dữ liệu từ file Excel/Google Sheets:</span>
+                <span>Paste data from Excel / Google Sheets:</span>
                 {parsedCards.length > 0 && (
                   <span className="text-indigo-600 font-extrabold">
-                    ✅ Nhận diện được {parsedCards.length} thẻ ({rawLinesCount} dòng)
+                    ✅ Detected {parsedCards.length} cards ({rawLinesCount} rows)
                   </span>
                 )}
               </div>
@@ -438,11 +438,11 @@ export function DeckCardBatchPasteModal({
               />
             </div>
 
-            {/* ═══════════ BẢNG XEM TRƯỚC THEO ĐÚNG THỨ TỰ CỘT ═══════════ */}
+            {/* ═══════════ PREVIEW TABLE ═══════════ */}
             {parsedCards.length > 0 && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-black text-slate-700">
-                  <span>Xem trước ({parsedCards.length} thẻ sẵn sàng nhập):</span>
+                  <span>Preview ({parsedCards.length} cards ready to import):</span>
                 </div>
 
                 <div className="border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs bg-white max-h-48 overflow-y-auto custom-scrollbar">
@@ -468,7 +468,7 @@ export function DeckCardBatchPasteModal({
                             const val = card.rawParts[colIdx] || ''
                             return (
                               <td key={col.id} className="p-2 truncate max-w-[180px] text-slate-800 text-[11px]">
-                                {val || <span className="text-slate-300 italic">(Trống)</span>}
+                                {val || <span className="text-slate-300 italic">(Empty)</span>}
                               </td>
                             )
                           })}
@@ -479,7 +479,7 @@ export function DeckCardBatchPasteModal({
 
                   {parsedCards.length > 10 && (
                     <div className="p-2 text-center bg-slate-50/60 border-t border-slate-100 text-[11px] font-bold text-slate-400">
-                      ... và {parsedCards.length - 10} thẻ khác sẽ được thêm tự động theo đúng các cột trên
+                      ... and {parsedCards.length - 10} more cards will be imported automatically according to the columns above
                     </div>
                   )}
                 </div>
@@ -494,7 +494,7 @@ export function DeckCardBatchPasteModal({
               onClick={onClose}
               className="h-10 px-5 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-black transition-all cursor-pointer shadow-2xs"
             >
-              Hủy
+              Cancel
             </button>
 
             <button
@@ -504,7 +504,7 @@ export function DeckCardBatchPasteModal({
               className="h-10 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-md shadow-orange-500/25 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Sparkles className="w-4 h-4 stroke-[2.5]" />
-              <span>{isSubmitting ? 'Đang nhập thẻ...' : `NHẬP ${parsedCards.length} THẺ NGAY 🚀`}</span>
+              <span>{isSubmitting ? 'Importing cards...' : `IMPORT ${parsedCards.length} CARDS NOW 🚀`}</span>
             </button>
           </div>
         </motion.div>

@@ -86,18 +86,18 @@ export function DeckCardItem({
 
         {/* Content Body */}
         <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Front (Mặt trước) */}
+          {/* Front */}
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                Mặt trước
+                Front
               </span>
               {frontAudio && (
                 <button
                   onClick={() => handlePlayAudio(frontAudio)}
                   disabled={isPlayingAudio}
                   className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
-                  title="Nghe phát âm"
+                  title="Play pronunciation"
                 >
                   <Volume2 className={`w-3.5 h-3.5 ${isPlayingAudio ? 'text-indigo-600 animate-pulse' : ''}`} />
                 </button>
@@ -114,11 +114,11 @@ export function DeckCardItem({
             )}
           </div>
 
-          {/* Back (Mặt sau / Giải thích) */}
+          {/* Back */}
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                Mặt sau
+                Back
               </span>
               {card.ai_explanation && (
                 <span className="text-[9px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
@@ -132,7 +132,7 @@ export function DeckCardItem({
             />
             {card.hint && (
               <p className="text-[10px] text-amber-700 bg-amber-50/60 p-1.5 rounded-lg border border-amber-100">
-                💡 <strong>Gợi ý:</strong> {card.hint}
+                💡 <strong>Hint:</strong> {card.hint}
               </p>
             )}
             {backImg && (
@@ -153,7 +153,7 @@ export function DeckCardItem({
                   ? 'text-amber-500 bg-amber-50'
                   : 'text-slate-300 hover:text-amber-500 hover:bg-slate-50'
               }`}
-              title={card.is_starred ? 'Bỏ đánh dấu sao' : 'Đánh dấu sao quan trọng'}
+              title={card.is_starred ? 'Unstar card' : 'Star card'}
             >
               <Star className="w-4 h-4 fill-current" />
             </button>
@@ -167,7 +167,7 @@ export function DeckCardItem({
                   ? 'text-slate-600 bg-slate-200'
                   : 'text-slate-300 hover:text-slate-600 hover:bg-slate-50'
               }`}
-              title={card.is_ignored ? 'Bỏ ẩn thẻ' : 'Ẩn thẻ (không ôn tập)'}
+              title={card.is_ignored ? 'Unhide card' : 'Hide card (suspend study)'}
             >
               {card.is_ignored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             </button>
@@ -176,7 +176,7 @@ export function DeckCardItem({
           <button
             onClick={() => onEdit(card)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all cursor-pointer"
-            title="Chỉnh sửa thẻ"
+            title="Edit card"
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -184,7 +184,7 @@ export function DeckCardItem({
           <button
             onClick={() => onDelete(card.id)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-            title="Xóa thẻ"
+            title="Delete card"
           >
             <Trash2 className="w-4 h-4" />
           </button>

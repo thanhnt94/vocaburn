@@ -1850,7 +1850,7 @@ export default function Dashboard() {
 
       {/* MOBILE FEED — Exact Mockup Design with Unified Header & Flame Logo */}
       <div 
-        className="md:hidden flex flex-col bg-[#f8fafc] fixed inset-0 top-0 bottom-[68px] z-[100] overflow-hidden select-none font-sans"
+        className="md:hidden flex flex-col bg-[#f8fafc] fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-[100] overflow-hidden select-none font-sans"
         onTouchStart={(e) => {
           (window as any)._touchStartX = e.touches[0].clientX;
           (window as any)._touchStartY = e.touches[0].clientY;

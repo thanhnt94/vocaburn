@@ -206,7 +206,7 @@ export function DeckCardsTab({
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
       return true
     } catch (e) {
-      alert('Không thể thêm thẻ. Vui lòng thử lại.')
+      alert('Failed to add card. Please try again.')
       return false
     } finally {
       setIsQuickAdding(false)
@@ -214,13 +214,13 @@ export function DeckCardsTab({
   }
 
   const handleDeleteCard = async (cardId: number) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa thẻ từ vựng này?')) return
+    if (!window.confirm('Are you sure you want to delete this card?')) return
     try {
       await axios.delete(`/api/v1/deck/question/${cardId}`)
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
     } catch (e) {
-      alert('Xóa thẻ thất bại')
+      alert('Failed to delete card')
     }
   }
 
@@ -263,7 +263,7 @@ export function DeckCardsTab({
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
       handleCloseEditModal()
     } catch (e) {
-      alert('Lưu thẻ thất bại. Vui lòng thử lại.')
+      alert('Failed to save card. Please try again.')
     } finally {
       setIsSavingCard(false)
     }
@@ -272,7 +272,7 @@ export function DeckCardsTab({
   // Bulk Actions
   const handleBulkDelete = async () => {
     if (selectedCardIds.size === 0) return
-    if (!window.confirm(`Bạn có chắc muốn xóa ${selectedCardIds.size} thẻ đã chọn?`)) return
+    if (!window.confirm(`Are you sure you want to delete ${selectedCardIds.size} selected cards?`)) return
 
     setIsBulkProcessing(true)
     try {
@@ -284,7 +284,7 @@ export function DeckCardsTab({
       queryClient.invalidateQueries({ queryKey: ['quiz-questions', id] })
       queryClient.invalidateQueries({ queryKey: ['quiz', id] })
     } catch (e) {
-      alert('Xóa thẻ hàng loạt thất bại')
+      alert('Failed to delete selected cards')
     } finally {
       setIsBulkProcessing(false)
     }
@@ -351,9 +351,9 @@ export function DeckCardsTab({
       ) : displayedCards.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs">
           <span className="text-3xl block mb-2">🎴</span>
-          <h3 className="text-sm font-black text-slate-800">Không tìm thấy thẻ từ vựng nào</h3>
+          <h3 className="text-sm font-black text-slate-800">No flashcards found</h3>
           <p className="text-xs text-slate-400 mt-1">
-            {search ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy bấm "+ Thêm nhanh" ở thanh dưới để bắt đầu tạo thẻ!'}
+            {search ? 'Try searching with different keywords' : 'Tap "+ Quick Add" below to create your first card!'}
           </p>
         </div>
       ) : (
@@ -391,11 +391,11 @@ export function DeckCardsTab({
         }}
       />
 
-      {/* 4. Standalone Pagination Fallback (Khi không nằm trong DeckDetailPage) */}
+      {/* 4. Standalone Pagination Fallback (When not inside DeckDetailPage) */}
       {!controlledOnPageChange && (
         <div className="flex items-center justify-between pt-3 text-slate-400 text-xs font-bold">
           <span>
-            Trang {currentPage} / {totalPages} (Tổng {totalCards} thẻ)
+            Page {currentPage} / {totalPages} ({totalCards} cards)
           </span>
 
           <DeckPagination
@@ -421,7 +421,7 @@ export function DeckCardsTab({
                 {selectedCardIds.size}
               </span>
               <span className="text-xs font-bold text-slate-200 truncate">
-                Đã chọn {selectedCardIds.size} thẻ
+                Selected {selectedCardIds.size} cards
               </span>
             </div>
 
@@ -430,36 +430,36 @@ export function DeckCardsTab({
                 onClick={handleBulkStar}
                 disabled={isBulkProcessing}
                 className="h-8 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                title="Gắn sao các thẻ đã chọn"
+                title="Star selected cards"
               >
                 <Star className="w-3.5 h-3.5 fill-current" />
-                <span className="hidden sm:inline">Sao</span>
+                <span className="hidden sm:inline">Star</span>
               </button>
 
               <button
                 onClick={handleBulkIgnore}
                 disabled={isBulkProcessing}
                 className="h-8 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                title="Ẩn các thẻ đã chọn"
+                title="Hide selected cards"
               >
                 <EyeOff className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ẩn</span>
+                <span className="hidden sm:inline">Hide</span>
               </button>
 
               <button
                 onClick={handleBulkDelete}
                 disabled={isBulkProcessing}
                 className="h-8 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm shadow-rose-900/40"
-                title="Xóa tất cả các thẻ đã chọn"
+                title="Delete selected cards"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Xóa</span>
+                <span>Delete</span>
               </button>
 
               <button
                 onClick={handleClearSelection}
                 className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer ml-1"
-                title="Bỏ chọn tất cả"
+                title="Clear selection"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

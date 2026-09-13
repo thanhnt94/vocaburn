@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
@@ -170,6 +170,38 @@ export default function DecksPage() {
     }
   }
 
+  // Touch swipe handling for horizontal tab switching between Decks, Folders, Discover, Archived
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const diffX = touchStartX.current - e.changedTouches[0].clientX
+    const diffY = touchStartY.current - e.changedTouches[0].clientY
+
+    // Swipe left/right with minimum distance (45px) and horizontal dominance (1.4x)
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      const tabOrder: DecksTab[] = ['my', 'folders', 'discover', 'archived']
+      const currentIndex = tabOrder.indexOf(activeTab)
+      if (diffX > 0 && currentIndex < tabOrder.length - 1) {
+        // Swiped left -> Next tab
+        if (navigator.vibrate) navigator.vibrate(8)
+        setActiveTab(tabOrder[currentIndex + 1])
+      } else if (diffX < 0 && currentIndex > 0) {
+        // Swiped right -> Previous tab
+        if (navigator.vibrate) navigator.vibrate(8)
+        setActiveTab(tabOrder[currentIndex - 1])
+      }
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
   const deleteFolderMutation = useMutation({
     mutationFn: (folderId: number) => axios.delete(`/api/v1/folders/${folderId}`),
     onSuccess: () => {
@@ -333,12 +365,46 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER (BRAND + TABS + FILTERS) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/95 md:bg-[#F8FAFC]/95 md:backdrop-blur-md border-b border-slate-200/80 shadow-2xs md:shadow-none">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
+          {/* Row 1 Mobile Inline Search (Apple-style instant inline search) */}
+          {isSearchOpen && (
+            <div className="flex md:hidden items-center gap-2 w-full pt-2 pb-1.5">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 text-orange-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search decks by title, tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8.5 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-orange-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setIsSearchOpen(false)
+                  setSearchQuery('')
+                }}
+                className="text-xs font-black text-orange-600 hover:text-orange-700 px-1.5 py-1.5 shrink-0 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           {/* Row 1: Header Brand, Desktop Tabs, and Quick Actions */}
-          <div className="flex items-center justify-between pt-2.5 pb-2 md:py-2.5">
+          <div className={cn("items-center justify-between pt-2 pb-1.5 md:py-2.5", isSearchOpen ? "hidden md:flex" : "flex")}>
             {/* Left: Warm Branding with Mascot / Orange Badge */}
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-2xs shrink-0">
@@ -508,7 +574,7 @@ export default function DecksPage() {
           </div>
 
           {/* Row 2 on Mobile: Modern iOS-Style Segmented Pill Bar */}
-          <div className="md:hidden pt-1 pb-2">
+          <div className="md:hidden pt-0.5 pb-1.5">
             <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/70 shadow-inner">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
@@ -544,41 +610,9 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Collapsible Search Input for Mobile */}
-          <AnimatePresence>
-            {isSearchOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="md:hidden pb-2 overflow-hidden"
-              >
-                <div className="relative flex items-center">
-                  <Search className="w-3.5 h-3.5 text-orange-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Search by title, author, tags..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8.5 pr-8 py-1.5 rounded-xl bg-white border border-orange-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 shadow-inner"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Row 3: Pure Status Filter Chips with Tag Toggle at Front */}
           {activeTab !== 'folders' ? (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 pt-1 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1.5 pt-0.5 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
               {activeTab === 'my' && (
                 <>
                   {/* Tag Toggle Button at Front */}
@@ -714,8 +748,12 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ MAIN DECK SELECTION LIST (SCROLLABLE - NO BUTTONS INSIDE CARDS) ═══════════ */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3.5">
+      {/* ═══════════ MAIN DECK SELECTION LIST (SCROLLABLE WITH TOUCH SWIPE) ═══════════ */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3.5"
+      >
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
           {/* Active Folder Banner (if filtering by folder in My Decks tab) */}
           {activeFolder && activeTab === 'my' && (

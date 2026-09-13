@@ -74,7 +74,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
   const handleCreateManual = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) {
-      setError('Vui lòng nhập tên bộ thẻ')
+      setError('Please enter deck title')
       return
     }
 
@@ -99,7 +99,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
         navigate(`/decks/${newId}?tab=cards`)
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Có lỗi xảy ra khi tạo bộ thẻ')
+      setError(err?.response?.data?.error || 'Failed to create deck')
     } finally {
       setIsSubmitting(false)
     }
@@ -111,7 +111,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
     const validExts = ['.xlsx', '.xls', '.csv']
     const hasValidExt = validExts.some(ext => file.name.toLowerCase().endsWith(ext))
     if (!hasValidExt) {
-      setError('Vui lòng chọn file định dạng Excel (.xlsx, .xls) hoặc .csv')
+      setError('Please select an Excel (.xlsx, .xls) or .csv file')
       return
     }
 
@@ -136,9 +136,9 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
         : fallbackTitle
 
       setExcelTitle(detectedTitle)
-      setExcelDescription(pData.metadata?.description || `Nhập tự động ${pData.count || 0} từ vựng từ ${file.name}`)
+      setExcelDescription(pData.metadata?.description || `Imported ${pData.count || 0} cards from ${file.name}`)
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Không thể đọc dữ liệu file Excel. Vui lòng kiểm tra định dạng file.')
+      setError(err?.response?.data?.error || 'Failed to parse Excel file. Please check the file format.')
       setExcelFile(null)
       setPreviewData(null)
     } finally {
@@ -150,11 +150,11 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
   const handleCreateExcel = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!excelFile) {
-      setError('Vui lòng chọn một file Excel hoặc CSV')
+      setError('Please select an Excel or CSV file')
       return
     }
     if (!excelTitle.trim()) {
-      setError('Vui lòng nhập tên bộ thẻ')
+      setError('Please enter deck title')
       return
     }
 
@@ -193,7 +193,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
         queryClient.invalidateQueries({ queryKey: ['all_decks'] })
       }
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Có lỗi xảy ra khi nhập file Excel')
+      setError(err?.response?.data?.error || 'Failed to import Excel file')
     } finally {
       setIsSubmitting(false)
     }
@@ -223,8 +223,8 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-800 tracking-tight">Tạo Bộ Thẻ Mới</h3>
-                <p className="text-[11px] text-slate-400 font-bold">Khởi tạo kho từ vựng cá nhân</p>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">Create New Deck</h3>
+                <p className="text-[11px] text-slate-400 font-bold">Start a new vocabulary collection</p>
               </div>
             </div>
             <button
@@ -250,7 +250,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
               }`}
             >
               <PenLine className="w-3.5 h-3.5" />
-              <span>Tạo Thủ Công</span>
+              <span>Create Manually</span>
             </button>
 
             <button
@@ -266,7 +266,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Nhập từ Excel</span>
+              <span>Import from Excel</span>
               <span className="text-[9px] px-1.5 py-0.2 rounded-md font-bold bg-emerald-100 text-emerald-700">
                 .xlsx
               </span>
@@ -288,11 +288,11 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
               <form onSubmit={handleCreateManual} className="space-y-4 text-left">
                 <div>
                   <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Tên Bộ Thẻ <span className="text-rose-500">*</span>
+                    Deck Title <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="VD: 500 Từ Vựng N2 Hay Gặp..."
+                    placeholder="e.g. 500 Common Words..."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-sm font-bold text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all"
@@ -302,10 +302,10 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
 
                 <div>
                   <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                    Mô tả ngắn
+                    Short Description
                   </label>
                   <textarea
-                    placeholder="Mô tả mục tiêu, nguồn tài liệu hoặc ghi chú..."
+                    placeholder="Goals, source materials, or notes..."
                     rows={2}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -316,8 +316,8 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                 <div>
                   <MediaUrlInput
                     mediaType="image"
-                    label="URL Ảnh bìa (Tùy chọn)"
-                    placeholder="Dán link hoặc Ctrl+V để tải ảnh bìa lên CentralAuth..."
+                    label="Cover Image URL (Optional)"
+                    placeholder="Paste image link or URL..."
                     value={coverImage}
                     onChange={(val) => setCoverImage(val)}
                   />
@@ -329,10 +329,10 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                     {isPublic ? <Globe className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
                     <div>
                       <span className="text-xs font-black text-slate-800 block">
-                        {isPublic ? 'Bộ thẻ Công khai' : 'Bộ thẻ Riêng tư'}
+                        {isPublic ? 'Public Deck' : 'Private Deck'}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">
-                        {isPublic ? 'Mọi người trong cộng đồng có thể xem và học' : 'Chỉ mình bạn có thể truy cập'}
+                        {isPublic ? 'Everyone in the community can view and study' : 'Only you can access this deck'}
                       </span>
                     </div>
                   </div>
@@ -357,14 +357,14 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                     onClick={handleClose}
                     className="flex-1 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-all cursor-pointer"
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting || !title.trim()}
                     className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {isSubmitting ? 'ĐANG TẠO...' : 'TẠO BỘ THẺ 🚀'}
+                    {isSubmitting ? 'CREATING...' : 'CREATE DECK 🚀'}
                   </button>
                 </div>
               </form>
@@ -390,8 +390,8 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                       <FileSpreadsheet className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-[11px] font-black text-emerald-900 block">File Excel Mẫu</span>
-                      <span className="text-[10px] text-emerald-700 font-medium">Cấu trúc chuẩn gồm Sheet Info & Data</span>
+                      <span className="text-[11px] font-black text-emerald-900 block">Excel Template</span>
+                      <span className="text-[10px] text-emerald-700 font-medium">Standard layout with Info & Data sheets</span>
                     </div>
                   </div>
                   <a
@@ -400,7 +400,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                     className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Tải Mẫu</span>
+                    <span>Download Template</span>
                   </a>
                 </div>
 
@@ -429,10 +429,10 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                       <UploadCloud className="w-6 h-6" />
                     </div>
                     <span className="text-xs font-black text-slate-800 block mb-0.5">
-                      Kéo thả file Excel vào đây hoặc <span className="text-emerald-600 underline">Bấm để chọn file</span>
+                      Drag & drop your Excel file here or <span className="text-emerald-600 underline">Browse File</span>
                     </span>
                     <span className="text-[10px] text-slate-400 font-bold">
-                      Hỗ trợ định dạng .xlsx, .xls, .csv (Tự nhận diện cột Front, Back, Giải thích, v.v.)
+                      Supports .xlsx, .xls, .csv (Auto-detects Front, Back, Explanation columns, etc.)
                     </span>
                   </div>
                 ) : (
@@ -453,7 +453,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                             {excelFile.name}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium">
-                            {(excelFile.size / 1024).toFixed(1)} KB • {isParsingExcel ? 'Đang đọc dữ liệu...' : `${previewData?.count || 0} thẻ từ vựng phát hiện`}
+                            {(excelFile.size / 1024).toFixed(1)} KB • {isParsingExcel ? 'Parsing file...' : `${previewData?.count || 0} cards detected`}
                           </span>
                         </div>
                       </div>
@@ -463,7 +463,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                         onClick={() => fileInputRef.current?.click()}
                         className="h-7 px-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 text-[10px] font-bold transition active:scale-95 cursor-pointer ml-2"
                       >
-                        Đổi File
+                        Change File
                       </button>
                     </div>
 
@@ -472,26 +472,26 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                       <div className="space-y-3 pt-1 animate-in fade-in duration-200">
                         <div>
                           <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                            Tên Bộ Thẻ <span className="text-rose-500">*</span>
+                            Deck Title <span className="text-rose-500">*</span>
                           </label>
                           <input
                             type="text"
                             value={excelTitle}
                             onChange={(e) => setExcelTitle(e.target.value)}
-                            placeholder="Nhập tên bộ thẻ..."
+                            placeholder="Enter deck title..."
                             className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-800 focus:border-emerald-500 focus:bg-white outline-none transition-all"
                           />
                         </div>
 
                         <div>
                           <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                            Mô tả ngắn
+                            Short Description
                           </label>
                           <textarea
                             rows={2}
                             value={excelDescription}
                             onChange={(e) => setExcelDescription(e.target.value)}
-                            placeholder="Mô tả bộ thẻ..."
+                            placeholder="Describe this deck..."
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:border-emerald-500 focus:bg-white outline-none transition-all resize-none"
                           />
                         </div>
@@ -502,7 +502,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                             {excelIsPublic ? <Globe className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
                             <div>
                               <span className="text-xs font-black text-slate-800 block">
-                                {excelIsPublic ? 'Bộ thẻ Công khai' : 'Bộ thẻ Riêng tư'}
+                                {excelIsPublic ? 'Public Deck' : 'Private Deck'}
                               </span>
                             </div>
                           </div>
@@ -527,7 +527,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-[11px] font-black text-slate-700 flex items-center gap-1.5">
                                 <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Xem trước một số thẻ mẫu ({previewData.count} thẻ)</span>
+                                <span>Preview sample cards ({previewData.count} cards)</span>
                               </span>
                             </div>
                             <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
@@ -537,14 +537,14 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                                     #{idx + 1}
                                   </span>
                                   <div className="min-w-0 flex-1">
-                                    <div className="font-bold text-slate-800 truncate">{card.content || '(Trống)'}</div>
-                                    <div className="text-[10px] text-slate-400 truncate">{card.explanation || '(Không có giải thích)'}</div>
+                                    <div className="font-bold text-slate-800 truncate">{card.content || '(Empty)'}</div>
+                                    <div className="text-[10px] text-slate-400 truncate">{card.explanation || '(No explanation)'}</div>
                                   </div>
                                 </div>
                               ))}
                               {previewData.count > 3 && (
                                 <div className="text-[10px] text-slate-400 text-center font-bold pt-1">
-                                  + và {previewData.count - 3} thẻ khác sẽ được tạo đồng loạt
+                                  + and {previewData.count - 3} more cards will be created
                                 </div>
                               )}
                             </div>
@@ -561,7 +561,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                     onClick={handleClose}
                     className="flex-1 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-all cursor-pointer"
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     type="submit"
@@ -571,11 +571,11 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
                     {isSubmitting ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>ĐANG NHẬP THẺ...</span>
+                        <span>IMPORTING CARDS...</span>
                       </>
                     ) : (
                       <>
-                        <span>NHẬP & TẠO BỘ THẺ {previewData?.count ? `(${previewData.count} THẺ)` : ''} 🚀</span>
+                        <span>IMPORT & CREATE DECK {previewData?.count ? `(${previewData.count} CARDS)` : ''} 🚀</span>
                       </>
                     )}
                   </button>
