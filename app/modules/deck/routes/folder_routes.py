@@ -1,18 +1,19 @@
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, case, or_
 from sqlalchemy.orm import selectinload
+from fsrs import Scheduler
 
 from app.core.db import get_db
 from app.modules.auth.services.auth_service import AuthService
 from app.modules.deck.models import Folder, FolderDeck, FlashcardDeck, Flashcard, UserCardMastery
 from app.modules.deck.routes.play import resolve_play_cards
 from app.modules.deck.utils import fix_static_urls
-from app.modules.deck.services.fsrs_service import estimate_intervals
+from app.modules.deck.services.fsrs_service import estimate_intervals, build_fsrs_card
 from app.modules.deck.services.mcq_engine import MCQEngine
 
 router = APIRouter(prefix="/folders", tags=["Folders"])
@@ -551,6 +552,10 @@ async def get_folder_play_data(
     )
     user_today_time = (await db.execute(time_stmt)).scalar() or 0.0
 
+    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+    default_new_intervals = {1: "1m", 2: "5m", 3: "10m", 4: "4d"}
+    scheduler = None
+
     cards_list = []
     for i, c in enumerate(all_cards):
         m = mastery_map.get(c.id)
@@ -565,7 +570,14 @@ async def get_folder_play_data(
             continue
 
         # FSRS intervals estimation
-        intervals = estimate_intervals(m)
+        is_new = (m is None) or (state_val == 0 and (not m.last_review))
+        if is_new:
+            intervals = default_new_intervals
+        else:
+            if scheduler is None:
+                scheduler = Scheduler(enable_fuzzing=False)
+            fsrs_card = build_fsrs_card(m, now_utc)
+            intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
 
         cards_list.append({
             "id": c.id,

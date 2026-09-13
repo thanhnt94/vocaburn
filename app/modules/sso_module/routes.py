@@ -127,15 +127,30 @@ async def sso_callback(request: Request, code: Optional[str] = None, db: AsyncSe
         # Link or sync account to SSO
         user.sso_id = sso_id
         if username:
-            user.username = username
+            uname_dup = await db.execute(select(User).where(User.username == username, User.id != user.id))
+            if uname_dup.scalar_one_or_none() is None:
+                user.username = username
         if email:
-            user.email = email
+            email_dup = await db.execute(select(User).where(User.email == email, User.id != user.id))
+            if email_dup.scalar_one_or_none() is None:
+                user.email = email
     else:
-        # 4. Create new user
+        # 4. Create new user with collision guards
+        target_username = username or f"user_{sso_id}"
+        uname_dup = await db.execute(select(User).where(User.username == target_username))
+        if uname_dup.scalar_one_or_none() is not None:
+            target_username = f"{target_username}_{sso_id[-4:]}"
+
+        target_email = email
+        if target_email:
+            email_dup = await db.execute(select(User).where(User.email == target_email))
+            if email_dup.scalar_one_or_none() is not None:
+                target_email = None
+
         user = User(
-            username=username,
-            email=email,
-            full_name=username,
+            username=target_username,
+            email=target_email,
+            full_name=username or target_username,
             sso_id=sso_id
         )
         db.add(user)
@@ -143,8 +158,13 @@ async def sso_callback(request: Request, code: Optional[str] = None, db: AsyncSe
     if role:
         user.role = role
     
-    await db.commit()
-    await db.refresh(user)
+    try:
+        await db.commit()
+        await db.refresh(user)
+    except Exception as commit_err:
+        await db.rollback()
+        logger.error(f"Failed to persist SSO user: {commit_err}")
+        return RedirectResponse(url="/login?backdoor=1&error=User+sync+failed", status_code=303)
     
     logger.info(f"SSO login success for user: {user.username} (id={user.id})")
     

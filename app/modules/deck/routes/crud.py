@@ -473,8 +473,10 @@ async def delete_deck(request: Request, deck_id: int, db: AsyncSession = Depends
 
     from app.modules.deck.models import (
         FlashcardDeck, Flashcard, DeckAttempt, 
-        DeckRoom, UserDeckGoal, UserDeckSettings, DeckCollaborator,
-        UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+        DeckRoom, DeckRoomParticipant, DeckRoomChat, UserDeckGoal, UserDailyProgress,
+        UserDeckSettings, DeckCollaborator, UserCardMastery, UserPracticeStats,
+        UserCardNote, UserAnswer, CardContribution, ContributionLike,
+        FolderDeck, DeckTag, RoadmapPipelineHistory, DeckSession
     )
     
     # 1. Get all card IDs belonging to this deck
@@ -482,23 +484,53 @@ async def delete_deck(request: Request, deck_id: int, db: AsyncSession = Depends
     card_ids = [r[0] for r in card_ids_res.all()]
     
     if card_ids:
-        # 2. Delete child records referencing flashcards
+        # Delete contributions and likes referencing flashcards
+        contrib_ids_res = await db.execute(select(CardContribution.id).where(CardContribution.card_id.in_(card_ids)))
+        contrib_ids = [r[0] for r in contrib_ids_res.all()]
+        if contrib_ids:
+            await db.execute(delete(ContributionLike).where(ContributionLike.contribution_id.in_(contrib_ids)))
+            await db.execute(delete(CardContribution).where(CardContribution.card_id.in_(card_ids)))
+
+        # Delete child records referencing flashcards
         await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id.in_(card_ids)))
         await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id.in_(card_ids)))
         await db.execute(delete(UserCardNote).where(UserCardNote.card_id.in_(card_ids)))
         await db.execute(delete(UserAnswer).where(UserAnswer.card_id.in_(card_ids)))
         
-        # 3. Delete flashcards
+        # Delete flashcards
         await db.execute(delete(Flashcard).where(Flashcard.id.in_(card_ids)))
         
-    # 4. Delete records referencing deck_id
-    await db.execute(delete(DeckAttempt).where(DeckAttempt.deck_id == deck_id))
-    await db.execute(delete(DeckRoom).where(DeckRoom.deck_id == deck_id))
-    await db.execute(delete(UserDeckGoal).where(UserDeckGoal.deck_id == deck_id))
+    # 2. Delete goal progress before deleting goals
+    goal_ids_res = await db.execute(select(UserDeckGoal.id).where(UserDeckGoal.deck_id == deck_id))
+    goal_ids = [r[0] for r in goal_ids_res.all()]
+    if goal_ids:
+        await db.execute(delete(UserDailyProgress).where(UserDailyProgress.goal_id.in_(goal_ids)))
+        await db.execute(delete(UserDeckGoal).where(UserDeckGoal.id.in_(goal_ids)))
+
+    # 3. Delete answers and attempts
+    attempt_ids_res = await db.execute(select(DeckAttempt.id).where(DeckAttempt.deck_id == deck_id))
+    attempt_ids = [r[0] for r in attempt_ids_res.all()]
+    if attempt_ids:
+        await db.execute(delete(UserAnswer).where(UserAnswer.attempt_id.in_(attempt_ids)))
+        await db.execute(delete(DeckAttempt).where(DeckAttempt.id.in_(attempt_ids)))
+
+    # 4. Delete rooms, participants and chats
+    room_ids_res = await db.execute(select(DeckRoom.id).where(DeckRoom.deck_id == deck_id))
+    room_ids = [r[0] for r in room_ids_res.all()]
+    if room_ids:
+        await db.execute(delete(DeckRoomParticipant).where(DeckRoomParticipant.deck_room_id.in_(room_ids)))
+        await db.execute(delete(DeckRoomChat).where(DeckRoomChat.deck_room_id.in_(room_ids)))
+        await db.execute(delete(DeckRoom).where(DeckRoom.id.in_(room_ids)))
+
+    # 5. Delete other deck references
     await db.execute(delete(UserDeckSettings).where(UserDeckSettings.deck_id == deck_id))
     await db.execute(delete(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id))
+    await db.execute(delete(FolderDeck).where(FolderDeck.deck_id == deck_id))
+    await db.execute(delete(DeckTag).where(DeckTag.deck_id == deck_id))
+    await db.execute(delete(RoadmapPipelineHistory).where(RoadmapPipelineHistory.deck_id == deck_id))
+    await db.execute(delete(DeckSession).where(DeckSession.deck_id == deck_id))
     
-    # 5. Delete the deck
+    # 6. Delete the deck
     await db.execute(delete(FlashcardDeck).where(FlashcardDeck.id == deck_id))
     await db.commit()
     return {"status": "ok"}
@@ -800,7 +832,16 @@ async def delete_card(request: Request, card_id: int, db: AsyncSession = Depends
     if not has_permission:
         return JSONResponse(status_code=403, content={"error": "No permission to delete this card"})
 
-    from app.modules.deck.models import Flashcard, UserCardMastery, UserPracticeStats, UserCardNote, UserAnswer
+    from app.modules.deck.models import (
+        Flashcard, UserCardMastery, UserPracticeStats, 
+        UserCardNote, UserAnswer, CardContribution, ContributionLike
+    )
+    contrib_ids_res = await db.execute(select(CardContribution.id).where(CardContribution.card_id == card_id))
+    contrib_ids = [r[0] for r in contrib_ids_res.all()]
+    if contrib_ids:
+        await db.execute(delete(ContributionLike).where(ContributionLike.contribution_id.in_(contrib_ids)))
+        await db.execute(delete(CardContribution).where(CardContribution.card_id == card_id))
+
     await db.execute(delete(UserCardMastery).where(UserCardMastery.card_id == card_id))
     await db.execute(delete(UserPracticeStats).where(UserPracticeStats.card_id == card_id))
     await db.execute(delete(UserCardNote).where(UserCardNote.card_id == card_id))
