@@ -3,6 +3,23 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-13]
+#### Giai Đoạn 3: Nâng Cấp Độ Thích Thú, Gamification, Dark Mode Toàn Diện & Trải Nghiệm Luyện Tập (Delight, Gamification, Full Mobile Dark Mode & Practice UX)
+- **Màn Hình Hoàn Thành Phiên Học Bùng Nổ Cảm Xúc (Complete Session Screens & Gamification)**:
+  - **Hiệu ứng pháo hoa Confetti**: Tự động kích hoạt hiệu ứng pháo hoa rơi rực rỡ từ `canvas-confetti` khi hoàn thành bài học trong `FsrsCompleteScreen.tsx` và `PlaySessionSummary.tsx`.
+  - **Mascot Vocaburn & Lời khen tạo động lực**: Bổ sung mascot ngọn lửa với huy hiệu ngôi sao nhấp nháy, kèm biểu ngữ lời khen ngẫu nhiên ("Incredible Recall! Your synaptic pathways are firing at maximum efficiency", "Daily Goal Smashed!", "Memory Stability +28%!").
+  - **Nút bấm CTA lớn ở đáy trong tầm ngón cái (Large Thumb CTAs)**: Mở rộng các nút `Review Again`, `Start Learning New Cards`, `Keep Going`, `Finish & Exit` thành các nút bấm gradient nổi bật, dễ thao tác bằng ngón cái mà không cần rướn tay.
+- **Hoàn Thiện Dark Mode Toàn Diện & Triệt Để Trên Mobile (Full Mobile Dark Mode Support)**:
+  - Bổ sung `@custom-variant dark (&:where(.dark, .dark *));` trong `index.css` để kích hoạt hoàn toàn class-based Dark Mode trên Tailwind v4.
+  - Tự động đồng bộ class `.dark` vào thẻ `<html>` trong `Layout.tsx` dựa theo cài đặt `userSettings.theme` từ database, đảm bảo 100% người dùng đăng nhập hoặc F5 vẫn giữ nguyên giao diện đêm.
+  - Phủ toàn bộ biến màu dark (`dark:bg-[#0b0f19]`, `dark:bg-slate-900`, `dark:border-slate-800`, `dark:text-slate-100`) trên tất cả các trang chính: `DeckDetailPage.tsx`, `DecksPage.tsx`, `RoadmapHub.tsx`, `Stats.tsx`, `Profile.tsx`, `Settings.tsx`, và thanh docked mobile bottom navigation bar.
+- **Tối Ưu Bàn Phím Ảo & Phím Submit Bàn Phím Trong Practice Modes (`PracticePlay.tsx`)**:
+  - Tối ưu chế độ **Spelling Recall (Typing)** và **Listening**: Bọc ô nhập từ trong thẻ `<form onSubmit={...}>` với thuộc tính `enterKeyHint="go"`, cho phép người học bấm phím `Go / Enter / Check` ngay trên bàn phím ảo di động để nộp câu trả lời tự động.
+  - Bổ sung cơ chế tự động cuộn vào trung tâm màn hình (`e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })`) khi focus ô nhập, chống hiện tượng bàn phím ảo che khuất câu hỏi hoặc nút Submit.
+  - Chuẩn hóa 100% các nhãn, tooltip và thông báo trong `PracticeTypingCard.tsx`, `PracticeListeningCard.tsx`, `PracticeMcqCard.tsx`, và `PracticeBottomBar.tsx` sang tiếng Anh chuẩn (Rule 6).
+- **Tối Ưu Mật Độ & Vùng Chạm Thẻ Từ Vựng (Card Hit-Slop & Density)**:
+  - Mở rộng vùng bấm các nút hành động (`Play Audio`, `Star`, `Hide`, `Edit`, `Delete`) trong `DeckCardItem.tsx` lên chuẩn tối thiểu `36px - 40px` (`w-8 h-8 sm:w-9 sm:h-9 touch-manipulation active:scale-90`), ngăn chặn triệt để tình trạng bấm nhầm vào thân thẻ gây lật thẻ ngoài ý muốn.
+  - Neo thanh tác vụ hàng loạt (Floating Bulk Toolbar) trong `DeckCardsTab.tsx` tại vị trí chuẩn `bottom-[calc(64px+env(safe-area-inset-bottom))]`, nổi êm dịu phía trên thanh điều hướng đáy và tuân thủ tuyệt đối safe-area iPhone.
+
 #### Giai Đoạn 2: Tinh Gọn Header Thư Viện Thẻ, Vuốt Ngang Đa Màn Hình & Chuẩn Hóa Safe-Area Inset (Mobile Gestures & Header Streamlining)
 - **Chuẩn Hóa Universal Safe-Area Inset Trên Toàn Bộ Ứng Dụng (iPhone Home Indicator Compatibility)**:
   - Thay thế giá trị cứng `bottom-[68px]` thành giá trị linh hoạt `bottom-[calc(56px+env(safe-area-inset-bottom))]` trên cả 5 màn hình chính: `Stats.tsx`, `Dashboard.tsx`, `Profile.tsx`, `DecksPage.tsx`, `Settings.tsx`.

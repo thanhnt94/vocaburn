@@ -365,9 +365,9 @@ export default function DecksPage() {
   )
 
   return (
-    <div className="fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0b0f19] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER (BRAND + TABS + FILTERS) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 md:bg-[#F8FAFC]/95 md:backdrop-blur-md border-b border-slate-200/80 shadow-2xs md:shadow-none">
+      <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 md:bg-[#F8FAFC]/95 md:dark:bg-[#0b0f19]/95 md:backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs md:shadow-none">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
           {/* Row 1 Mobile Inline Search (Apple-style instant inline search) */}
           {isSearchOpen && (
@@ -380,12 +380,12 @@ export default function DecksPage() {
                   placeholder="Search decks by title, tags..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8.5 pr-8 py-1.5 rounded-xl bg-slate-100/90 border border-orange-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 shadow-inner"
+                  className="w-full pl-8.5 pr-8 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800 border border-orange-200 dark:border-orange-900/50 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 shadow-inner"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-0.5 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -396,7 +396,7 @@ export default function DecksPage() {
                   setIsSearchOpen(false)
                   setSearchQuery('')
                 }}
-                className="text-xs font-black text-orange-600 hover:text-orange-700 px-1.5 py-1.5 shrink-0 cursor-pointer"
+                className="text-xs font-black text-orange-600 dark:text-orange-400 hover:text-orange-700 px-1.5 py-1.5 shrink-0 cursor-pointer"
               >
                 Cancel
               </button>
@@ -407,15 +407,15 @@ export default function DecksPage() {
           <div className={cn("items-center justify-between pt-2 pb-1.5 md:py-2.5", isSearchOpen ? "hidden md:flex" : "flex")}>
             {/* Left: Warm Branding with Mascot / Orange Badge */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shadow-2xs shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shadow-2xs shrink-0">
                 <Layers className="w-5 h-5 stroke-[2.4]" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight leading-none truncate">
+                  <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
                     Decks Library
                   </h1>
-                  <span className="px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/70 text-orange-700 text-[10px] font-black shrink-0 leading-none">
+                  <span className="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/50 border border-orange-200/70 dark:border-orange-800/60 text-orange-700 dark:text-orange-400 text-[10px] font-black shrink-0 leading-none">
                     {activeTab === 'folders' ? filteredFolders.length : filteredData.length}
                   </span>
 
@@ -553,8 +553,8 @@ export default function DecksPage() {
                 className={cn(
                   "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
                   isSearchOpen || searchQuery
-                    ? "bg-orange-50 border-orange-200 text-orange-600 font-bold"
-                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    ? "bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800/80 text-orange-600 dark:text-orange-400 font-bold"
+                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750"
                 )}
                 title="Search decks"
               >
@@ -575,7 +575,7 @@ export default function DecksPage() {
 
           {/* Row 2 on Mobile: Modern iOS-Style Segmented Pill Bar */}
           <div className="md:hidden pt-0.5 pb-1.5">
-            <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/70 shadow-inner">
+            <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/70 dark:border-slate-700/70 shadow-inner">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
                 const TabIcon = tab.icon
@@ -587,20 +587,20 @@ export default function DecksPage() {
                     className={cn(
                       "relative py-1.5 px-0.5 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1 min-w-0",
                       isActive
-                        ? "text-slate-900 font-black shadow-xs bg-white"
-                        : "text-slate-500 hover:text-slate-700"
+                        ? "text-slate-900 dark:text-slate-100 font-black shadow-xs bg-white dark:bg-slate-700"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     )}
                   >
                     <TabIcon className={cn(
                       "w-3.5 h-3.5 shrink-0 transition-colors",
-                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
+                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400 dark:text-slate-500"
                     )} />
                     <span className="truncate text-[10.5px] leading-tight">{shortLabel}</span>
                     <span className={cn(
                       "px-1 py-0.2 rounded-full text-[9px] font-black leading-none shrink-0",
                       isActive 
-                        ? "bg-orange-50 text-orange-600 border border-orange-200/70" 
-                        : "bg-slate-200/80 text-slate-500"
+                        ? "bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-300 border border-orange-200/70 dark:border-orange-800/60" 
+                        : "bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                     )}>
                       {tab.count}
                     </span>

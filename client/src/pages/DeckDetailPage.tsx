@@ -304,16 +304,16 @@ export function DeckDetailPage() {
   const visibleTabs = allTabs
 
   return (
-    <div className="fixed inset-0 top-0 bottom-0 md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
+    <div className="fixed inset-0 top-0 bottom-0 md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0b0f19] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER (SHRINK-0) ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs">
+      <div className="shrink-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-b border-slate-200/70 dark:border-slate-800 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between pt-2.5 pb-2.5 gap-3">
             {/* Left: Back Button & Deck Info */}
             <div className="flex items-center gap-2.5 min-w-0">
               <button
                 onClick={() => navigate('/decks')}
-                className="w-8.5 h-8.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center transition-all active:scale-95 shrink-0 cursor-pointer shadow-2xs"
+                className="w-8.5 h-8.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center transition-all active:scale-95 shrink-0 cursor-pointer shadow-2xs"
                 title="Back to Decks"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -640,7 +640,7 @@ export function DeckDetailPage() {
 
       {/* ═══════════ DOCKED BOTTOM STUDY BAR (TWO STUDY BUTTONS: FLASHCARD & PRACTICE) ═══════════ */}
       {activeTab !== 'cards' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2.5">
             {/* 1. Flashcard Study Button (Split: 1-Tap Start | ▾ Mode Menu) */}
             <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20 overflow-hidden">
@@ -693,8 +693,8 @@ export function DeckDetailPage() {
       )}
 
       {/* ═══════════ MOBILE DOCKED TAB SWITCHER (4 Tabs in Natural Thumb Reach) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-xl border-t border-slate-200/70 px-2 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-2xs">
-        <div className="max-w-md mx-auto flex items-center w-full bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs gap-0.5">
+      <div className="md:hidden shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/70 dark:border-slate-800 px-2 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-2xs">
+        <div className="max-w-md mx-auto flex items-center w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xs gap-0.5">
           {visibleTabs.map((tab) => {
             const isSettingsTab = tab.id === 'settings'
             const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
@@ -709,17 +709,17 @@ export function DeckDetailPage() {
                     onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
                     className={cn(
                       "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                      isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                     )}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeDeckDetailMobileBottomTabPill"
-                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                        className="absolute inset-0 bg-white dark:bg-slate-700 rounded-xl shadow-xs border border-slate-200/80 dark:border-slate-600"
                         transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                       />
                     )}
-                    <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                    <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500")} />
                     <span className="relative z-10 text-[10.5px] font-black tracking-tight whitespace-nowrap">{label}</span>
                     <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
                   </button>
@@ -734,7 +734,7 @@ export function DeckDetailPage() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.95 }}
                           transition={{ duration: 0.12 }}
-                          className="absolute bottom-full mb-2 right-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
+                          className="absolute bottom-full mb-2 right-0 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
                         >
                           <button
                             type="button"
@@ -742,21 +742,21 @@ export function DeckDetailPage() {
                             className={cn(
                               "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
                               isActive && settingsScope === 'deck'
-                                ? "bg-indigo-50 text-indigo-900 font-black"
-                                : "hover:bg-slate-50 text-slate-700"
+                                ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 font-black"
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
                             )}
                           >
                             <div className="flex items-center gap-2">
-                              <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
+                              <span className="w-7 h-7 rounded-lg bg-indigo-100/70 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                                 <SettingsIcon className="w-3.5 h-3.5" />
                               </span>
                               <div>
                                 <span className="block text-xs font-black">Deck Settings</span>
-                                <span className="block text-[10px] text-slate-400 font-medium">Deck configuration & visibility</span>
+                                <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-medium">Deck configuration & visibility</span>
                               </div>
                             </div>
                             {isActive && settingsScope === 'deck' && (
-                              <Check className="w-4 h-4 text-indigo-600" />
+                              <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                             )}
                           </button>
 
@@ -766,8 +766,8 @@ export function DeckDetailPage() {
                             className={cn(
                               "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
                               isActive && settingsScope === 'personal'
-                                ? "bg-orange-50 text-orange-950 font-black"
-                                : "hover:bg-slate-50 text-slate-700"
+                                ? "bg-orange-50 dark:bg-orange-950/60 text-orange-950 dark:text-orange-200 font-black"
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
                             )}
                           >
                             <div className="flex items-center gap-2">

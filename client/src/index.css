@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #f97316;
   --color-primary-dark: #ea580c;
@@ -29,13 +31,13 @@ html, body, #root {
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans;
+    @apply bg-slate-50 text-slate-900 font-sans dark:bg-[#0b0f19] dark:text-slate-100;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-slate-200/50 shadow-sm;
+    @apply bg-white/70 backdrop-blur-xl border border-slate-200/50 shadow-sm dark:bg-slate-900/70 dark:border-slate-800/50;
   }
   
   .btn-primary {
@@ -43,7 +45,7 @@ html, body, #root {
   }
 
   .premium-glass {
-    @apply bg-white/70 backdrop-blur-3xl border border-white/20 shadow-[0_8px_32px_rgba(31,38,135,0.07)];
+    @apply bg-white/70 backdrop-blur-3xl border border-white/20 shadow-[0_8px_32px_rgba(31,38,135,0.07)] dark:bg-slate-900/70 dark:border-slate-800/20;
   }
 }
 

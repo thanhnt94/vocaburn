@@ -78,18 +78,18 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
   const acceptableAnswers = Array.from(new Set(rawAcceptable.map(a => a.trim()).filter(Boolean)))
 
   return (
-    <div className="flex-1 bg-gradient-to-b from-slate-50 via-sky-50/15 to-slate-50 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-sky-100/20 min-h-0 overflow-y-auto custom-scrollbar">
+    <div className="flex-1 bg-gradient-to-b from-slate-50 via-sky-50/15 to-slate-50 dark:from-slate-950 dark:via-slate-900/60 dark:to-slate-950 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 dark:border-slate-800 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-sky-100/20 dark:shadow-none min-h-0 overflow-y-auto custom-scrollbar">
       {/* ── Top Audio Listening Card ── */}
       <div className="w-full max-w-2xl mx-auto shrink-0">
-        <div className="w-full bg-gradient-to-b from-sky-50/90 via-indigo-50/40 to-white/95 backdrop-blur-xl rounded-[2rem] p-5 md:p-7 shadow-[0_12px_36px_rgba(14,165,233,0.08)] border border-sky-100/80 flex flex-col items-center justify-center text-center relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-sky-200/25 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-indigo-100/35 blur-2xl pointer-events-none" />
+        <div className="w-full bg-gradient-to-b from-sky-50/90 via-indigo-50/40 to-white/95 dark:from-slate-900/90 dark:via-slate-900/60 dark:to-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 md:p-7 shadow-[0_12px_36px_rgba(14,165,233,0.08)] dark:shadow-none border border-sky-100/80 dark:border-slate-800 flex flex-col items-center justify-center text-center relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-sky-200/25 dark:bg-sky-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-indigo-100/35 dark:bg-indigo-500/10 blur-2xl pointer-events-none" />
 
           {/* Card Header Tag & Bookmark */}
           <div className="w-full flex items-center justify-between mb-3 relative z-10">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-100/90 border border-sky-200 text-sky-800 font-black text-xs shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-sky-600 fill-sky-300" />
-              <span>Luyện nghe #{currentIndex + 1}</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-100/90 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/60 text-sky-800 dark:text-sky-300 font-black text-xs shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 fill-sky-300" />
+              <span>Listening #{currentIndex + 1}</span>
             </span>
 
             <button
@@ -99,8 +99,8 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                   onToggleStar(currentQuestion.id)
                 }
               }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-sky-400 hover:text-sky-600 hover:bg-sky-50/80 transition-all active:scale-90 cursor-pointer"
-              title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Bỏ đánh dấu" : "Đánh dấu câu hỏi"}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-sky-400 hover:text-sky-600 dark:text-sky-400/80 dark:hover:text-sky-300 hover:bg-sky-50/80 dark:hover:bg-sky-950/40 transition-all active:scale-90 cursor-pointer touch-manipulation"
+              title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Remove bookmark" : "Bookmark question"}
             >
               <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-sky-500 text-sky-500" : "text-sky-400")} />
             </button>
@@ -121,10 +121,10 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                 type="button"
                 onClick={() => handlePlayAudioWithSpeed(playbackSpeed)}
                 className={cn(
-                  "relative w-20 h-20 md:w-22 md:h-22 rounded-full bg-gradient-to-tr from-sky-600 via-indigo-600 to-sky-500 text-white flex items-center justify-center shadow-xl shadow-sky-300/40 hover:shadow-sky-400/60 active:scale-95 transition-all cursor-pointer group border-4 border-white/80",
-                  isPlaying && "ring-4 ring-sky-300 ring-offset-2"
+                  "relative w-20 h-20 md:w-22 md:h-22 rounded-full bg-gradient-to-tr from-sky-600 via-indigo-600 to-sky-500 text-white flex items-center justify-center shadow-xl shadow-sky-300/40 dark:shadow-none hover:shadow-sky-400/60 active:scale-95 transition-all cursor-pointer group border-4 border-white/80 dark:border-slate-800",
+                  isPlaying && "ring-4 ring-sky-300 dark:ring-sky-500/50 ring-offset-2"
                 )}
-                title="Nhấn để nghe phát âm"
+                title="Tap to play audio"
               >
                 {isPlaying ? (
                   <Volume2 className="w-9 h-9 text-white animate-bounce" />
@@ -146,12 +146,12 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                   "px-3 py-1 rounded-xl text-[11px] font-black transition-all border flex items-center gap-1 cursor-pointer",
                   playbackSpeed === 1.0
                     ? "bg-sky-600 text-white border-sky-600 shadow-xs"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750"
                 )}
-                title="Tốc độ chuẩn 1.0x"
+                title="Normal speed 1.0x"
               >
                 <Volume2 className="w-3.5 h-3.5" />
-                <span>1.0x Chuẩn</span>
+                <span>1.0x Normal</span>
               </button>
 
               <button
@@ -164,32 +164,32 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                   "px-3 py-1 rounded-xl text-[11px] font-black transition-all border flex items-center gap-1 cursor-pointer",
                   playbackSpeed === 0.8
                     ? "bg-sky-600 text-white border-sky-600 shadow-xs"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750"
                 )}
-                title="Tốc độ chậm 0.8x để nghe rõ từng âm"
+                title="Slow speed 0.8x to hear phonetics"
               >
                 <Volume1 className="w-3.5 h-3.5" />
-                <span>0.8x Chậm</span>
+                <span>0.8x Slow</span>
               </button>
             </div>
 
             {/* Instruction or Revealed Question Text */}
             {!answered ? (
               <div className="space-y-1 mt-1">
-                <p className="text-xs font-bold text-sky-900">
-                  Lắng nghe phát âm và gõ lại từ vựng bạn nghe được
+                <p className="text-xs font-bold text-sky-900 dark:text-sky-200">
+                  Listen carefully and type the word you hear
                 </p>
-                <p className="text-[10px] text-slate-400">
-                  (Đề bài văn bản được ẩn để kiểm tra khả năng nghe và nhớ từ)
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                  (Text prompt is hidden to test auditory recall)
                 </p>
               </div>
             ) : (
               <div className="space-y-1.5 mt-2 animate-in fade-in zoom-in-95 duration-300">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                  Nội dung phát âm gốc
+                <div className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Original Audio Prompt
                 </div>
                 <div
-                  className="text-xl md:text-2xl font-black text-slate-900"
+                  className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100"
                   dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }}
                 />
               </div>
@@ -201,10 +201,18 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
       {/* ── Bottom Typing Input & Feedback Area ── */}
       <div className="w-full max-w-2xl mx-auto my-auto shrink-0 space-y-3">
         {!answered ? (
-          <div className="w-full bg-white/95 rounded-[1.75rem] p-4 md:p-5 border border-slate-200/80 shadow-lg shadow-slate-100 flex flex-col gap-3">
-            <label className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center justify-between">
-              <span>Nhập từ bạn nghe được:</span>
-              <span className="text-[10px] text-slate-400 font-bold lowercase">nhấn enter để kiểm tra ↵</span>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (typingInput.trim()) {
+                onCheckTyping()
+              }
+            }}
+            className="w-full bg-white/95 dark:bg-slate-900/95 rounded-[1.75rem] p-4 md:p-5 border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-100 dark:shadow-none flex flex-col gap-3"
+          >
+            <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>Type the word you hear:</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold lowercase">press enter to check ↵</span>
             </label>
 
             <div className="relative flex items-center">
@@ -213,42 +221,41 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                 type="text"
                 value={typingInput}
                 onChange={(e) => setTypingInput(e.target.value)}
+                onFocus={(e) => {
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }}
                 onKeyDown={handleKeyDown}
-                placeholder="Gõ từ vựng bạn vừa nghe..."
-                className="w-full h-14 pl-4 pr-12 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-sky-500 focus:bg-white focus:outline-none text-base md:text-lg font-bold text-slate-900 placeholder:text-slate-400 transition-all shadow-inner"
+                placeholder="Type what you hear..."
+                enterKeyHint="go"
+                className="w-full h-14 pl-4 pr-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-sky-500 dark:focus:border-sky-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all shadow-inner"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck="false"
               />
 
               <button
-                type="button"
-                onClick={() => {
-                  if (typingInput.trim()) {
-                    onCheckTyping()
-                  }
-                }}
+                type="submit"
                 disabled={!typingInput.trim()}
                 className={cn(
-                  "absolute right-2.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm",
+                  "absolute right-2.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm touch-manipulation",
                   typingInput.trim()
                     ? "bg-sky-600 text-white hover:bg-sky-700 active:scale-95 shadow-sky-200"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed"
                 )}
-                title="Kiểm tra đáp án"
+                title="Check answer"
               >
                 <CornerDownLeft className="w-4 h-4" />
               </button>
             </div>
-          </div>
+          </form>
         ) : (
           <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* User Answer Comparison Box */}
             <div className={cn(
               "w-full rounded-[1.75rem] p-4 md:p-5 border flex items-start gap-3 shadow-md",
               typingFeedback?.isCorrect
-                ? "bg-emerald-50/80 border-emerald-200 text-emerald-900 shadow-emerald-100/50"
-                : "bg-rose-50/80 border-rose-200 text-rose-900 shadow-rose-100/50"
+                ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 shadow-emerald-100/50 dark:shadow-none"
+                : "bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 shadow-rose-100/50 dark:shadow-none"
             )}>
               <div className={cn(
                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-sm",
@@ -259,25 +266,25 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
 
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] font-black uppercase tracking-wider opacity-70">
-                  Đáp án bạn đã gõ
+                  Your typed answer
                 </div>
                 <div className="text-base md:text-lg font-black break-words mt-0.5">
-                  {typingInput || <span className="italic text-slate-400">(Trống)</span>}
+                  {typingInput || <span className="italic text-slate-400 dark:text-slate-500">(Empty)</span>}
                 </div>
               </div>
             </div>
 
             {/* Acceptable Answers Box */}
-            <div className="w-full bg-white/95 rounded-[1.75rem] p-4 md:p-5 border border-slate-200/80 shadow-md flex flex-col gap-2.5">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                Các đáp án chính xác được chấp nhận
+            <div className="w-full bg-white/95 dark:bg-slate-900/95 rounded-[1.75rem] p-4 md:p-5 border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col gap-2.5">
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                Accepted correct answers
               </span>
 
               <div className="flex flex-wrap gap-2">
                 {acceptableAnswers.map((ans, aIdx) => (
                   <span
                     key={aIdx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs md:text-sm font-black shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs md:text-sm font-black shadow-2xs"
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans) }} />
@@ -291,3 +298,5 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
     </div>
   )
 }
+
+export default PracticeListeningCard

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Home, Layers, PieChart, Settings, BrainCircuit, Flame, Award, ShoppingBag } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '@/store/useAppStore'
@@ -10,10 +10,19 @@ import { VocaburnLogo } from './VocaburnLogo'
 import { ShopModal } from './ShopModal'
 
 export default function Layout() {
-  const { user, gamify, setUser, setGamify, isLoggedIn, authConfig } = useAppStore()
+  const { user, userSettings, gamify, setUser, setGamify, isLoggedIn, authConfig } = useAppStore()
   const location = useLocation()
   const navigate = useNavigate()
   const [isShopOpen, setIsShopOpen] = useState<boolean>(false)
+
+  // Synchronize Dark Mode with user global settings
+  useEffect(() => {
+    if (userSettings?.theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [userSettings?.theme])
 
   // Ensure data is loaded even if we land on subpages (only if logged in)
   const { data, refetch } = useQuery({
@@ -189,7 +198,7 @@ export default function Layout() {
 
       {/* Reference-Styled Mobile Bottom Nav (Clean, Filled Active Icon, Soft Pill Background) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] px-3 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] px-3 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
           <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto gap-1">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
@@ -203,23 +212,23 @@ export default function Layout() {
                   to={item.path} 
                   className={cn(
                     "relative flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl select-none transition-all duration-200 cursor-pointer active:scale-95",
-                    isActive ? "bg-orange-50/90 text-orange-600" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                    isActive ? "bg-orange-50/90 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   )}
                 >
                   {/* Clean Icon (Filled when Active) */}
                   <Icon className={cn(
                     "w-5 h-5 transition-all duration-200",
                     isActive 
-                      ? "text-orange-600 fill-orange-500 stroke-[1.8] scale-105" 
-                      : "text-slate-400 stroke-[1.75]"
+                      ? "text-orange-600 dark:text-orange-400 fill-orange-500 dark:fill-orange-400 stroke-[1.8] scale-105" 
+                      : "text-slate-400 dark:text-slate-500 stroke-[1.75]"
                   )} />
 
                   {/* Website-Synchronized Font & Typography */}
                   <span className={cn(
                     "text-[10.5px] tracking-tight mt-1 transition-colors duration-200 leading-none",
                     isActive 
-                      ? "font-black text-orange-600" 
-                      : "font-semibold text-slate-400"
+                      ? "font-black text-orange-600 dark:text-orange-400" 
+                      : "font-semibold text-slate-400 dark:text-slate-500"
                   )}>
                     {item.label}
                   </span>

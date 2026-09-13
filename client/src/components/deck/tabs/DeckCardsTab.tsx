@@ -325,7 +325,7 @@ export function DeckCardsTab({
   return (
     <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2.5 space-y-2.5 text-left animate-in fade-in duration-200 relative pb-32">
       {/* 1. Sticky Filter Bar (Tất cả, Có sao, Đang ẩn, Chọn tất cả, Bulk actions) */}
-      <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 backdrop-blur-md pt-0.5 pb-0.5">
+      <div className="sticky top-0 z-20 bg-[#F8FAFC]/95 dark:bg-[#0b0f19]/95 backdrop-blur-md pt-0.5 pb-0.5">
         <DeckCardFilterBar
           status={statusFilter}
           onStatusChange={setStatusFilter}
@@ -345,14 +345,14 @@ export function DeckCardsTab({
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((n) => (
-            <div key={n} className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+            <div key={n} className="h-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 animate-pulse" />
           ))}
         </div>
       ) : displayedCards.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+        <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
           <span className="text-3xl block mb-2">🎴</span>
-          <h3 className="text-sm font-black text-slate-800">No flashcards found</h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <h3 className="text-sm font-black text-slate-800 dark:text-slate-100">No flashcards found</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
             {search ? 'Try searching with different keywords' : 'Tap "+ Quick Add" below to create your first card!'}
           </p>
         </div>
@@ -414,7 +414,7 @@ export function DeckCardsTab({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", bounce: 0.15, duration: 0.3 }}
-            className="fixed bottom-[110px] md:bottom-28 left-3 right-3 sm:left-6 sm:right-6 max-w-md mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
+            className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-28 left-3 right-3 sm:left-6 sm:right-6 max-w-md mx-auto z-[150] bg-slate-900/95 backdrop-blur-xl text-white rounded-2xl p-2.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2"
           >
             <div className="flex items-center gap-2 pl-1.5 min-w-0">
               <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0">

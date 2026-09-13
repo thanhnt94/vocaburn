@@ -36,10 +36,10 @@ export default function RoadmapHub() {
   return (
     <>
       {/* 📱 MOBILE-FIRST APP LAYOUT (< md) */}
-      <div className="md:hidden fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] flex flex-col bg-slate-100/70 overflow-hidden z-[90]">
+      <div className="md:hidden fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] flex flex-col bg-slate-100/70 dark:bg-[#0b0f19] overflow-hidden z-[90]">
         
         {/* ═══════════ STICKY TOP CONTAINER (Header + Stats Grid) ═══════════ */}
-        <div className="bg-white border-b border-slate-200/80 shrink-0 z-30 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shrink-0 z-30 shadow-xs">
           {/* Top Header */}
           <div className="px-4 pt-3 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -47,14 +47,14 @@ export default function RoadmapHub() {
                 <Compass className="w-4 h-4" />
               </div>
               <div>
-                <h1 className="text-sm font-black text-slate-900 leading-none">Roadmap Hub 🗺️</h1>
-                <span className="text-[9px] font-bold text-slate-400">Daily practice pipeline</span>
+                <h1 className="text-sm font-black text-slate-900 dark:text-slate-100 leading-none">Roadmap Hub 🗺️</h1>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">Daily practice pipeline</span>
               </div>
             </div>
 
             <Link
               to="/decks?tab=library"
-              className="px-2.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
+              className="px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-black text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
               title="Add deck roadmap"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -223,10 +223,10 @@ export default function RoadmapHub() {
 
         {/* Sticky Bottom Action Bar */}
         {decks.length > 0 && (
-          <div className="p-3 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shrink-0 z-30 shadow-lg">
+          <div className="p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 shrink-0 z-30 shadow-lg">
             <button
               onClick={handleQuickContinue}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 hover:from-indigo-700 hover:to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-indigo-200 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 hover:from-indigo-700 hover:to-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-indigo-200 dark:shadow-none active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>Quick Continue Roadmap 🚀</span>
@@ -236,7 +236,7 @@ export default function RoadmapHub() {
       </div>
 
       {/* 💻 DESKTOP LAYOUT (>= md) */}
-      <div className="hidden md:block min-h-screen bg-[#F8FAFC] pt-6 pb-28 px-4 md:px-8 max-w-6xl mx-auto">
+      <div className="hidden md:block min-h-screen bg-[#F8FAFC] dark:bg-[#0b0f19] pt-6 pb-28 px-4 md:px-8 max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -244,12 +244,12 @@ export default function RoadmapHub() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
                 <Compass className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Roadmap Center</span>
+              <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Roadmap Center</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Daily Learning Roadmap 🗺️
             </h1>
-            <p className="text-xs font-semibold text-slate-500 mt-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
               Track custom pipeline progress, complete daily practice tests, and maintain your streak.
             </p>
           </div>
