@@ -99,7 +99,7 @@ export default function PersonalStatsTab({
     let best_day = 'N/A'
     if (bestDayObj?.date) {
       const d = new Date(bestDayObj.date)
-      const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
       best_day = dayNames[d.getDay()] || bestDayObj.date
     }
 
@@ -133,10 +133,10 @@ export default function PersonalStatsTab({
             </div>
             <div>
               <h2 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                Thống Kê Hiệu Suất Cá Nhân
+                Personal Performance Stats
               </h2>
               <p className="text-[9px] font-bold text-slate-400 mt-1">
-                Lựa chọn mốc thời gian để đồng bộ toàn bộ chỉ số học tập
+                Select a time horizon to synchronize all learning metrics
               </p>
             </div>
           </div>
@@ -163,35 +163,35 @@ export default function PersonalStatsTab({
         {/* 4 Hero KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
           <div className="bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100/60">
-            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider block">Thẻ Đã Học</span>
+            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider block">Cards Studied</span>
             <div className="text-lg sm:text-xl font-black text-indigo-600 mt-0.5">
-              {periodSummary.total_questions.toLocaleString()} <span className="text-[10px] font-bold text-slate-400">thẻ</span>
+              {periodSummary.total_questions.toLocaleString()} <span className="text-[10px] font-bold text-slate-400">cards</span>
             </div>
-            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">Trong {periodLabels[personalPeriod].toLowerCase()}</p>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">In {periodLabels[personalPeriod].toLowerCase()}</p>
           </div>
 
           <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100/60">
-            <span className="text-[8px] font-black text-emerald-500 uppercase tracking-wider block">Độ Chính Xác</span>
+            <span className="text-[8px] font-black text-emerald-500 uppercase tracking-wider block">Accuracy</span>
             <div className="text-lg sm:text-xl font-black text-emerald-600 mt-0.5">
               {periodSummary.global_accuracy}%
             </div>
-            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">{periodSummary.total_correct} câu đúng</p>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">{periodSummary.total_correct} correct cards</p>
           </div>
 
           <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-100/60">
-            <span className="text-[8px] font-black text-amber-500 uppercase tracking-wider block">Thời Gian Học</span>
+            <span className="text-[8px] font-black text-amber-500 uppercase tracking-wider block">Study Time</span>
             <div className="text-lg sm:text-xl font-black text-amber-600 mt-0.5">
-              {periodSummary.total_time_hours} <span className="text-[10px] font-bold text-slate-400">giờ</span>
+              {periodSummary.total_time_hours} <span className="text-[10px] font-bold text-slate-400">hrs</span>
             </div>
-            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">~{periodSummary.total_time_minutes} phút tập trung</p>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">~{periodSummary.total_time_minutes} mins focused</p>
           </div>
 
           <div className="bg-purple-50/70 p-3 rounded-2xl border border-purple-100/60">
-            <span className="text-[8px] font-black text-purple-400 uppercase tracking-wider block">Ngày Năng Suất Nhất</span>
+            <span className="text-[8px] font-black text-purple-400 uppercase tracking-wider block">Peak Day</span>
             <div className="text-sm sm:text-base font-black text-purple-700 mt-1 truncate">
               {periodSummary.best_day}
             </div>
-            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">Hiệu quả ghi nhớ cao</p>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">Highest retention efficiency</p>
           </div>
         </div>
       </div>
@@ -205,10 +205,10 @@ export default function PersonalStatsTab({
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                Biểu Đồ Xu Hướng Học Tập
+                Learning Trend Chart
               </h3>
               <p className="text-[9px] font-bold text-slate-400 mt-1">
-                Theo dõi tiến độ câu hỏi và thời gian tập trung ({periodLabels[personalPeriod]})
+                Track card volume and focused time ({periodLabels[personalPeriod]})
               </p>
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function PersonalStatsTab({
                 activeChartTab === 'activity' ? "bg-white text-indigo-600 shadow-2xs" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              Số Thẻ
+              Cards
             </button>
             <button
               onClick={() => setActiveChartTab('time')}
@@ -231,7 +231,7 @@ export default function PersonalStatsTab({
                 activeChartTab === 'time' ? "bg-white text-emerald-600 shadow-2xs" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              Thời Gian
+              Time
             </button>
             <button
               onClick={() => setActiveChartTab('hours')}
@@ -240,7 +240,7 @@ export default function PersonalStatsTab({
                 activeChartTab === 'hours' ? "bg-white text-amber-600 shadow-2xs" : "text-slate-400 hover:text-slate-600"
               )}
             >
-              Khung Giờ
+              Hourly
             </button>
           </div>
         </div>
@@ -262,8 +262,8 @@ export default function PersonalStatsTab({
                 <Tooltip 
                   contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 900 }} 
                 />
-                <Area type="monotone" dataKey="attempted" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#actGrad)" name="Thẻ đã học" />
-                <Area type="monotone" dataKey="correct" stroke="#10b981" strokeWidth={2} fillOpacity={0} name="Số câu đúng" />
+                <Area type="monotone" dataKey="attempted" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#actGrad)" name="Cards studied" />
+                <Area type="monotone" dataKey="correct" stroke="#10b981" strokeWidth={2} fillOpacity={0} name="Correct answers" />
               </AreaChart>
             ) : activeChartTab === 'time' ? (
               <AreaChart data={filteredDailyActivity}>
@@ -279,7 +279,7 @@ export default function PersonalStatsTab({
                 <Tooltip 
                   contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 900 }} 
                 />
-                <Area type="monotone" dataKey="time_minutes" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#timeGrad)" name="Số phút học" />
+                <Area type="monotone" dataKey="time_minutes" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#timeGrad)" name="Minutes focused" />
               </AreaChart>
             ) : (
               <BarChart data={personalStats?.hourly_distribution || []}>
@@ -289,7 +289,7 @@ export default function PersonalStatsTab({
                 <Tooltip 
                   contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 900 }} 
                 />
-                <Bar dataKey="average" radius={[4, 4, 0, 0]} name="Thẻ/ngày">
+                <Bar dataKey="average" radius={[4, 4, 0, 0]} name="Cards/day">
                   {(personalStats?.hourly_distribution || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={(entry.average || 0) > 0 ? "#f59e0b" : "#e2e8f0"} />
                   ))}

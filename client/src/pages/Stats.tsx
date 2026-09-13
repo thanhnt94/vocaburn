@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Trophy, User, Globe, TrendingUp, Zap, BrainCircuit, Clock } from 'lucide-react'
+import { Trophy, User, Globe, TrendingUp, Zap, BrainCircuit } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,38 @@ export default function Stats() {
   // Leaderboard filters state
   const [leaderboardCategory, setLeaderboardCategory] = useState<LeaderboardCategory>('xp')
   const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<LeaderboardTimeFilter>('all_time')
+
+  // Touch swipe handling for horizontal thumb navigation
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const diffX = touchStartX.current - e.changedTouches[0].clientX
+    const diffY = touchStartY.current - e.changedTouches[0].clientY
+    
+    // Swipe left/right with minimum distance and horizontal dominance
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      const tabOrder: StatsMainTab[] = ['leaderboard', 'personal', 'global']
+      const currentIndex = tabOrder.indexOf(activeTab)
+      if (diffX > 0 && currentIndex < tabOrder.length - 1) {
+        // Swiped left -> Next tab
+        if (navigator.vibrate) navigator.vibrate(8)
+        setActiveTab(tabOrder[currentIndex + 1])
+      } else if (diffX < 0 && currentIndex > 0) {
+        // Swiped right -> Previous tab
+        if (navigator.vibrate) navigator.vibrate(8)
+        setActiveTab(tabOrder[currentIndex - 1])
+      }
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
 
   // 1. Detailed stats (Personal + Global summary)
   const { data: detailedStatsData, isLoading: isDetailedLoading } = useQuery({
@@ -171,45 +203,48 @@ export default function Stats() {
   return (
     <div className="fixed inset-0 top-0 bottom-[68px] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-3.5">
-        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
-              <TrendingUp className="w-5 h-5 stroke-[2.2]" />
+      <div className="shrink-0 z-30 bg-white/90 backdrop-blur-2xl border-b border-slate-200/70 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-3">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 text-left">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
+              <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
+              <h1 className="text-sm sm:text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">
                 Stats & Leaderboard
               </h1>
-              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
+              <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] mt-0.5 truncate">
                 Track Personal Progress & Global Rankings
               </p>
             </div>
           </div>
 
-          {/* Desktop Tab Switcher */}
-          <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
+          {/* Unified Responsive Segmented Tab Switcher */}
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1 w-full sm:w-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8)
+                    setActiveTab(tab.id)
+                  }}
                   className={cn(
-                    "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
+                    "relative flex-1 sm:flex-initial flex items-center justify-center gap-1.5 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all select-none cursor-pointer",
                     isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
                   )}
                 >
                   {isActive && (
                     <motion.div
-                      layoutId="desktopStatsTabPill"
+                      layoutId="unifiedStatsTabPill"
                       className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <Icon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                  <span className="relative z-10">{tab.label}</span>
+                  <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
+                  <span className="relative z-10 text-[11px] sm:text-xs md:text-sm truncate">{tab.shortLabel}</span>
                 </button>
               )
             })}
@@ -217,8 +252,12 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ═══════════ TAB CONTENT AREA (SCROLLABLE OR FLEX-1) ═══════════ */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5">
+      {/* ═══════════ TAB CONTENT AREA WITH HORIZONTAL TOUCH SWIPE ═══════════ */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1 min-h-0 flex flex-col overflow-hidden px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5"
+      >
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto w-full flex-1 min-h-0 flex flex-col overflow-hidden">
           <AnimatePresence mode="wait">
             {activeTab === 'leaderboard' && (
@@ -281,121 +320,6 @@ export default function Stats() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
-
-      {/* ═══════════ TIER 1: LEADERBOARD FILTER CONTROLS (2 DISTINCT ROWS WITH LEADING ICONS) ═══════════ */}
-      {activeTab === 'leaderboard' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] space-y-1.5">
-          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto space-y-1.5">
-            {/* Row 1: Category Filter with Leading Icon & Label */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-slate-400 w-12 shrink-0">
-                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span>Type</span>
-              </div>
-              <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shadow-2xs">
-                {(['xp', 'streak', 'questions', 'time'] as const).map((cat) => {
-                  const isActive = leaderboardCategory === cat
-                  const labels: Record<string, string> = { 
-                    xp: 'XP', 
-                    streak: 'Streak', 
-                    questions: 'Cards', 
-                    time: 'Time' 
-                  }
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setLeaderboardCategory(cat)}
-                      className={cn(
-                        "relative flex items-center justify-center py-1 px-1 rounded-lg text-xs font-black transition-all select-none cursor-pointer text-center",
-                        isActive ? "text-orange-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeLeaderboardCategoryPill"
-                          className="absolute inset-0 bg-white rounded-lg shadow-xs border border-slate-200/80"
-                          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                        />
-                      )}
-                      <span className="relative z-10 text-[10.5px] sm:text-xs truncate">{labels[cat]}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Row 2: Time Filter with Leading Icon & Label */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-slate-400 w-12 shrink-0">
-                <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                <span>Time</span>
-              </div>
-              <div className="grid grid-flow-col auto-cols-fr w-full bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shadow-2xs">
-                {(['all_time', 'month', 'week', 'today'] as const).map((tf) => {
-                  const isActive = leaderboardTimeFilter === tf
-                  const tfLabels: Record<string, string> = { 
-                    all_time: 'All Time', 
-                    month: 'Month', 
-                    week: 'Week', 
-                    today: 'Today' 
-                  }
-                  return (
-                    <button
-                      key={tf}
-                      onClick={() => setLeaderboardTimeFilter(tf)}
-                      className={cn(
-                        "relative flex items-center justify-center py-1 px-1 rounded-lg text-xs font-black transition-all select-none cursor-pointer text-center",
-                        isActive ? "text-indigo-600 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeLeaderboardTimePill"
-                          className="absolute inset-0 bg-white rounded-lg shadow-xs border border-slate-200/80"
-                          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                        />
-                      )}
-                      <span className="relative z-10 text-[10.5px] sm:text-xs truncate">{tfLabels[tf]}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 lg:px-8 xl:px-10 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-center">
-          <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "relative flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeStatsBottomTabPill"
-                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                    />
-                  )}
-                  <Icon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? tab.color : "text-slate-400")} />
-                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
         </div>
       </div>
     </div>

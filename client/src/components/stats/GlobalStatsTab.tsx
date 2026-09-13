@@ -25,40 +25,40 @@ export default function GlobalStatsTab({ globalStats, isLoading }: GlobalStatsTa
 
   const milestones = [
     {
-      label: 'Cộng Đồng Người Học',
+      label: 'Learner Community',
       value: stats.total_users.toLocaleString(),
-      sub: 'Thành viên cùng nỗ lực',
+      sub: 'Active learners striving together',
       icon: Users,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50 border-indigo-100',
-      tag: 'Thành viên'
+      tag: 'Community'
     },
     {
-      label: 'Kho Học Liệu Mở',
+      label: 'Open Study Library',
       value: stats.total_quizzes.toLocaleString(),
-      sub: 'Bộ flashcard chia sẻ',
+      sub: 'Shared flashcard decks',
       icon: BookOpen,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50 border-emerald-100',
-      tag: 'Bộ thẻ'
+      tag: 'Decks'
     },
     {
-      label: 'Tổng Thẻ & Câu Hỏi',
+      label: 'Total Cards & Items',
       value: stats.total_questions.toLocaleString(),
-      sub: 'Từ vựng & câu hỏi đã tạo',
+      sub: 'Vocabulary & questions created',
       icon: Layers,
       color: 'text-amber-600',
       bg: 'bg-amber-50 border-amber-100',
-      tag: 'Từ vựng'
+      tag: 'Vocabulary'
     },
     {
-      label: 'Chính Xác Toàn Sàn',
+      label: 'Platform Accuracy',
       value: `${stats.platform_accuracy}%`,
-      sub: 'Tỷ lệ trả lời chuẩn xác',
+      sub: 'System-wide correct answer rate',
       icon: CheckCircle2,
       color: 'text-rose-600',
       bg: 'bg-rose-50 border-rose-100',
-      tag: 'Tỷ lệ đúng'
+      tag: 'Accuracy'
     }
   ]
 
@@ -77,27 +77,27 @@ export default function GlobalStatsTab({ globalStats, isLoading }: GlobalStatsTa
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                  <Heart className="w-3 h-3 fill-emerald-400" /> Sức Mạnh Tri Thức Cộng Đồng
+                  <Heart className="w-3 h-3 fill-emerald-400" /> Collective Knowledge Power
                 </span>
               </div>
               <h2 className="text-base sm:text-xl font-black uppercase tracking-wide leading-tight">
-                Hành Trình Chinh Phục Ngoại Ngữ Cùng Nhau
+                Conquering Languages Together
               </h2>
               <p className="text-xs text-indigo-200/90 mt-1 max-w-2xl leading-relaxed">
-                Mỗi lượt lật thẻ và câu hỏi hoàn thành đều đóng góp vào bức tranh tiến bộ chung của toàn bộ cộng đồng Vocaburn. Chúng ta không học một mình!
+                Every card flip and completed session contributes to the collective progress of the entire Vocaburn community. We learn and grow together!
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 shrink-0 bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
             <div className="text-center px-2">
-              <span className="text-[8px] font-black text-indigo-300 uppercase tracking-widest block">Tốc độ TB</span>
-              <span className="text-sm sm:text-base font-black text-white">{stats.avg_time_per_question}s / câu</span>
+              <span className="text-[8px] font-black text-indigo-300 uppercase tracking-widest block">Avg Speed</span>
+              <span className="text-sm sm:text-base font-black text-white">{stats.avg_time_per_question}s / card</span>
             </div>
             <div className="w-px h-8 bg-white/20" />
             <div className="text-center px-2">
-              <span className="text-[8px] font-black text-emerald-300 uppercase tracking-widest block">Hệ thống</span>
-              <span className="text-xs sm:text-sm font-black text-emerald-400 uppercase">99.9% Ổn định</span>
+              <span className="text-[8px] font-black text-emerald-300 uppercase tracking-widest block">System</span>
+              <span className="text-xs sm:text-sm font-black text-emerald-400 uppercase">99.9% Uptime</span>
             </div>
           </div>
         </div>
@@ -151,20 +151,20 @@ export default function GlobalStatsTab({ globalStats, isLoading }: GlobalStatsTa
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                  Tinh Thần Học Tập Bền Bỉ
+                  Consistent Learning Spirit
                 </h3>
-                <p className="text-[9px] font-bold text-slate-400 mt-1">Cảm hứng từ hàng ngàn phiên luyện tập mỗi ngày</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">Inspired by thousands of daily practice sessions</p>
               </div>
             </div>
 
             <p className="text-xs font-medium text-slate-600 leading-relaxed">
-              Toàn bộ người học trên Vocaburn đang cùng nhau duy trì chuỗi học tập liên tục và áp dụng thuật toán ghi nhớ giãn cách <strong>FSRS v6</strong> để biến từ vựng thành phản xạ tự nhiên.
+              Vocaburn learners maintain active study streaks and utilize the <strong>FSRS v6</strong> spaced repetition algorithm to convert vocabulary into natural reflexes.
             </p>
           </div>
 
           <div className="mt-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
-            <span className="font-bold text-slate-500">Mục tiêu chung:</span>
-            <span className="font-black text-indigo-600">100% Ghi nhớ dài hạn 🚀</span>
+            <span className="font-bold text-slate-500">Shared Goal:</span>
+            <span className="font-black text-indigo-600">100% Long-term Retention 🚀</span>
           </div>
         </div>
 
@@ -177,20 +177,20 @@ export default function GlobalStatsTab({ globalStats, isLoading }: GlobalStatsTa
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                  Chất Lượng Học Liệu
+                  Study Material Quality
                 </h3>
-                <p className="text-[9px] font-bold text-slate-400 mt-1">Tiêu chuẩn câu hỏi & âm thanh AI phát âm chuẩn</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">High-standard questions & AI pronunciation</p>
               </div>
             </div>
 
             <p className="text-xs font-medium text-slate-600 leading-relaxed">
-              Tỷ lệ chính xác trung bình toàn hệ thống đạt <strong>{stats.platform_accuracy}%</strong> với tốc độ phản xạ trung bình <strong>{stats.avg_time_per_question}s / câu</strong> chứng minh hiệu quả vượt trội của phương pháp Spaced Repetition.
+              Platform average accuracy reaches <strong>{stats.platform_accuracy}%</strong> with an average response speed of <strong>{stats.avg_time_per_question}s / card</strong>, highlighting the superior efficiency of Spaced Repetition.
             </p>
           </div>
 
           <div className="mt-5 p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center justify-between text-xs">
-            <span className="font-bold text-emerald-700">Trạng thái vận hành:</span>
-            <span className="font-black text-emerald-700">Hoạt động trơn tru ⚡</span>
+            <span className="font-bold text-emerald-700">Operational Status:</span>
+            <span className="font-black text-emerald-700">Running Smoothly ⚡</span>
           </div>
         </div>
       </div>

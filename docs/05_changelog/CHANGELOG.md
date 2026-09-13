@@ -2,6 +2,23 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-13]
+#### Tái Cấu Trúc Toàn Diện Giao Diện Thống Kê & Bảng Xếp Hạng (Stats & Leaderboard Redesign)
+- **Giải Phóng Không Gian Đáy & Loại Bỏ Hoàn Toàn 4 Tầng Thanh Xếp Chồng (Zero Bottom Clutter)**:
+  - **Khắc phục triệt để lỗi "nhìn hơi sợ"**: Trước đây trên mobile có 4 tầng thanh xếp đè lên nhau ở đáy (Global Nav + Bottom 3-Tab Bar + Time Filter Row + Type Filter Row) chiếm tới ~170px chiều dọc, làm chèn ép nội dung và che khuất bảng xếp hạng.
+  - Loại bỏ hoàn toàn thanh 3-tab đáy và 2 hàng lọc loại / thời gian ở chân trang.
+  - Tích hợp các nút chọn loại (`XP`, `Streak`, `Cards`, `Time`) và thời gian (`All Time`, `Month`, `Week`, `Today`) trực tiếp vào bên trong đầu thẻ Leaderboard một cách gọn gàng, tinh tế với animated pill.
+  - Tích hợp bộ chuyển 3 tab chính (`Leaderboard | Personal | Global`) lên thẳng thanh header trên cả mobile và desktop dưới dạng segmented pill siêu mượt.
+- **Hỗ Trợ Vuốt Ngón Tay 1 Tay Siêu Tiện Lợi (Horizontal Touch Swipe Gestures)**:
+  - Bổ sung cơ chế nhận diện cử chỉ vuốt ngang trên toàn vùng nội dung (`onTouchStart` & `onTouchEnd`) kèm phản hồi rung haptic nhẹ (`navigator.vibrate(8)`).
+  - Cho phép người dùng vuốt ngón cái chuyển đổi cực kỳ trực quan giữa `Leaderboard` $\leftrightarrow$ `Personal` $\leftrightarrow$ `Global` mà không cần phải bấm thanh điều hướng nào ở đáy.
+- **Nâng Cấp Giao Diện Bục Vinh Danh & Thẻ Thứ Hạng Cá Nhân (Esports Glassmorphic Aesthetics)**:
+  - Thẻ `Your Position` được thu gọn thành thanh glassmorphic sang trọng với biểu tượng cúp vàng và thứ hạng nổi bật.
+  - Tái thiết kế Top 3 Podium: bục vinh danh tỷ lệ chuẩn, avatar viền kim loại vàng/bạc/đồng, vương miện phát sáng và huy hiệu level.
+  - Nâng cấp danh sách xếp hạng (#4 đến #50) với mật độ hiển thị cao, chấm trạng thái hoạt động, thẻ cấp độ và làm nổi bật người dùng hiện tại.
+- **Chuẩn Hóa Tiếng Anh Toàn Bộ (Rule 6 Compliance)**:
+  - Chuyển ngữ 100% các nhãn, thẻ KPI và tiêu đề biểu đồ trong `PersonalStatsTab.tsx` và `GlobalStatsTab.tsx` sang tiếng Anh chuẩn (`Cards Studied`, `Accuracy`, `Study Time`, `Peak Day`, `Learner Community`, `Open Study Library`, `Total Cards & Items`, `Platform Accuracy`).
+
 ### [2026-09-12]
 #### Bổ Sung Tab Daily (Daily Activity Hub): Thống Kê Hoạt Động & Lịch Sử Học Tập Trong Ngày
 - **Bổ Sung Endpoint Tổng Hợp Thống Kê Trong Ngày (`GET /api/v1/stats/daily-summary`)**:
