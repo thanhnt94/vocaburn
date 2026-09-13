@@ -3,6 +3,24 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-13]
+#### Kiểm Tra Toàn Diện Backend, Khắc Phục Lỗi Hệ Thống & Bảo Mật Chuẩn Ecosystem (Backend Audit, Streak Sync, CentralAuth Compliance & Security Hardening)
+- **Kế Hoạch 1: Khắc Phục Lỗi Crash 500 & Ràng Buộc Khóa Ngoại Cascade Deletion**:
+  - **Khắc phục Crash 500 trong `folder_routes.py`**: Sửa hàm `get_folder_play_data` gọi `estimate_intervals(scheduler, build_fsrs_card(m, now_utc), now_utc)` đủ 3 tham số và dự phòng interval mặc định cho thẻ chưa học.
+  - **Xóa sạch dữ liệu liên kết khi xóa Deck & Card (`crud.py`)**: Bổ sung cascade deletion cho `UserDailyProgress`, `UserDeckGoal`, `CardContribution`, `ContributionLike`, `FolderDeck`, `DeckTag`, `RoadmapPipelineHistory`, và `DeckSession`, ngăn chặn triệt để lỗi `sqlite3.IntegrityError: FOREIGN KEY constraint failed`.
+  - **Chống trùng lặp tài khoản SSO (`sso_module/routes.py`)**: Kiểm tra và đồng bộ an toàn username/email khi đăng nhập SSO, tránh xung đột duplicate unique constraint.
+- **Kế Hoạch 2: Chuẩn Hóa Chuỗi Streak & Đồng Bộ Múi Giờ (`tz_offset`)**:
+  - **Loại bỏ Phantom Active Records**: `update_streak` và `get_user_stats` không còn tự chèn `UserDailyStats(is_active=True)` khi chỉ xem trang. Streak chỉ được tính khi có hoạt động học thực tế (`questions_attempted > 0` hoặc `is_frozen == True`).
+  - **Đồng bộ múi giờ UTC+7**: `calculate_pure_activity_streak` dịch mốc thời gian theo `tz_offset` (-420 phút), loại bỏ hoàn toàn lỗi mất streak khi học vào khung giờ 00:00 - 07:00 sáng.
+  - **Tích hợp `local_date_str` & `tz_offset`**: Cập nhật đồng bộ vào `StatsInterface.record_activity`, `StatsInterface.revert_activity`, `record_answer`, `undo_answer`, và `DeckService.get_today_review`.
+- **Kế Hoạch 3: Chuẩn Hóa Telegram Bot Theo Quy Định Ecosystem (Rule 8)**:
+  - **Xóa bỏ Bot Polling độc lập**: Gỡ bỏ `init_bot_app()` trong `main.py`, không gọi `delete_webhook` để tránh xung đột với CentralAuth Bot Hub (`@inmind_auth_bot`).
+  - **Proxy tin nhắn qua CentralAuth**: Sử dụng `CENTRALAUTH_INTERNAL_URL` (`http://127.0.0.1:5050`) và `CENTRALAUTH_QUEUE_TOKEN` gửi thông báo qua `POST /api/queue/telegram/send-message`.
+  - **Dọn dẹp Domain cũ**: Thay thế toàn bộ domain `vocaburn.click` thành `https://vocab.inmind.site`.
+- **Kế Hoạch 4: Bịt Lỗ Hổng Bảo Mật & Giảm Tải Concurrency SQLite**:
+  - **Xóa bỏ `user_id = 1` Fallback**: Bắt buộc xác thực và trả về 401 Unauthorized tại toàn bộ 9 endpoint stats và các route shop/challenge.
+  - **Bảo vệ Queue Callback Endpoints**: Thêm kiểm tra header `X-Queue-Token` trong `/tts-callback`, `/image-callback`, `/furigana-callback`, và `/ai-callback`.
+  - **Throttling `check_badges_async`**: Chỉ kích hoạt kiểm tra huy hiệu ngầm khi đạt mốc quan trọng thay vì mở connection DB sau mỗi câu trả lời, bảo vệ SQLite khỏi lock contention.
+
 #### Giai Đoạn 3: Nâng Cấp Độ Thích Thú, Gamification, Dark Mode Toàn Diện & Trải Nghiệm Luyện Tập (Delight, Gamification, Full Mobile Dark Mode & Practice UX)
 - **Màn Hình Hoàn Thành Phiên Học Bùng Nổ Cảm Xúc (Complete Session Screens & Gamification)**:
   - **Hiệu ứng pháo hoa Confetti**: Tự động kích hoạt hiệu ứng pháo hoa rơi rực rỡ từ `canvas-confetti` khi hoàn thành bài học trong `FsrsCompleteScreen.tsx` và `PlaySessionSummary.tsx`.
