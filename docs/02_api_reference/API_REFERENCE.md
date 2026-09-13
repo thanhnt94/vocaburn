@@ -40,7 +40,7 @@ Tất cả API Endpoints chính của Vocaburn được định nghĩa trong 8 m
 | `GET` | `/deck/{deck_id}/play-data` | Lấy danh sách thẻ cần học/ôn tập theo thuật toán FSRS v6 (stability, difficulty, due, state). |
 | `POST` | `/deck/record_answer` | Ghi nhận phản hồi FSRS (Rating 1=Again, 2=Hard, 3=Good, 4=Easy), cập nhật chu kỳ ôn tập tiếp theo & cộng XP. |
 | `POST` | `/deck/undo_answer` | Hoàn tác (undo) lượt đánh giá thẻ vừa rồi. |
-| `GET` | `/deck/{deck_id}/data` | Lấy thông tin chi tiết bộ thẻ phục vụ giao diện Play. |
+| `GET` | `/deck/{deck_id}/data` | Lấy thông tin chi tiết bộ thẻ phục vụ giao diện Play & Overview (bao gồm `recent_attempts` lịch sử phiên luyện tập gần đây). |
 | `GET` | `/deck/quick-play-data` | Lấy danh sách thẻ cho chế độ học nhanh ngẫu nhiên. |
 | `GET` | `/deck/{deck_id}/session` | Lấy phiên học (session) đang dở dang. |
 | `POST` | `/deck/{deck_id}/session` | Tạo mới hoặc cập nhật trạng thái phiên học dở dang. |
@@ -150,6 +150,7 @@ Tất cả API Endpoints chính của Vocaburn được định nghĩa trong 8 m
 | Method | Endpoint Path | Mô tả Chi tiết |
 |---|---|---|
 | `GET` | `/dashboard/data` | Lấy toàn bộ dữ liệu trang chủ: thông tin user, danh sách bộ thẻ, gamification, thông báo. |
+| `GET` | `/stats/daily-summary` | Tổng hợp hoạt động trong ngày theo múi giờ client (`tz_offset`): thời gian học, số thẻ (mới/ôn), độ chính xác, XP/Points, nhịp độ 24h (`hourly_activity`), nhật ký phiên (`sessions`), phân bổ bộ thẻ (`decks_studied`) và phương pháp (`mode_breakdown`). |
 | `GET` | `/stats/detailed` | Báo cáo phân tích tiến trình học tập chi tiết tổng quan. |
 | `GET` | `/stats/leaderboard` | Bảng xếp hạng XP theo ngày/tuần/tháng/tất cả. |
 | `GET` | `/stats/daily-comparison` | So sánh hiệu suất học tập hôm nay so với hôm qua. |

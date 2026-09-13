@@ -52,15 +52,36 @@ Vocaburn tách biệt nghiêm ngặt miền nghiệp vụ giữa 8 module trong 
 ## 6. Đóng gói Frontend & Triển khai VPS (Remote Deployment Rules)
 
 * **Cổng Hoạt động Quy định**: **5090** (Backend FastAPI + Phục vụ Static SPA Frontend).
-* **Biên dịch Frontend Tự động**: Script `remote_update_vocaburn.py` đã tích hợp sẵn lệnh `build_vite.py` (`npm run build`).
+* **Kiểm tra Lỗi Bắt buộc Trước khi Deploy (Mandatory Pre-Push Check)**:
+  * Trước khi chạy deploy, agent **BẮT BUỘC** phải chạy `cmd /c npx.cmd tsc -p tsconfig.app.json --noEmit` trong thư mục `client/` để đảm bảo 100% không có lỗi TypeScript hay lỗi cú pháp JSX.
+* **Chiến lược Triển khai Thông minh (Smart Granular Deployment)**:
+  * **Chỉ sửa đổi Frontend (UI / CSS / TSX / Components / Assets)**:
+    * Chạy lệnh cập nhật siêu tốc: `python remote_update_vocaburn.py --fast` (hoặc `--frontend-only`).
+    * **KHÔNG** restart dịch vụ systemd (`systemctl restart vocaburn`).
+    * **KHÔNG** chạy `pip install` hay `alembic upgrade head`.
+    * Kết quả: Đồng bộ mã nguồn và tài nguyên tĩnh hoàn tất trong ~2 giây mà không làm gián đoạn người dùng.
+  * **Sửa đổi Logic Backend (Python / API / Services)**:
+    * Chạy `python remote_update_vocaburn.py` (không cờ `--fast`) để cập nhật code và khởi động lại `vocaburn.service`.
+    * Chỉ chạy `alembic upgrade head` nếu có file di cư mới trong `alembic/versions/`.
 * **Quy tắc Nghiêm ngặt cho AI Agent**:
-  * **KHÔNG chạy `npm run build` thủ công** trong lượt xử lý của AI hoặc tạo task background đợi build.
-  * **KHÔNG chạy vòng lặp polling/monitoring SSH** sau khi kích hoạt `remote_update_vocaburn.py`.
-  * Sửa code xong là phản hồi ngay cho người dùng để tiết kiệm token và tránh tắc nghẽn giao tiếp.
+  * **KHÔNG chạy `npm run build` thủ công** trong lượt xử lý của AI (script deploy sẽ tự động gọi `build_vite.py`).
+  * **KHÔNG chạy vòng lặp polling/monitoring SSH** sau khi kích hoạt deploy. Đặt `WaitMsBeforeAsync: 1000-2000`, lập tức kết thúc lượt và cập nhật thông tin cho người dùng.
 
 ---
 
-## 7. Quy tắc Cập nhật Tài liệu & Changelog
+## 7. Quy Chuẩn Giao Diện: Mobile-First, Stacking Context & createPortal
 
-* **Đồng bộ tài liệu**: Khi thay đổi cấu trúc mã nguồn, API hoặc Cơ sở dữ liệu, **bắt buộc** cập nhật các file tài liệu tương ứng trong thư mục `docs/` (`01_architecture/`, `02_api_reference/`, `04_development_and_ops/`).
+* **Nguyên tắc "Một Tay Ngón Cái" (One-Hand Thumb Reachable)**:
+  * Mọi nút kích hoạt chính, thanh 2 nút học, thanh điều hướng đáy và các nút hành động nhanh phải nằm trong tầm với ngón tay cái ở nửa dưới màn hình.
+* **Giải Quyết Triệt Để Xung Đột Lớp Phủ (Z-Index Stacking Context via `createPortal`)**:
+  * Thanh bottom navigation toàn cục (`Layout.tsx`) có `z-[120]`.
+  * Mọi bảng chọn chế độ học (`FlashcardModeModal`, `PracticeModeModal`), ngăn kéo thống kê (`DashboardDailyDrawer`) và modal chi tiết **BẮT BUỘC** phải dùng `createPortal(..., document.body)` với `z-[280]` hoặc `z-[300]` để đưa trực tiếp ra ngoài thẻ `body`, loại bỏ hoàn toàn nguy cơ bị kẹt dưới stacking context con hoặc bị thanh bottom nav đè lên.
+* **Chuẩn Hóa Giao Diện Tiếng Anh Toàn Bộ (English-Only UI Directive)**:
+  * 100% nhãn nút, tiêu đề thẻ, modal, placeholder, tooltip, trạng thái trống và thông báo toast trên giao diện người dùng phải sử dụng tiếng Anh chuẩn (`Roadmap`, `Learning`, `Study Time`, `Cards Studied`, `Accuracy`, `Streak`, `Save Changes`, `Cancel`...).
+
+---
+
+## 8. Quy tắc Cập nhật Tài liệu & Changelog
+
+* **Đồng bộ tài liệu**: Khi thay đổi cấu trúc mã nguồn, API hoặc Cơ sở dữ liệu, **bắt buộc** cập nhật các file tài liệu tương ứng trong thư mục `docs/` (`01_architecture/`, `02_api_reference/`, `03_features_and_ui/`, `04_development_and_ops/`).
 * **Cập nhật Changelog**: Ghi nhận chi tiết thông tin chỉnh sửa vào file [docs/05_changelog/CHANGELOG.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/05_changelog/CHANGELOG.md).

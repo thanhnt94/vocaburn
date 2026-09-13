@@ -79,6 +79,7 @@ Mỗi module nghiệp vụ tự đóng gói độc lập bao gồm: **Models** (
 
 ### 2.7. Module `stats` (Thống kê Tiến trình Học tập)
 * Ghi nhận hoạt động hàng ngày (`user_daily_stats`): số thẻ, số câu đúng, tổng thời gian, độ chính xác.
+* Service `analytics_service.py`: Tổng hợp dữ liệu hoạt động trong ngày (`get_daily_summary`) phục vụ Daily Activity Drawer theo múi giờ client (`tz_offset`).
 * Cung cấp dữ liệu Heatmap 365 ngày, báo cáo tuần, dự báo số thẻ đến hạn ôn tập trong 30 ngày (Review Forecast) và biểu đồ phân bổ Leitner.
 
 ### 2.8. Module `admin` (Quản trị Hệ thống)
@@ -93,25 +94,41 @@ Mã nguồn Frontend nằm tại thư mục `client/` được xây dựng bằn
 ```
 client/src/
 ├── components/                 # UI components dùng chung & layout glassmorphism
+│   ├── dashboard/              # 📊 Phân hệ Trang chủ Dashboard
+│   │   ├── DashboardRoadmapSection.tsx # Lộ trình học kèm snap-scroll dọc, mascot cheer & countdown
+│   │   ├── DashboardQuickDecksWidget.tsx # Trung tâm phím tắt bộ thẻ học nhanh & due count
+│   │   ├── DashboardDailyDrawer.tsx # Ngăn kéo thống kê hoạt động hôm nay (Today's Activity Drawer)
+│   │   ├── HomeCustomizeModal.tsx # Tùy biến thứ tự bộ thẻ ghim trên Roadmap & Learning
+│   │   ├── StudyModeModal.tsx   # Modal sheet chọn chế độ học thẻ
+│   │   └── PracticeModeModal.tsx # Modal sheet chọn bài luyện tập
 │   ├── deck/                   # 🎴 Phân hệ Deck (Tập trung toàn bộ UI & sub-modules của Deck)
 │   │   ├── tabs/               # 4 Tab chính: DeckOverviewTab, DeckCardsTab, DeckRoadmapTab, DeckSettingsTab
 │   │   ├── cards/              # DeckCardItem, DeckCardQuickAdd, DeckCardBatchPasteModal, DeckCardEditModal, DeckCardFilterBar
 │   │   ├── settings/           # DeckGeneralForm, DeckPracticeConfig, DeckAutomationTools, DeckExcelManager, DeckDangerZone, DeckCollaboratorsModal
-│   │   ├── overview/           # DeckFsrsStatsCard, DeckQuickStudyLauncher, DeckRecentHistory
+│   │   ├── overview/           # DeckFsrsStatsCard, DeckRecentHistory (Nhật ký luyện tập gần đây)
 │   │   ├── roadmap/            # DeckRoadmapPipelineCard, DeckRoadmapGoalForm
 │   │   ├── modals/             # DeckStudyModal, DeckCreateModal, DeckJoinRoomModal
 │   │   └── DeckPagination.tsx  # Phân trang bộ thẻ
+│   ├── flashcard/              # ⚡ Phân hệ Thẻ học Flashcard
+│   │   ├── Flashcard3DCard.tsx # Thẻ 3D, Card Top HUD (views & accuracy), vuốt chuyển/hoàn tác 2 mặt
+│   │   ├── FlashcardQuickControlsSheet.tsx # Bảng Control Center (Haptic, Image 4-states, Font size, Tools)
+│   │   ├── FsrsCompleteScreen.tsx # Màn hình hoàn thành đa ngữ cảnh (FSRS, New, Review)
+│   │   └── FlashcardHeader.tsx # Header học thẻ
+│   ├── stats/                  # 📈 Phân hệ Thống kê & Bảng xếp hạng
+│   │   ├── LeaderboardTab.tsx  # Bảng xếp hạng Esports, podium top 3, bộ lọc XP/Streak/Thời gian
+│   │   ├── PersonalStatsTab.tsx# Thống kê cá nhân, đồng bộ khung thời gian, biểu đồ xu hướng
+│   │   └── GlobalStatsTab.tsx  # Thống kê cộng đồng toàn cầu
 │   ├── StudyHeaderTracker.tsx  # Thanh Live HUD Tracker Bar 3D Flip & Power Surge
 │   ├── CardContributionsModal.tsx # Modal đóng góp & bình luận thẻ
-│   ├── Navbar.tsx / Sidebar.tsx# Điều hướng & Menu ứng dụng
+│   ├── Layout.tsx              # Layout gốc, thanh điều hướng đáy điện thoại (One-Hand Thumb Reachable)
 │   └── MascotCard.tsx          # Card hiển thị Linh vật & đếm ngược mục tiêu
 ├── hooks/                      # Custom React hooks (useAudio, useRoadmapStatus, useSessionStats...)
 ├── lib/                        # Axios client instance, API helper functions, text parser & audio utils
-├── store/                      # Quản lý state toàn cục bằng Zustand (useAppStore.ts)
+├── store/                      # Quản lý state toàn cục bằng Zustand (useAppStore.ts, useSettingsStore.ts)
 ├── pages/                      # 15 Màn hình chính của ứng dụng
 │   ├── Admin.tsx               # Bảng điều khiển quản trị hệ thống (/admin)
 │   ├── Dashboard.tsx           # Bảng điều khiển chính, lộ trình học, streak & thống kê
-│   ├── DeckDetailPage.tsx      # Màn hình chi tiết bộ thẻ & tab switcher (/decks/:id)
+│   ├── DeckDetailPage.tsx      # Màn hình chi tiết bộ thẻ (2 nút học neo cố định đáy màn hình)
 │   ├── DecksPage.tsx           # Trung tâm quản lý tất cả bộ thẻ (/decks)
 │   ├── FlashcardPlay.tsx       # Màn hình học Flashcard FSRS v6 (3D flip card, full-height)
 │   ├── FlashcardRoom.tsx       # Phòng luyện tập nhóm đối kháng (/room/:code)

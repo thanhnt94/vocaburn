@@ -54,3 +54,43 @@ npm install
 npm run dev
 ```
 *Dev server sẽ khởi chạy tại `http://localhost:5173`. Các yêu cầu `/api/v1/` sẽ được tự động proxy về backend FastAPI cổng `5090`.*
+
+---
+
+## 4. Kiểm tra Type Safety Tuyệt đối Trước Biên dịch
+
+Trước khi triển khai, luôn chạy lệnh kiểm tra lỗi TypeScript:
+```bash
+cmd /c npx.cmd tsc -p tsconfig.app.json --noEmit
+```
+*Quy chuẩn bắt buộc*: Nếu có bất kỳ lỗi nào (`exit code != 0`), tiến trình build bắt buộc phải dừng lại ngay lập tức để ngăn ngừa lỗi màn hình trắng (White Screen).
+
+---
+
+## 5. Khắc phục Tương thích Trình duyệt iOS / WebKit (Lookbehind Regex Fix)
+
+Các phiên bản Safari / WebKit cũ sẽ gặp lỗi `SyntaxError: Invalid regular expression: invalid group specifier name` khi gặp Regex Positive Lookbehind `(?<=...)`.
+Script `build_vite.py` tự động quét các tệp `.js` đầu ra trong `app/static/dist/assets/` và chuyển đổi lookbehind thành non-capturing groups `(?:...)` để đảm bảo ứng dụng chạy mượt mà trên 100% thiết bị Apple.
+
+---
+
+## 6. Quy chuẩn Modal Sheets & Drawers: Tránh Stacking Context bằng `createPortal`
+
+Thanh điều hướng đáy điện thoại (`Layout.tsx`) có `z-[120]`. Để tránh việc các modal học thẻ hoặc ngăn kéo thống kê bị thanh đáy đè lên:
+* **Bắt buộc dùng `createPortal`**: Mount toàn bộ modal sheets, bottom drawers trực tiếp vào `document.body`:
+  ```tsx
+  import { createPortal } from 'react-dom'
+  
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[280]">
+          {/* Backdrop + Sheet */}
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  )
+  ```
+* **Thiết kế tràn viền cạnh-sát-cạnh (Full-Width Edge-to-Edge)**: Tránh áp đặt `max-w-lg` làm xuất hiện khe hở thừa hai bên khi co nhỏ cửa sổ hoặc trên điện thoại.
+
