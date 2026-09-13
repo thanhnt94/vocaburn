@@ -198,6 +198,14 @@ class DeckService:
         from app.modules.deck.models import DeckAttempt, UserDeckGoal, UserDailyProgress, UserCardMastery, Flashcard, FlashcardDeck
         from app.modules.stats.models import UserDailyStats
         
+        if not user_id:
+            return {
+                "due_cards_count": 0,
+                "decks_summary": [],
+                "streak_at_risk": False,
+                "estimated_minutes": 0
+            }
+
         # 1. Get interacted deck ids (not archived)
         interaction_res = await db.execute(
             select(DeckAttempt.deck_id).where(
@@ -228,7 +236,8 @@ class DeckService:
                 "estimated_minutes": 0
             }
             
-        now_local = datetime.utcnow() - timedelta(minutes=tz_offset)
+        now_utc = datetime.utcnow()
+        now_local = now_utc - timedelta(minutes=tz_offset)
         today_str = now_local.strftime("%Y-%m-%d")
         
         # Fetch active goal configurations (map deck_id -> goal)
@@ -268,7 +277,7 @@ class DeckService:
             Flashcard.deck_id.in_(active_deck_ids),
             UserCardMastery.user_id == user_id,
             or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None)),
-            UserCardMastery.due <= now
+            UserCardMastery.due <= now_utc
         ).group_by(Flashcard.deck_id)
         due_reviews_res = await db.execute(due_reviews_stmt)
         due_reviews_map = {row[0]: row[1] for row in due_reviews_res.all()}
