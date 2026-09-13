@@ -3,6 +3,18 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-13]
+#### Tinh Gọn Thanh Điều Hướng Home: Tái Cấu Trúc Thống Kê Daily Sang Ngăn Kéo Bottom Sheet (Daily Activity Drawer)
+- **Loại Bỏ Hoàn Toàn 3 Tab Liên Tiếp Ở Đầu Trang Home (Zero Top Navigation Clutter)**:
+  - **Khắc phục cảm giác chật chội & "nhìn hơi sợ"**: Việc đặt 3 tab liên tiếp (`Roadmap` | `Learning` | `Daily`) ở đỉnh trang khiến thanh điều hướng trở nên rối mắt và mất cân đối.
+  - Khôi phục thanh điều hướng đầu trang Home về **2 tab cốt lõi** tinh tế, rộng rãi và trực quan: `[ 📑 Roadmap (3) ]` và `[ 📖 Learning (4) ]`.
+  - Cử chỉ vuốt ngang trên điện thoại được tối giản hóa về 2 chiều dứt khoát: Vuốt trái sang `Learning`, vuốt phải sang `Roadmap`.
+- **Chuyển Đổi Thống Kê Daily Sang Ngăn Kéo Thông Minh (Daily Activity Bottom Sheet / Drawer)**:
+  - Xây dựng component mới `DashboardDailyDrawer.tsx` sử dụng `createPortal` đưa trực tiếp modal sheet ra `document.body` với `z-[280]` và hiệu ứng trượt mượt mà bằng `Framer Motion`.
+  - **Nút mở nhanh trên Mobile**: Bổ sung nút pill `[ 📊 Today ]` và kích hoạt trực tiếp từ huy hiệu chuỗi ngày `[ ⚡ 27d ]` ở cụm tiện ích góc trên bên phải màn hình.
+  - **Trải nghiệm kéo vuốt tự nhiên (Natural Pull-Down to Dismiss)**: Trang bị thanh gạt kéo tay (drag handle bar), cho phép người dùng kéo vuốt xuống hoặc chạm nền mờ để đóng ngăn kéo nhẹ nhàng.
+  - **Trải nghiệm Desktop tối ưu**: Ở Cột 1 (Sidebar trái), tích hợp thẻ bấm nhanh `Today's Activity Report` mở popup bảng tổng kết mà không làm xáo trộn bố cục song song của Cột 2 (Roadmap Hub) và Cột 3 (Quick Decks Hub).
+  - Tích hợp đầy đủ các chỉ số: 4 thẻ HUD (thời gian, số thẻ, độ chính xác, XP), biểu đồ nhịp độ 24 giờ, nhật ký các phiên học trong ngày, phân bổ bộ thẻ và phương pháp học.
+
 #### Tái Cấu Trúc Toàn Diện Giao Diện Thống Kê & Bảng Xếp Hạng (Stats & Leaderboard Redesign)
 - **Giải Phóng Không Gian Đáy & Loại Bỏ Hoàn Toàn 4 Tầng Thanh Xếp Chồng (Zero Bottom Clutter)**:
   - **Khắc phục triệt để lỗi "nhìn hơi sợ"**: Trước đây trên mobile có 4 tầng thanh xếp đè lên nhau ở đáy (Global Nav + Bottom 3-Tab Bar + Time Filter Row + Type Filter Row) chiếm tới ~170px chiều dọc, làm chèn ép nội dung và che khuất bảng xếp hạng.
