@@ -191,10 +191,10 @@ class DeckService:
         return deck
 
     @staticmethod
-    async def get_today_review(db: AsyncSession, user_id: int):
+    async def get_today_review(db: AsyncSession, user_id: int, tz_offset: int = -420):
         import math
         from datetime import datetime, timedelta
-        from sqlalchemy import select, func
+        from sqlalchemy import select, func, or_
         from app.modules.deck.models import DeckAttempt, UserDeckGoal, UserDailyProgress, UserCardMastery, Flashcard, FlashcardDeck
         from app.modules.stats.models import UserDailyStats
         
@@ -228,8 +228,8 @@ class DeckService:
                 "estimated_minutes": 0
             }
             
-        now = datetime.utcnow()
-        today_str = now.strftime("%Y-%m-%d")
+        now_local = datetime.utcnow() - timedelta(minutes=tz_offset)
+        today_str = now_local.strftime("%Y-%m-%d")
         
         # Fetch active goal configurations (map deck_id -> goal)
         goals_map = {goal.deck_id: goal for goal in active_goals}
@@ -316,14 +316,14 @@ class DeckService:
                 total_due_new += due_new_count
                 
         # Check if daily activity exists for today in UserDailyStats
-        today_start = datetime(now.year, now.month, now.day)
+        today_start = datetime(now_local.year, now_local.month, now_local.day)
         today_end = today_start + timedelta(days=1)
         stat_res = await db.execute(
             select(UserDailyStats).where(
                 UserDailyStats.user_id == user_id,
                 UserDailyStats.date >= today_start,
                 UserDailyStats.date < today_end,
-                UserDailyStats.is_active == True
+                or_(UserDailyStats.questions_attempted > 0, UserDailyStats.is_frozen == True)
             )
         )
         has_activity_today = stat_res.scalars().first() is not None

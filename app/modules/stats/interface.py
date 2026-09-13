@@ -12,11 +12,12 @@ class StatsInterface:
         is_correct: bool, 
         time_spent: int, 
         local_date_str: Optional[str] = None, 
-        tz_offset: Optional[int] = None
+        tz_offset: Optional[int] = None,
+        commit: bool = True
     ):
         if local_date_str:
             try:
-                local_dt = date.fromisoformat(local_date_str)
+                local_dt = date.fromisoformat(str(local_date_str)[:10])
             except ValueError:
                 local_dt = datetime.utcnow().date()
         else:
@@ -43,9 +44,12 @@ class StatsInterface:
                 questions_attempted=0,
                 correct_answers=0,
                 total_time_seconds=0,
-                accuracy=0.0
+                accuracy=0.0,
+                is_active=True
             )
             db.add(stats)
+        else:
+            stats.is_active = True
         
         stats.questions_attempted = (stats.questions_attempted or 0) + 1
         if is_correct:
@@ -59,7 +63,10 @@ class StatsInterface:
         attempted_cnt = stats.questions_attempted or 1
         stats.accuracy = (correct_cnt / attempted_cnt) * 100
         
-        await db.commit()
+        if commit:
+            await db.commit()
+        else:
+            await db.flush()
         return stats
 
     @staticmethod
@@ -69,11 +76,12 @@ class StatsInterface:
         is_correct: bool, 
         time_spent: int, 
         local_date_str: Optional[str] = None, 
-        tz_offset: Optional[int] = None
+        tz_offset: Optional[int] = None,
+        commit: bool = True
     ):
         if local_date_str:
             try:
-                local_dt = date.fromisoformat(local_date_str)
+                local_dt = date.fromisoformat(str(local_date_str)[:10])
             except ValueError:
                 local_dt = datetime.utcnow().date()
         else:
@@ -97,6 +105,8 @@ class StatsInterface:
             if is_correct:
                 stats.correct_answers = max(0, (stats.correct_answers or 0) - 1)
             stats.total_time_seconds = max(0, (stats.total_time_seconds or 0) - time_spent)
+            if stats.questions_attempted == 0 and not stats.is_frozen:
+                stats.is_active = False
             
             correct_cnt = stats.correct_answers or 0
             attempted_cnt = stats.questions_attempted or 0
@@ -104,7 +114,10 @@ class StatsInterface:
                 stats.accuracy = (correct_cnt / attempted_cnt) * 100
             else:
                 stats.accuracy = 0.0
-            await db.commit()
+            if commit:
+                await db.commit()
+            else:
+                await db.flush()
             return stats
         return None
 

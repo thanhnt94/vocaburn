@@ -76,12 +76,12 @@ async def _build_user_roadmap_reminder_message(db, user_id: int):
         if due_count <= 0:
             return None, None, None
         title = "🎯 Đến giờ học từ vựng rồi! (Vocaburn)"
-        body = f"<b>🎯 Đến giờ học từ vựng rồi! (Vocaburn)</b>\n\n🔥 <b>Streak hiện tại:</b> {streak} ngày\n📚 <b>Thẻ cần ôn tập:</b> {due_count} thẻ\n\n👉 <a href='https://vocaburn.click/dashboard'>Bắt đầu học ngay</a>"
-        return title, body, "https://vocaburn.click/dashboard"
+        body = f"<b>🎯 Đến giờ học từ vựng rồi! (Vocaburn)</b>\n\n🔥 <b>Streak hiện tại:</b> {streak} ngày\n📚 <b>Thẻ cần ôn tập:</b> {due_count} thẻ\n\n👉 <a href='https://vocab.inmind.site/dashboard'>Bắt đầu học ngay</a>"
+        return title, body, "https://vocab.inmind.site/dashboard"
 
     lines = ["<b>🎯 NỔI BẬT LỘ TRÌNH HỌC HÔM NAY (VOCABURN)</b>\n"]
     all_completed = True
-    first_action_url = "https://vocaburn.click/dashboard"
+    first_action_url = "https://vocab.inmind.site/dashboard"
 
     for deck in decks:
         title = deck.get("title", "Bộ thẻ")
@@ -91,8 +91,8 @@ async def _build_user_roadmap_reminder_message(db, user_id: int):
         next_url = status.get("next_action_url", "/dashboard")
         next_label = status.get("next_action_label", "Học tiếp")
 
-        full_next_url = f"https://vocaburn.click{next_url}" if next_url.startswith("/") else next_url
-        if first_action_url == "https://vocaburn.click/dashboard" and next_url != "/dashboard":
+        full_next_url = f"https://vocab.inmind.site{next_url}" if next_url.startswith("/") else next_url
+        if first_action_url == "https://vocab.inmind.site/dashboard" and next_url != "/dashboard":
             first_action_url = full_next_url
 
         pipeline = status.get("pipeline", [])
@@ -198,7 +198,7 @@ async def check_advanced_reminders_for_minute(current_time_str: str, now: dateti
                 try:
                     title = "📊 BÁO CÁO TIẾN ĐỘ TUẦN (VOCABURN)"
                     body = "Chúc mừng bạn đã hoàn thành một tuần học tập chăm chỉ! Hãy tiếp tục duy trì ngọn lửa đam mê trong tuần mới nhé!"
-                    await TelegramService.send_message(db, config["telegram_chat_id"], f"<b>{title}</b>\n{body}\n\n<a href='https://vocaburn.click/dashboard'>👉 Xem thống kê chi tiết</a>", message_type="weekly_summary")
+                    await TelegramService.send_message(db, config["telegram_chat_id"], f"<b>{title}</b>\n{body}\n\n<a href='https://vocab.inmind.site/dashboard'>👉 Xem thống kê chi tiết</a>", message_type="weekly_summary")
                 except Exception as e:
                     logger.error(f"[SCHEDULER] Error processing weekly summary for user {config.get('local_user_id')}: {e}")
 

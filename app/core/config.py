@@ -22,10 +22,13 @@ class Settings(BaseSettings):
     
     # SSO / CentralAuth
     SECRET_KEY: str = os.getenv("SECRET_KEY", "vocaburn_default_secret_key_change_me_123456789")
-    CENTRAL_AUTH_URL: str = os.getenv("CENTRAL_AUTH_URL", "http://localhost:5000")
+    CENTRAL_AUTH_URL: str = os.getenv("CENTRAL_AUTH_URL", "https://auth.inmind.site")
+    CENTRALAUTH_INTERNAL_URL: str = os.getenv("CENTRALAUTH_INTERNAL_URL", "http://127.0.0.1:5050")
+    CENTRALAUTH_QUEUE_TOKEN: str = os.getenv("CENTRALAUTH_QUEUE_TOKEN", os.getenv("QUEUE_API_SECRET", "super-secret-token-123"))
+    QUEUE_API_SECRET: str = os.getenv("QUEUE_API_SECRET", os.getenv("CENTRALAUTH_QUEUE_TOKEN", "super-secret-token-123"))
     CLIENT_ID: str = os.getenv("CLIENT_ID", "vocaburn-v1")
     CLIENT_SECRET: str = os.getenv("CLIENT_SECRET", "vocaburn_secret_123")
-    APP_BASE_URL: str = os.getenv("APP_BASE_URL", "") # Public URL of this app
+    APP_BASE_URL: str = os.getenv("APP_BASE_URL", "https://vocab.inmind.site")
     
     # AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")

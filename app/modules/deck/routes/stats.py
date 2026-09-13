@@ -18,7 +18,9 @@ router = APIRouter(tags=["Deck Stats"])
 @router.get("/stats/practice")
 async def get_practice_stats(request: Request, deck_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     query = select(
         UserPracticeStats.practice_mode,
@@ -54,7 +56,9 @@ async def get_practice_stats(request: Request, deck_id: Optional[int] = None, db
 @router.get("/stats")
 async def get_deck_stats(request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     # 1. Overall accuracy for current user
     total_res = await db.execute(
@@ -298,7 +302,9 @@ async def get_user_badges(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.gamification.models import UserGamification, Badge, UserBadge
     
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     # Get user gamification model
     user_gamify_res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
@@ -388,7 +394,9 @@ async def get_heatmap_stats(request: Request, db: AsyncSession = Depends(get_db)
     from app.modules.stats.models import UserDailyStats
     
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     today = datetime.utcnow().date()
     start_date = today - timedelta(days=365)
@@ -425,7 +433,9 @@ async def get_weekly_report(request: Request, db: AsyncSession = Depends(get_db)
     from sqlalchemy import desc
     
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     today = datetime.utcnow().date()
     
@@ -534,7 +544,9 @@ async def get_weekly_report(request: Request, db: AsyncSession = Depends(get_db)
 @router.get("/quizzes/{deck_id}/mastery")
 async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     # Count total cards in the deck
     c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
@@ -640,7 +652,9 @@ async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = De
 @router.get("/stats/leitner")
 async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     # Query count of cards grouped by box_level
     stmt = select(
@@ -697,7 +711,9 @@ async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(
 @router.get("/stats/speed-accuracy")
 async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     # Run database-level aggregation to bin and summarize speeds
     stmt = select(
@@ -802,7 +818,9 @@ async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(
 @router.get("/stats/review-forecast")
 async def get_review_forecast(request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
-    user_id = user.id if user else 1
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = user.id
     
     # Today's date in UTC
     now = datetime.utcnow()

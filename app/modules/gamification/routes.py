@@ -373,11 +373,17 @@ async def get_daily_challenges(
     from sqlalchemy import and_, cast, String
 
     current_user = await AuthService.get_current_user(request, db)
-    user_id = current_user.id if current_user else 1
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = current_user.id
 
-    # Always synchronize to UTC date
-    activity_date = datetime.utcnow().date()
+    tz_offset = request.query_params.get("tz_offset", -420)
+    try:
+        tz_offset = int(tz_offset)
+    except (ValueError, TypeError):
+        tz_offset = -420
 
+    activity_date = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
     today_str = activity_date.isoformat()
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -560,9 +566,17 @@ async def get_badges_progress(request: Request, db: AsyncSession = Depends(get_d
 async def get_shop_status(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.auth.services.auth_service import AuthService
     current_user = await AuthService.get_current_user(request, db)
-    user_id = current_user.id if current_user else 1
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = current_user.id
 
-    stats = await GamificationInterface.get_user_stats(db, user_id)
+    tz_offset = request.query_params.get("tz_offset", -420)
+    try:
+        tz_offset = int(tz_offset)
+    except (ValueError, TypeError):
+        tz_offset = -420
+
+    stats = await GamificationInterface.get_user_stats(db, user_id, tz_offset=tz_offset)
     return {
         "streak_points": stats.get("streak_points", 0),
         "streak_freeze_count": stats.get("streak_freeze_count", 0),
@@ -574,7 +588,9 @@ async def get_shop_status(request: Request, db: AsyncSession = Depends(get_db)):
 async def buy_streak_freeze_endpoint(request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.auth.services.auth_service import AuthService
     current_user = await AuthService.get_current_user(request, db)
-    user_id = current_user.id if current_user else 1
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = current_user.id
 
     res = await GamificationInterface.buy_streak_freeze(db, user_id)
     if not res.get("success"):

@@ -9,7 +9,12 @@ router = APIRouter(tags=["Deck"])
 @router.get("/today-review")
 async def get_today_review_endpoint(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
+    tz_offset = request.query_params.get("tz_offset", -420)
     try:
-        return await DeckService.get_today_review(db, user_id)
+        tz_offset = int(tz_offset)
+    except (ValueError, TypeError):
+        tz_offset = -420
+    try:
+        return await DeckService.get_today_review(db, user_id, tz_offset=tz_offset)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

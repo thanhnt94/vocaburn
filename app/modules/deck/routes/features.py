@@ -1746,8 +1746,16 @@ async def get_deck_tts_status(
         "cards": cards_list
     }
 
+def _verify_queue_token(request: Request):
+    from app.core.config import settings
+    token = request.headers.get("X-Queue-Token")
+    expected = getattr(settings, "CENTRALAUTH_QUEUE_TOKEN", getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123"))
+    if not token or token != expected:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing X-Queue-Token")
+
 @router.post("/tts-callback")
-async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+async def tts_queue_callback(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    _verify_queue_token(request)
     task_id = data.get("id")
     status = data.get("status")
     result = data.get("result")
@@ -1804,7 +1812,8 @@ async def tts_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     return {"status": "ok"}
 
 @router.post("/image-callback")
-async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+async def image_queue_callback(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    _verify_queue_token(request)
     task_id = data.get("id")
     status = data.get("status")
     result = data.get("result")
@@ -1855,7 +1864,8 @@ async def image_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
     return {"status": "ok"}
 
 @router.post("/furigana-callback")
-async def furigana_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+async def furigana_queue_callback(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    _verify_queue_token(request)
     task_id = data.get("id")
     status = data.get("status")
     result = data.get("result")
@@ -1902,7 +1912,8 @@ async def furigana_queue_callback(data: dict, db: AsyncSession = Depends(get_db)
     return {"status": "ok"}
 
 @router.post("/ai-callback")
-async def ai_queue_callback(data: dict, db: AsyncSession = Depends(get_db)):
+async def ai_queue_callback(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
+    _verify_queue_token(request)
     task_id = data.get("id")
     status = data.get("status")
     result = data.get("result")

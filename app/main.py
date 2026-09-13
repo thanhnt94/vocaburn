@@ -20,15 +20,10 @@ async def lifespan(app: FastAPI):
     from app.modules.notification.services.reminder_scheduler import start_scheduler
     scheduler_task = start_scheduler()
     
-    # Start Telegram Bot in background
-    from app.modules.notification.services.bot_service import init_bot_app, stop_bot_app
-    asyncio.create_task(init_bot_app())
-    
     yield
     
     # Cancel task on shutdown
     scheduler_task.cancel()
-    await stop_bot_app()
     try:
         await scheduler_task
     except asyncio.CancelledError:

@@ -97,6 +97,21 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
     time_spent = int(data.get("time_spent", 0))
     card_id = int(data.get("card_id", data.get("question_id", 0)))
     local_date = data.get("local_date")
+    tz_offset = data.get("tz_offset")
+    if tz_offset is not None:
+        try:
+            tz_offset = int(tz_offset)
+        except (ValueError, TypeError):
+            tz_offset = -420
+    else:
+        tz_offset = -420
+
+    if local_date:
+        today_str = str(local_date)[:10]
+    else:
+        now_local = datetime.utcnow() - timedelta(minutes=tz_offset)
+        today_str = now_local.strftime("%Y-%m-%d")
+
     is_practice = data.get("is_practice", False)
 
     # Map incoming rating or fall back to is_correct early
@@ -340,9 +355,6 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
         goal = goal_res.scalar_one_or_none()
         if goal:
 
-            # Always synchronize to UTC date
-            today_str = datetime.utcnow().strftime("%Y-%m-%d")
-            
             prog_res = await db.execute(
                 select(UserDailyProgress).filter(
                     UserDailyProgress.goal_id == goal.id,
@@ -352,7 +364,13 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
             progress = prog_res.scalar_one_or_none()
             if not progress:
                 # Count other new cards studied today for this deck to avoid mismatch
-                today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                try:
+                    today_local_dt = date.fromisoformat(today_str)
+                except Exception:
+                    today_local_dt = datetime.utcnow().date()
+                today_start_local = datetime(today_local_dt.year, today_local_dt.month, today_local_dt.day)
+                today_start_utc = today_start_local + timedelta(minutes=tz_offset)
+
                 first_answers = select(
                     UserAnswer.card_id,
                     func.min(UserAnswer.created_at).label("first_answered_at")
@@ -370,7 +388,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                     .join(Flashcard, Flashcard.id == first_answers.c.card_id)
                     .where(
                         Flashcard.deck_id == goal.deck_id,
-                        first_answers.c.first_answered_at >= today,
+                        first_answers.c.first_answered_at >= today_start_utc,
                         first_answers.c.card_id != card_id
                     )
                 )
@@ -490,15 +508,22 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
             "level_up"
         )
 
-    # --- Achievements Check ---
-    from app.modules.deck.routes.background_tasks import check_badges_async
-    goal_streak = goal_update_info["streak_count"] if goal_update_info else 0
-    background_tasks.add_task(check_badges_async, user_id, time_spent, is_correct, goal_streak)
+    # --- Achievements Check (throttled to avoid SQLite lock contention) ---
+    should_check_badges = (
+        is_first_ever
+        or (goal_update_info is not None and goal_update_info.get("just_completed"))
+        or (mastery_update_info is not None and mastery_update_info.get("level_up"))
+        or ((attempt.total_cards or 0) % 5 == 0)
+    )
+    if should_check_badges:
+        from app.modules.deck.routes.background_tasks import check_badges_async
+        goal_streak = goal_update_info["streak_count"] if goal_update_info else 0
+        background_tasks.add_task(check_badges_async, user_id, time_spent, is_correct, goal_streak)
     
     unlocked_badge_info = None
 
     # --- Stats Logic ---
-    await StatsInterface.record_activity(db, user_id, is_correct, time_spent)
+    await StatsInterface.record_activity(db, user_id, is_correct, time_spent, local_date_str=today_str, tz_offset=tz_offset, commit=False)
     
     # Check if deck is 100% mastered (Lazy check: only if card just reached level 5)
     deck_mastered = False
@@ -549,6 +574,22 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
     card_id = int(data.get("card_id", 0))
     if not card_id:
         return JSONResponse(status_code=400, content={"error": "card_id is required"})
+
+    tz_offset = data.get("tz_offset")
+    if tz_offset is not None:
+        try:
+            tz_offset = int(tz_offset)
+        except (ValueError, TypeError):
+            tz_offset = -420
+    else:
+        tz_offset = -420
+
+    local_date = data.get("local_date")
+    if local_date:
+        today_str = str(local_date)[:10]
+    else:
+        now_local = datetime.utcnow() - timedelta(minutes=tz_offset)
+        today_str = now_local.strftime("%Y-%m-%d")
 
     # Find the most recent UserAnswer for this user and card
     ans_stmt = (
@@ -715,7 +756,6 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
         )
         goal = goal_res.scalar_one_or_none()
         if goal:
-            today_str = datetime.utcnow().strftime("%Y-%m-%d")
             prog_res = await db.execute(
                 select(UserDailyProgress).filter(
                     UserDailyProgress.goal_id == goal.id,
@@ -765,7 +805,9 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
                     }
 
     # 5. Revert Stats
-    await StatsInterface.revert_activity(db, user_id, is_correct, time_spent)
+    await StatsInterface.revert_activity(
+        db, user_id, is_correct, time_spent, local_date_str=today_str, tz_offset=tz_offset, commit=False
+    )
 
     await db.commit()
 

@@ -60,6 +60,12 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id_int = user.id
     
+    tz_offset = request.query_params.get("tz_offset", -420)
+    try:
+        tz_offset = int(tz_offset)
+    except (ValueError, TypeError):
+        tz_offset = -420
+    
     from sqlalchemy import func, case, or_
     from sqlalchemy.orm import selectinload
     from app.modules.deck.models import FlashcardDeck, DeckAttempt, Flashcard, UserAnswer, DeckCollaborator, UserCardMastery, UserDeckSettings
@@ -201,12 +207,6 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         FlashcardDeck.created_at.desc()
     ).limit(30 if is_admin_user else 12)
 
-    # Ensure streak is updated if user has recent activity
-    try:
-        await GamificationInterface.update_streak(db, user_id_int)
-    except Exception:
-        pass
-
     # Fetch all database queries safely and sequentially
     res_a = await db.execute(query_a)
     res_b = await db.execute(query_b)
@@ -214,7 +214,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     res_users = await db.execute(query_users)
     res_mastery = await db.execute(query_mastery)
     res_user_settings = await db.execute(query_user_settings)
-    gamify_data = await GamificationInterface.get_user_stats(db, user_id_int)
+    gamify_data = await GamificationInterface.get_user_stats(db, user_id_int, tz_offset=tz_offset)
     stats_summary = await StatsInterface.get_user_summary(db, user_id_int)
     notifications = await NotificationInterface.get_latest(db, user_id_int)
     unread_count = await NotificationInterface.get_unread_count(db, user_id_int)
