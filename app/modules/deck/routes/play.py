@@ -1760,7 +1760,13 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         today_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = today_start + timedelta(days=1)
         if is_roadmap_review:
-            cutoff_time = day_end # Mặc định theo ngày: mốc 23:59:59 của ngày hôm nay
+            overdue_days = 1
+            if fsrs_step:
+                if "overdue_days" in fsrs_step:
+                    overdue_days = max(1, int(fsrs_step.get("overdue_days", 1)))
+                elif "overdue_hours" in fsrs_step:
+                    overdue_days = max(1, round(int(fsrs_step.get("overdue_hours", 24)) / 24))
+            cutoff_time = day_end - timedelta(days=(overdue_days - 1))
         else:
             cutoff_time = now_utc
 

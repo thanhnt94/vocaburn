@@ -26,6 +26,7 @@ export interface PipelineStepConfig {
   daily_count?: number
   question_count?: number
   pass_threshold?: number
+  overdue_days?: number
   overdue_hours?: number
   target_minutes?: number
 }
@@ -90,7 +91,7 @@ const PRESETS: { name: string; icon: string; desc: string; steps: PipelineStepCo
     steps: [
       { id: 'p1', type: 'speed_skim', daily_count: 20 },
       { id: 'p2', type: 'mcq', question_count: 20, pass_threshold: 80 },
-      { id: 'p3', type: 'fsrs_review', overdue_hours: 24 }
+      { id: 'p3', type: 'fsrs_review', overdue_days: 1, overdue_hours: 24 }
     ]
   },
   {
@@ -100,7 +101,7 @@ const PRESETS: { name: string; icon: string; desc: string; steps: PipelineStepCo
     steps: [
       { id: 'p1', type: 'new_cards', daily_count: 20 },
       { id: 'p2', type: 'mcq', question_count: 20, pass_threshold: 80 },
-      { id: 'p3', type: 'fsrs_review', overdue_hours: 24 }
+      { id: 'p3', type: 'fsrs_review', overdue_days: 1, overdue_hours: 24 }
     ]
   },
   {
@@ -110,7 +111,7 @@ const PRESETS: { name: string; icon: string; desc: string; steps: PipelineStepCo
     steps: [
       { id: 'p1', type: 'new_cards', daily_count: 15 },
       { id: 'p2', type: 'typing', question_count: 15, pass_threshold: 80 },
-      { id: 'p3', type: 'fsrs_review', overdue_hours: 24 }
+      { id: 'p3', type: 'fsrs_review', overdue_days: 1, overdue_hours: 24 }
     ]
   },
   {
@@ -121,7 +122,7 @@ const PRESETS: { name: string; icon: string; desc: string; steps: PipelineStepCo
       { id: 'p1', type: 'new_cards', daily_count: 20 },
       { id: 'p2', type: 'mcq', question_count: 20, pass_threshold: 80 },
       { id: 'p3', type: 'typing', question_count: 20, pass_threshold: 80 },
-      { id: 'p4', type: 'fsrs_review', overdue_hours: 24 }
+      { id: 'p4', type: 'fsrs_review', overdue_days: 1, overdue_hours: 24 }
     ]
   },
   {
@@ -129,7 +130,7 @@ const PRESETS: { name: string; icon: string; desc: string; steps: PipelineStepCo
     icon: '🔄',
     desc: 'Chỉ tập trung ôn thẻ đến hạn FSRS',
     steps: [
-      { id: 'p1', type: 'fsrs_review', overdue_hours: 24 }
+      { id: 'p1', type: 'fsrs_review', overdue_days: 1, overdue_hours: 24 }
     ]
   }
 ]
@@ -145,7 +146,7 @@ export function DeckRoadmapGoalForm({
   const [steps, setSteps] = useState<PipelineStepConfig[]>([
     { id: 's1', type: 'new_cards', daily_count: 20 },
     { id: 's2', type: 'mcq', question_count: 20, pass_threshold: 80 },
-    { id: 's3', type: 'fsrs_review', overdue_hours: 24 }
+    { id: 's3', type: 'fsrs_review', overdue_days: 1, overdue_hours: 24 }
   ])
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -164,6 +165,7 @@ export function DeckRoadmapGoalForm({
           daily_count: p.daily_count ?? p.progress?.target ?? 20,
           question_count: p.question_count ?? 20,
           pass_threshold: p.pass_threshold ?? 80,
+          overdue_days: p.overdue_days !== undefined ? Number(p.overdue_days) : (p.overdue_hours ? Math.max(1, Math.round(Number(p.overdue_hours) / 24)) : 1),
           overdue_hours: p.overdue_hours !== undefined ? Number(p.overdue_hours) : 24,
           target_minutes: p.target_minutes ?? 15
         }))
@@ -184,6 +186,7 @@ export function DeckRoadmapGoalForm({
           daily_count: p.daily_count ?? 20,
           question_count: p.question_count ?? 20,
           pass_threshold: p.pass_threshold ?? 80,
+          overdue_days: p.overdue_days !== undefined ? Number(p.overdue_days) : (p.overdue_hours ? Math.max(1, Math.round(Number(p.overdue_hours) / 24)) : 1),
           overdue_hours: p.overdue_hours !== undefined ? Number(p.overdue_hours) : 24,
           target_minutes: p.target_minutes ?? 15
         }))
@@ -233,6 +236,7 @@ export function DeckRoadmapGoalForm({
       daily_count: 20,
       question_count: 20,
       pass_threshold: 80,
+      overdue_days: 1,
       overdue_hours: 24,
       target_minutes: 15
     }
@@ -267,7 +271,9 @@ export function DeckRoadmapGoalForm({
         item.question_count = Math.max(1, Number(s.question_count) || 20)
         item.pass_threshold = Math.min(100, Math.max(1, Number(s.pass_threshold) || 80))
       } else if (s.type === 'fsrs_review') {
-        item.overdue_hours = Number(s.overdue_hours !== undefined ? s.overdue_hours : 24)
+        const days = Number(s.overdue_days !== undefined ? s.overdue_days : (s.overdue_hours ? Math.max(1, Math.round(Number(s.overdue_hours) / 24)) : 1))
+        item.overdue_days = days
+        item.overdue_hours = days * 24
       } else if (s.type === 'study_time') {
         item.target_minutes = Math.max(1, Number(s.target_minutes) || 15)
       }
@@ -643,21 +649,31 @@ export function DeckRoadmapGoalForm({
 
                   {/* TYPE: FSRS REVIEW */}
                   {step.type === 'fsrs_review' && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                          Quy chuẩn ôn tập:
-                        </span>
-                        <div className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-black flex items-center gap-1.5">
-                          <span>📅 Mặc định theo ngày (Mốc 23h59 hôm nay)</span>
-                        </div>
+                    <div className="space-y-2.5">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <label className="text-xs font-bold text-slate-700 whitespace-nowrap flex items-center gap-1">
+                          <span>Điều kiện thẻ cần ôn (UTC +0):</span>
+                        </label>
+
+                        <select
+                          value={step.overdue_days ?? (step.overdue_hours ? Math.max(1, Math.round(step.overdue_hours / 24)) : 1)}
+                          onChange={(e) => {
+                            const days = Number(e.target.value)
+                            setSteps(prev => prev.map((s, i) => i === index ? { ...s, overdue_days: days, overdue_hours: days * 24 } : s))
+                          }}
+                          className="h-8 bg-white border border-slate-200 rounded-lg px-2.5 text-xs font-black text-slate-800 focus:border-amber-500 outline-none cursor-pointer"
+                        >
+                          <option value={1}>⭐ Quá hạn từ 1 ngày (Mốc 23h59 UTC hôm nay - Khuyên dùng)</option>
+                          <option value={2}>Quá hạn từ 2 ngày (Trễ từ hôm qua trở về trước)</option>
+                          <option value={3}>Quá hạn từ 3 ngày (Trễ từ 3 ngày trước)</option>
+                        </select>
                       </div>
 
                       {/* Explanation Note for Daily Cutoff */}
                       <p className="text-[10px] text-amber-700/90 bg-amber-50/70 border border-amber-200/60 p-2 rounded-xl flex items-start gap-1.5 leading-relaxed">
                         <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                         <span>
-                          <b>Cố định theo ngày:</b> Toàn bộ thẻ có hạn ôn đến hết 23h59 hôm nay sẽ được tổng hợp một lần. Số lượng thẻ cần ôn giữ <b>cố định</b> và không bị tăng thêm khi học từ mới hay khi đánh giá lại thẻ trong ngày!
+                          <b>Mốc tính UTC +0:</b> Thẻ có hạn đến 23h59 UTC hôm nay (đủ chu kỳ $\ge$ {step.overdue_days ?? 1} ngày) sẽ được đưa vào danh sách ôn. Thẻ vừa học hoặc vừa ôn hôm nay có chu kỳ 1m/10m chắc chắn <b>không bao giờ bị tính nhầm</b> vào danh sách này!
                         </span>
                       </p>
                     </div>

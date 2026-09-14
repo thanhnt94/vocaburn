@@ -132,8 +132,20 @@ class RoadmapService:
             )
         ) or 0
 
-        # Mặc định theo ngày: cutoff_time là cuối ngày hôm đó (23:59:59 của ngày mục tiêu)
-        cutoff_time = day_end
+        fsrs_overdue_days = 1
+        for st in pipeline_input:
+            if st.get("type") == "fsrs_review":
+                if "overdue_days" in st:
+                    fsrs_overdue_days = max(1, int(st.get("overdue_days", 1)))
+                elif "overdue_hours" in st:
+                    fsrs_overdue_days = max(1, round(int(st.get("overdue_hours", 24)) / 24))
+                break
+
+        # Thời gian tính theo UTC +0:
+        # Quá 1 ngày: cutoff_time = day_end (23:59:59 UTC của ngày hôm đó)
+        # Quá 2 ngày: cutoff_time = day_end - 1 ngày = day_start (23:59:59 UTC hôm trước)
+        # Quá N ngày: cutoff_time = day_end - (N - 1) ngày
+        cutoff_time = day_end - timedelta(days=(fsrs_overdue_days - 1))
 
         review_stats_res = await db.execute(
             select(
@@ -330,9 +342,11 @@ class RoadmapService:
                     "label": "All cards skimmed" if is_all_learned else "Speed Skim New Words"
                 })
             elif stype == "fsrs_review":
+                overdue_days = int(st.get("overdue_days") or (round(int(st.get("overdue_hours", 24)) / 24) if st.get("overdue_hours") else 1) or 1)
                 is_done = (review_still_due <= 0) or (review_due_today <= 0) or (review_completed_today >= review_due_today)
                 step_data.update({
-                    "overdue_hours": 24,
+                    "overdue_days": overdue_days,
+                    "overdue_hours": overdue_days * 24,
                     "done": is_done,
                     "progress": {
                         "due_count": review_due_today,

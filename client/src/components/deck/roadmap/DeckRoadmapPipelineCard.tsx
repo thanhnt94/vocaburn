@@ -10,6 +10,7 @@ export interface PipelineStepItem {
   daily_count?: number
   question_count?: number
   pass_threshold?: number
+  overdue_days?: number
   overdue_hours?: number
   target_minutes?: number
 }
@@ -153,7 +154,7 @@ export function DeckRoadmapPipelineCard({
                     {step.type === 'speed_skim' && `Lướt nhanh ${step.daily_count || 20} từ mới qua Flashcard (1-chạm)`}
                     {step.type === 'mcq' && `Làm bài test trắc nghiệm (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
                     {step.type === 'typing' && `Gõ chính xác từ vựng (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
-                    {step.type === 'fsrs_review' && `Ôn tập thẻ FSRS v6 đến hạn trong ngày (mốc 23h59)`}
+                    {step.type === 'fsrs_review' && `Ôn tập thẻ FSRS v6 quá hạn từ ${step.overdue_days || (step.overdue_hours ? Math.round(step.overdue_hours / 24) : 1)} ngày (mốc 23h59 UTC)`}
                     {step.type === 'study_time' && `Mục tiêu thời gian học (${step.target_minutes || 15} phút)`}
                   </span>
                 </div>

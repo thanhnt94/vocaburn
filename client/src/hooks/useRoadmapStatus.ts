@@ -9,6 +9,7 @@ export interface PipelineStepStatus {
   url: string
   progress?: Record<string, any>
   daily_count?: number
+  overdue_days?: number
   overdue_hours?: number
   question_count?: number
   pass_threshold?: number

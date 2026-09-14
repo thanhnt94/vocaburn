@@ -735,10 +735,18 @@ export default function FlashcardPlay() {
     const isFsrsMode = activeMode === 'fsrs' || isRoadmapReview;
     if (!session || !session.questions || !isFsrsMode) return 0;
     const now = currentTime.getTime();
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
+    const currentStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'fsrs_review');
+    const overdueDays = currentStep?.overdue_days 
+      ?? (currentStep?.overdue_hours ? Math.max(1, Math.round(currentStep.overdue_hours / 24)) : 1);
+
+    // Tính toán mốc ngày theo chuẩn UTC +0
+    const nowUtc = new Date(now);
+    const utcYear = nowUtc.getUTCFullYear();
+    const utcMonth = nowUtc.getUTCMonth();
+    const utcDate = nowUtc.getUTCDate();
+    const todayStartUtc = Date.UTC(utcYear, utcMonth, utcDate, 0, 0, 0, 0);
+    const todayEndUtc = Date.UTC(utcYear, utcMonth, utcDate + 1, 0, 0, 0, 0);
+    const cutoffTimeUtc = todayEndUtc - (overdueDays - 1) * 86400000;
 
     return session.questions.filter((q: any, idx: number) => {
       if (q.is_ignored) return false;
@@ -749,7 +757,7 @@ export default function FlashcardPlay() {
       if (isRoadmapReview) {
         if (q.fsrs?.first_learned) {
           const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
-          if (firstLearnedDate >= todayStart.getTime()) return false;
+          if (firstLearnedDate >= todayStartUtc) return false;
         }
 
         // Exclude cards already answered in this session
@@ -758,14 +766,14 @@ export default function FlashcardPlay() {
         // Exclude cards already reviewed today
         if (q.fsrs?.last_review) {
           const lastRevDate = parseUTCDate(q.fsrs.last_review).getTime();
-          if (lastRevDate >= todayStart.getTime() && lastRevDate < todayEnd.getTime()) {
+          if (lastRevDate >= todayStartUtc && lastRevDate < todayEndUtc) {
             return false;
           }
         }
 
-        // Card is due on or before end of today (23:59:59)
+        // Card is due on or before cutoffTimeUtc
         const dueDate = parseUTCDate(q.fsrs.due).getTime();
-        return dueDate <= todayEnd.getTime();
+        return dueDate <= cutoffTimeUtc;
       }
 
       const isDue = parseUTCDate(q.fsrs.due).getTime() - 30000 <= now;
