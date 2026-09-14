@@ -1361,6 +1361,15 @@ export default function Dashboard() {
     }
   })
 
+  const { data: globalFocus } = useQuery({
+    queryKey: ['global-focus-summary'],
+    queryFn: async () => {
+      const res = await axios.get('/api/v1/deck/global-focus/summary')
+      return res.data
+    },
+    staleTime: 15 * 1000
+  })
+
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: async () => {
@@ -1821,6 +1830,31 @@ export default function Dashboard() {
         {/* DESKTOP CONTENT COLUMNS (Col 5 + Col 4) */}
         {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
         <section className="col-span-5 h-full overflow-hidden flex flex-col">
+          {globalFocus && globalFocus.total_due > 0 && (
+            <div className="p-2 pb-0 shrink-0">
+              <div 
+                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-base shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    ⚡
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black tracking-tight text-white">Chế Độ Học Tập Tổng Hợp</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px]">{globalFocus.total_due} thẻ FSRS</span>
+                    </div>
+                    <p className="text-[11px] text-indigo-200 truncate mt-0.5">Gộp toàn bộ thẻ đến hạn từ {globalFocus.active_decks_count} bộ thẻ đang kích hoạt</p>
+                  </div>
+                </div>
+                <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 shadow-sm">
+                  <span>Học ngay</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </div>
+          )}
           <DashboardRoadmapSection
             roadmapDecks={sortedRoadmapDecks}
             remainingTime={remainingTime}
@@ -2029,6 +2063,31 @@ export default function Dashboard() {
 
         {/* MOBILE MAIN CONTENT */}
         <div className="flex-1 bg-[#f8fafc] overflow-hidden relative flex flex-col min-h-0">
+          {globalFocus && globalFocus.total_due > 0 && (
+            <div className="px-2.5 pt-2.5 shrink-0">
+              <div 
+                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                className="p-3 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                    ⚡
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
+                      <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-slate-950 font-black text-[9px]">{globalFocus.total_due} thẻ</span>
+                    </div>
+                    <p className="text-[10px] text-indigo-200 truncate mt-0.5">Học tập tổng hợp: {globalFocus.active_decks_count} bộ thẻ đến hạn</p>
+                  </div>
+                </div>
+                <div className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-xs">
+                  <span>Học ngay</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </div>
+            </div>
+          )}
           {activeHomeTab === 'roadmap' ? (
             <DashboardRoadmapSection
               roadmapDecks={sortedRoadmapDecks}
