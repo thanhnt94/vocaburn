@@ -91,25 +91,71 @@ class AudioGenerator:
 
         return cls.EDGE_VOICES.get('vi', 'vi-VN-HoaiMyNeural')
 
-    @staticmethod
-    def parse_segments(text: str, default_lang: str = "vi"):
+    @classmethod
+    def clean_text_for_tts(cls, text: str) -> str:
+        """
+        Cleans text for TTS generation by stripping Anki furigana brackets, HTML ruby tags,
+        sound tags, cloze deletions, and formatting noise.
+        Converts '東京[とうきょう]' -> '東京' (so Edge TTS pronounces the kanji naturally instead of reading both).
+        """
+        if not text:
+            return ""
+        if not isinstance(text, str):
+            text = str(text)
+
+        # 1. Remove Anki sound tags: [sound:filename.mp3]
+        s = re.sub(r'\[sound:[^\]]+\]', '', text, flags=re.IGNORECASE)
+
+        # 2. Handle HTML ruby & tags: <ruby>漢字<rt>かんじ</rt></ruby> -> 漢字
+        s = re.sub(r'<rt>[\s\S]*?<\/rt>', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'<rp>[\s\S]*?<\/rp>', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'<[^>]+>', '', s)
+
+        # 3. Handle Anki cloze deletion: {{c1::answer::hint}} or {{c1::answer}} -> answer
+        s = re.sub(r'\{\{c\d+::(.*?)(?:::.*?)?\}\}', r'\1', s)
+
+        # 4. Handle Anki / Japanese Furigana: Kanji[Furigana] or general [Furigana]
+        # Keep multi-language bracket syntax if text uses [ja:...][vi:...] by protecting [lang:
+        # Everything else in brackets [ ... ] is removed (e.g. [とうきょう], [い], [かんじ], [b], [/b], [color=...])
+        s = re.sub(r'\[(?![a-z]{2,3}(?:-[a-zA-Z0-9]+)?:)[^\]]+\]', '', s)
+
+        # Fallback: If text was ONLY bracket content like "[とうきょう]" and became empty
+        if not s.strip():
+            raw_no_html = re.sub(r'<[^>]+>', '', text).strip()
+            s = re.sub(r'^\[|\]$', '', raw_no_html).strip()
+
+        # 5. Clean up extra spaces around Japanese characters (Kanji/Kana) caused by Anki space separator
+        s = re.sub(r'([一-龯ぁ-んァ-ン])\s+([一-龯ぁ-んァ-ン])', r'\1\2', s)
+
+        # 6. Normalize whitespace
+        s = re.sub(r'[ \t]+', ' ', s)
+        return s.strip()
+
+    @classmethod
+    def parse_segments(cls, text: str, default_lang: str = "vi"):
         if not text:
             return []
-            
+
+        cleaned_text = cls.clean_text_for_tts(text)
+        if not cleaned_text:
+            return []
+
         segments = []
         
         # Check if text is in bracket format, e.g., [ja:人生][vi:cuộc đời]
-        bracket_matches = re.findall(r'\[([a-z]{2,3}(?:-[a-zA-Z0-9]+)?):\s*([^\]]+)\]', text)
+        bracket_matches = re.findall(r'\[([a-z]{2,3}(?:-[a-zA-Z0-9]+)?):\s*([^\]]+)\]', cleaned_text)
         if bracket_matches:
             for lang, content in bracket_matches:
-                segments.append({
-                    'text': content.strip(),
-                    'lang': lang.strip().lower()
-                })
+                clean_content = cls.clean_text_for_tts(content)
+                if clean_content:
+                    segments.append({
+                        'text': clean_content,
+                        'lang': lang.strip().lower()
+                    })
             return segments
             
         # Fallback to line-by-line format
-        lines = text.split('\n')
+        lines = cleaned_text.split('\n')
         current_lang = default_lang if default_lang not in ("multi", "auto") else "vi"
         
         for line in lines:
@@ -122,15 +168,19 @@ class AudioGenerator:
                 lang = match.group(1).strip().lower()
                 content = match.group(3).strip()
                 current_lang = lang
-                segments.append({
-                    'text': content,
-                    'lang': lang
-                })
+                clean_content = cls.clean_text_for_tts(content)
+                if clean_content:
+                    segments.append({
+                        'text': clean_content,
+                        'lang': lang
+                    })
             else:
-                segments.append({
-                    'text': line_str,
-                    'lang': current_lang
-                })
+                clean_content = cls.clean_text_for_tts(line_str)
+                if clean_content:
+                    segments.append({
+                        'text': clean_content,
+                        'lang': current_lang
+                    })
                 
         return segments
 
@@ -151,7 +201,10 @@ class AudioGenerator:
             os.environ["PATH"] = current_path
 
             if lang and lang not in ('multi', 'auto'):
-                segments = [{'text': text.strip(), 'lang': lang.strip().lower()}]
+                cleaned_single = cls.clean_text_for_tts(text)
+                if not cleaned_single:
+                    return False
+                segments = [{'text': cleaned_single, 'lang': lang.strip().lower()}]
             else:
                 segments = cls.parse_segments(text, default_lang=lang or "multi")
                 
@@ -165,15 +218,9 @@ class AudioGenerator:
             import tempfile
             
             for i, seg in enumerate(segments):
-                seg_text = seg['text']
+                seg_text = cls.clean_text_for_tts(seg['text'])
                 if not seg_text.strip():
                     continue
-                    
-                # Clean furigana / bracket annotations e.g. 変更[へんこう] -> 変更
-                clean_seg_text = re.sub(r'\[(?![a-z]{2,3}(?:-[a-zA-Z0-9]+)?:)[^\]]+\]', '', seg_text).strip()
-                if not clean_seg_text:
-                    clean_seg_text = seg_text.strip()
-                seg_text = clean_seg_text
 
                 raw_lang = seg['lang']
                 voice_edge = cls.resolve_voice(raw_lang)

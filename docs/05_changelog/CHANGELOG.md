@@ -19,6 +19,11 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
   - Tích hợp bộ nạp trước `preloadAudioUrls` trong cả hai chế độ học [`FlashcardPlay.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/pages/FlashcardPlay.tsx) và [`PracticePlay.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/pages/PracticePlay.tsx).
   - Tự động tải trước dữ liệu âm thanh của 2 đến 3 thẻ kế tiếp vào bộ nhớ đệm trình duyệt, cho phép âm thanh phát tức thì (0ms latency) ngay khi người dùng chuyển thẻ.
   - Tối ưu URL phát âm trong `useFlashcardAudio.ts` và `usePracticeAudio.ts` để sử dụng trực tiếp bộ nhớ cache đã preload, loại bỏ việc ép cache-buster làm vô hiệu hóa bộ nhớ đệm.
+- **Lọc Sạch Anki Furigana Dạng `[...]` & Ruby Tags Trước Khi Tổng Hợp Âm Thanh (Clean Text for TTS)**:
+  - Bổ sung hàm tiền xử lý văn bản `clean_text_for_tts()` ở Backend ([`AudioGenerator.py`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/app/modules/deck/services/audio_generator.py)) và `stripTagsAndBBCode()` ở Frontend ([`client/src/lib/audio.ts`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/lib/audio.ts)).
+  - Loại bỏ hoàn toàn nội dung furigana đặt trong ngoặc vuông `[...]` (ví dụ `東京[とうきょう]` $\rightarrow$ `東京`, `行[い]く` $\rightarrow$ `行く`) trước khi đưa vào Edge-TTS đọc hoặc phát âm qua Web Speech, khắc phục triệt để lỗi TTS đọc lặp lại 2 lần cả kanji lẫn kana.
+  - Tự động bóc tách Ruby tag HTML `<ruby>漢字<rt>かんじ</rt></ruby>` $\rightarrow$ `漢字`, Anki cloze deletion `{{c1::answer}}` $\rightarrow$ `answer`, và Anki sound tag `[sound:xxx.mp3]`.
+  - Giữ nguyên các thẻ định danh ngôn ngữ Vocaburn đa ngôn ngữ dạng `[ja:...]`, `[vi:...]`, và tự động dọn sạch khoảng trắng dư thừa giữa các ký tự CJK do cú pháp Anki tạo ra.
 
 #### Kiểm Tra Toàn Diện Backend, Khắc Phục Lỗi Hệ Thống & Bảo Mật Chuẩn Ecosystem (Backend Audit, Streak Sync, CentralAuth Compliance & Security Hardening)
 - **Kế Hoạch 1: Khắc Phục Lỗi Crash 500 & Ràng Buộc Khóa Ngoại Cascade Deletion**:

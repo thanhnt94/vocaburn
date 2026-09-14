@@ -1230,7 +1230,10 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
 
     if not text or not str(text).strip():
         return None
-    text = str(text).strip()
+    from app.modules.deck.services.audio_generator import AudioGenerator
+    text = AudioGenerator.clean_text_for_tts(str(text))
+    if not text:
+        return None
         
     # Determine physical path and absolute URL based on requested deck_id and card_id
     from app.core.config import settings
@@ -1421,7 +1424,10 @@ async def stream_dynamic_tts(text: str, lang: Optional[str] = None):
     if not text or not text.strip():
         return JSONResponse(status_code=400, content={"error": "Text is required"})
         
-    cleaned_text = text.strip()
+    from app.modules.deck.services.audio_generator import AudioGenerator
+    cleaned_text = AudioGenerator.clean_text_for_tts(text)
+    if not cleaned_text:
+        return JSONResponse(status_code=400, content={"error": "Text is empty after cleaning"})
     target_lang = lang.strip().lower() if lang and lang.strip() else "multi"
     
     hash_key = hashlib.md5(f"{cleaned_text}_{target_lang}".encode("utf-8")).hexdigest()
@@ -1568,7 +1574,10 @@ async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: 
 
                 if not text or not str(text).strip():
                     continue
-                text = str(text).strip()
+                from app.modules.deck.services.audio_generator import AudioGenerator
+                text = AudioGenerator.clean_text_for_tts(str(text))
+                if not text:
+                    continue
 
                 # Check if already has audio
                 has_audio = False

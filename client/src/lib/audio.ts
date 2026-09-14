@@ -136,13 +136,40 @@ export const playIncorrectSound = () => {
 
 export const stripTagsAndBBCode = (text: string): string => {
   if (!text) return "";
-  let cleaned = text;
-  // Remove <rt>...</rt> tags and their contents (ruby furigana) so we don't read them twice
+  let cleaned = String(text);
+
+  // 1. Remove Anki sound tags: [sound:filename.mp3]
+  cleaned = cleaned.replace(/\[sound:[^\]]+\]/gi, '');
+
+  // 2. Remove <rt>...</rt> and <rp>...</rp> tags and their contents (ruby furigana)
   cleaned = cleaned.replace(/<rt>[\s\S]*?<\/rt>/gi, '');
-  // Remove all other HTML tags
+  cleaned = cleaned.replace(/<rp>[\s\S]*?<\/rp>/gi, '');
+
+  // 3. Remove all other HTML tags
   cleaned = cleaned.replace(/<[^>]*>/g, '');
-  // Remove all BBCode tags like [color=blue], [b], [/b], [/color]
+
+  // 4. Handle Anki cloze deletion: {{c1::answer::hint}} or {{c1::answer}} -> answer
+  cleaned = cleaned.replace(/\{\{c\d+::(.*?)(?:::.*?)?\}\}/g, '$1');
+
+  // 5. Remove Anki furigana in brackets: e.g. 東京[とうきょう] -> 東京, 行[い]く -> 行く
+  // Keep multi-language bracket syntax if text uses [ja:...][vi:...] by protecting [lang:
+  cleaned = cleaned.replace(/\[(?![a-z]{2,3}(?:-[a-zA-Z0-9]+)?:)[^\]]+\]/g, '');
+
+  // Fallback: If text was ONLY bracket content like "[とうきょう]" and became empty
+  if (!cleaned.trim()) {
+    const rawNoHtml = text.replace(/<[^>]*>/g, '').trim();
+    cleaned = rawNoHtml.replace(/^\[|\]$/g, '').trim();
+  }
+
+  // 6. Remove remaining BBCode tags like [color=blue], [b], [/b], [/color]
   cleaned = cleaned.replace(/\[\/?[a-zA-Z0-9_=#-]+\]/g, '');
+
+  // 7. Clean up extra spaces around Japanese/CJK characters caused by Anki space syntax
+  cleaned = cleaned.replace(/([\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff])\s+([\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff])/g, '$1$2');
+
+  // 8. Normalize spaces
+  cleaned = cleaned.replace(/[ \t]+/g, ' ');
+
   return cleaned.trim();
 };
 
