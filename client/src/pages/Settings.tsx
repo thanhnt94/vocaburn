@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -12,30 +12,12 @@ import {
   Lock,
   ExternalLink,
   Clock,
-  Plus,
-  Trash2,
   Check,
-  Headphones,
-  BookOpen,
-  User,
-  Sliders,
-  Edit3,
-  Eye,
   X,
-  Zap,
-  BookmarkCheck,
-  RotateCcw,
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
-import type { StudyProfile } from '@/store/useSettingsStore'
 import { cn } from '@/lib/utils'
-import {
-  SYSTEM_TEMPLATES,
-  getSettingsSpecPills,
-  StudyTemplateSelector,
-  StudySettingsEditor,
-  type StudyTemplateItem,
-} from '@/components/common/study'
+import { StudySettingsEditor } from '@/components/common/study'
 
 export type SettingsTab = 'study' | 'alerts' | 'general'
 
@@ -53,7 +35,7 @@ const SETTINGS_TABS: TabConfig[] = [
     label: 'Study Settings',
     shortLabel: 'Study',
     icon: Sparkles,
-    description: 'Templates, gestures, audio & card display'
+    description: 'Gestures, audio & card display'
   },
   {
     id: 'alerts',
@@ -86,13 +68,6 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  sparkles: Sparkles,
-  zap: Zap,
-  headphones: Headphones,
-  book: BookOpen,
-}
-
 export const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
@@ -112,89 +87,7 @@ export const Settings = () => {
   }
 
   // ─── Study tab state ───
-  const [viewMode, setViewMode] = useState<'simple' | 'advanced'>('simple')
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [editingProfileId, setEditingProfileId] = useState<string | null>(null)
-  const [newProfileName, setNewProfileName] = useState('')
-  const [newProfileIcon, setNewProfileIcon] = useState('sparkles')
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
-
-  // ─── Build template list ───
-  const systemProfiles = useMemo(() => {
-    const fromBackend = (userSettings.study_profiles || []).filter((p: any) => p.is_system)
-    const seen = new Set<string>()
-    const uniqueBackend = fromBackend.filter((bp: any) => {
-      if (!bp || !bp.id || seen.has(bp.id)) return false
-      seen.add(bp.id)
-      return true
-    })
-    if (uniqueBackend.length > 0) {
-      return uniqueBackend.map((bp: any) => {
-        const matchingFallback = SYSTEM_TEMPLATES.find(sp => sp.id === bp.id)
-        return {
-          ...bp,
-          icon: bp.icon || matchingFallback?.icon || 'sparkles',
-          badge: bp.badge || matchingFallback?.badge || 'System',
-          desc: bp.description || matchingFallback?.desc || '',
-          isSystem: true,
-        } as StudyTemplateItem
-      })
-    }
-    return SYSTEM_TEMPLATES
-  }, [userSettings.study_profiles])
-
-  const customProfiles: StudyTemplateItem[] = useMemo(() => {
-    const seen = new Set<string>()
-    return (userSettings.study_profiles || [])
-      .filter((p: any) => {
-        if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
-        seen.add(p.id)
-        return true
-      })
-      .map((p: any) => ({
-        id: p.id,
-        name: p.name || 'Custom Template',
-        icon: p.icon || 'sparkles',
-        badge: 'My Template',
-        desc: p.desc || 'Your saved custom study profile.',
-        isCustom: true,
-        settings: p.settings || {},
-      }))
-  }, [userSettings.study_profiles])
-
-  const allTemplates: StudyTemplateItem[] = useMemo(
-    () => [...systemProfiles, ...customProfiles],
-    [systemProfiles, customProfiles]
-  )
-
-  const activeProfileId = userSettings.active_profile_id || 'preset-standard'
-
-  // ─── Template actions ───
-  const handleApplyTemplate = async (template: StudyTemplateItem) => {
-    try {
-      const s = template.settings || {}
-      await updateUserSettings({
-        active_profile_id: template.id,
-        ...s,
-      } as any)
-      setToastMessage({ type: 'success', text: `Applied "${template.name}" template.` })
-      setTimeout(() => setToastMessage(null), 3000)
-    } catch (err) {
-      console.error('Failed to apply template', err)
-      setToastMessage({ type: 'error', text: 'Failed to apply template.' })
-    }
-  }
-
-  const handleResetToStandard = async () => {
-    const standardPreset = systemProfiles.find(p => p.id === 'preset-standard') || systemProfiles[0]
-    await updateUserSettings({
-      active_profile_id: standardPreset.id,
-      ...standardPreset.settings,
-    })
-    setToastMessage({ type: 'success', text: 'Reset to Standard defaults.' })
-    setTimeout(() => setToastMessage(null), 3000)
-  }
 
   const handleUpdateStudySetting = async (key: string, value: any) => {
     try {
@@ -202,56 +95,6 @@ export const Settings = () => {
     } catch (err) {
       console.error(`Failed to update ${key}`, err)
     }
-  }
-
-  const handleCreateProfile = async (name: string, icon = 'sparkles', baseSettings: any = {}) => {
-    const newId = `custom-${Date.now()}`
-    const newProfile: StudyProfile = {
-      id: newId,
-      name,
-      icon,
-      is_system: false,
-      settings: baseSettings
-    }
-    const currentProfiles = userSettings.study_profiles || []
-    const updatedProfiles = [...currentProfiles.filter((p: any) => !p.is_system), newProfile]
-    await updateUserSettings({
-      study_profiles: updatedProfiles as any,
-      active_profile_id: newId,
-      ...baseSettings
-    } as any)
-  }
-
-  const handleUpdateCustomProfile = async (profileId: string, name: string, icon: string, updatedSettings: any) => {
-    const currentProfiles = userSettings.study_profiles || []
-    const updatedProfiles = currentProfiles.map((p: any) => {
-      if (p.id === profileId) {
-        return { ...p, name, icon, settings: updatedSettings }
-      }
-      return p
-    })
-    const isCurrentActive = userSettings.active_profile_id === profileId
-    await updateUserSettings({
-      study_profiles: updatedProfiles as any,
-      ...(isCurrentActive ? updatedSettings : {}),
-    } as any)
-  }
-
-  const handleDeleteProfile = async (profileId: string) => {
-    const currentProfiles = userSettings.study_profiles || []
-    const updatedProfiles = currentProfiles.filter((p: any) => p.id !== profileId && !p.is_system)
-    const nextActiveId = userSettings.active_profile_id === profileId ? 'preset-standard' : userSettings.active_profile_id
-    await updateUserSettings({
-      study_profiles: updatedProfiles as any,
-      active_profile_id: nextActiveId,
-    })
-  }
-
-  const handleEditCustomProfile = (prof: StudyProfile) => {
-    setEditingProfileId(prof.id)
-    setNewProfileName(prof.name)
-    setNewProfileIcon(prof.icon || 'sparkles')
-    setIsCreateModalOpen(true)
   }
 
   // ─── Telegram & Alerts state ───
@@ -445,198 +288,26 @@ export const Settings = () => {
         )}
       </AnimatePresence>
 
-      {/* HEADER + SIMPLE/ADVANCED TOGGLE */}
-      <section className="bg-white rounded-3xl md:rounded-[2rem] border border-slate-200/80 p-5 sm:p-7 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
-              <Sparkles className="w-3 h-3 text-indigo-600" />
-              <span>Default Account Study Settings</span>
-            </div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">
-              Study Templates & Preferences
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">
-              Configure default gestures, card display, audio, and algorithms for all your decks.
-            </p>
+      {/* HEADER + DIRECT SETTINGS EDITOR */}
+      <section className="bg-white dark:bg-slate-900 rounded-3xl md:rounded-[2rem] border border-slate-200/80 dark:border-slate-800 p-5 sm:p-7 shadow-xs space-y-5">
+        <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 text-[10px] font-black uppercase tracking-wider mb-2">
+            <Sparkles className="w-3 h-3 text-orange-600 dark:text-orange-400" />
+            <span>Account Study Preferences</span>
           </div>
-
-          {/* Simple / Advanced toggle */}
-          <div className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shrink-0 self-start sm:self-center">
-            <button
-              type="button"
-              onClick={() => setViewMode('simple')}
-              className={cn(
-                "py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
-                viewMode === 'simple'
-                  ? "bg-white text-indigo-600 shadow-xs"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <BookmarkCheck className="w-3.5 h-3.5" />
-              <span>Templates</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('advanced')}
-              className={cn(
-                "py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
-                viewMode === 'advanced'
-                  ? "bg-white text-indigo-600 shadow-xs"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Fine-Tune</span>
-            </button>
-          </div>
+          <h2 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            Study Controls & Preferences
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+            Configure default gestures, card display, audio pronunciation, and spaced repetition algorithms.
+          </p>
         </div>
 
-        {/* ═══ SIMPLE MODE: Template Selector ═══ */}
-        {viewMode === 'simple' && (
-          <div className="space-y-4">
-            {/* Action bar */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                {allTemplates.length} templates
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleResetToStandard}
-                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 text-xs font-bold cursor-pointer transition-all"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Reset to Standard</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingProfileId(null)
-                    setNewProfileName('')
-                    setNewProfileIcon('sparkles')
-                    setIsCreateModalOpen(true)
-                  }}
-                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 transition-all cursor-pointer shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Save as Template</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Template list (with edit/delete actions for custom) */}
-            <div className="space-y-2">
-              {allTemplates.map((tpl) => {
-                const isActive = activeProfileId === tpl.id
-                const IconComp = ICON_MAP[tpl.icon] || Sparkles
-                const specs = getSettingsSpecPills(tpl.settings)
-
-                return (
-                  <div
-                    key={tpl.id}
-                    onClick={() => handleApplyTemplate(tpl)}
-                    className={cn(
-                      "rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 p-3.5 select-none",
-                      isActive
-                        ? "bg-indigo-50/30 border-indigo-500 shadow-xs ring-1 ring-indigo-400/30"
-                        : "bg-white border-slate-200/80 hover:bg-slate-50 hover:border-slate-300"
-                    )}
-                  >
-                    {/* Radio */}
-                    <div className="pt-0.5 shrink-0">
-                      <div className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                        isActive ? "border-indigo-500 bg-indigo-500" : "border-slate-300 bg-white"
-                      )}>
-                        {isActive && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <div className={cn(
-                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-                          isActive ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
-                        )}>
-                          <IconComp className="w-3.5 h-3.5" />
-                        </div>
-                        <span className={cn("text-xs font-black truncate", isActive ? "text-indigo-900" : "text-slate-800")}>
-                          {tpl.name}
-                        </span>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
-                          tpl.isCustom
-                            ? "bg-amber-100 text-amber-800 border-amber-200"
-                            : isActive
-                            ? "bg-indigo-100 text-indigo-700 border-indigo-200"
-                            : "bg-slate-100 text-slate-500 border-slate-200"
-                        )}>
-                          {tpl.badge}
-                        </span>
-                        {isActive && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-2">
-                        {tpl.desc}
-                      </p>
-
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {specs.map((spec) => (
-                          <span key={spec.label} className="px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-200/60 text-[9.5px] font-bold text-slate-600">
-                            {spec.label}: {spec.val}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Custom template actions */}
-                    {tpl.isCustom && (
-                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleEditCustomProfile(tpl as any) }}
-                          className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 cursor-pointer"
-                          title="Edit Template"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteProfile(tpl.id) }}
-                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 cursor-pointer"
-                          title="Delete Template"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ═══ ADVANCED MODE: Direct Settings Editor ═══ */}
-        {viewMode === 'advanced' && (
-          <div className="space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
-                Fine-Tune Preferences
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">
-                Adjust individual settings directly. Changes apply to your account defaults.
-              </p>
-            </div>
-
-            <StudySettingsEditor
-              settings={userSettings as any}
-              onChange={handleUpdateStudySetting}
-            />
-          </div>
-        )}
+        {/* Direct Settings Editor */}
+        <StudySettingsEditor
+          settings={userSettings as any}
+          onChange={handleUpdateStudySetting}
+        />
       </section>
     </div>
   )
@@ -883,48 +554,58 @@ export const Settings = () => {
   return (
     <div className="fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0b0f19] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="bg-white/90 dark:bg-slate-900/90 md:bg-white/90 md:dark:bg-slate-900/90 backdrop-blur-2xl border-b border-slate-200/70 dark:border-slate-800 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-3.5 shrink-0 z-30">
-        <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
-              <SettingsIcon className="w-5 h-5 stroke-[2.2]" />
+      <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 md:backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs md:shadow-none px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5">
+        <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 text-left">
+          {/* Left: Warm Branding with Orange Squircle & Badge */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shadow-2xs shrink-0">
+              <SettingsIcon className="w-5 h-5 stroke-[2.4]" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight italic leading-none truncate">
-                System Configuration
-              </h1>
-              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 truncate">
-                {SETTINGS_TABS.find(t => t.id === activeTab)?.description || 'Optimize Your Neural Link'}
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+                  Settings & Preferences
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/50 border border-orange-200/70 dark:border-orange-800/60 text-orange-700 dark:text-orange-400 text-[10px] font-black shrink-0 leading-none">
+                  Config
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1 leading-none truncate">
+                <span>Configure gestures, audio, alerts & security</span>
+                <span className="text-amber-500">✨</span>
               </p>
             </div>
           </div>
 
-          {/* Desktop Segmented Tab Switcher */}
-          <div className="hidden md:flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 shadow-2xs">
-            {SETTINGS_TABS.map((tab) => {
-              const isActive = activeTab === tab.id
-              const TabIcon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "relative flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="desktopSettingsTabActive"
-                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <TabIcon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-indigo-600 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                  <span className="relative z-10">{tab.label}</span>
-                </button>
-              )
-            })}
+          {/* Unified Responsive Segmented Tab Switcher */}
+          <div className="w-full sm:w-auto">
+            <div className="grid grid-cols-3 sm:flex sm:items-center p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/70 dark:border-slate-700/70 shadow-inner gap-1">
+              {SETTINGS_TABS.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      if (navigator.vibrate) navigator.vibrate(8)
+                      setActiveTab(tab.id)
+                    }}
+                    className={cn(
+                      "relative py-1.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 min-w-0",
+                      isActive
+                        ? "text-slate-900 dark:text-slate-100 font-black shadow-xs bg-white dark:bg-slate-700"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors",
+                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400 dark:text-slate-500"
+                    )} />
+                    <span className="truncate text-[11px] sm:text-xs leading-tight">{tab.shortLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -948,169 +629,10 @@ export const Settings = () => {
           </AnimatePresence>
 
           <div className="pt-2 pb-6 text-center">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Vocaburn v1.0.0 // Neural OS</p>
+            <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.3em]">Vocaburn v1.0.0 // Neural OS</p>
           </div>
         </div>
       </div>
-
-      {/* ═══════════ ONE-HAND BOTTOM DOCKED TAB BAR (MOBILE ONLY) ═══════════ */}
-      <div className="md:hidden shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 px-3.5 sm:px-6 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="w-full max-w-[1400px] 2xl:max-w-[1600px] mx-auto flex items-center justify-center">
-          <div className="grid grid-flow-col auto-cols-fr w-full max-w-sm sm:max-w-md bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 shadow-2xs">
-            {SETTINGS_TABS.map((tab) => {
-              const isActive = activeTab === tab.id
-              const TabIcon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "relative flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                    isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeSettingsBottomTabPill"
-                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                    />
-                  )}
-                  <TabIcon className={cn("w-3.5 h-3.5 relative z-10 shrink-0", isActive ? "text-indigo-600 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                  <span className="relative z-10 text-[11px] sm:text-xs truncate">{tab.shortLabel}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════ SAVE AS TEMPLATE MODAL ═══════════ */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                  {editingProfileId ? 'Edit Template' : 'Save as My Template'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-slate-100 text-slate-400 hover:text-slate-700 font-bold flex items-center justify-center cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                  Template Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Speedrun Morning, Deep Focus..."
-                  value={newProfileName}
-                  onChange={(e) => setNewProfileName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-bold"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                  Icon
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { id: 'sparkles', label: 'Sparkles', icon: Sparkles },
-                    { id: 'zap', label: 'Speed', icon: Zap },
-                    { id: 'headphones', label: 'Audio', icon: Headphones },
-                    { id: 'book', label: 'Focus', icon: BookOpen },
-                  ].map((ic) => {
-                    const isSel = newProfileIcon === ic.id
-                    const IconComp = ic.icon
-                    return (
-                      <button
-                        key={ic.id}
-                        type="button"
-                        onClick={() => setNewProfileIcon(ic.id)}
-                        className={cn(
-                          "py-2 px-1 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer",
-                          isSel
-                            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs font-black"
-                            : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 font-medium"
-                        )}
-                      >
-                        <IconComp className="w-4 h-4" />
-                        <span className="text-[9.5px] truncate">{ic.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-[11px] text-slate-600 font-medium leading-relaxed">
-                <span className="font-bold text-indigo-700 block mb-0.5">Captures Your Live Settings:</span>
-                This template will snapshot your currently selected swipe triggers, FSRS rating style, card alignment, and audio preferences.
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!newProfileName.trim() || isSavingProfile}
-                onClick={async () => {
-                  if (!newProfileName.trim()) return
-                  setIsSavingProfile(true)
-                  try {
-                    const capturedSettings = {
-                      card_flip_trigger: userSettings.card_flip_trigger || 'both',
-                      card_rating_mode: userSettings.card_rating_mode || 'both',
-                      quiz_learning_mode: userSettings.quiz_learning_mode || 'fsrs',
-                      front_valign: userSettings.front_valign || 'center',
-                      front_halign: userSettings.front_halign || 'center',
-                      back_valign: userSettings.back_valign || 'center',
-                      back_halign: userSettings.back_halign || 'center',
-                      autoplay_audio: userSettings.autoplay_audio || 'always',
-                      show_images: userSettings.show_images || 'both',
-                      show_fsrs: userSettings.show_fsrs ?? true,
-                      sfx_enabled: userSettings.sfx_enabled ?? true,
-                      haptic_enabled: userSettings.haptic_enabled ?? true,
-                      random_enabled: userSettings.random_enabled ?? false
-                    }
-                    if (editingProfileId) {
-                      await handleUpdateCustomProfile(editingProfileId, newProfileName.trim(), newProfileIcon, capturedSettings)
-                    } else {
-                      await handleCreateProfile(newProfileName.trim(), newProfileIcon, capturedSettings)
-                    }
-                    setIsCreateModalOpen(false)
-                    setToastMessage({ type: 'success', text: editingProfileId ? 'Template updated!' : 'Template saved!' })
-                    setTimeout(() => setToastMessage(null), 3000)
-                  } catch (e) {
-                    console.error('Failed to save profile', e)
-                  } finally {
-                    setIsSavingProfile(false)
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer shadow-sm"
-              >
-                {isSavingProfile ? 'Saving...' : (editingProfileId ? 'Save Changes' : 'Save Template')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

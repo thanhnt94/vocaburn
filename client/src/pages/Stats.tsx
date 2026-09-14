@@ -203,51 +203,58 @@ export default function Stats() {
   return (
     <div className="fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0b0f19] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-b border-slate-200/70 dark:border-slate-800 shadow-2xs px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-3">
+      <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 md:backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs md:shadow-none px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 text-left">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-md shadow-slate-900/10 shrink-0">
-              <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.2]" />
+          {/* Left: Warm Branding with Orange Squircle & Badge */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shadow-2xs shrink-0">
+              <TrendingUp className="w-5 h-5 stroke-[2.4]" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight italic leading-none truncate">
-                Stats & Leaderboard
-              </h1>
-              <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] mt-0.5 truncate">
-                Track Personal Progress & Global Rankings
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+                  Stats & Leaderboard
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/50 border border-orange-200/70 dark:border-orange-800/60 text-orange-700 dark:text-orange-400 text-[10px] font-black shrink-0 leading-none">
+                  Rankings
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1 leading-none truncate">
+                <span>Track personal progress & global rankings</span>
+                <span className="text-amber-500">✨</span>
               </p>
             </div>
           </div>
 
           {/* Unified Responsive Segmented Tab Switcher */}
-          <div className="flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1 w-full sm:w-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (navigator.vibrate) navigator.vibrate(8)
-                    setActiveTab(tab.id)
-                  }}
-                  className={cn(
-                    "relative flex-1 sm:flex-initial flex items-center justify-center gap-1.5 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all select-none cursor-pointer",
-                    isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="unifiedStatsTabPill"
-                      className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                  <span className="relative z-10 text-[11px] sm:text-xs md:text-sm truncate">{tab.shortLabel}</span>
-                </button>
-              )
-            })}
+          <div className="w-full sm:w-auto">
+            <div className="grid grid-cols-3 sm:flex sm:items-center p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/70 dark:border-slate-700/70 shadow-inner gap-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      if (navigator.vibrate) navigator.vibrate(8)
+                      setActiveTab(tab.id)
+                    }}
+                    className={cn(
+                      "relative py-1.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 min-w-0",
+                      isActive
+                        ? "text-slate-900 dark:text-slate-100 font-black shadow-xs bg-white dark:bg-slate-700"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors",
+                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400 dark:text-slate-500"
+                    )} />
+                    <span className="truncate text-[11px] sm:text-xs leading-tight">{tab.shortLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>

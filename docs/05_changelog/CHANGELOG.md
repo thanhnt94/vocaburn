@@ -25,6 +25,17 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
   - Tự động bóc tách Ruby tag HTML `<ruby>漢字<rt>かんじ</rt></ruby>` $\rightarrow$ `漢字`, Anki cloze deletion `{{c1::answer}}` $\rightarrow$ `answer`, và Anki sound tag `[sound:xxx.mp3]`.
   - Giữ nguyên các thẻ định danh ngôn ngữ Vocaburn đa ngôn ngữ dạng `[ja:...]`, `[vi:...]`, và tự động dọn sạch khoảng trắng dư thừa giữa các ký tự CJK do cú pháp Anki tạo ra.
 
+#### Chuẩn Hóa Giao Diện Header Toàn Hệ Thống & Loại Bỏ Study Templates Không Dùng
+- **Đồng Bộ Phong Cách Header Chuẩn Decks Library Cho `Stats` & `Settings`**:
+  - Thay thế toàn bộ phong cách header cũ (nền icon đen, chữ hoa in nghiêng) trong [`Stats.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/pages/Stats.tsx) và [`Settings.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/pages/Settings.tsx) sang phong cách bo góc ấm áp chuẩn Decks Library:
+    - Avatar Squircle `w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 border border-orange-200/80` cao cấp.
+    - Tiêu đề Sentence-case đậm nét hiện đại kèm badge pill bo tròn và biểu ngữ mô tả kèm emoji lấp lánh ✨.
+    - Thanh chuyển tab Segmented Pill Bar iOS mượt mà với active state màu trắng nổi bật, tạo cảm giác đồng nhất 100% trên toàn bộ app.
+- **Loại Bỏ Hoàn Toàn Hệ Thống Study Templates Cũ Khỏi Trang `Settings.tsx`**:
+  - Gỡ bỏ toàn bộ danh sách template cũ (Minimalist, Full Experience, Standard, Classic, custom templates), nút gạt Simple/Advanced, nút Save/Reset Template và modal tạo template.
+  - Hiển thị trực tiếp trình cấu hình chi tiết [`StudySettingsEditor`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/components/common/study/StudySettingsEditor.tsx) giúp người dùng tinh chỉnh trực tiếp cử chỉ (Tap to Flip, Action Dock), âm thanh phát âm và hiển thị thẻ một cách minh bạch, trực quan.
+  - Tích hợp thanh chuyển tab ngay trên top header của mobile, loại bỏ thanh bottom docked thừa thãi chiếm dụng diện tích màn hình.
+
 #### Kiểm Tra Toàn Diện Backend, Khắc Phục Lỗi Hệ Thống & Bảo Mật Chuẩn Ecosystem (Backend Audit, Streak Sync, CentralAuth Compliance & Security Hardening)
 - **Kế Hoạch 1: Khắc Phục Lỗi Crash 500 & Ràng Buộc Khóa Ngoại Cascade Deletion**:
   - **Khắc phục Crash 500 trong `folder_routes.py`**: Sửa hàm `get_folder_play_data` gọi `estimate_intervals(scheduler, build_fsrs_card(m, now_utc), now_utc)` đủ 3 tham số và dự phòng interval mặc định cho thẻ chưa học.
