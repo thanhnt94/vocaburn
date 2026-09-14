@@ -32,10 +32,13 @@ Hệ thống Roadmap cho phép người dùng hoặc các template mẫu cấu h
 | `speed_skim` | **Lướt Nhanh** | Xem lướt qua thẻ mới không cần chấm điểm FSRS | `daily_count` (số lượng từ) | Flashcard Engine (`mode=speed_skim`) |
 | `mcq` | **Trắc Nghiệm** | Làm bài tập trắc nghiệm 4 đáp án để củng cố khả năng nhận diện | `question_count`, `pass_threshold` (%) | Practice Engine (`PracticePlay.tsx?mode=mcq`) |
 | `typing` | **Gõ Từ** | Thực hành gõ chính xác từ vựng để kích hoạt trí nhớ chủ động | `question_count`, `pass_threshold` (%) | Practice Engine (`PracticePlay.tsx?mode=typing`) |
-| `fsrs_review` | **Ôn Tập FSRS** | Lặp lại ngắt quãng các từ đã đến hạn theo FSRS v6 | `overdue_hours` (0, 24, 48, 72h) | Flashcard Engine (`mode=fsrs_review`) |
+| `fsrs_review` | **Ôn Tập FSRS** | Lặp lại ngắt quãng các từ đã đến hạn theo FSRS v6 chuẩn UTC +0 | `overdue_days` (1, 2, 3 ngày) | Flashcard Engine (`mode=fsrs_review`) |
 | `study_time` | **Thời Gian Học** | Duy trì tập trung học tối thiểu một khoảng thời gian | `target_minutes` (phút) | Bấm giờ thời gian thực trong session |
 
-> 📌 *Lưu ý*: Chế độ Nghe (`listening`) hiện đã có trong Practice Engine nhưng chưa được tích hợp vào bộ builder cấu hình Roadmap (`DeckRoadmapGoalForm`).
+> 📌 *Quy Chuẩn Thời Gian UTC +0 & Cơ Chế Giữ Cố Định Số Lượng Ôn Tập*:
+> - Toàn bộ mốc bắt đầu/kết thúc ngày (`00:00:00 UTC` - `23:59:59 UTC`) được tính theo chuẩn **UTC +0**.
+> - Chặng `fsrs_review` lọc theo số ngày quá hạn: `cutoff_time = day_end - timedelta(days=(overdue_days - 1))`.
+> - **Nguyên tắc bất biến (Invariant Quota)**: Thẻ mới học trong ngày (`min_created >= day_start UTC`) không bao giờ được đếm vào danh sách ôn. Thẻ đã được ôn trong ngày hôm nay (`last_review >= day_start UTC`) đã hoàn thành nghĩa vụ, tuyệt đối không bị đếm lại vào `still_due` kể cả khi bấm Again/Hard với chu kỳ ngắn (1m/5m). Số thẻ cần ôn trong ngày luôn được giữ **cố định**, ôn xong thẻ nào thì thẻ đó hoàn thành và số còn lại giảm dần đều.
 
 ---
 
