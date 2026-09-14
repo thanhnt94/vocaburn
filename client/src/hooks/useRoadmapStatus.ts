@@ -18,6 +18,8 @@ export interface PipelineStepStatus {
 
 export interface RoadmapStatusData {
   roadmap_active: boolean
+  is_frozen?: boolean
+  frozen_at?: string
   pipeline: PipelineStepStatus[]
   current_step_index: number
   all_done: boolean

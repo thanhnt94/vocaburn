@@ -146,6 +146,16 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             </span>
           </div>
 
+          {/* Deck Source Badge for Global Focus */}
+          {currentQuestion?.deck_title && (
+            <div 
+              className="inline-flex items-center gap-1 px-2 py-1 max-w-[120px] sm:max-w-[170px] rounded-xl border bg-amber-50/90 border-amber-200/80 text-amber-800 font-bold text-[9.5px] shadow-2xs truncate"
+              title={`From deck: ${currentQuestion.deck_title}`}
+            >
+              <span className="truncate">📚 {currentQuestion.deck_title}</span>
+            </div>
+          )}
+
           {/* Review Frequency / View Count Pill */}
           <button
             type="button"

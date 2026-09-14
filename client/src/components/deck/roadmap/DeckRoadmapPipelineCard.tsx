@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CheckCircle2, Circle, ArrowRight, Zap, Target, Sparkles, Clock, Flame } from 'lucide-react'
+import { CheckCircle2, Circle, ArrowRight, Zap, Target, Sparkles, Clock, Flame, Snowflake, Sun, Loader2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 
 export interface PipelineStepItem {
   type: string
@@ -27,6 +29,24 @@ export function DeckRoadmapPipelineCard({
   isLoading
 }: DeckRoadmapPipelineCardProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [isTogglingFreeze, setIsTogglingFreeze] = useState(false)
+  const isFrozen = Boolean(status?.is_frozen)
+
+  const handleToggleFreeze = async () => {
+    setIsTogglingFreeze(true)
+    try {
+      await axios.post(`/api/v1/deck/${deckId}/toggle-freeze`)
+      await queryClient.invalidateQueries({ queryKey: ['deck-roadmap-status'] })
+      await queryClient.invalidateQueries({ queryKey: ['roadmap-global-decks'] })
+      await queryClient.invalidateQueries({ queryKey: ['global-focus-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['todayReview'] })
+    } catch (err) {
+      console.error('Failed to toggle freeze:', err)
+    } finally {
+      setIsTogglingFreeze(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -78,13 +98,59 @@ export function DeckRoadmapPipelineCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={handleToggleFreeze}
+            disabled={isTogglingFreeze}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              isFrozen
+                ? 'bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-700'
+                : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+            }`}
+            title={isFrozen ? 'Unfreeze deck to resume daily reviews' : 'Freeze deck to pause reviews from daily focus queue'}
+          >
+            {isTogglingFreeze ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+            ) : isFrozen ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span>Unfreeze Deck</span>
+              </>
+            ) : (
+              <>
+                <Snowflake className="w-3.5 h-3.5 text-sky-500" />
+                <span>Freeze Deck</span>
+              </>
+            )}
+          </button>
+
           <div className="px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 text-xs font-black flex items-center gap-1.5">
             <Flame className="w-4 h-4 fill-current text-orange-500 animate-pulse" />
             <span>{streak} ngày streak</span>
           </div>
         </div>
       </div>
+
+      {/* Frozen Deck Alert Banner */}
+      {isFrozen && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-sky-50 via-cyan-50 to-blue-50 border border-sky-200 flex items-center gap-3 text-sky-950 shadow-2xs">
+          <div className="w-10 h-10 rounded-xl bg-white shadow-2xs border border-sky-200 flex items-center justify-center text-xl shrink-0">
+            ❄️
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs sm:text-sm font-black text-sky-950">Deck Is Frozen (Đang Tạm Dừng)</h4>
+              <span className="px-2 py-0.5 rounded-md bg-sky-200/80 text-sky-800 text-[9px] font-black uppercase tracking-wider">
+                Paused
+              </span>
+            </div>
+            <p className="text-[11px] text-sky-800/80 font-medium mt-0.5 leading-relaxed">
+              Thẻ trong bộ này đang được đóng băng và không tích lũy quá hạn hay xuất hiện trong hàng đợi Học Tập Tổng Hợp (Daily Focus Queue).
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progress Metric summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

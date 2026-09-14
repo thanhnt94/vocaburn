@@ -2,6 +2,22 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-14]
+#### Chế Độ Học Tập Tổng Hợp (Global Daily Focus Queue) & Tạm Đóng Băng Bộ Thẻ (Deck Freeze Mode)
+- **Chế Độ Học Tập Tổng Hợp (Global Daily Focus Queue)**:
+  - Giải quyết triệt để vấn đề quá tải và rối loạn khi học nhiều bộ thẻ: Cung cấp hàng đợi ôn tập FSRS hợp nhất toàn hệ thống (`GET /api/v1/deck/global-focus/summary` & `GET /api/v1/deck/global-focus/play-data`).
+  - Tự động gộp tất cả thẻ FSRS đến hạn ôn hôm nay từ toàn bộ các bộ thẻ đang kích hoạt (chưa đóng băng) vào 1 nút bấm duy nhất `⚡ Start Daily Focus` trên RoadmapHub & Dashboard.
+  - Sắp xếp độ ưu tiên khoa học: Thẻ có độ bền vững (stability) thấp nhất được xếp lên đầu nhằm chống quên triệt để.
+  - Tích hợp nhãn bộ thẻ nguồn (`📚 [Deck Title]`) trực tiếp trên thanh thông tin thẻ (`Flashcard3DCard.tsx`) giúp người học luôn nắm rõ ngữ cảnh bộ thẻ.
+  - Tự động ghi nhận kết quả ôn tập (`/api/v1/deck/record_answer`) tương ứng về từng bộ thẻ và mục tiêu ngày của bộ thẻ đó.
+- **Tạm Đóng Băng Bộ Thẻ (Deck Freeze / Snooze Mode)**:
+  - Cho phép người học tạm đóng băng bất kỳ bộ thẻ nào khi chưa có thời gian học hoặc muốn ưu tiên bộ thẻ khác (`POST /api/v1/deck/{deck_id}/toggle-freeze`).
+  - Khi đóng băng: Thẻ của bộ thẻ đó lập tức được loại khỏi hàng đợi Daily Focus Queue, chỉ tiêu ôn tập ngày được tạm dừng (`review_due_today = 0`), và trạng thái mục tiêu được đặt thành `paused`.
+  - Giao diện trực quan: Hiển thị huy hiệu `❄️ Frozen` kèm hiệu ứng frosted glass và nút bật/tắt `Freeze` / `Unfreeze` nhanh trên RoadmapHub và Deck Pipeline Card.
+- **Chuẩn Hóa Quota Ôn Tập Không Đổi (Invariant Quota) & Múi Giờ UTC+0 Tuyệt Đối**:
+  - Tuân thủ nghiêm ngặt Quy tắc 11: Tất cả mốc ngày, thời điểm cắt chặng và streak vận hành đồng nhất ở múi giờ UTC+0 (`00:00:00 UTC` - `23:59:59 UTC`).
+  - Loại bỏ hoàn toàn thẻ học mới trong ngày (`min_created >= day_start UTC`) và thẻ đã được ôn tập hôm nay (`last_review >= day_start UTC`) khỏi danh sách còn nợ (`still_due`). Chỉ tiêu ôn tập ngày là hằng số cố định bất biến trong suốt cả ngày, không bị tăng lên sau mỗi lượt đánh giá lại.
+
 ### [2026-09-13]
 #### Nâng Cấp Toàn Diện Hệ Thống Âm Thanh & TTS Pipeline (Audio & TTS Overhaul)
 - **Loại Bỏ Hoàn Toàn Fallback Sang `gTTS` (100% Microsoft Edge-TTS Chất Lượng Cao)**:

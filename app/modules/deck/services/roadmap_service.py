@@ -80,6 +80,8 @@ class RoadmapService:
         deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
 
         raw_pipeline = settings.get("pipeline")
+        is_frozen = bool(settings.get("is_frozen", False))
+        frozen_at = settings.get("frozen_at")
         roadmap_active = settings.get("roadmap_active", False) and isinstance(raw_pipeline, list) and len(raw_pipeline) > 0
         pipeline_input = raw_pipeline if isinstance(raw_pipeline, list) else []
 
@@ -188,8 +190,8 @@ class RoadmapService:
         )
         rev_row = review_stats_res.first()
         review_completed_today = rev_row[0] if rev_row and rev_row[0] else 0
-        review_still_due = rev_row[1] if rev_row and rev_row[1] else 0
-        review_due_today = review_still_due + review_completed_today
+        review_still_due = 0 if is_frozen else (rev_row[1] if rev_row and rev_row[1] else 0)
+        review_due_today = review_completed_today if is_frozen else (review_still_due + review_completed_today)
 
         ans_res = await db.execute(
             select(
@@ -574,6 +576,8 @@ class RoadmapService:
         return {
             "deck_title": deck_obj.title if deck_obj else None,
             "roadmap_active": roadmap_active,
+            "is_frozen": is_frozen,
+            "frozen_at": frozen_at,
             "pipeline": pipeline_processed,
             "current_step_index": current_step_index,
             "all_done": all_done,

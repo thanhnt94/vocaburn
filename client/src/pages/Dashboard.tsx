@@ -1644,11 +1644,11 @@ export default function Dashboard() {
 
           <button
             onClick={() => {
-              navigate(`/flashcard/quick/play`)
+              navigate(`/flashcard/global-focus/play?mode=fsrs`)
             }}
-            className="w-full sm:w-auto h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0"
+            className="w-full sm:w-auto h-9 px-4 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0 cursor-pointer"
           >
-            <Brain className="w-3.5 h-3.5" /> Start Review
+            <Brain className="w-3.5 h-3.5" /> Start Daily Focus
           </button>
         </div>
 

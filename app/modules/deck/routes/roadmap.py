@@ -73,10 +73,289 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                 "title": deck.title,
                 "description": deck.description,
                 "cover_image": cover_image,
+                "is_frozen": status.get("is_frozen", False),
                 "status": status
             })
 
     return {"decks": active_roadmaps}
+
+
+@router.post("/{deck_id}/toggle-freeze")
+async def toggle_deck_freeze(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    """Toggle freezing a deck so its cards are paused from daily review & global focus queue."""
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    from sqlalchemy.orm.attributes import flag_modified
+    from app.modules.deck.models import UserDeckSettings, UserDeckGoal
+
+    user_sett_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = user_sett_res.scalar_one_or_none()
+    if not user_sett:
+        user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings={})
+        db.add(user_sett)
+    elif not isinstance(user_sett.settings, dict):
+        user_sett.settings = {}
+
+    curr_frozen = bool(user_sett.settings.get("is_frozen", False))
+    new_frozen = not curr_frozen
+
+    user_sett.settings["is_frozen"] = new_frozen
+    user_sett.settings["frozen_at"] = datetime.utcnow().isoformat() if new_frozen else None
+    flag_modified(user_sett, "settings")
+
+    # Sync UserDeckGoal status: "paused" when frozen, "active" when unfrozen
+    goal_res = await db.execute(
+        select(UserDeckGoal).where(
+            UserDeckGoal.user_id == user_id,
+            UserDeckGoal.deck_id == deck_id
+        )
+    )
+    goal = goal_res.scalar_one_or_none()
+    if goal:
+        goal.status = "paused" if new_frozen else "active"
+
+    await db.commit()
+
+    return {
+        "status": "ok",
+        "deck_id": deck_id,
+        "is_frozen": new_frozen,
+        "frozen_at": user_sett.settings.get("frozen_at")
+    }
+
+
+@router.get("/global-focus/summary")
+async def get_global_focus_summary(request: Request, db: AsyncSession = Depends(get_db)):
+    """Aggregate all due FSRS review cards across active, unfrozen decks for today (UTC+0)."""
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserDeckSettings, UserAnswer, DeckAttempt
+
+    now_utc = datetime.utcnow()
+    day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+
+    # 1. Fetch user deck settings to separate frozen from active
+    sett_res = await db.execute(
+        select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
+    )
+    all_setts = sett_res.scalars().all()
+    frozen_deck_ids = set()
+    roadmap_active_deck_ids = set()
+
+    for s in all_setts:
+        sett_dict = s.settings or {}
+        if sett_dict.get("is_frozen") is True:
+            frozen_deck_ids.add(s.deck_id)
+        if sett_dict.get("roadmap_active") is True:
+            roadmap_active_deck_ids.add(s.deck_id)
+
+    # 2. Get decks the user has learned cards in
+    interacted_res = await db.execute(
+        select(Flashcard.deck_id)
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
+        .where(UserCardMastery.user_id == user_id, UserCardMastery.state > 0)
+        .distinct()
+    )
+    interacted_deck_ids = {r[0] for r in interacted_res.all()}
+
+    all_user_deck_ids = (roadmap_active_deck_ids | interacted_deck_ids)
+    active_deck_ids = all_user_deck_ids - frozen_deck_ids
+
+    if not active_deck_ids:
+        return {
+            "total_due": 0,
+            "active_decks_count": 0,
+            "frozen_decks_count": len(frozen_deck_ids),
+            "decks": []
+        }
+
+    # Subquery: exclude cards learned today
+    min_answer_sub = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at).label("min_created")
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+     .where(
+         DeckAttempt.user_id == user_id,
+         DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim"])
+     )\
+     .group_by(UserAnswer.card_id).subquery()
+
+    # Query due counts per deck following Invariant Quota rules (UTC+0)
+    due_stmt = (
+        select(
+            FlashcardDeck.id.label("deck_id"),
+            FlashcardDeck.title.label("deck_title"),
+            FlashcardDeck.cover_image.label("cover_image"),
+            func.count(UserCardMastery.id).label("due_count")
+        )
+        .join(Flashcard, FlashcardDeck.id == Flashcard.deck_id)
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
+        .outerjoin(min_answer_sub, UserCardMastery.card_id == min_answer_sub.c.card_id)
+        .where(
+            FlashcardDeck.id.in_(active_deck_ids),
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None)),
+            UserCardMastery.due <= day_end,
+            or_(
+                min_answer_sub.c.min_created == None,
+                min_answer_sub.c.min_created < day_start
+            ),
+            or_(
+                UserCardMastery.last_review == None,
+                UserCardMastery.last_review < day_start
+            )
+        )
+        .group_by(FlashcardDeck.id, FlashcardDeck.title, FlashcardDeck.cover_image)
+        .order_by(func.count(UserCardMastery.id).desc())
+    )
+
+    res = await db.execute(due_stmt)
+    rows = res.all()
+
+    from .media_resolver import get_sso_server_url, resolve_central_url
+    sso_url = await get_sso_server_url(db)
+
+    decks_summary = []
+    total_due = 0
+    for r in rows:
+        total_due += r.due_count
+        decks_summary.append({
+            "deck_id": r.deck_id,
+            "title": r.deck_title,
+            "cover_image": resolve_central_url(r.cover_image, sso_url) if r.cover_image else None,
+            "due_count": r.due_count
+        })
+
+    return {
+        "total_due": total_due,
+        "active_decks_count": len(decks_summary),
+        "frozen_decks_count": len(frozen_deck_ids),
+        "decks": decks_summary
+    }
+
+
+@router.get("/global-focus/play-data")
+async def get_global_focus_play_data(
+    request: Request,
+    limit: int = Query(100, ge=1, le=300),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieve consolidated FSRS study cards across all active unfrozen decks for today (UTC+0)."""
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    from app.modules.deck.models import FlashcardDeck, Flashcard, UserCardMastery, UserDeckSettings, UserAnswer, DeckAttempt
+    from app.modules.deck.routes.play import resolve_play_cards
+
+    now_utc = datetime.utcnow()
+    day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+
+    # 1. Identify frozen deck IDs
+    sett_res = await db.execute(
+        select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
+    )
+    all_setts = sett_res.scalars().all()
+    frozen_deck_ids = {s.deck_id for s in all_setts if isinstance(s.settings, dict) and s.settings.get("is_frozen") is True}
+
+    # Subquery: exclude cards learned today
+    min_answer_sub = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at).label("min_created")
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+     .where(
+         DeckAttempt.user_id == user_id,
+         DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim"])
+     )\
+     .group_by(UserAnswer.card_id).subquery()
+
+    cards_query = (
+        select(Flashcard, FlashcardDeck.title.label("deck_title"), UserCardMastery)
+        .join(FlashcardDeck, Flashcard.deck_id == FlashcardDeck.id)
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
+        .outerjoin(min_answer_sub, UserCardMastery.card_id == min_answer_sub.c.card_id)
+        .where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None)),
+            UserCardMastery.due <= day_end,
+            or_(
+                min_answer_sub.c.min_created == None,
+                min_answer_sub.c.min_created < day_start
+            ),
+            or_(
+                UserCardMastery.last_review == None,
+                UserCardMastery.last_review < day_start
+            )
+        )
+    )
+
+    if frozen_deck_ids:
+        cards_query = cards_query.where(~Flashcard.deck_id.in_(frozen_deck_ids))
+
+    # Priority: cards lowest in stability (highest forgetting danger), then earliest due
+    cards_query = cards_query.order_by(
+        func.coalesce(UserCardMastery.stability, 0.0).asc(),
+        UserCardMastery.due.asc()
+    ).limit(limit)
+
+    res = await db.execute(cards_query)
+    rows = res.all()
+
+    questions = []
+    for idx, (card, deck_title, mastery) in enumerate(rows, start=1):
+        c_dict = {
+            "id": card.id,
+            "orig_index": idx,
+            "deck_id": card.deck_id,
+            "deck_title": deck_title,
+            "content": card.content,
+            "explanation": card.explanation,
+            "image": card.back_img,
+            "audio": card.front_audio_url,
+            "front_audio_url": card.front_audio_url,
+            "back_audio_url": card.back_audio_url,
+            "front_img": card.front_img,
+            "back_img": card.back_img,
+            "others": card.others,
+            "state": mastery.state,
+            "stability": mastery.stability,
+            "difficulty": mastery.difficulty,
+            "due": mastery.due.isoformat() if mastery.due else None,
+            "step": mastery.step,
+            "box_level": mastery.box_level,
+            "is_starred": mastery.is_starred,
+            "is_ignored": mastery.is_ignored
+        }
+        questions.append(c_dict)
+
+    await resolve_play_cards(questions, db)
+
+    return {
+        "id": "global-focus",
+        "title": "Global Daily Focus Queue ⚡",
+        "deck_title": "Daily Focus (All Decks)",
+        "is_global_focus": True,
+        "total": len(questions),
+        "questions": questions,
+        "effective_study_settings": {
+            "learning_mode": "fsrs",
+            "auto_play_audio": True,
+            "sfx_enabled": True
+        }
+    }
 
 
 # Service delegation for backwards compatibility

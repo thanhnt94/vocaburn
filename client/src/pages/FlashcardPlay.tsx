@@ -870,11 +870,14 @@ export default function FlashcardPlay() {
       // 1. Core quiz data load: fetched immediately to show flashcards instantly
       const isFolder = typeof id === 'string' && id.startsWith('folder_')
       const folderId = isFolder ? id.replace('folder_', '') : null
+      const isGlobalFocus = id === 'global-focus'
       const fetchUrl = id === 'quick' 
         ? '/api/v1/deck/quick-play-data' 
-        : isFolder
-          ? `/api/v1/folder/${folderId}/play-data${modeParam}`
-          : `/api/v1/deck/${id}/play-data${modeParam}`
+        : isGlobalFocus
+          ? '/api/v1/deck/global-focus/play-data'
+          : isFolder
+            ? `/api/v1/folder/${folderId}/play-data${modeParam}`
+            : `/api/v1/deck/${id}/play-data${modeParam}`
       const quizRes = await axios.get(fetchUrl)
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
