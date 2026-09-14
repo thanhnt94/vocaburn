@@ -132,13 +132,8 @@ class RoadmapService:
             )
         ) or 0
 
-        fsrs_overdue_hours = 24
-        for st in pipeline_input:
-            if st.get("type") == "fsrs_review":
-                fsrs_overdue_hours = int(st.get("overdue_hours", 24))
-                break
-
-        cutoff_time = day_end - timedelta(hours=fsrs_overdue_hours)
+        # Mặc định theo ngày: cutoff_time là cuối ngày hôm đó (23:59:59 của ngày mục tiêu)
+        cutoff_time = day_end
 
         review_stats_res = await db.execute(
             select(
@@ -163,7 +158,11 @@ class RoadmapService:
                         or_(
                             min_answer_sub.c.min_created == None,
                             min_answer_sub.c.min_created < day_start
-                        ) if fsrs_overdue_hours >= 24 else True
+                        ),
+                        or_(
+                            UserCardMastery.last_review == None,
+                            UserCardMastery.last_review < day_start
+                        )
                     ), 1
                 ))).label("still_due")
             )
@@ -331,15 +330,15 @@ class RoadmapService:
                     "label": "All cards skimmed" if is_all_learned else "Speed Skim New Words"
                 })
             elif stype == "fsrs_review":
-                overdue_hours = int(st.get("overdue_hours", 24))
                 is_done = (review_still_due <= 0) or (review_due_today <= 0) or (review_completed_today >= review_due_today)
                 step_data.update({
-                    "overdue_hours": overdue_hours,
+                    "overdue_hours": 24,
                     "done": is_done,
                     "progress": {
                         "due_count": review_due_today,
                         "still_due": review_still_due,
-                        "reviewed_today": review_completed_today
+                        "reviewed_today": review_completed_today,
+                        "target": review_due_today
                     },
                     "url": f"/flashcard/{deck_id}/play?mode=roadmap&step=fsrs_review",
                     "label": "FSRS Review"

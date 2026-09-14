@@ -641,34 +641,23 @@ export function DeckRoadmapGoalForm({
                     </div>
                   )}
 
-                  {/* TYPE: FSRS REVIEW (WITH OVERDUE FILTERING) */}
+                  {/* TYPE: FSRS REVIEW */}
                   {step.type === 'fsrs_review' && (
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <label className="text-xs font-bold text-slate-700 whitespace-nowrap flex items-center gap-1">
-                          <span>Điều kiện thẻ cần ôn tập:</span>
-                        </label>
-
-                        <select
-                          value={step.overdue_hours !== undefined ? step.overdue_hours : 24}
-                          onChange={(e) => {
-                            const val = Number(e.target.value)
-                            setSteps(prev => prev.map((s, i) => i === index ? { ...s, overdue_hours: val } : s))
-                          }}
-                          className="h-8 bg-white border border-slate-200 rounded-lg px-2.5 text-xs font-black text-slate-800 focus:border-amber-500 outline-none cursor-pointer"
-                        >
-                          <option value={24}>⭐ Quá hạn trên 1 ngày (Mốc 23h59 hôm nay)</option>
-                          <option value={0}>Tất cả thẻ đến hạn hôm nay (0 giờ)</option>
-                          <option value={48}>Quá hạn trên 2 ngày (48 giờ)</option>
-                          <option value={72}>Quá hạn trên 3 ngày (72 giờ)</option>
-                        </select>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                          Quy chuẩn ôn tập:
+                        </span>
+                        <div className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs font-black flex items-center gap-1.5">
+                          <span>📅 Mặc định theo ngày (Mốc 23h59 hôm nay)</span>
+                        </div>
                       </div>
 
-                      {/* Explanation Note for 23:59 Cutoff */}
+                      {/* Explanation Note for Daily Cutoff */}
                       <p className="text-[10px] text-amber-700/90 bg-amber-50/70 border border-amber-200/60 p-2 rounded-xl flex items-start gap-1.5 leading-relaxed">
                         <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                         <span>
-                          <b>Mẹo:</b> Với mốc 23h59 hôm nay, những từ bạn vừa học trong ngày sẽ không bao giờ bị tính vào danh sách quá hạn, giúp số lượng thẻ cần ôn ở chặng này giữ <b>cố định và ổn định</b> suốt cả ngày!
+                          <b>Cố định theo ngày:</b> Toàn bộ thẻ có hạn ôn đến hết 23h59 hôm nay sẽ được tổng hợp một lần. Số lượng thẻ cần ôn giữ <b>cố định</b> và không bị tăng thêm khi học từ mới hay khi đánh giá lại thẻ trong ngày!
                         </span>
                       </p>
                     </div>

@@ -735,20 +735,37 @@ export default function FlashcardPlay() {
     const isFsrsMode = activeMode === 'fsrs' || isRoadmapReview;
     if (!session || !session.questions || !isFsrsMode) return 0;
     const now = currentTime.getTime();
-    const currentStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'fsrs_review');
-    const overdueHours = currentStep?.overdue_hours ?? 24;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
 
     return session.questions.filter((q: any, idx: number) => {
       if (q.is_ignored) return false;
       const isFsrsRecord = q.fsrs && q.fsrs.state !== 0 && q.fsrs.stability !== null;
       if (!isFsrsRecord) return false;
       
-      // Exclude cards first learned today ONLY if in roadmap review with overdueHours >= 24
-      if (isRoadmapReview && overdueHours >= 24 && q.fsrs?.first_learned) {
-        const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
-        if (firstLearnedDate >= todayStart.getTime()) return false;
+      // Exclude cards first learned today in roadmap review
+      if (isRoadmapReview) {
+        if (q.fsrs?.first_learned) {
+          const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
+          if (firstLearnedDate >= todayStart.getTime()) return false;
+        }
+
+        // Exclude cards already answered in this session
+        if (sessionAnswers[idx] !== undefined) return false;
+
+        // Exclude cards already reviewed today
+        if (q.fsrs?.last_review) {
+          const lastRevDate = parseUTCDate(q.fsrs.last_review).getTime();
+          if (lastRevDate >= todayStart.getTime() && lastRevDate < todayEnd.getTime()) {
+            return false;
+          }
+        }
+
+        // Card is due on or before end of today (23:59:59)
+        const dueDate = parseUTCDate(q.fsrs.due).getTime();
+        return dueDate <= todayEnd.getTime();
       }
 
       const isDue = parseUTCDate(q.fsrs.due).getTime() - 30000 <= now;
@@ -3854,34 +3871,15 @@ export default function FlashcardPlay() {
                 style: 'bg-teal-50 text-teal-950 border border-teal-300/80 shadow-2xs hover:bg-teal-100/90'
               };
               const reviewedToday = currentStep?.progress?.reviewed_today ?? roadmapStatus?.review_completed_today ?? 0;
-              const dueRemaining = currentStep?.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
-              const fsrsTarget = currentStep?.daily_count || currentStep?.progress?.target || (reviewedToday + dueRemaining);
+              const dueRemaining = currentStep?.progress?.still_due ?? currentStep?.progress?.due_count ?? roadmapStatus?.review_due_today ?? 0;
+              const fsrsTarget = currentStep?.progress?.target || (reviewedToday + dueRemaining);
               subTotal = fsrsTarget > 0 ? fsrsTarget : (session?.questions?.length || 15);
 
-              // Đếm số thẻ ôn tập đến hạn còn lại chưa được đánh giá trong phiên này
-              const nowTime = new Date().getTime();
-              const overdueHours = currentStep?.overdue_hours ?? 24;
-              const todayStart = new Date();
-              todayStart.setHours(0, 0, 0, 0);
+              const sessionAnsweredCount = Object.keys(sessionAnswers).length;
+              const unreviewedDueCount = Math.max(0, dueRemaining - sessionAnsweredCount);
+              const totalCompletedToday = Math.min(subTotal, reviewedToday + sessionAnsweredCount);
 
-              const dueCardsIndices = session?.questions ? session.questions.map((q: any, idx: number) => {
-                if (q.is_ignored) return -1;
-                const box = getCardBoxId(q);
-                if (box === 'unseen' || !q.fsrs?.due) return -1;
-                // Exclude cards first learned today if overdueHours >= 24
-                if (overdueHours >= 24 && q.fsrs?.first_learned) {
-                  const firstLearnedDate = parseUTCDate(q.fsrs.first_learned).getTime();
-                  if (firstLearnedDate >= todayStart.getTime()) return -1;
-                }
-                const isDue = (parseUTCDate(q.fsrs.due).getTime() - 30000) <= nowTime;
-                return isDue ? idx : -1;
-              }).filter((idx: number) => idx !== -1) : [];
-
-              const unreviewedDueCount = dueCardsIndices.length > 0 
-                ? dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length 
-                : Math.max(0, dueRemaining - Object.keys(sessionAnswers).length);
-
-              subCurr = unreviewedDueCount;
+              subCurr = totalCompletedToday;
               progressPillText = `${unreviewedDueCount} left`;
             }
           }

@@ -1756,18 +1756,16 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         fsrs_step = next((st for st in pipeline if st.get("type") == "fsrs_review"), None)
         is_roadmap_review = (target_mode == "fsrs_review") or (original_mode == "roadmap")
 
-        overdue_hours = int(fsrs_step.get("overdue_hours", 24)) if fsrs_step else (24 if is_roadmap_review else 0)
-
         now_utc = datetime.utcnow()
         today_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = today_start + timedelta(days=1)
-        if is_roadmap_review and overdue_hours > 0:
-            cutoff_time = day_end - timedelta(hours=overdue_hours)
+        if is_roadmap_review:
+            cutoff_time = day_end # Mặc định theo ngày: mốc 23:59:59 của ngày hôm nay
         else:
             cutoff_time = now_utc
 
         cards_learned_today = set()
-        if is_roadmap_review and overdue_hours >= 24:
+        if is_roadmap_review:
             from app.modules.deck.models import UserAnswer, DeckAttempt
             first_answer_res = await db.execute(
                 select(UserAnswer.card_id)
@@ -1801,8 +1799,12 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             card_info = {"idx": idx, "due": m["due"], "stability": m["stability"] or 0.0}
             all_learned_cards.append(card_info)
 
-            # Skip cards first learned today if overdue_hours >= 24
-            if is_roadmap_review and overdue_hours >= 24 and c_id in cards_learned_today:
+            # Skip cards first learned today if in roadmap review
+            if is_roadmap_review and c_id in cards_learned_today:
+                continue
+
+            # Skip cards already reviewed today if in roadmap review (đã hoàn thành chỉ tiêu ôn hôm nay)
+            if is_roadmap_review and m["last_review"] and m["last_review"] >= today_start:
                 continue
 
             if m["due"]:

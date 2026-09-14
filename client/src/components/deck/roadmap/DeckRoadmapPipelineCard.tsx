@@ -153,33 +153,36 @@ export function DeckRoadmapPipelineCard({
                     {step.type === 'speed_skim' && `Lướt nhanh ${step.daily_count || 20} từ mới qua Flashcard (1-chạm)`}
                     {step.type === 'mcq' && `Làm bài test trắc nghiệm (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
                     {step.type === 'typing' && `Gõ chính xác từ vựng (${step.question_count || 20} câu, Đạt >= ${step.pass_threshold || 80}%)`}
-                    {step.type === 'fsrs_review' && (
-                      (step.overdue_hours ?? 24) >= 24
-                        ? `Ôn tập thẻ FSRS v6 quá hạn trên ${Math.round((step.overdue_hours ?? 24) / 24)} ngày (mốc 23h59)`
-                        : `Ôn tập tất cả thẻ đến hạn theo FSRS v6`
-                    )}
+                    {step.type === 'fsrs_review' && `Ôn tập thẻ FSRS v6 đến hạn trong ngày (mốc 23h59)`}
                     {step.type === 'study_time' && `Mục tiêu thời gian học (${step.target_minutes || 15} phút)`}
                   </span>
                 </div>
               </div>
 
               {/* Action Link */}
-              {!isDone ? (
-                <Link
-                  to={step.url || `/flashcard/${deckId}/play?mode=roadmap`}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1 shrink-0"
-                >
-                  <span>Học ngay</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              ) : (
-                <Link
-                  to={step.url || `/flashcard/${deckId}/play?mode=roadmap`}
-                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all shrink-0"
-                >
-                  Luyện lại
-                </Link>
-              )}
+              {(() => {
+                const fallbackUrl = (step.type === 'mcq' || step.type === 'typing')
+                  ? `/practice/${deckId}/play?mode=${step.type}`
+                  : `/flashcard/${deckId}/play?mode=roadmap`;
+                const targetUrl = step.url || fallbackUrl;
+
+                return !isDone ? (
+                  <Link
+                    to={targetUrl}
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                  >
+                    <span>Học ngay</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <Link
+                    to={targetUrl}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all shrink-0"
+                  >
+                    Luyện lại
+                  </Link>
+                );
+              })()}
             </div>
           )
         })}
