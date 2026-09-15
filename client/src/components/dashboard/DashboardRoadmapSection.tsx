@@ -948,6 +948,15 @@ export function DashboardRoadmapSection({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <button
+              type="button"
+              onClick={() => navigate('/roadmap')}
+              className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+              title="Open Roadmap Hub & Freeze/Unfreeze Decks"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>Roadmap Hub</span>
+            </button>
             {onOpenCustomize && isDesktop && (
               <button
                 type="button"
@@ -999,6 +1008,15 @@ export function DashboardRoadmapSection({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <button
+              type="button"
+              onClick={() => navigate('/roadmap')}
+              className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+              title="Open Roadmap Hub & Freeze/Unfreeze Decks"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>Roadmap Hub</span>
+            </button>
             {onOpenCustomize && isDesktop && (
               <button
                 type="button"
@@ -1093,6 +1111,15 @@ export function DashboardRoadmapSection({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <Link
+            to="/roadmap"
+            className="text-xs font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
+            title="Open Roadmap Hub & Freeze/Unfreeze Decks"
+          >
+            <Compass className="w-3 h-3" />
+            <span>Roadmap Hub</span>
+          </Link>
+
           {onOpenCustomize && isDesktop && (
             <button
               type="button"

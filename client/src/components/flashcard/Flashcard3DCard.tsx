@@ -106,6 +106,8 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     }
   }, [currentIndex, currentQuestion?.id, isFlyingOut, cardDragControls]);
 
+  if (!currentQuestion) return null;
+
   const renderCardTopHeader = (face: 'front' | 'back') => {
     const isFront = face === 'front';
     const originalIndex = currentQuestion?.original_index ?? (currentIndex + 1);

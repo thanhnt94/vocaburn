@@ -1818,6 +1818,27 @@ export default function Dashboard() {
             <ChevronRight className="w-4 h-4 text-orange-400 group-hover:translate-x-0.5 transition-transform" />
           </button>
 
+          {/* Action Button: Chế Độ Học Tập Tổng Hợp (Daily Focus Queue) */}
+          <button
+            type="button"
+            onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 hover:from-indigo-900 hover:to-purple-900 text-white rounded-2xl transition-all cursor-pointer group shadow-sm border border-indigo-700/60"
+            title="Học tập tổng hợp: gộp tất cả thẻ FSRS cần ôn hôm nay"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-sm shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                ⚡
+              </div>
+              <div className="text-left min-w-0">
+                <span className="text-xs font-black block leading-tight truncate">Chế Độ Học Tổng Hợp</span>
+                <span className="text-[9.5px] font-bold text-amber-300">
+                  {globalFocus ? (globalFocus.total_due > 0 ? `${globalFocus.total_due} thẻ FSRS cần ôn` : 'Đã hoàn tất hôm nay 🎉') : 'Daily Focus Queue'}
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-amber-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </button>
+
           {/* Rich Leaderboard */}
           {leaderboardData && (
             <LeaderboardWidget data={leaderboardData} activeFilter={timeFilter} onFilterChange={setTimeFilter} />
@@ -1830,29 +1851,76 @@ export default function Dashboard() {
         {/* DESKTOP CONTENT COLUMNS (Col 5 + Col 4) */}
         {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
         <section className="col-span-5 h-full overflow-hidden flex flex-col">
-          {globalFocus && globalFocus.total_due > 0 && (
+          {globalFocus && (
             <div className="p-2 pb-0 shrink-0">
-              <div 
-                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-base shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                    ⚡
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black tracking-tight text-white">Chế Độ Học Tập Tổng Hợp</span>
-                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px]">{globalFocus.total_due} thẻ FSRS</span>
+              {globalFocus.total_due > 0 ? (
+                <div 
+                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-base shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      ⚡
                     </div>
-                    <p className="text-[11px] text-indigo-200 truncate mt-0.5">Gộp toàn bộ thẻ đến hạn từ {globalFocus.active_decks_count} bộ thẻ đang kích hoạt</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black tracking-tight text-white">Chế Độ Học Tập Tổng Hợp</span>
+                        <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px]">{globalFocus.total_due} thẻ FSRS</span>
+                      </div>
+                      <p className="text-[11px] text-indigo-200 truncate mt-0.5">Gộp toàn bộ thẻ đến hạn từ {globalFocus.active_decks_count} bộ thẻ đang kích hoạt</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      to="/roadmap"
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-200 hover:text-white font-bold text-[11px] flex items-center gap-1 transition-colors"
+                      title="Mở Roadmap Hub & Đóng băng bộ thẻ"
+                    >
+                      <Compass className="w-3.5 h-3.5" />
+                      <span className="hidden lg:inline">Hub</span>
+                    </Link>
+                    <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                      <span>Học ngay</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 shadow-sm">
-                  <span>Học ngay</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+              ) : (
+                <div 
+                  className="p-3 rounded-2xl bg-white border border-indigo-100 text-slate-800 flex items-center justify-between gap-3 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm shrink-0">
+                      ⚡
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black tracking-tight text-slate-800">Chế Độ Học Tập Tổng Hợp</span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">Đã xong hôm nay 🎉</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">0 thẻ tồn đọng • {globalFocus.active_decks_count} bộ đang học {globalFocus.frozen_decks_count > 0 ? `(${globalFocus.frozen_decks_count} bộ đóng băng)` : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      to="/roadmap"
+                      className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-[11px] flex items-center gap-1 transition-colors border border-indigo-200/60"
+                      title="Quản lý đóng băng bộ thẻ"
+                    >
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>Roadmap Hub</span>
+                    </Link>
+                    <button
+                      onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <span>Vào Queue</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
           <DashboardRoadmapSection
@@ -2063,29 +2131,64 @@ export default function Dashboard() {
 
         {/* MOBILE MAIN CONTENT */}
         <div className="flex-1 bg-[#f8fafc] overflow-hidden relative flex flex-col min-h-0">
-          {globalFocus && globalFocus.total_due > 0 && (
+          {globalFocus && (
             <div className="px-2.5 pt-2.5 shrink-0">
-              <div 
-                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                className="p-3 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer active:scale-[0.98] transition-all"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
-                    ⚡
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
-                      <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-slate-950 font-black text-[9px]">{globalFocus.total_due} thẻ</span>
+              {globalFocus.total_due > 0 ? (
+                <div 
+                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                  className="p-3 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer active:scale-[0.98] transition-all"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                      ⚡
                     </div>
-                    <p className="text-[10px] text-indigo-200 truncate mt-0.5">Học tập tổng hợp: {globalFocus.active_decks_count} bộ thẻ đến hạn</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
+                        <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-slate-950 font-black text-[9px]">{globalFocus.total_due} thẻ</span>
+                      </div>
+                      <p className="text-[10px] text-indigo-200 truncate mt-0.5">Học tập tổng hợp: {globalFocus.active_decks_count} bộ thẻ đến hạn</p>
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-xs">
+                    <span>Học ngay</span>
+                    <ChevronRight className="w-3 h-3" />
                   </div>
                 </div>
-                <div className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-xs">
-                  <span>Học ngay</span>
-                  <ChevronRight className="w-3 h-3" />
+              ) : (
+                <div 
+                  className="p-2.5 rounded-2xl bg-white border border-indigo-100 text-slate-800 flex items-center justify-between gap-2 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shrink-0">
+                      ⚡
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-black tracking-tight text-slate-800">Daily Focus Queue</span>
+                        <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[8.5px]">Đã xong 🎉</span>
+                      </div>
+                      <p className="text-[9.5px] text-slate-500 truncate mt-0.2">0 thẻ tồn đọng • {globalFocus.active_decks_count} bộ đã đạt chỉ tiêu</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Link
+                      to="/roadmap"
+                      className="px-2 py-1 rounded-xl bg-indigo-50 text-indigo-700 font-black text-[10px] flex items-center gap-0.5 border border-indigo-200/60 active:scale-95 transition-all"
+                    >
+                      <Compass className="w-3 h-3" />
+                      <span>Hub</span>
+                    </Link>
+                    <button
+                      onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                      className="px-2 py-1 rounded-xl bg-slate-100 text-slate-700 font-black text-[10px] flex items-center gap-0.5 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <span>Vào</span>
+                      <ChevronRight className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
           {activeHomeTab === 'roadmap' ? (

@@ -882,6 +882,18 @@ export default function FlashcardPlay() {
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
 
+      if (questions.length === 0) {
+        setFsrsCompletionData({
+          is_all_completed: true,
+          next_index: -1,
+          total_cards: 0,
+          learned_cards: 0,
+          message: isGlobalFocus 
+            ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉' 
+            : 'Không có thẻ nào đến hạn ôn tập hôm nay.'
+        })
+      }
+
       const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};
       const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
       const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
