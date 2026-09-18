@@ -26,6 +26,7 @@ ALLOWED_EXTS = ALLOWED_IMAGE_EXTS | ALLOWED_AUDIO_EXTS
 async def upload_media_file(
     request: Request,
     file: UploadFile = File(...),
+    deck_id: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -57,6 +58,8 @@ async def upload_media_file(
         central_server_url = (sso_config.server_url if sso_config and sso_config.server_url else "").rstrip("/")
     queue_token = getattr(settings, "QUEUE_API_SECRET", "super-secret-token-123")
 
+    is_audio = ext in ALLOWED_AUDIO_EXTS
+
     # 1. Forward directly to CentralAuth Media Vault
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -67,6 +70,12 @@ async def upload_media_file(
             data = {
                 "source_info": f"Vocaburn: {user.username} (ID #{user.id})"
             }
+            clean_deck_id = str(deck_id).strip() if deck_id else ""
+            if clean_deck_id:
+                data["app"] = "vocaburn"
+                data["folder"] = clean_deck_id
+                data["subfolder"] = "audio" if is_audio else "images"
+
             headers = {
                 "X-Queue-Token": queue_token
             }
@@ -75,9 +84,15 @@ async def upload_media_file(
             if response.status_code == 200:
                 res_data = response.json()
                 filename = res_data.get("filename")
-                is_audio = ext in ALLOWED_AUDIO_EXTS
-                canonical_prefix = "central-tts://" if is_audio else "central-media://"
-                canonical_url = f"{canonical_prefix}{filename}" if filename else None
+                canonical_url = res_data.get("canonical_url")
+                if not canonical_url and filename:
+                    if clean_deck_id:
+                        sub = "audio" if is_audio else "images"
+                        canonical_url = f"central://vocaburn/{clean_deck_id}/{sub}/{filename}"
+                    else:
+                        canonical_prefix = "central-tts://" if is_audio else "central-media://"
+                        canonical_url = f"{canonical_prefix}{filename}"
+
                 full_url = res_data.get("full_url")
                 if not full_url:
                     rel_url = res_data.get("url", "")

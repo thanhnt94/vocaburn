@@ -335,6 +335,7 @@ export function DeckCardQuickAdd({
                       <div key={colKey} className="min-w-0">
                         <MediaUrlInput
                           mediaType={isImg ? 'image' : 'audio'}
+                          deckId={deckId}
                           placeholder={`[${colKey}]...`}
                           value={fieldValues[colKey] || ''}
                           onChange={(val) => handleFieldChange(colKey, val)}

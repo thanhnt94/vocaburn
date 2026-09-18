@@ -39,13 +39,16 @@ def resolve_central_url(url: str, sso_url: str = "") -> str:
     trimmed = url.strip()
     base_sso = (sso_url or "").rstrip("/")
 
+    if trimmed.startswith("central://"):
+        rel_path = trimmed[len("central://"):].lstrip("/")
+        return f"{base_sso}/static/{rel_path}" if base_sso else f"/static/{rel_path}"
     if trimmed.startswith("central-media://"):
         filename = trimmed[len("central-media://"):]
         return f"{base_sso}/static/uploads/media/{filename}" if base_sso else f"/static/uploads/media/{filename}"
     if trimmed.startswith("central-tts://"):
         filename = trimmed[len("central-tts://"):]
         return f"{base_sso}/static/uploads/tts/{filename}" if base_sso else f"/static/uploads/tts/{filename}"
-    if trimmed.startswith("/static/uploads/"):
+    if trimmed.startswith("/static/"):
         return f"{base_sso}{trimmed}" if base_sso else trimmed
     return trimmed
 
@@ -69,8 +72,13 @@ def unresolve_central_url(url: str, sso_url: str = "") -> str:
     if not url or not isinstance(url, str):
         return url
     trimmed = url.strip()
-    if trimmed.startswith("central-media://") or trimmed.startswith("central-tts://"):
+    if trimmed.startswith("central://") or trimmed.startswith("central-media://") or trimmed.startswith("central-tts://"):
         return trimmed
+
+    # Match hierarchical vocaburn path
+    vocab_match = re.search(r"(?:https?://[^/]+)?/static/(vocaburn/[^\s?#]+)", trimmed)
+    if vocab_match:
+        return f"central://{vocab_match.group(1)}"
 
     # Robust regex matching: recognizes any domain or relative path pointing to uploads
     tts_match = re.search(r"(?:https?://[^/]+)?/static/uploads/tts/([^\s?#]+)", trimmed)
@@ -83,12 +91,9 @@ def unresolve_central_url(url: str, sso_url: str = "") -> str:
 
     if sso_url:
         sso_url_clean = sso_url.rstrip("/")
-        if trimmed.startswith(f"{sso_url_clean}/static/uploads/media/"):
-            filename = trimmed[len(f"{sso_url_clean}/static/uploads/media/"):]
-            return f"central-media://{filename}"
-        if trimmed.startswith(f"{sso_url_clean}/static/uploads/tts/"):
-            filename = trimmed[len(f"{sso_url_clean}/static/uploads/tts/"):]
-            return f"central-tts://{filename}"
+        if trimmed.startswith(f"{sso_url_clean}/static/"):
+            rel = trimmed[len(f"{sso_url_clean}/static/"):].lstrip("/")
+            return f"central://{rel}"
 
     return trimmed
 

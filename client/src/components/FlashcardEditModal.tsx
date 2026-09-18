@@ -14,6 +14,7 @@ interface Option {
 
 interface Flashcard {
   id: number
+  deck_id?: number | string
   content: string
   explanation: string
   ai_explanation?: string
@@ -775,6 +776,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                       <div key={col}>
                         <MediaUrlInput
                           mediaType="image"
+                          deckId={flashcard?.deck_id}
                           label={col.replace(/_/g, ' ')}
                           value={getFieldValue(col)}
                           onChange={(newVal) => setFieldValue(col, newVal)}
@@ -814,6 +816,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                             ) : (
                               <MediaUrlInput
                                 mediaType="audio"
+                                deckId={flashcard?.deck_id}
                                 value={val}
                                 onChange={(newVal) => setFieldValue(col, newVal)}
                                 placeholder="Dán link hoặc bấm nút upload file âm thanh..."
@@ -847,6 +850,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
                             ) : (
                               <MediaUrlInput
                                 mediaType="audio"
+                                deckId={flashcard?.deck_id}
                                 value={val}
                                 onChange={(newVal) => setFieldValue(col, newVal)}
                                 placeholder="Dán link hoặc bấm nút upload file âm thanh..."

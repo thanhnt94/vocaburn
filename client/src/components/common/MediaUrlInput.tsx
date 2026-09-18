@@ -21,6 +21,7 @@ export interface MediaUrlInputProps {
   value: string
   onChange: (val: string) => void
   mediaType: 'image' | 'audio' | 'all'
+  deckId?: number | string
   placeholder?: string
   label?: string
   sublabel?: string
@@ -95,6 +96,10 @@ export const resolveMediaUrl = (url: string | null | undefined, customBaseUrl?: 
     trimmed = trimmed.replace(/http:\/\/centralauth\.mindstack\.local/g, ssoUrl)
   }
 
+  if (trimmed.startsWith('central://')) {
+    const relPath = trimmed.slice('central://'.length).replace(/^\/+/, '')
+    return ssoUrl ? `${ssoUrl}/static/${relPath}` : `/static/${relPath}`
+  }
   if (trimmed.startsWith('central-media://')) {
     const filename = trimmed.slice('central-media://'.length)
     return ssoUrl ? `${ssoUrl}/static/uploads/media/${filename}` : `/static/uploads/media/${filename}`
@@ -103,7 +108,7 @@ export const resolveMediaUrl = (url: string | null | undefined, customBaseUrl?: 
     const filename = trimmed.slice('central-tts://'.length)
     return ssoUrl ? `${ssoUrl}/static/uploads/tts/${filename}` : `/static/uploads/tts/${filename}`
   }
-  if (trimmed.startsWith('/static/uploads/')) {
+  if (trimmed.startsWith('/static/')) {
     return ssoUrl ? `${ssoUrl}${trimmed}` : trimmed
   }
   return trimmed
@@ -113,8 +118,14 @@ export const resolveMediaUrl = (url: string | null | undefined, customBaseUrl?: 
 export const unresolveMediaUrl = (url: string | null | undefined): string => {
   if (!url) return ''
   const trimmed = url.trim()
-  if (trimmed.startsWith('central-media://') || trimmed.startsWith('central-tts://')) {
+  if (trimmed.startsWith('central://') || trimmed.startsWith('central-media://') || trimmed.startsWith('central-tts://')) {
     return trimmed
+  }
+
+  // Vocaburn hierarchical path regex: e.g. (domain)/static/vocaburn/...
+  const vocabMatch = trimmed.match(/(?:https?:\/\/[^\/]+)?\/static\/(vocaburn\/[^\s?#]+)/)
+  if (vocabMatch && vocabMatch[1]) {
+    return `central://${vocabMatch[1]}`
   }
 
   // Audio TTS regex: e.g. (domain)/static/uploads/tts/<filename>
@@ -136,6 +147,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   value,
   onChange,
   mediaType,
+  deckId,
   placeholder,
   label,
   sublabel,
@@ -202,6 +214,9 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
       try {
         const formData = new FormData()
         formData.append('file', file)
+        if (deckId !== undefined && deckId !== null && String(deckId).trim() !== '') {
+          formData.append('deck_id', String(deckId).trim())
+        }
 
         const res = await axios.post('/api/v1/media/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -381,10 +396,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const resolvedUrl = resolveMediaUrl(value, centralAuthUrl)
   const isImage =
     mediaType === 'image' ||
-    (mediaType === 'all' && (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(value) || value.includes('/static/uploads/media/') || value.startsWith('central-media://')))
+    (mediaType === 'all' && (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(value) || value.includes('/static/uploads/media/') || value.startsWith('central-media://') || value.includes('/images/')))
   const isAudio =
     mediaType === 'audio' ||
-    (mediaType === 'all' && (/\.(mp3|wav|m4a|ogg|aac)$/i.test(value) || value.includes('/static/uploads/tts/') || value.startsWith('central-tts://')))
+    (mediaType === 'all' && (/\.(mp3|wav|m4a|ogg|aac)$/i.test(value) || value.includes('/static/uploads/tts/') || value.startsWith('central-tts://') || value.includes('/audio/')))
 
   return (
     <div className={cn("space-y-1.5", className)}>

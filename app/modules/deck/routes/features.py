@@ -1294,7 +1294,12 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             import httpx
             logger.info(f"[TTS CENTRAL] SSO is enabled. Requesting centralized TTS from {sso_config.server_url} for text: '{text[:30]}...'")
             async with httpx.AsyncClient() as client:
-                tts_payload = {"text": text}
+                tts_payload = {
+                    "text": text,
+                    "app": "vocaburn",
+                    "folder": str(c.deck_id),
+                    "subfolder": "audio"
+                }
                 if target_lang:
                     tts_payload["lang"] = target_lang
                 if voice_name:
@@ -1309,7 +1314,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                 if response.status_code == 200:
                     data = response.json()
                     filename_tts = data.get("filename") or os.path.basename(data.get("url"))
-                    central_ref = f"central-tts://{filename_tts}"
+                    central_ref = data.get("canonical_url") or f"central://vocaburn/{c.deck_id}/audio/{filename_tts}"
                     
                     # Save back to database
                     if not is_custom:
@@ -1329,7 +1334,8 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                     await db.commit()
                     
                     # Return the fully resolved URL for immediate UI play/preview
-                    resolved_url = f"{sso_config.server_url.rstrip('/')}/static/uploads/tts/{filename_tts}"
+                    rel_url = data.get("url") or f"/static/vocaburn/{c.deck_id}/audio/{filename_tts}"
+                    resolved_url = f"{sso_config.server_url.rstrip('/')}{rel_url}" if rel_url.startswith("/") else rel_url
                     logger.info(f"[TTS CENTRAL SUCCESS] Stored logical reference {central_ref} in card {c.id}")
                     return resolved_url
                 else:
@@ -1350,13 +1356,19 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                     async with httpx.AsyncClient() as client:
                         response = await client.post(
                              f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
-                             json={"text": text, "lang": target_lang},
+                             json={
+                                 "text": text,
+                                 "lang": target_lang,
+                                 "app": "vocaburn",
+                                 "folder": str(c.deck_id),
+                                 "subfolder": "audio"
+                             },
                              timeout=20.0
                         )
                         if response.status_code == 200:
                             data = response.json()
                             filename_tts = data.get("filename") or os.path.basename(data.get("url"))
-                            central_ref = f"central-tts://{filename_tts}"
+                            central_ref = data.get("canonical_url") or f"central://vocaburn/{c.deck_id}/audio/{filename_tts}"
                             if not is_custom:
                                 if face == "front":
                                     c.audio = central_ref
@@ -1371,7 +1383,8 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                             if is_custom:
                                 flag_modified(c, "others")
                             await db.commit()
-                            resolved_url = f"{sso_config.server_url.rstrip('/')}/static/uploads/tts/{filename_tts}"
+                            rel_url = data.get("url") or f"/static/vocaburn/{c.deck_id}/audio/{filename_tts}"
+                            resolved_url = f"{sso_config.server_url.rstrip('/')}{rel_url}" if rel_url.startswith("/") else rel_url
                             return resolved_url
                 except Exception as sso_retry_err:
                     logger.warning(f"[TTS CENTRAL RETRY WARNING] Centralized retry failed: {sso_retry_err}")
