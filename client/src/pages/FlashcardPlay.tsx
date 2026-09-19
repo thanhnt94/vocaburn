@@ -2481,7 +2481,7 @@ export default function FlashcardPlay() {
 
   // Auto-advance timer in Skim Mode (when card is flipped to back face)
   useEffect(() => {
-    if (!isSpeedSkimMode || !isFlipped || hasRated || isFlyToolbarOpen || isSettingsModalOpen || isQuitModalOpen) {
+    if (!isSpeedSkimMode || !quickLearnEnabled || !isFlipped || hasRated || isFlyToolbarOpen || isSettingsModalOpen || isQuitModalOpen) {
       return;
     }
 
@@ -2509,7 +2509,8 @@ export default function FlashcardPlay() {
     isFlyToolbarOpen,
     isSettingsModalOpen,
     isQuitModalOpen,
-    currentIndex
+    currentIndex,
+    quickLearnEnabled
   ]);
 
   // Auto Play Hands-Free Loop Effect

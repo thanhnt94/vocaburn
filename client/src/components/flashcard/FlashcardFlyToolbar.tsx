@@ -694,10 +694,6 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                       <button
                         type="button"
                         onClick={() => {
-                          if (isSpeedSkimMode) {
-                            showLocalToast?.("Auto Next is permanently active in Skim Mode", "info")
-                            return
-                          }
                           const nextVal = !effectiveAutoAdvance
                           setIsAutoAdvance(nextVal)
                           if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
@@ -706,32 +702,24 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         className={cn(
                           "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
                           effectiveAutoAdvance
-                            ? isSpeedSkimMode
-                              ? "bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/25"
-                              : "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                            ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
                             : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                         )}
-                        title={isSpeedSkimMode ? "Auto Next: Permanently ON in Skim Mode" : `Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
+                        title={`Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
                       >
                         <div className={cn(
                           "w-8 h-8 rounded-xl flex items-center justify-center",
                           effectiveAutoAdvance
-                            ? isSpeedSkimMode ? "bg-white/20 text-white" : "bg-amber-500 text-white shadow-2xs"
+                            ? "bg-amber-500 text-white shadow-2xs"
                             : "bg-white text-slate-400 border border-slate-200/60"
                         )}>
-                          <Zap className={cn("w-4 h-4", isSpeedSkimMode && "animate-pulse")} />
+                          <Zap className="w-4 h-4" />
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
                           <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
-                          {isSpeedSkimMode ? (
-                            <span className="text-[8px] font-black uppercase tracking-wider text-amber-100">
-                              ⚡ Skim
-                            </span>
-                          ) : (
-                            <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
-                              {effectiveAutoAdvance ? "ON" : "OFF"}
-                            </span>
-                          )}
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
+                            {effectiveAutoAdvance ? "ON" : "OFF"}
+                          </span>
                         </div>
                       </button>
                     </div>
