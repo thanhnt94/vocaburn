@@ -371,7 +371,7 @@ export default function MemrisePlay() {
               backHalign={backHalign as any}
               showImages={showImages as any}
               setZoomedImage={() => {}}
-              effectiveShowFsrs={showFsrs}
+              effectiveShowFsrs={false}
               selectedOption={null}
               hasRated={false}
               activeDragGrade={null}
@@ -488,6 +488,8 @@ export default function MemrisePlay() {
         triggerHaptic={() => {}}
         frontFontSize={frontFontSize}
         setFrontFontSize={setFrontFontSize}
+        frontHalign={frontHalign}
+        setFrontHalign={setFrontHalign}
         canEdit={false}
         onOpenEditModal={undefined}
         onOpenCardHub={undefined}

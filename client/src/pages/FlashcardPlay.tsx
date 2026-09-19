@@ -4404,6 +4404,8 @@ export default function FlashcardPlay() {
         triggerHaptic={triggerHaptic}
         frontFontSize={frontFontSize}
         setFrontFontSize={setFrontFontSize}
+        frontHalign={frontHalign}
+        setFrontHalign={setFrontHalign}
         canEdit={canEdit}
         onOpenEditModal={openEditModal}
         onOpenCardHub={handleOpenCardHub}
