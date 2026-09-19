@@ -21,13 +21,17 @@ import {
   Vibrate,
   VibrateOff,
   Pencil,
+  PenLine,
   Type,
   FileText,
   Brain,
+  BrainCircuit,
   Lightbulb,
   ChevronRight,
   TrendingUp,
-  Lock
+  Lock,
+  AlignLeft,
+  AlignCenter
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -170,6 +174,8 @@ export interface FlashcardQuickControlsSheetProps {
   triggerHaptic?: (type?: any) => void
   frontFontSize?: string
   setFrontFontSize?: (size: string) => void
+  frontHalign?: 'left' | 'center'
+  setFrontHalign?: (val: 'left' | 'center') => void
   canEdit?: boolean
   onOpenEditModal?: () => void
   onOpenCardHub?: (subTab: 'stats' | 'insight' | 'note' | 'community') => void
@@ -228,6 +234,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   triggerHaptic,
   frontFontSize = '100%',
   setFrontFontSize,
+  frontHalign = 'center',
+  setFrontHalign,
   canEdit = false,
   onOpenEditModal,
   onOpenCardHub,
@@ -528,13 +536,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               }
 
               // 4. Font Size cycle & meta (100% Normal -> 125% Large -> 150% XL -> 85% Compact)
-              const fontMeta = (() => {
+              const fontSizeMeta = (() => {
                 const match = String(frontFontSize || '100%').match(/\d+/)
                 const pct = match ? parseInt(match[0], 10) : 100
-                if (pct <= 85) return { label: '85%', sub: 'Compact', active: true, color: 'text-amber-600' }
-                if (pct <= 105) return { label: '100%', sub: 'Normal', active: false, color: 'text-slate-500' }
-                if (pct <= 135) return { label: '125%', sub: 'Large', active: true, color: 'text-indigo-600' }
-                return { label: '150%', sub: 'XL', active: true, color: 'text-purple-600' }
+                if (pct <= 85) return { label: '85%', sub: 'Compact', active: true, color: 'text-amber-600', container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs', iconBox: 'bg-amber-500 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Font Size: 85% (Compact)' }
+                if (pct <= 105) return { label: '100%', sub: 'Normal', active: false, color: 'text-slate-500', container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500', iconBox: 'bg-white text-slate-400 border border-slate-200/60', icon: <Type className="w-4 h-4" />, title: 'Font Size: 100% (Normal)' }
+                if (pct <= 135) return { label: '125%', sub: 'Large', active: true, color: 'text-indigo-600', container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs', iconBox: 'bg-indigo-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Font Size: 125% (Large)' }
+                return { label: '150%', sub: 'XL', active: true, color: 'text-purple-600', container: 'bg-purple-50 border-purple-300 text-purple-700 shadow-2xs', iconBox: 'bg-purple-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Font Size: 150% (Extra Large)' }
               })()
 
               const handleCycleFontSize = () => {
@@ -557,6 +565,39 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 }
                 setFrontFontSize?.(nextVal)
                 showLocalToast?.(toastMsg, 'info')
+              }
+
+              // 5. Text Align cycle & meta
+              const textAlignMeta = (() => {
+                if (frontHalign === 'left') {
+                  return {
+                    label: 'LEFT',
+                    color: 'text-sky-600',
+                    container: 'bg-sky-50 border-sky-300 text-sky-700 shadow-2xs',
+                    iconBox: 'bg-sky-500 text-white shadow-2xs',
+                    icon: <AlignLeft className="w-4 h-4" />,
+                    title: 'Text Alignment: Left'
+                  }
+                }
+                return {
+                  label: 'CENTER',
+                  color: 'text-indigo-600',
+                  container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                  iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                  icon: <AlignCenter className="w-4 h-4" />,
+                  title: 'Text Alignment: Center'
+                }
+              })()
+
+              const handleCycleTextAlign = () => {
+                if (!setFrontHalign) return
+                if (frontHalign === 'center') {
+                  setFrontHalign('left')
+                  showLocalToast?.('Text Align: Left', 'info')
+                } else {
+                  setFrontHalign('center')
+                  showLocalToast?.('Text Align: Center', 'info')
+                }
               }
 
               return (
@@ -709,25 +750,37 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 
                     <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
                       {/* 1. Rating Mode */}
-                      <button
-                        type="button"
-                        onClick={handleCycleRating}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          ratingModeMeta.container
-                        )}
-                        title={ratingModeMeta.title}
-                      >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", ratingModeMeta.iconBox)}>
-                          {ratingModeMeta.icon}
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Rate Mode</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
-                            {ratingModeMeta.label}
-                          </span>
-                        </div>
-                      </button>
+                      {onCycleRatingMode !== undefined ? (
+                        <button
+                          type="button"
+                          onClick={handleCycleRating}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                            ratingModeMeta.container
+                          )}
+                          title={ratingModeMeta.title}
+                        >
+                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", ratingModeMeta.iconBox)}>
+                            {ratingModeMeta.icon}
+                          </div>
+                          <div className="flex flex-col items-center leading-none gap-0.5">
+                            <span className="text-[10px] font-bold tracking-tight">Rate Mode</span>
+                            <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
+                              {ratingModeMeta.label}
+                            </span>
+                          </div>
+                        </button>
+                      ) : (
+                        <button type="button" className="flex flex-col items-center justify-center p-2 rounded-2xl border transition-all text-center min-h-[72px] gap-1.5 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col items-center leading-none gap-0.5">
+                            <span className="text-[10px] font-bold tracking-tight text-slate-500">Rate Mode</span>
+                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">UNAVAILABLE</span>
+                          </div>
+                        </button>
+                      )}
 
                       {/* 2. Card Images (Cycles: BOTH -> FRONT -> BACK -> OFF) */}
                       <button
@@ -756,24 +809,45 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         onClick={handleCycleFontSize}
                         className={cn(
                           "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          fontMeta.active
-                            ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                          fontSizeMeta.container
                         )}
-                        title={`Font Size: ${fontMeta.label} (${fontMeta.sub})`}
+                        title={fontSizeMeta.title}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", fontMeta.active ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Type className="w-4 h-4" />
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", fontSizeMeta.iconBox)}>
+                          {fontSizeMeta.icon}
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
                           <span className="text-[10px] font-bold tracking-tight">Font Size</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", fontMeta.color)}>
-                            {fontMeta.label}
+                          <span className={cn("text-[8px] font-black uppercase tracking-wider", fontSizeMeta.color)}>
+                            {fontSizeMeta.label}
                           </span>
                         </div>
                       </button>
 
-                      {/* 4. Shuffle Order */}
+                      {/* 4. Text Alignment */}
+                      {setFrontHalign !== undefined ? (
+                        <button
+                          type="button"
+                          onClick={handleCycleTextAlign}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                            textAlignMeta.container
+                          )}
+                          title={textAlignMeta.title}
+                        >
+                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", textAlignMeta.iconBox)}>
+                            {textAlignMeta.icon}
+                          </div>
+                          <div className="flex flex-col items-center leading-none gap-0.5">
+                            <span className="text-[10px] font-bold tracking-tight">Alignment</span>
+                            <span className={cn("text-[8px] font-black uppercase tracking-wider", textAlignMeta.color)}>
+                              {textAlignMeta.label}
+                            </span>
+                          </div>
+                        </button>
+                      ) : null}
+
+                      {/* 5. Shuffle Order */}
                       <button
                         type="button"
                         onClick={() => {
@@ -897,31 +971,43 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                       </button>
 
                       {/* 4. FSRS Stats Badges (Toggle) */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextVal = !showFsrs
-                          setShowFsrs?.(nextVal)
-                          showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          showFsrs
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={`FSRS Badges: ${showFsrs ? 'SHOWN' : 'HIDDEN'}`}
-                      >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Layers className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">FSRS Badges</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", showFsrs ? "text-emerald-600" : "text-slate-400")}>
-                            {showFsrs ? "SHOWN" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
+                      {setShowFsrs !== undefined ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextVal = !showFsrs
+                            setShowFsrs?.(nextVal)
+                            showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                            showFsrs
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                              : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                          )}
+                          title={`FSRS Badges: ${showFsrs ? 'SHOWN' : 'HIDDEN'}`}
+                        >
+                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                            <Layers className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col items-center leading-none gap-0.5">
+                            <span className="text-[10px] font-bold tracking-tight">FSRS Badges</span>
+                            <span className={cn("text-[8px] font-black uppercase tracking-wider", showFsrs ? "text-emerald-600" : "text-slate-400")}>
+                              {showFsrs ? "SHOWN" : "OFF"}
+                            </span>
+                          </div>
+                        </button>
+                      ) : (
+                        <button type="button" className="flex flex-col items-center justify-center p-2 rounded-2xl border transition-all text-center min-h-[72px] gap-1.5 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
+                            <Layers className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col items-center leading-none gap-0.5">
+                            <span className="text-[10px] font-bold tracking-tight text-slate-500">FSRS Badges</span>
+                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">UNAVAILABLE</span>
+                          </div>
+                        </button>
+                      )}
                     </div>
                   </div>
 
