@@ -76,16 +76,22 @@ export default function MemrisePlay() {
     newQueue.shift(); // remove from front
 
     if (isCorrect) {
-      answeredCard.stage = (answeredCard.stage || 1) + 1;
-      if (answeredCard.stage <= 6) {
-        if (answeredCard.stage === 6) {
-          setBloomedCount(prev => prev + 1);
-        } else {
-          const insertPos = Math.min(3, newQueue.length);
-          newQueue.splice(insertPos, 0, answeredCard);
-        }
-      } else {
+      if (answeredCard.stage === 6) {
+        // It was shown as Bloomed, now we remove it
         setBloomedCount(prev => prev + 1);
+      } else {
+        answeredCard.stage = (answeredCard.stage || 1) + 1;
+        if (answeredCard.stage <= 6) {
+          if (answeredCard.stage === 6) {
+            // Reached stage 6, show it immediately so user sees the bloom
+            newQueue.splice(0, 0, answeredCard);
+          } else {
+            const insertPos = Math.min(3, newQueue.length);
+            newQueue.splice(insertPos, 0, answeredCard);
+          }
+        } else {
+          setBloomedCount(prev => prev + 1);
+        }
       }
     } else {
       answeredCard.stage = 1; // reset to introduction
@@ -94,7 +100,7 @@ export default function MemrisePlay() {
     }
     
     setQueue(newQueue);
-    if (newQueue.length === 0) {
+    if (newQueue.length === 0 && (!isCorrect || answeredCard.stage !== 6)) {
       setIsFinished(true);
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
@@ -222,7 +228,14 @@ export default function MemrisePlay() {
       
       {/* Play Area */}
       <div className="flex-1 relative overflow-y-auto w-full max-w-2xl mx-auto p-4 flex flex-col min-h-0">
-        {stage === 1 ? (
+        {stage === 6 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 pb-16">
+            <div className="text-[120px] mb-8 drop-shadow-xl animate-bounce">🌺</div>
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-3">Mastered!</h2>
+            <p className="text-xl text-emerald-600 font-bold mb-8 px-4">{currentCard.front}</p>
+            <p className="text-slate-500 dark:text-slate-400">You've successfully bloomed this word.</p>
+          </div>
+        ) : stage === 1 ? (
           <div className="flex-1 min-h-0 flex flex-col relative w-full h-full pb-16">
             <Flashcard3DCard
               currentQuestion={mockQuestion}
@@ -246,11 +259,11 @@ export default function MemrisePlay() {
               hasRated={false}
               activeDragGrade={null}
               dragOffset={{ x: 0, y: 0 }}
-              canDragRate={false}
+              canDragRate={true}
               hasBackOverflow={false}
               backScrollRef={backScrollRef}
               handleCardDrag={() => {}}
-              handleCardDragEnd={() => {}}
+              handleCardDragEnd={() => handleAnswerSubmit(true)}
               cardDragControls={cardDragControls}
               activeMasteryUpgrade={null}
               currentTime={new Date()}
@@ -260,17 +273,6 @@ export default function MemrisePlay() {
               setShowAbsoluteLast={() => {}}
               renderFlyToolbarNode={() => null}
             />
-            {/* Custom Next button for stage 1 (Introduction) */}
-            {isFlipped && (
-               <div className="absolute bottom-4 left-0 right-0 flex justify-center z-50">
-                 <button 
-                   onClick={() => handleAnswerSubmit(true)}
-                   className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest"
-                 >
-                   Got it!
-                 </button>
-               </div>
-            )}
           </div>
         ) : stage === 2 || stage === 3 ? (
           <PracticeMcqCard
@@ -314,25 +316,26 @@ export default function MemrisePlay() {
         )}
       </div>
 
-      {/* Footer for Practice modes */}
-      {stage !== 1 && (
-        <MemriseBottomBar
-          baseMode={stage === 4 ? 'listening' : stage === 5 ? 'typing' : 'mcq'}
-          typingInput={typingInput}
-          setTypingInput={setTypingInput}
-          onCheckTyping={handleTypingCheck}
-          currentIndex={0}
-          hasAnswered={answered}
-          currentQuestion={mockQuestion}
-          isFlipped={isFlipped}
-          justAnswered={justAnswered}
-          onOpenSettings={() => {}}
-          onPlayAudio={() => {}}
-          onOpenFeedback={() => {}}
-          onNext={handleManualNext}
-          onFlip={() => {}}
-        />
-      )}
+      {/* Footer for all modes */}
+      <MemriseBottomBar
+        baseMode={stage === 6 ? 'flashcard' : stage === 1 ? 'flashcard' : stage === 4 ? 'listening' : stage === 5 ? 'typing' : 'mcq'}
+        typingInput={typingInput}
+        setTypingInput={setTypingInput}
+        onCheckTyping={handleTypingCheck}
+        currentIndex={0}
+        hasAnswered={stage === 6 ? true : answered}
+        currentQuestion={mockQuestion}
+        isFlipped={stage === 6 ? true : isFlipped}
+        justAnswered={justAnswered}
+        onOpenSettings={() => {}}
+        onPlayAudio={() => {}}
+        onOpenFeedback={() => {}}
+        onNext={() => {
+          if (stage === 1 || stage === 6) handleAnswerSubmit(true);
+          else handleManualNext();
+        }}
+        onFlip={() => setIsFlipped(!isFlipped)}
+      />
     </div>
   );
 }
