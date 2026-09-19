@@ -9,7 +9,6 @@ import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise
 import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
-import { PlaySettingsModal } from '@/components/PlaySettingsModal';
 import { usePlaySettings } from '@/hooks/usePlaySettings';
 import { selectDistractors } from '@/lib/distractor';
 import confetti from 'canvas-confetti';
@@ -451,49 +450,86 @@ export default function MemrisePlay() {
         onFlip={() => setIsFlipped(!isFlipped)}
       />
 
-      <PlaySettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        activeMode={learningMode}
-        applyLearningMode={setLearningMode}
-        sfxEnabled={sfxEnabled}
-        setSfxEnabled={setSfxEnabled}
-        quickLearnEnabled={quickLearnEnabled}
-        setQuickLearnEnabled={setQuickLearnEnabled}
-        hapticEnabled={hapticEnabled}
-        setHapticEnabled={setHapticEnabled}
-        showImages={showImages}
-        setShowImages={setShowImages}
-        showFsrs={showFsrs}
-        setShowFsrs={setShowFsrs}
-        randomEnabled={randomEnabled}
-        setRandomEnabled={setRandomEnabled}
-        autoPlayAudio={autoPlayAudio}
-        setAutoPlayAudio={setAutoPlayAudio}
-        frontValign={frontValign}
-        setFrontValign={setFrontValign}
-        frontHalign={frontHalign}
-        setFrontHalign={setFrontHalign}
-        frontFontSize={frontFontSize}
-        setFrontFontSize={setFrontFontSize}
-        backValign={backValign}
-        setBackValign={setBackValign}
-        backHalign={backHalign}
-        setBackHalign={setBackHalign}
-        cardFlipTrigger={cardFlipTrigger}
-        setCardFlipTrigger={setCardFlipTrigger}
-        cardRatingMode={cardRatingMode}
-        setCardRatingMode={setCardRatingMode}
-        isCustomized={isCustomized}
-        settingOrigin={settingOrigin}
-        studyProfiles={studyProfiles}
-        activeProfileId={activeProfileId}
-        onApplyProfile={applyProfile}
-        onCreateCustomProfile={createCustomProfile}
-        onDeleteCustomProfile={deleteCustomProfile}
-        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
-        onResetToCreatorDefaults={resetToCreatorDefaults}
-      />
+      {/* Quick Settings Bottom Sheet */}
+      {isSettingsModalOpen && (
+        <div 
+          className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in" 
+          onClick={() => setIsSettingsModalOpen(false)}
+        >
+          <div 
+            className="w-full sm:w-[400px] bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 sm:zoom-in-95"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6 pb-2">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-white">Session Settings</h3>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5 uppercase tracking-wider">Configure Practice Columns</p>
+                </div>
+                <button 
+                  onClick={() => setIsSettingsModalOpen(false)} 
+                  className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 rounded-full transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                </button>
+              </div>
+              
+              <div className="space-y-4 mb-2">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <label className="text-[10px] font-bold tracking-[0.15em] uppercase text-indigo-500 dark:text-indigo-400 block mb-2">
+                    Question Column
+                  </label>
+                  <div className="relative">
+                    <select 
+                      className="w-full text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all appearance-none"
+                      value={modeSettings.mcq.active_pairs[0]?.q || 'front'}
+                      onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: e.target.value, a: modeSettings.mcq.active_pairs[0]?.a || 'back' }] } }))}
+                    >
+                      <option value="front">Front (Word)</option>
+                      <option value="back">Back (Translation)</option>
+                      <option value="meaning">Meaning (Nghĩa)</option>
+                      <option value="romaji">Romaji / Pronunciation</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <label className="text-[10px] font-bold tracking-[0.15em] uppercase text-emerald-500 dark:text-emerald-400 block mb-2">
+                    Answer Column
+                  </label>
+                  <div className="relative">
+                    <select 
+                      className="w-full text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-sm transition-all appearance-none"
+                      value={Array.isArray(modeSettings.mcq.active_pairs[0]?.a) ? modeSettings.mcq.active_pairs[0].a[0] : (modeSettings.mcq.active_pairs[0]?.a || 'back')}
+                      onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: modeSettings.mcq.active_pairs[0]?.q || 'front', a: e.target.value }] } }))}
+                    >
+                      <option value="front">Front (Word)</option>
+                      <option value="back">Back (Translation)</option>
+                      <option value="meaning">Meaning (Nghĩa)</option>
+                      <option value="romaji">Romaji / Pronunciation</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 mt-2 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+              <button 
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl active:scale-[0.98] transition-all shadow-md shadow-indigo-200 dark:shadow-none uppercase tracking-wider text-sm cursor-pointer"
+              >
+                Apply Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

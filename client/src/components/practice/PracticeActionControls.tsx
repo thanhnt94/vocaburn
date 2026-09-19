@@ -109,24 +109,35 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
         )
       ) : (
         !hasRated ? (
-          <button
-            onClick={() => onFlip()}
-            className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 dark:shadow-none flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
-          >
-            {isFlipped ? (
-              <>
-                <ChevronRight className="w-4 h-4 rotate-180" />
-                <span>FLIP BACK</span>
-                <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-              </>
-            ) : (
-              <>
-                <span>FLIP CARD</span>
-                <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
-                <ChevronRight className="w-4 h-4 rotate-90" />
-              </>
-            )}
-          </button>
+          (isRoadmapTestMode && isFlipped) ? (
+            <button
+              onClick={() => onNext()}
+              className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 dark:shadow-none flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+            >
+              <span>NEXT CARD</span>
+              <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => onFlip()}
+              className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 dark:shadow-none flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-indigo-400/60 hover:shadow-xl cursor-pointer"
+            >
+              {isFlipped ? (
+                <>
+                  <ChevronRight className="w-4 h-4 rotate-180" />
+                  <span>FLIP BACK</span>
+                  <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                </>
+              ) : (
+                <>
+                  <span>FLIP CARD</span>
+                  <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </>
+              )}
+            </button>
+          )
         ) : (
           <div className="flex-1 flex gap-3 h-12">
             <button
