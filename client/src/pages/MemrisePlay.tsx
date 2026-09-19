@@ -102,7 +102,7 @@ export default function MemrisePlay() {
     const card = queue[0];
     const s = getStageOrTestType(card);
     if (s === 2 || s === 3) {
-      const pair = modeSettings.mcq.active_pairs[0] || { q: 'front', a: 'back' };
+      const pair = modeSettings?.mcq?.active_pairs?.[0] || { q: 'front', a: 'back' };
       const qKey = pair.q;
       const aKey = Array.isArray(pair.a) ? pair.a[0] : pair.a;
       
@@ -110,7 +110,7 @@ export default function MemrisePlay() {
       const aText = getVal(card, aKey);
       
       const distractorPool = [];
-      const numChoices = modeSettings.mcq.num_choices || 4;
+      const numChoices = modeSettings?.mcq?.num_choices || 4;
       
       for (const other of session?.cards || []) {
         if (distractorPool.length >= 20) break;
@@ -173,7 +173,7 @@ export default function MemrisePlay() {
           const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
           const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null);
           if (parsed) {
-            setModeSettings(parsed);
+            setModeSettings(prev => ({ ...prev, ...parsed }));
           }
         }
         if (res.data.cards && res.data.cards.length > 0) {
@@ -494,8 +494,6 @@ export default function MemrisePlay() {
         showingHint={false}
         showFsrs={showFsrs}
         setShowFsrs={setShowFsrs}
-        modeSettings={modeSettings}
-        setModeSettings={setModeSettings}
       />
 
       <PlaySettingsModal
