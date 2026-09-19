@@ -245,7 +245,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           rotate: canDragRate && !isFlyingOut ? `${(dragOffset?.x || 0) * 0.11}deg` : undefined,
           touchAction: isSelectMode
             ? 'auto'
-            : (canDragRate ? (hasBackOverflow || !isFlipped ? 'pan-y' : 'none') : 'pan-y'),
+            : (canDragRate ? 'none' : 'pan-y'),
         }}
       >
         <div
