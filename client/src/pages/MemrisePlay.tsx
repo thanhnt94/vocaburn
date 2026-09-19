@@ -9,6 +9,8 @@ import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise
 import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
+import { PlaySettingsModal } from '@/components/PlaySettingsModal';
+import { usePlaySettings } from '@/hooks/usePlaySettings';
 import { selectDistractors } from '@/lib/distractor';
 import confetti from 'canvas-confetti';
 
@@ -50,7 +52,6 @@ export default function MemrisePlay() {
   const cardDragControls = useAnimation();
   
   // Audio configuration
-  // Remove unused full settings logic, just keep modeSettings for quick column switches
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
@@ -59,6 +60,17 @@ export default function MemrisePlay() {
     flashcard: { active_pairs: [{ q: 'front', a: 'back' }] },
     roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   });
+
+  const {
+    sfxEnabled, setSfxEnabled, quickLearnEnabled, setQuickLearnEnabled, hapticEnabled, setHapticEnabled,
+    showImages, setShowImages, showFsrs, setShowFsrs, randomEnabled, setRandomEnabled,
+    autoPlayAudio, setAutoPlayAudio, learningMode, setLearningMode,
+    frontValign, setFrontValign, frontHalign, setFrontHalign, frontFontSize, setFrontFontSize,
+    backValign, setBackValign, backHalign, setBackHalign, creatorDefaults,
+    cardFlipTrigger, setCardFlipTrigger, cardRatingMode, setCardRatingMode,
+    isCustomized, settingOrigin, studyProfiles, activeProfileId, syncStudySettings,
+    saveGeneralSettings, resetToCreatorDefaults, applyProfile, createCustomProfile, deleteCustomProfile, saveAsCreatorDefaults
+  } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
   // Timeout ref to allow immediate skip
   const autoNextTimeout = useRef<any>(null);
@@ -148,7 +160,20 @@ export default function MemrisePlay() {
     const fetchSession = async () => {
       try {
         setIsLoading(true);
-        const res = await axios.get(`/api/v1/memrise/${id}/${sessionType}-session`);
+        const [res, settingsRes] = await Promise.all([
+          axios.get(`/api/v1/memrise/${id}/${sessionType}-session`),
+          axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: null }))
+        ]);
+
+        if (settingsRes.data) {
+          const userSettings = settingsRes.data.user_settings;
+          const creatorSettings = settingsRes.data.creator_settings;
+          const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
+          const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null);
+          if (parsed) {
+            setModeSettings(parsed);
+          }
+        }
         if (res.data.cards && res.data.cards.length > 0) {
           setSession(res.data);
           setQueue([...res.data.cards]);
@@ -426,43 +451,49 @@ export default function MemrisePlay() {
         onFlip={() => setIsFlipped(!isFlipped)}
       />
 
-      {/* Quick Settings Popover */}
-      {isSettingsModalOpen && (
-        <div className="absolute bottom-24 left-4 w-72 bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-[400] animate-in slide-in-from-bottom-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-black text-sm uppercase tracking-wider text-slate-800 dark:text-white">Quick Settings</h3>
-            <button onClick={() => setIsSettingsModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-md cursor-pointer"><X className="w-4 h-4 text-slate-400" /></button>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-bold tracking-widest uppercase text-slate-500 block mb-1.5">Question Column</label>
-              <select 
-                className="w-full text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-500 cursor-pointer"
-                value={modeSettings.mcq.active_pairs[0]?.q || 'front'}
-                onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: e.target.value, a: modeSettings.mcq.active_pairs[0]?.a || 'back' }] } }))}
-              >
-                <option value="front">Front (Word)</option>
-                <option value="back">Back (Translation)</option>
-                <option value="meaning">Meaning</option>
-                <option value="romaji">Romaji</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold tracking-widest uppercase text-slate-500 block mb-1.5">Answer Column</label>
-              <select 
-                className="w-full text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-500 cursor-pointer"
-                value={Array.isArray(modeSettings.mcq.active_pairs[0]?.a) ? modeSettings.mcq.active_pairs[0].a[0] : (modeSettings.mcq.active_pairs[0]?.a || 'back')}
-                onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: modeSettings.mcq.active_pairs[0]?.q || 'front', a: e.target.value }] } }))}
-              >
-                <option value="front">Front (Word)</option>
-                <option value="back">Back (Translation)</option>
-                <option value="meaning">Meaning</option>
-                <option value="romaji">Romaji</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
+      <PlaySettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        activeMode={learningMode}
+        applyLearningMode={setLearningMode}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        quickLearnEnabled={quickLearnEnabled}
+        setQuickLearnEnabled={setQuickLearnEnabled}
+        hapticEnabled={hapticEnabled}
+        setHapticEnabled={setHapticEnabled}
+        showImages={showImages}
+        setShowImages={setShowImages}
+        showFsrs={showFsrs}
+        setShowFsrs={setShowFsrs}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
+        autoPlayAudio={autoPlayAudio}
+        setAutoPlayAudio={setAutoPlayAudio}
+        frontValign={frontValign}
+        setFrontValign={setFrontValign}
+        frontHalign={frontHalign}
+        setFrontHalign={setFrontHalign}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
+        backValign={backValign}
+        setBackValign={setBackValign}
+        backHalign={backHalign}
+        setBackHalign={setBackHalign}
+        cardFlipTrigger={cardFlipTrigger}
+        setCardFlipTrigger={setCardFlipTrigger}
+        cardRatingMode={cardRatingMode}
+        setCardRatingMode={setCardRatingMode}
+        isCustomized={isCustomized}
+        settingOrigin={settingOrigin}
+        studyProfiles={studyProfiles}
+        activeProfileId={activeProfileId}
+        onApplyProfile={applyProfile}
+        onCreateCustomProfile={createCustomProfile}
+        onDeleteCustomProfile={deleteCustomProfile}
+        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
+        onResetToCreatorDefaults={resetToCreatorDefaults}
+      />
     </div>
   );
 }
