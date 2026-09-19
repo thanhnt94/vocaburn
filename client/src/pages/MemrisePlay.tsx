@@ -14,6 +14,7 @@ import { PlaySettingsModal } from '@/components/PlaySettingsModal';
 import { usePlaySettings } from '@/hooks/usePlaySettings';
 import { selectDistractors } from '@/lib/distractor';
 import confetti from 'canvas-confetti';
+import { triggerHaptic } from '@/lib/haptic';
 
 const getVal = (item: any, key: string) => {
   if (!item) return '';
@@ -243,9 +244,15 @@ export default function MemrisePlay() {
     if (queue.length === 0) return;
     const card = queue[0];
     
-    if ((userSettings as any)?.sound_effects_enabled !== false) {
-      if (isCorrect) playCorrectSound();
-      else playIncorrectSound();
+    if (isCorrect) {
+      if ((userSettings as any)?.sound_effects_enabled !== false) playCorrectSound();
+      if (hapticEnabled) triggerHaptic('success');
+      
+      const confettiColors = ['#6366f1', '#a855f7', '#ec4899'];
+      confetti({ zIndex: 9999, particleCount: 100, spread: 60, origin: { y: 0.6 }, colors: confettiColors });
+    } else {
+      if ((userSettings as any)?.sound_effects_enabled !== false) playIncorrectSound();
+      if (hapticEnabled) triggerHaptic('error');
     }
     
     // Fire and forget stats update
