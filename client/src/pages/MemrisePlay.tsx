@@ -8,6 +8,7 @@ import { useAppStore } from '@/store/useAppStore';
 import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise';
 import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
+import { FlashcardQuickControlsSheet } from '@/components/flashcard/FlashcardFlyToolbar';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
 import { PlaySettingsModal } from '@/components/PlaySettingsModal';
 import { usePlaySettings } from '@/hooks/usePlaySettings';
@@ -53,6 +54,7 @@ export default function MemrisePlay() {
   
   // Audio configuration
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isQuickControlsOpen, setIsQuickControlsOpen] = useState(false);
   const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
@@ -441,7 +443,7 @@ export default function MemrisePlay() {
         currentQuestion={mockQuestion}
         isFlipped={stage === 6 ? true : isFlipped}
         justAnswered={justAnswered}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenSettings={() => setIsQuickControlsOpen(true)}
         onPlayAudio={() => {}}
         onOpenFeedback={() => {}}
         onNext={() => {
@@ -449,6 +451,51 @@ export default function MemrisePlay() {
           else handleManualNext();
         }}
         onFlip={() => setIsFlipped(!isFlipped)}
+      />
+
+      <FlashcardQuickControlsSheet
+        isOpen={isQuickControlsOpen}
+        onClose={() => setIsQuickControlsOpen(false)}
+        autoPlayAudio={autoPlayAudio as any}
+        setAutoPlayAudio={setAutoPlayAudio as any}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        effectiveAutoAdvance={quickLearnEnabled}
+        setIsAutoAdvance={setQuickLearnEnabled}
+        setQuickLearnEnabled={setQuickLearnEnabled}
+        showImages={showImages}
+        setShowImages={setShowImages}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
+        isSelectMode={false}
+        setIsSelectMode={() => {}}
+        currentQuestion={mockQuestion}
+        handleStarQuestion={() => {}}
+        showFlipBackBtn={true}
+        setIsFlipped={setIsFlipped}
+        setIsSettingsModalOpen={setIsSettingsModalOpen}
+        activeMode={learningMode}
+        onSelectMode={setLearningMode}
+        ratingMode={cardRatingMode as any}
+        onCycleRatingMode={() => {}}
+        swipeToRate={true}
+        onToggleSwipeToRate={() => {}}
+        showActionDock={true}
+        onToggleActionDock={() => {}}
+        hapticEnabled={hapticEnabled}
+        setHapticEnabled={setHapticEnabled}
+        triggerHaptic={() => {}}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
+        canEdit={false}
+        onOpenEditModal={() => {}}
+        onOpenCardHub={() => {}}
+        handleToggleHint={() => {}}
+        showingHint={false}
+        showFsrs={showFsrs}
+        setShowFsrs={setShowFsrs}
+        modeSettings={modeSettings}
+        setModeSettings={setModeSettings}
       />
 
       <PlaySettingsModal

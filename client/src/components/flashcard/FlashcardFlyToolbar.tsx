@@ -177,6 +177,8 @@ export interface FlashcardQuickControlsSheetProps {
   showingHint?: boolean
   showFsrs?: boolean
   setShowFsrs?: (val: boolean) => void
+  modeSettings?: any
+  setModeSettings?: (val: any) => void
 }
 
 const FLASHCARD_MODES = [
@@ -235,6 +237,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   showingHint = false,
   showFsrs = true,
   setShowFsrs,
+  modeSettings,
+  setModeSettings,
 }) => {
   if (typeof document === 'undefined') return null
 
@@ -304,6 +308,48 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 </button>
               </div>
             </div>
+
+            {/* Practice Columns (Only if passed in from Memrise/Practice Mode) */}
+            {modeSettings && setModeSettings && (
+              <div className="flex flex-col gap-1 text-left px-0.5">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-500">
+                    Practice Columns
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400">
+                    Q & A Layout
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 p-3.5 rounded-2xl bg-orange-50/50 border border-orange-100">
+                  <div>
+                    <label className="text-[9px] font-bold text-slate-500 block mb-1">Question (Q)</label>
+                    <select 
+                      className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-2 outline-none cursor-pointer shadow-sm"
+                      value={modeSettings.mcq?.active_pairs?.[0]?.q || 'front'}
+                      onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: e.target.value, a: modeSettings.mcq?.active_pairs?.[0]?.a || 'back' }] } }))}
+                    >
+                      <option value="front">Front</option>
+                      <option value="back">Back</option>
+                      <option value="meaning">Meaning</option>
+                      <option value="romaji">Romaji</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-slate-500 block mb-1">Answer (A)</label>
+                    <select 
+                      className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-2 outline-none cursor-pointer shadow-sm"
+                      value={Array.isArray(modeSettings.mcq?.active_pairs?.[0]?.a) ? modeSettings.mcq.active_pairs[0].a[0] : (modeSettings.mcq?.active_pairs?.[0]?.a || 'back')}
+                      onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: modeSettings.mcq?.active_pairs?.[0]?.q || 'front', a: e.target.value }] } }))}
+                    >
+                      <option value="front">Front</option>
+                      <option value="back">Back</option>
+                      <option value="meaning">Meaning</option>
+                      <option value="romaji">Romaji</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 5 Flashcard Modes Quick Switcher */}
             {onSelectMode && (
