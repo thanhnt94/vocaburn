@@ -6,7 +6,7 @@ import { useAnimation } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise';
-import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, PracticeBottomBar } from '@/components/practice';
+import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
 import { StudyHeaderTracker } from '@/components/StudyHeaderTracker';
@@ -310,30 +310,21 @@ export default function MemrisePlay() {
 
       {/* Footer for Practice modes */}
       {stage !== 1 && (
-        <PracticeBottomBar
-          isFeedbackOpen={false}
-          activeBottomTab="flashcard"
-          mainTab="practice"
+        <MemriseBottomBar
           baseMode={stage === 4 ? 'listening' : stage === 5 ? 'typing' : 'mcq'}
           typingInput={typingInput}
           setTypingInput={setTypingInput}
           onCheckTyping={handleTypingCheck}
           currentIndex={0}
-          practiceAnswers={{}}
-          sessionAnswers={{}}
+          hasAnswered={answered}
           currentQuestion={mockQuestion}
-          currentPracticeData={stage === 4 ? currentCard.audio_data : stage === 5 ? currentCard.typing_data : currentCard.mcq_data}
-          isRoadmapTestMode={false}
           isFlipped={isFlipped}
-          hasRated={false}
           justAnswered={justAnswered}
-          showFeedback={answered}
           onOpenSettings={() => {}}
           onPlayAudio={() => {}}
           onOpenFeedback={() => {}}
           onNext={handleManualNext}
           onFlip={() => {}}
-          onTabChange={() => {}}
         />
       )}
     </div>

@@ -185,6 +185,12 @@ const MODE_META_DICT: Record<string, { emoji: string; label: string; short: stri
     label: 'Roadmap Test', 
     short: 'TEST',
     style: 'bg-amber-50 text-amber-950 border border-amber-300/80 shadow-2xs hover:bg-amber-100/90'
+  },
+  memrise: { 
+    emoji: '🌱', 
+    label: 'Memrise Mode', 
+    short: 'MEM',
+    style: 'bg-emerald-50 text-emerald-950 border border-emerald-300/80 shadow-2xs hover:bg-emerald-100/90'
   }
 }
 
