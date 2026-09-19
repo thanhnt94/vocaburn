@@ -96,6 +96,8 @@ interface PlaySettingsModalProps {
   cardRatingMode?: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way';
   setCardRatingMode?: (val: 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way') => void;
   isCreator?: boolean;
+  modeSettings?: any;
+  setModeSettings?: (val: any) => void;
 }
 
 export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
@@ -146,7 +148,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setCardFlipTrigger,
   cardRatingMode = 'both',
   setCardRatingMode,
-  isCreator = false
+  isCreator = false,
+  modeSettings,
+  setModeSettings
 }) => {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -511,6 +515,41 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
               {/* ═══════════ TAB 2: MODE ═══════════ */}
               {activeTab === 'mode' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
+                  {modeSettings && setModeSettings && (
+                    <div className="space-y-3 mb-4 p-3.5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30">
+                      <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest block px-1">
+                        Practice Columns
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Question (Q)</label>
+                          <select 
+                            className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 outline-none cursor-pointer shadow-sm"
+                            value={modeSettings.mcq?.active_pairs?.[0]?.q || 'front'}
+                            onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: e.target.value, a: modeSettings.mcq?.active_pairs?.[0]?.a || 'back' }] } }))}
+                          >
+                            <option value="front">Front</option>
+                            <option value="back">Back</option>
+                            <option value="meaning">Meaning</option>
+                            <option value="romaji">Romaji</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Answer (A)</label>
+                          <select 
+                            className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 outline-none cursor-pointer shadow-sm"
+                            value={Array.isArray(modeSettings.mcq?.active_pairs?.[0]?.a) ? modeSettings.mcq.active_pairs[0].a[0] : (modeSettings.mcq?.active_pairs?.[0]?.a || 'back')}
+                            onChange={(e) => setModeSettings((prev: any) => ({ ...prev, mcq: { ...prev.mcq, active_pairs: [{ q: modeSettings.mcq?.active_pairs?.[0]?.q || 'front', a: e.target.value }] } }))}
+                          >
+                            <option value="front">Front</option>
+                            <option value="back">Back</option>
+                            <option value="meaning">Meaning</option>
+                            <option value="romaji">Romaji</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">
                       Choose Learning Mode
