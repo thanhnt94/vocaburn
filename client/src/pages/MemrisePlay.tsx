@@ -9,7 +9,7 @@ import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise
 import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
-import { StudyHeaderTracker } from '@/components/StudyHeaderTracker';
+import { MemriseHeaderTracker } from '@/components/MemriseHeaderTracker';
 import confetti from 'canvas-confetti';
 
 export default function MemrisePlay() {
@@ -190,11 +190,21 @@ export default function MemrisePlay() {
   if (!currentCard) return null;
 
   const getStageOrTestType = () => {
-    if (sessionType === 'plant') return currentCard.stage || 1;
-    // Watering session maps test_type directly
-    if (currentCard.test_type === 'mcq') return 2;
-    if (currentCard.test_type === 'audio') return 4;
-    return 5; // typing
+    let s = 1;
+    if (sessionType === 'plant') {
+      s = currentCard.stage || 1;
+    } else {
+      if (currentCard.test_type === 'mcq') s = 2;
+      else if (currentCard.test_type === 'audio') s = 4;
+      else s = 5; // typing
+    }
+    
+    // Fallback: If typing is required but typing_data is missing, fallback to MCQ
+    if (s === 5 && !currentCard.typing_data) {
+      s = 2;
+    }
+    
+    return s;
   };
 
   const stage = getStageOrTestType();
@@ -203,14 +213,10 @@ export default function MemrisePlay() {
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
       {/* Native Study Header HUD */}
-      <StudyHeaderTracker
-        currentStepIndex={0}
-        pipeline={[]}
-        allDone={isFinished}
-        deckId={id!}
-        subProgressCurr={bloomedCount}
-        subProgressTotal={totalCards}
-        activeMode="memrise"
+      <MemriseHeaderTracker
+        currentStage={currentCard.stage || 1}
+        bloomedCount={bloomedCount}
+        totalCards={totalCards}
         onExit={() => navigate(`/deck/${id}`)}
       />
       
