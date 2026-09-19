@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { useAnimation } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise';
-import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard } from '@/components/practice';
+import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, PracticeBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
+import { StudyHeaderTracker } from '@/components/StudyHeaderTracker';
 import confetti from 'canvas-confetti';
 
 export default function MemrisePlay() {
@@ -17,7 +19,10 @@ export default function MemrisePlay() {
   const { user, userSettings } = useAppStore();
   
   const [session, setSession] = useState<MemriseSessionResponse | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [queue, setQueue] = useState<MemriseCardPayload[]>([]);
+  const [bloomedCount, setBloomedCount] = useState(0);
+  const [totalCards, setTotalCards] = useState(0);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isFinished, setIsFinished] = useState(false);
@@ -27,10 +32,19 @@ export default function MemrisePlay() {
   
   const [typingInput, setTypingInput] = useState('');
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null);
+
+  // Flashcard3DCard specific dummy states
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [justAnswered, setJustAnswered] = useState(false);
+  const backScrollRef = useRef<HTMLDivElement | null>(null);
+  const cardDragControls = useAnimation();
   
   // Audio configuration
   const sfxEnabled = (userSettings as any)?.sound_effects_enabled ?? true;
   
+  // Timeout ref to allow immediate skip
+  const autoNextTimeout = useRef<any>(null);
+
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -38,7 +52,9 @@ export default function MemrisePlay() {
         const res = await axios.get(`/api/v1/memrise/${id}/${sessionType}-session`);
         if (res.data.cards && res.data.cards.length > 0) {
           setSession(res.data);
-          setCurrentIndex(0);
+          setQueue([...res.data.cards]);
+          setTotalCards(res.data.cards.length);
+          setBloomedCount(0);
         } else {
           setIsFinished(true);
           setError(res.data.message || 'No cards found for this session.');
@@ -55,69 +71,95 @@ export default function MemrisePlay() {
     }
   }, [id, sessionType]);
 
-  const handleNext = () => {
-    if (session && currentIndex < session.cards.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+  const advanceQueue = (isCorrect: boolean, answeredCard: MemriseCardPayload) => {
+    const newQueue = [...queue];
+    newQueue.shift(); // remove from front
+
+    if (isCorrect) {
+      answeredCard.stage = (answeredCard.stage || 1) + 1;
+      if (answeredCard.stage <= 6) {
+        if (answeredCard.stage === 6) {
+          setBloomedCount(prev => prev + 1);
+        } else {
+          const insertPos = Math.min(3, newQueue.length);
+          newQueue.splice(insertPos, 0, answeredCard);
+        }
+      } else {
+        setBloomedCount(prev => prev + 1);
+      }
     } else {
-      setIsFinished(true);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+      answeredCard.stage = 1; // reset to introduction
+      const insertPos = Math.min(1, newQueue.length);
+      newQueue.splice(insertPos, 0, answeredCard);
     }
-  };
-
-  const handleMcqSelect = (idx: number) => {
-    if (answered || !session || !session.cards[currentIndex]) return;
-    setAnswered(true);
-    setSelectedOption(idx);
-    const card = session.cards[currentIndex];
-    const isCorrect = idx === card.mcq_data?.correct_index;
-    handleAnswerSubmit(isCorrect);
-  };
-
-  const handleTypingCheck = () => {
-    if (answered || !session || !session.cards[currentIndex]) return;
-    setAnswered(true);
-    const card = session.cards[currentIndex];
-    const data = card.typing_data || card.mcq_data; // fallback for listening
-    const cleanInput = typingInput.trim().toLowerCase();
-    const correctAnswers = data?.acceptable_answers || [data?.correct_answer || ''];
-    const isCorrect = correctAnswers.some((a: string) => a.replace(/<[^<]+?>/g, '').trim().toLowerCase() === cleanInput);
     
-    setTypingFeedback({ checked: true, isCorrect });
-    handleAnswerSubmit(isCorrect);
+    setQueue(newQueue);
+    if (newQueue.length === 0) {
+      setIsFinished(true);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
+
+    setAnswered(false);
+    setSelectedOption(null);
+    setTypingInput('');
+    setTypingFeedback(null);
+    setIsFlipped(false);
+    setJustAnswered(false);
   };
 
-  const handleAnswerSubmit = async (isCorrect: boolean) => {
-    if (!session || !session.cards[currentIndex]) return;
-    
-    const card = session.cards[currentIndex];
+  const handleAnswerSubmit = (isCorrect: boolean) => {
+    if (queue.length === 0) return;
+    const card = queue[0];
     
     if (sfxEnabled) {
       if (isCorrect) playCorrectSound();
       else playIncorrectSound();
     }
     
-    try {
-      await axios.post('/api/v1/memrise/submit-answer', {
-        card_id: card.card_id,
-        is_correct: isCorrect,
-        session_type: sessionType
-      });
-    } catch (e) {
-      console.error("Failed to submit answer", e);
-    }
+    // Fire and forget stats update
+    axios.post('/api/v1/memrise/submit-answer', {
+      card_id: card.card_id,
+      is_correct: isCorrect,
+      session_type: sessionType
+    }).catch(e => console.error("Failed to submit answer", e));
     
-    // Slight delay before moving to next card
-    setTimeout(() => {
-      setAnswered(false);
-      setSelectedOption(null);
-      setTypingInput('');
-      setTypingFeedback(null);
-      handleNext();
+    if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
+    autoNextTimeout.current = setTimeout(() => {
+      advanceQueue(isCorrect, card);
     }, 1500);
+  };
+
+  const handleManualNext = () => {
+    if (autoNextTimeout.current) {
+      clearTimeout(autoNextTimeout.current);
+      if (queue.length > 0) {
+         // Determine if it was correct based on current feedback
+         const isCorrect = (selectedOption !== null && selectedOption === queue[0].mcq_data?.correct_index) || (typingFeedback?.isCorrect);
+         advanceQueue(!!isCorrect, queue[0]);
+      }
+    }
+  };
+
+  const handleMcqSelect = (idx: number) => {
+    if (answered || queue.length === 0) return;
+    setAnswered(true);
+    setSelectedOption(idx);
+    const card = queue[0];
+    const isCorrect = idx === card.mcq_data?.correct_index;
+    handleAnswerSubmit(isCorrect);
+  };
+
+  const handleTypingCheck = () => {
+    if (answered || queue.length === 0) return;
+    setAnswered(true);
+    const card = queue[0];
+    const data = card.typing_data || card.mcq_data;
+    const cleanInput = typingInput.trim().toLowerCase();
+    const correctAnswers = data?.acceptable_answers || [data?.correct_answer || ''];
+    const isCorrect = correctAnswers.some((a: string) => a.replace(/<[^>]+>/g, '').trim().toLowerCase() === cleanInput);
+    
+    setTypingFeedback({ checked: true, isCorrect });
+    handleAnswerSubmit(isCorrect);
   };
 
   if (isLoading) {
@@ -144,160 +186,156 @@ export default function MemrisePlay() {
     );
   }
 
-  const currentCard = session?.cards[currentIndex];
+  const currentCard = queue[0];
   if (!currentCard) return null;
-  
-  const progressPercent = ((currentIndex) / (session?.cards.length || 1)) * 100;
 
-  // Determine which component to render based on session type and stage/test_type
-  const renderCard = () => {
-    if (sessionType === 'plant') {
-      const stage = currentCard.stage || 1;
-      if (stage === 1) {
-         // Introduce (Front/Back)
-         // Assuming we can use a basic view for introduction.
-         // We can use a modified Flashcard or a simple presentation.
-         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center max-w-lg w-full mx-auto">
-               <h3 className="text-lg font-bold text-indigo-600 mb-2">New Seed 🌱</h3>
-               <div className="text-4xl font-black mb-6">{currentCard.front}</div>
-               <div className="text-2xl font-medium text-slate-700">{currentCard.back}</div>
-               <button 
-                 onClick={() => handleAnswerSubmit(true)}
-                 className="mt-8 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold w-full"
-               >
-                 Got it!
-               </button>
-            </div>
-         )
-      } else if (stage === 2 || stage === 3) {
-         // MCQ
-         return (
-           <PracticeMcqCard
-             currentIndex={0}
-             currentQuestion={{ id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back } as any}
-             practiceData={currentCard.mcq_data}
-             answered={answered}
-             selectedOption={selectedOption}
-             starredCards={{}}
-             onToggleStar={() => {}}
-             onSelectOption={handleMcqSelect}
-             onPreviewInsight={() => {}}
-           />
-         );
-      } else if (stage === 4) {
-         // Listening
-         return (
-           <PracticeListeningCard
-             currentIndex={0}
-             currentQuestion={{ id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back } as any}
-             practiceData={{ ...currentCard.mcq_data, audio_url: currentCard.audio_data?.audio_url }}
-             answered={answered}
-             typingInput={typingInput}
-             setTypingInput={setTypingInput}
-             typingFeedback={typingFeedback}
-             starredCards={{}}
-             onToggleStar={() => {}}
-             onCheckTyping={handleTypingCheck}
-             onPlayAudio={() => {}}
-           />
-         );
-      } else {
-         // Typing
-         return (
-           <PracticeTypingCard
-             currentIndex={0}
-             currentQuestion={{ id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back } as any}
-             practiceData={currentCard.typing_data}
-             answered={answered}
-             typingInput={typingInput}
-             setTypingInput={setTypingInput}
-             typingFeedback={typingFeedback}
-             starredCards={{}}
-             onToggleStar={() => {}}
-             onCheckTyping={handleTypingCheck}
-           />
-         );
-      }
-    } else {
-      // Watering (test_type)
-      const testType = currentCard.test_type;
-      if (testType === 'mcq') {
-        return (
-           <PracticeMcqCard
-             currentIndex={0}
-             currentQuestion={{ id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back } as any}
-             practiceData={currentCard.mcq_data}
-             answered={answered}
-             selectedOption={selectedOption}
-             starredCards={{}}
-             onToggleStar={() => {}}
-             onSelectOption={handleMcqSelect}
-             onPreviewInsight={() => {}}
-           />
-         );
-      } else if (testType === 'audio') {
-        return (
-           <PracticeListeningCard
-             currentIndex={0}
-             currentQuestion={{ id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back } as any}
-             practiceData={{ ...currentCard.mcq_data, audio_url: currentCard.audio_data?.audio_url }}
-             answered={answered}
-             typingInput={typingInput}
-             setTypingInput={setTypingInput}
-             typingFeedback={typingFeedback}
-             starredCards={{}}
-             onToggleStar={() => {}}
-             onCheckTyping={handleTypingCheck}
-             onPlayAudio={() => {}}
-           />
-         );
-      } else {
-        return (
-           <PracticeTypingCard
-             currentIndex={0}
-             currentQuestion={{ id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back } as any}
-             practiceData={currentCard.typing_data}
-             answered={answered}
-             typingInput={typingInput}
-             setTypingInput={setTypingInput}
-             typingFeedback={typingFeedback}
-             starredCards={{}}
-             onToggleStar={() => {}}
-             onCheckTyping={handleTypingCheck}
-           />
-         );
-      }
-    }
+  const getStageOrTestType = () => {
+    if (sessionType === 'plant') return currentCard.stage || 1;
+    // Watering session maps test_type directly
+    if (currentCard.test_type === 'mcq') return 2;
+    if (currentCard.test_type === 'audio') return 4;
+    return 5; // typing
   };
+
+  const stage = getStageOrTestType();
+  const mockQuestion = { id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back, front: currentCard.front, back: currentCard.back, others: currentCard.others } as any;
 
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
-      {/* Header */}
-      <div className="flex-none h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-20 shadow-sm">
-        <button
-          onClick={() => navigate(`/deck/${id}`)}
-          className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1 px-4">
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-indigo-500 transition-all duration-300" 
-              style={{ width: `${progressPercent}%` }} 
-            />
-          </div>
-        </div>
-        <div className="text-sm font-bold text-slate-700 w-12 text-center">
-          {currentIndex + 1} / {session?.cards.length}
-        </div>
-      </div>
+      {/* Native Study Header HUD */}
+      <StudyHeaderTracker
+        currentStepIndex={0}
+        pipeline={[]}
+        allDone={isFinished}
+        deckId={id!}
+        subProgressCurr={bloomedCount}
+        subProgressTotal={totalCards}
+        activeMode="memrise"
+        onExit={() => navigate(`/deck/${id}`)}
+      />
       
       {/* Play Area */}
-      <div className="flex-1 relative overflow-y-auto w-full max-w-lg mx-auto p-4 flex flex-col">
-        {renderCard()}
+      <div className="flex-1 relative overflow-y-auto w-full max-w-2xl mx-auto p-4 flex flex-col min-h-0">
+        {stage === 1 ? (
+          <div className="flex-1 min-h-0 flex flex-col relative w-full h-full pb-16">
+            <Flashcard3DCard
+              currentQuestion={mockQuestion}
+              currentIndex={0}
+              isFlipped={isFlipped}
+              setIsFlipped={setIsFlipped}
+              isSelectMode={false}
+              effectiveCardFlipTrigger="tap"
+              setIsFlyToolbarOpen={() => {}}
+              setShowFeedback={() => {}}
+              setJustAnswered={setJustAnswered}
+              handleStarQuestion={() => {}}
+              frontValign="center"
+              frontHalign="center"
+              backValign="center"
+              backHalign="center"
+              showImages="always"
+              setZoomedImage={() => {}}
+              effectiveShowFsrs={false}
+              selectedOption={null}
+              hasRated={false}
+              activeDragGrade={null}
+              dragOffset={{ x: 0, y: 0 }}
+              canDragRate={false}
+              hasBackOverflow={false}
+              backScrollRef={backScrollRef}
+              handleCardDrag={() => {}}
+              handleCardDragEnd={() => {}}
+              cardDragControls={cardDragControls}
+              activeMasteryUpgrade={null}
+              currentTime={new Date()}
+              showAbsoluteFirst={false}
+              setShowAbsoluteFirst={() => {}}
+              showAbsoluteLast={false}
+              setShowAbsoluteLast={() => {}}
+              renderFlyToolbarNode={() => null}
+            />
+            {/* Custom Next button for stage 1 (Introduction) */}
+            {isFlipped && (
+               <div className="absolute bottom-4 left-0 right-0 flex justify-center z-50">
+                 <button 
+                   onClick={() => handleAnswerSubmit(true)}
+                   className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest"
+                 >
+                   Got it!
+                 </button>
+               </div>
+            )}
+          </div>
+        ) : stage === 2 || stage === 3 ? (
+          <PracticeMcqCard
+             currentIndex={0}
+             currentQuestion={mockQuestion}
+             practiceData={currentCard.mcq_data}
+             answered={answered}
+             selectedOption={selectedOption}
+             starredCards={{}}
+             onToggleStar={() => {}}
+             onSelectOption={handleMcqSelect}
+             onPreviewInsight={() => {}}
+          />
+        ) : stage === 4 ? (
+          <PracticeListeningCard
+             currentIndex={0}
+             currentQuestion={mockQuestion}
+             practiceData={{ ...currentCard.mcq_data, audio_url: currentCard.audio_data?.audio_url }}
+             answered={answered}
+             typingInput={typingInput}
+             setTypingInput={setTypingInput}
+             typingFeedback={typingFeedback}
+             starredCards={{}}
+             onToggleStar={() => {}}
+             onCheckTyping={handleTypingCheck}
+             onPlayAudio={() => {}}
+          />
+        ) : (
+          <PracticeTypingCard
+             currentIndex={0}
+             currentQuestion={mockQuestion}
+             practiceData={currentCard.typing_data}
+             answered={answered}
+             typingInput={typingInput}
+             setTypingInput={setTypingInput}
+             typingFeedback={typingFeedback}
+             starredCards={{}}
+             onToggleStar={() => {}}
+             onCheckTyping={handleTypingCheck}
+          />
+        )}
       </div>
+
+      {/* Footer for Practice modes */}
+      {stage !== 1 && (
+        <PracticeBottomBar
+          isFeedbackOpen={false}
+          activeBottomTab="flashcard"
+          mainTab="practice"
+          baseMode={stage === 4 ? 'listening' : stage === 5 ? 'typing' : 'mcq'}
+          typingInput={typingInput}
+          setTypingInput={setTypingInput}
+          onCheckTyping={handleTypingCheck}
+          currentIndex={0}
+          practiceAnswers={{}}
+          sessionAnswers={{}}
+          currentQuestion={mockQuestion}
+          currentPracticeData={stage === 4 ? currentCard.audio_data : stage === 5 ? currentCard.typing_data : currentCard.mcq_data}
+          isRoadmapTestMode={false}
+          isFlipped={isFlipped}
+          hasRated={false}
+          justAnswered={justAnswered}
+          showFeedback={answered}
+          onOpenSettings={() => {}}
+          onPlayAudio={() => {}}
+          onOpenFeedback={() => {}}
+          onNext={handleManualNext}
+          onFlip={() => {}}
+          onTabChange={() => {}}
+        />
+      )}
     </div>
   );
 }
