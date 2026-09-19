@@ -9,8 +9,21 @@ import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise
 import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
+import { PlaySettingsModal } from '@/components/PlaySettingsModal';
+import { usePlaySettings } from '@/hooks/usePlaySettings';
+import { selectDistractors } from '@/lib/distractor';
 import { MemriseHeaderTracker } from '@/components/MemriseHeaderTracker';
 import confetti from 'canvas-confetti';
+
+const getVal = (item: any, key: string) => {
+  if (!item) return '';
+  const keyStr = String(key || '').trim().toLowerCase();
+  if (item[keyStr]) return item[keyStr];
+  if (item.others && item.others[keyStr]) return item.others[keyStr];
+  if (keyStr === 'front') return item.front || item.content;
+  if (keyStr === 'back') return item.back || item.explanation;
+  return '';
+};
 
 export default function MemrisePlay() {
   const { id, sessionType } = useParams<{ id: string, sessionType: 'plant' | 'water' }>();
@@ -40,10 +53,109 @@ export default function MemrisePlay() {
   const cardDragControls = useAnimation();
   
   // Audio configuration
-  const sfxEnabled = (userSettings as any)?.sound_effects_enabled ?? true;
-  
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
+    mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
+    listening: { active_pairs: [{ q: 'front', a: ['front'] }] },
+    flashcard: { active_pairs: [{ q: 'front', a: 'back' }] },
+    roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
+  });
+
+  const {
+    sfxEnabled, setSfxEnabled, quickLearnEnabled, setQuickLearnEnabled, hapticEnabled, setHapticEnabled,
+    showImages, setShowImages, showFsrs, setShowFsrs, randomEnabled, setRandomEnabled,
+    autoPlayAudio, setAutoPlayAudio, learningMode, setLearningMode,
+    frontValign, setFrontValign, frontHalign, setFrontHalign, frontFontSize, setFrontFontSize,
+    backValign, setBackValign, backHalign, setBackHalign, creatorDefaults,
+    cardFlipTrigger, setCardFlipTrigger, cardRatingMode, setCardRatingMode,
+    isCustomized, settingOrigin, studyProfiles, activeProfileId, syncStudySettings,
+    saveGeneralSettings, resetToCreatorDefaults, applyProfile, createCustomProfile, deleteCustomProfile, saveAsCreatorDefaults
+  } = usePlaySettings(id || '', modeSettings, setModeSettings);
+
   // Timeout ref to allow immediate skip
   const autoNextTimeout = useRef<any>(null);
+
+  const [currentPracticeData, setCurrentPracticeData] = useState<any>(null);
+  
+  const getStageOrTestType = (card: any) => {
+    let s = 1;
+    if (sessionType === 'plant') {
+      s = card.stage || 1;
+    } else {
+      if (card.test_type === 'mcq') s = 2;
+      else if (card.test_type === 'audio') s = 4;
+      else s = 5; // typing
+    }
+    
+    // Fallback: If typing is required but typing_data is missing, fallback to MCQ
+    if (s === 5 && !card.typing_data) {
+      s = 2;
+    }
+    
+    return s;
+  };
+
+  useEffect(() => {
+    if (!queue[0]) return;
+    const card = queue[0];
+    const s = getStageOrTestType(card);
+    if (s === 2 || s === 3) {
+      const pair = modeSettings.mcq.active_pairs[0] || { q: 'front', a: 'back' };
+      const qKey = pair.q;
+      const aKey = Array.isArray(pair.a) ? pair.a[0] : pair.a;
+      
+      const qText = getVal(card, qKey);
+      const aText = getVal(card, aKey);
+      
+      const distractorPool = [];
+      const numChoices = modeSettings.mcq.num_choices || 4;
+      
+      for (const other of session?.cards || []) {
+        if (distractorPool.length >= 20) break;
+        if (other.card_id !== card.card_id) {
+          const dVal = getVal(other, aKey);
+          if (dVal && dVal !== 'nan') {
+            distractorPool.push({ 
+              text: dVal, 
+              id: other.card_id,
+              front: getVal(other, 'front'),
+              back: getVal(other, 'back'),
+              type: other.others?.type || other.others?.pos || '',
+              q_text: getVal(other, qKey)
+            });
+          }
+        }
+      }
+      
+      const correctData = { 
+        text: aText, 
+        id: card.card_id,
+        q_text: qText,
+        front: getVal(card, 'front'),
+        back: getVal(card, 'back'),
+        type: card.others?.type || card.others?.pos || '',
+        card: card
+      };
+      const selectedDistractors = selectDistractors(correctData, distractorPool, numChoices - 1);
+      
+      const choicesData = [correctData, ...selectedDistractors];
+      choicesData.sort(() => Math.random() - 0.5);
+      
+      const choices = choicesData.map((c: any) => c.text);
+      const correctIndex = choices.indexOf(aText);
+      
+      setCurrentPracticeData({
+        question: qText,
+        choices,
+        correct_index: correctIndex !== -1 ? correctIndex : 0,
+        question_key: qKey,
+        answer_key: aKey,
+      });
+    } else {
+       setCurrentPracticeData(card.typing_data || card.mcq_data);
+    }
+  }, [queue[0], modeSettings, session]);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -150,8 +262,7 @@ export default function MemrisePlay() {
     if (answered || queue.length === 0) return;
     setAnswered(true);
     setSelectedOption(idx);
-    const card = queue[0];
-    const isCorrect = idx === card.mcq_data?.correct_index;
+    const isCorrect = idx === currentPracticeData?.correct_index;
     handleAnswerSubmit(isCorrect);
   };
 
@@ -195,25 +306,7 @@ export default function MemrisePlay() {
   const currentCard = queue[0];
   if (!currentCard) return null;
 
-  const getStageOrTestType = () => {
-    let s = 1;
-    if (sessionType === 'plant') {
-      s = currentCard.stage || 1;
-    } else {
-      if (currentCard.test_type === 'mcq') s = 2;
-      else if (currentCard.test_type === 'audio') s = 4;
-      else s = 5; // typing
-    }
-    
-    // Fallback: If typing is required but typing_data is missing, fallback to MCQ
-    if (s === 5 && !currentCard.typing_data) {
-      s = 2;
-    }
-    
-    return s;
-  };
-
-  const stage = getStageOrTestType();
+  const stage = getStageOrTestType(currentCard);
   const mockQuestion = { id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back, front: currentCard.front, back: currentCard.back, others: currentCard.others } as any;
 
   return (
@@ -238,20 +331,21 @@ export default function MemrisePlay() {
         ) : stage === 1 ? (
           <div className="flex-1 min-h-0 flex flex-col relative w-full h-full pb-16">
             <Flashcard3DCard
+              key={currentCard.card_id}
               currentQuestion={mockQuestion}
               currentIndex={0}
               isFlipped={isFlipped}
               setIsFlipped={setIsFlipped}
               isSelectMode={false}
-              effectiveCardFlipTrigger="tap"
+              effectiveCardFlipTrigger={cardFlipTrigger || "tap"}
               setIsFlyToolbarOpen={() => {}}
               setShowFeedback={() => {}}
               setJustAnswered={setJustAnswered}
               handleStarQuestion={() => {}}
-              frontValign="center"
-              frontHalign="center"
-              backValign="center"
-              backHalign="center"
+              frontValign={frontValign || "center"}
+              frontHalign={frontHalign || "center"}
+              backValign={backValign || "center"}
+              backHalign={backHalign || "center"}
               showImages="always"
               setZoomedImage={() => {}}
               effectiveShowFsrs={false}
@@ -278,7 +372,7 @@ export default function MemrisePlay() {
           <PracticeMcqCard
              currentIndex={0}
              currentQuestion={mockQuestion}
-             practiceData={currentCard.mcq_data}
+             practiceData={currentPracticeData || currentCard.mcq_data}
              answered={answered}
              selectedOption={selectedOption}
              starredCards={{}}
@@ -327,7 +421,7 @@ export default function MemrisePlay() {
         currentQuestion={mockQuestion}
         isFlipped={stage === 6 ? true : isFlipped}
         justAnswered={justAnswered}
-        onOpenSettings={() => {}}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
         onPlayAudio={() => {}}
         onOpenFeedback={() => {}}
         onNext={() => {
@@ -335,6 +429,50 @@ export default function MemrisePlay() {
           else handleManualNext();
         }}
         onFlip={() => setIsFlipped(!isFlipped)}
+      />
+
+      <PlaySettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        activeMode={learningMode}
+        applyLearningMode={setLearningMode}
+        sfxEnabled={sfxEnabled}
+        setSfxEnabled={setSfxEnabled}
+        quickLearnEnabled={quickLearnEnabled}
+        setQuickLearnEnabled={setQuickLearnEnabled}
+        hapticEnabled={hapticEnabled}
+        setHapticEnabled={setHapticEnabled}
+        showImages={showImages}
+        setShowImages={setShowImages}
+        showFsrs={showFsrs}
+        setShowFsrs={setShowFsrs}
+        randomEnabled={randomEnabled}
+        setRandomEnabled={setRandomEnabled}
+        autoPlayAudio={autoPlayAudio}
+        setAutoPlayAudio={setAutoPlayAudio}
+        frontValign={frontValign}
+        setFrontValign={setFrontValign}
+        frontHalign={frontHalign}
+        setFrontHalign={setFrontHalign}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
+        backValign={backValign}
+        setBackValign={setBackValign}
+        backHalign={backHalign}
+        setBackHalign={setBackHalign}
+        cardFlipTrigger={cardFlipTrigger}
+        setCardFlipTrigger={setCardFlipTrigger}
+        cardRatingMode={cardRatingMode}
+        setCardRatingMode={setCardRatingMode}
+        isCustomized={isCustomized}
+        settingOrigin={settingOrigin}
+        studyProfiles={studyProfiles}
+        activeProfileId={activeProfileId}
+        onApplyProfile={applyProfile}
+        onCreateCustomProfile={createCustomProfile}
+        onDeleteCustomProfile={deleteCustomProfile}
+        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
+        onResetToCreatorDefaults={resetToCreatorDefaults}
       />
     </div>
   );

@@ -63,7 +63,7 @@ export const MemriseBottomBar: React.FC<MemriseBottomBarProps> = ({
     <footer className="relative w-full flex-shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-100/80 dark:border-slate-800 px-0 pt-0 pb-safe z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
       <div className="max-w-2xl mx-auto w-full flex flex-col pt-1.5 pb-2.5">
         <PracticeActionControls
-          mainTab="practice"
+          mainTab={baseMode === 'flashcard' ? 'fsrs' : 'practice'}
           hasAnsweredPractice={hasAnswered}
           currentQuestion={currentQuestion}
           isFlipped={isFlipped}
