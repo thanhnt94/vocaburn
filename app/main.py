@@ -124,6 +124,7 @@ from app.modules.stats import router as stats_router
 from app.modules.notification import router as notification_router
 from app.modules.gamification.routes import router as gamification_router
 from app.modules.media.routes import router as media_router
+from app.modules.memrise.routes.memrise_routes import router as memrise_router
 
 app.include_router(deck_api_router, prefix=settings.API_V1_STR)
 app.include_router(deck_room_router, prefix=settings.API_V1_STR)
@@ -138,6 +139,7 @@ app.include_router(stats_router, prefix=settings.API_V1_STR)
 app.include_router(notification_router, prefix=settings.API_V1_STR)
 app.include_router(gamification_router, prefix=settings.API_V1_STR)
 app.include_router(media_router)
+app.include_router(memrise_router, prefix=f"{settings.API_V1_STR}/memrise")
 
 # --- Health Checks for Ecosystem ---
 @app.get("/api/health")
@@ -179,6 +181,7 @@ async def serve_sw():
 @app.get("/admin")
 @app.get("/admin/{path:path}")
 @app.get("/auth/callback")
+@app.get("/memrise/{path:path}")
 async def serve_spa(request: Request):
     # Serve React SPA index.html unconditionally for all frontend paths
     spa_index = os.path.join(DIST_DIR, "index.html")

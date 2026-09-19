@@ -28,6 +28,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { DeckPagination } from '@/components/deck/DeckPagination'
+import { LearnModeModal } from '@/components/LearnModeModal'
 
 // Lazy load tab components for optimal performance
 const DeckOverviewTab = lazy(() => import('@/components/deck/tabs/DeckOverviewTab'))
@@ -157,6 +158,7 @@ export function DeckDetailPage() {
   // Study Mode Selector & Sheet State
   const [selectedStudyMode, setSelectedStudyMode] = useState<string>('fsrs')
   const [studySheetType, setStudySheetType] = useState<'flashcard' | 'practice' | null>(null)
+  const [isLearnModalOpen, setIsLearnModalOpen] = useState(false)
 
   // Fetch Deck Metadata
   const { data: deckMeta, isLoading } = useQuery({
@@ -481,6 +483,8 @@ export function DeckDetailPage() {
         </div>
       </div>
 
+      <LearnModeModal isOpen={isLearnModalOpen} onClose={() => setIsLearnModalOpen(false)} deckId={id || ''} />
+
       {/* ═══════════ TAB CONTENT AREA (INTERNAL SCROLLABLE - FLEX-1 WITH TOUCH SWIPE) ═══════════ */}
       <div 
         onTouchStart={handleTouchStart}
@@ -642,16 +646,16 @@ export function DeckDetailPage() {
       {activeTab !== 'cards' && (
         <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2.5">
-            {/* 1. Flashcard Study Button (Split: 1-Tap Start | ▾ Mode Menu) */}
+            {/* 1. Learn Button (Opens Modal) */}
             <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20 overflow-hidden">
               <button
                 type="button"
-                onClick={() => handleLaunchStudy('fsrs')}
+                onClick={() => setIsLearnModalOpen(true)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 pl-3 pr-2 font-black text-xs sm:text-sm active:scale-[0.98] transition-all cursor-pointer truncate"
-                title="Start FSRS Flashcards"
+                title="Start Learning"
               >
                 <Zap className="w-4 h-4 fill-current shrink-0 animate-pulse" />
-                <span className="truncate">Flashcards</span>
+                <span className="truncate">Learn</span>
                 {dueCount > 0 && (
                   <span className="px-1.5 py-0.5 rounded-full bg-white/25 text-[10px] font-black shrink-0">
                     {dueCount} due

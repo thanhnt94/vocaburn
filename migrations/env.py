@@ -21,6 +21,7 @@ from app.modules.notification.models import Notification, PushSubscription, User
 from app.modules.stats.models import UserDailyStats
 from app.modules.admin.models import SystemConfig, AdminLog
 from app.modules.sso_module.models import SSOConfig
+import app.modules.memrise.models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
