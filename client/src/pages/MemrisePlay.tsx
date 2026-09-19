@@ -364,13 +364,14 @@ export default function MemrisePlay() {
               setShowFeedback={() => {}}
               setJustAnswered={setJustAnswered}
               handleStarQuestion={() => {}}
-              frontValign="center"
-              frontHalign="center"
-              backValign="center"
-              backHalign="center"
-              showImages="always"
+              frontValign={frontValign as any}
+              frontHalign={frontHalign as any}
+              frontFontSize={frontFontSize as any}
+              backValign={backValign as any}
+              backHalign={backHalign as any}
+              showImages={showImages as any}
               setZoomedImage={() => {}}
-              effectiveShowFsrs={false}
+              effectiveShowFsrs={showFsrs}
               selectedOption={null}
               hasRated={false}
               activeDragGrade={null}
@@ -474,10 +475,10 @@ export default function MemrisePlay() {
         showFlipBackBtn={true}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
-        activeMode={learningMode}
-        onSelectMode={setLearningMode}
-        ratingMode={cardRatingMode as any}
-        onCycleRatingMode={() => {}}
+        activeMode={undefined}
+        onSelectMode={undefined}
+        ratingMode={undefined}
+        onCycleRatingMode={undefined}
         swipeToRate={true}
         onToggleSwipeToRate={() => {}}
         showActionDock={true}
@@ -488,12 +489,12 @@ export default function MemrisePlay() {
         frontFontSize={frontFontSize}
         setFrontFontSize={setFrontFontSize}
         canEdit={false}
-        onOpenEditModal={() => {}}
-        onOpenCardHub={() => {}}
-        handleToggleHint={() => {}}
+        onOpenEditModal={undefined}
+        onOpenCardHub={undefined}
+        handleToggleHint={undefined}
         showingHint={false}
-        showFsrs={showFsrs}
-        setShowFsrs={setShowFsrs}
+        showFsrs={undefined}
+        setShowFsrs={undefined}
       />
 
       <PlaySettingsModal

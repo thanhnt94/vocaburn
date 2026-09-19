@@ -85,3 +85,12 @@ Vocaburn tách biệt nghiêm ngặt miền nghiệp vụ giữa 8 module trong 
 
 * **Đồng bộ tài liệu**: Khi thay đổi cấu trúc mã nguồn, API hoặc Cơ sở dữ liệu, **bắt buộc** cập nhật các file tài liệu tương ứng trong thư mục `docs/` (`01_architecture/`, `02_api_reference/`, `03_features_and_ui/`, `04_development_and_ops/`).
 * **Cập nhật Changelog**: Ghi nhận chi tiết thông tin chỉnh sửa vào file [docs/05_changelog/CHANGELOG.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/05_changelog/CHANGELOG.md).
+
+---
+
+## 9. Bài Học Xương Máu & Cấm Kỵ Giao Diện (UI Anti-Patterns)
+
+* **TUYỆT ĐỐI KHÔNG** nhúng các thành phần cấu hình tĩnh (như Practice Columns: Question/Answer mapping) vào trong bảng điều khiển nhanh (Quick Controls) của phiên học trực tiếp (`MemrisePlay`, `FlashcardPlay`). 
+  * Cấu hình này thuộc về **Deck Settings** và đã có UI riêng.
+  * Màn hình Play chỉ được phép gọi API tải cấu hình (`/practice-settings`) và sử dụng tự động. Phải chú ý merge state (`setModeSettings(prev => ({ ...prev, ...parsed }))`) để không làm mất cấu trúc mặc định, tránh lỗi `Cannot read properties of undefined` khiến UI tự động fallback sai lệch (như kẹt ở trạng thái Front/Back thay vì lấy đúng cấu hình người dùng).
+* Hãy tôn trọng tuyệt đối logic của các chức năng hiện có, không tự ý bịa đặt UI thừa thãi khi người dùng yêu cầu "lấy đúng cấu hình đã setting ra".

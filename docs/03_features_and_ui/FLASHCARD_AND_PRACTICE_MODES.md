@@ -122,3 +122,15 @@ Vocaburn cung cấp hai trụ cột học tập độc lập nhưng tích hợp 
   - 📝 **Card Note**: Mở tab ghi chú cá nhân của thẻ.
   - 🧠 **AI Explain**: Yêu cầu trợ lý Gemini AI phân tích chuyên sâu ngữ cảnh từ vựng.
   - 💡 **AI Hint**: Bật/Tắt gợi ý nhanh cho thẻ.
+
+---
+
+## 🚨 6. Bài Học Xương Máu (Anti-Patterns & Critical Rules)
+
+### 6.1. Quy tắc Cấu hình Practice Columns (Q & A Mapping)
+- **Tuyệt đối KHÔNG** nhúng giao diện chọn Cột Luyện Tập (Practice Columns: Question / Answer) vào trong bảng điều khiển nhanh (Quick Controls) của màn hình học thẻ (`FlashcardPlay` / `MemrisePlay`).
+- **Nguyên lý cấu hình**: Người dùng luôn cấu hình cột luyện tập (MCQ, Typing, Listening) từ trước tại trang **Deck Settings** (`DeckPracticeConfig.tsx` / `DeckColumnSettings.tsx`). Cấu hình này được lưu vào DB và trả về qua API `/api/v1/deck/{id}/practice-settings`.
+- **Nhiệm vụ của Frontend lúc Play**:
+  - Tự động gọi API lấy `practice-settings`.
+  - **Bắt buộc** merge dữ liệu cẩn thận (`setModeSettings(prev => ({ ...prev, ...parsed }))`) để tránh ghi đè làm mất cấu hình `mcq` mặc định (nếu backend chỉ trả về `insight_columns`), ngăn ngừa lỗi crash ngầm `Cannot read properties of undefined` khiến UI tự động fallback về mặt Front/Back cứng nhắc.
+  - Các component như `PracticeMcqCard` chỉ việc đọc và hiển thị câu hỏi/đáp án dựa trên cấu hình đã tải về một cách tự động, không yêu cầu người dùng phải chỉnh sửa trực tiếp lúc đang làm bài.
