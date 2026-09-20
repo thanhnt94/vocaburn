@@ -57,6 +57,8 @@ export interface Flashcard3DCardProps {
   handleNext?: () => void
   isFlyingOut?: boolean
   handleOpenCardHub?: (tab?: 'stats' | 'insight' | 'note' | 'community') => void
+  isSwipeUnlocked?: boolean
+  setIsSwipeUnlocked?: (unlocked: boolean) => void
 }
 
 export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
@@ -98,16 +100,28 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   renderFlyToolbarNode,
   activeMode,
   handleNext,
-  handleOpenCardHub
+  handleOpenCardHub,
+  isSwipeUnlocked = false,
+  setIsSwipeUnlocked
 }) => {
   const scrollTouchStartPos = useRef<{ x: number; y: number } | null>(null);
   const isScrollScrolled = useRef<boolean>(false);
+  const isLongPressActiveRef = useRef<boolean>(false);
+  const longPressTimerRef = useRef<any>(null);
+  const currentDragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTouchPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTouchTimeRef = useRef<number>(Date.now());
+  const unlockTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     if (cardDragControls && !isFlyingOut) {
       cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
     }
-  }, [currentIndex, currentQuestion?.id, isFlyingOut, cardDragControls]);
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (unlockTimeoutRef.current) clearTimeout(unlockTimeoutRef.current);
+    };
+  }, [currentIndex, currentQuestion?.id, isFlipped, isFlyingOut, cardDragControls]);
 
   if (!currentQuestion) return null;
 
@@ -150,6 +164,22 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               #{originalIndex}
             </span>
           </div>
+
+          {/* Discreet Hold to Swipe hint when card has scroll */}
+          {!isFront && hasBackOverflow && !hasRated && (
+            <div 
+              className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[9px] font-bold shadow-2xs transition-all",
+                isSwipeUnlocked 
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 animate-pulse" 
+                  : "bg-slate-100/90 border-slate-200/80 text-slate-500"
+              )}
+              title="Hold down for 300ms to unlock swipe rating"
+            >
+              <span>{isSwipeUnlocked ? '⚡' : '🔒'}</span>
+              <span className="hidden sm:inline">{isSwipeUnlocked ? 'Unlocked' : 'Hold to Swipe'}</span>
+            </div>
+          )}
 
           {/* Deck Source Badge for Global Focus */}
           {currentQuestion?.deck_title && (
@@ -362,7 +392,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           {/* ═══════════ BACK SIDE ═══════════ */}
           <div
             onClick={(e) => {
-              if (isSelectMode || isScrollScrolled.current) return;
+              if (isSelectMode || isScrollScrolled.current || isLongPressActiveRef.current) return;
               const target = e.target as HTMLElement;
               if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
                 return;
@@ -382,6 +412,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
               !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
               isSelectMode && "cursor-text select-text",
+              isSwipeUnlocked && "ring-4 ring-indigo-500/40 shadow-indigo-300/50 border-indigo-400",
               activeDragGrade?.direction === 'again' ? "border-rose-400 shadow-rose-200/60 ring-2 ring-rose-400/20" :
               activeDragGrade?.direction === 'good' ? "border-indigo-400 shadow-indigo-200/60 ring-2 ring-indigo-400/20" :
               activeDragGrade?.direction === 'hard' ? "border-amber-400 shadow-amber-200/60 ring-2 ring-amber-400/20" :
@@ -404,17 +435,14 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             {/* Top Banner */}
             {renderCardTopHeader('back')}
 
-            {/* 4-Way Swipe Zone Handle when card has vertical scroll */}
-            {hasBackOverflow && !hasRated && !isNonRatingMode && (
-              <div 
-                className="w-full flex items-center justify-center py-1.5 shrink-0 select-none cursor-grab active:cursor-grabbing z-20"
-                title="Drag from here to rate: Left=Again, Down=Hard, Right=Good, Up=Easy"
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100/95 hover:bg-indigo-50 border border-slate-200/90 text-[9.5px] font-black text-slate-600 shadow-2xs transition-all active:scale-95 group">
-                  <span className="text-indigo-500 text-xs">↕↔</span>
-                  <span className="tracking-wider uppercase">Swipe Zone: 4-Way Rating</span>
-                  <span className="text-[8px] text-slate-400 font-mono tracking-tight group-hover:text-indigo-600">
-                    ←Again • ↓Hard • ↑Easy • Good→
+            {/* Floating Unlock Badge when Swipe Mode is Active */}
+            {isSwipeUnlocked && !hasRated && (
+              <div className="absolute top-2.5 inset-x-0 mx-auto w-fit z-50 animate-in fade-in zoom-in-95 duration-200 pointer-events-none">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/95 text-white text-[10px] font-black tracking-wider uppercase shadow-xl backdrop-blur-md border border-white/20">
+                  <span className="text-amber-400 text-xs animate-pulse">⚡</span>
+                  <span>Swipe Unlocked</span>
+                  <span className="text-slate-300 text-[8.5px] font-mono tracking-tight">
+                    {isNonRatingMode ? '• Swipe Right to Next' : '• Drag 4-Way to Rate'}
                   </span>
                 </div>
               </div>
@@ -424,35 +452,122 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             <div 
               ref={backScrollRef}
               onPointerDownCapture={(e) => {
-                if (hasBackOverflow) {
+                if (hasBackOverflow && !isSwipeUnlocked) {
                   e.stopPropagation();
                 }
               }}
               onTouchStart={(e) => {
-                if (hasBackOverflow) {
-                  const t = e.touches[0];
-                  scrollTouchStartPos.current = { x: t.clientX, y: t.clientY };
-                  isScrollScrolled.current = false;
+                if (isSelectMode) return;
+                const t = e.touches[0];
+                scrollTouchStartPos.current = { x: t.clientX, y: t.clientY };
+                lastTouchPosRef.current = { x: t.clientX, y: t.clientY };
+                lastTouchTimeRef.current = Date.now();
+                currentDragOffsetRef.current = { x: 0, y: 0 };
+                isScrollScrolled.current = false;
+                isLongPressActiveRef.current = false;
+
+                if (longPressTimerRef.current) {
+                  clearTimeout(longPressTimerRef.current);
+                  longPressTimerRef.current = null;
+                }
+
+                if (hasBackOverflow && !hasRated) {
+                  longPressTimerRef.current = setTimeout(() => {
+                    isLongPressActiveRef.current = true;
+                    setIsSwipeUnlocked?.(true);
+                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                      try { navigator.vibrate(40); } catch (_) {}
+                    }
+                    if (unlockTimeoutRef.current) clearTimeout(unlockTimeoutRef.current);
+                    unlockTimeoutRef.current = setTimeout(() => {
+                      setIsSwipeUnlocked?.(false);
+                      isLongPressActiveRef.current = false;
+                    }, 3500);
+                  }, 320);
                 }
               }}
               onTouchMove={(e) => {
-                if (hasBackOverflow && scrollTouchStartPos.current) {
-                  const t = e.touches[0];
-                  const dist = Math.hypot(t.clientX - scrollTouchStartPos.current.x, t.clientY - scrollTouchStartPos.current.y);
+                if (isSelectMode || !scrollTouchStartPos.current) return;
+                const t = e.touches[0];
+                const dx = t.clientX - scrollTouchStartPos.current.x;
+                const dy = t.clientY - scrollTouchStartPos.current.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (!isLongPressActiveRef.current) {
                   if (dist > 8) {
+                    if (longPressTimerRef.current) {
+                      clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
                     isScrollScrolled.current = true;
                   }
+                  return;
                 }
+
+                // Long press is active: drive card dragging
+                currentDragOffsetRef.current = { x: dx, y: dy };
+                const now = Date.now();
+                const dt = Math.max(now - lastTouchTimeRef.current, 16);
+                const vx = ((t.clientX - lastTouchPosRef.current.x) / dt) * 1000;
+                const vy = ((t.clientY - lastTouchPosRef.current.y) / dt) * 1000;
+                lastTouchTimeRef.current = now;
+                lastTouchPosRef.current = { x: t.clientX, y: t.clientY };
+
+                if (cardDragControls) {
+                  cardDragControls.set({ x: dx, y: dy, rotate: dx * 0.11 });
+                }
+                handleCardDrag(e as any, { offset: { x: dx, y: dy }, velocity: { x: vx, y: vy } });
               }}
-              onTouchEnd={() => {
+              onTouchEnd={(e) => {
+                if (longPressTimerRef.current) {
+                  clearTimeout(longPressTimerRef.current);
+                  longPressTimerRef.current = null;
+                }
+
+                if (isLongPressActiveRef.current) {
+                  const dx = currentDragOffsetRef.current.x;
+                  const dy = currentDragOffsetRef.current.y;
+                  const now = Date.now();
+                  const dt = Math.max(now - lastTouchTimeRef.current, 16);
+                  const vx = ((lastTouchPosRef.current.x - (scrollTouchStartPos.current?.x || 0)) / dt) * 100;
+                  const vy = ((lastTouchPosRef.current.y - (scrollTouchStartPos.current?.y || 0)) / dt) * 100;
+
+                  handleCardDragEnd(e as any, { offset: { x: dx, y: dy }, velocity: { x: vx, y: vy } });
+                  setIsSwipeUnlocked?.(false);
+                  isLongPressActiveRef.current = false;
+                  isScrollScrolled.current = true;
+                  setTimeout(() => {
+                    isScrollScrolled.current = false;
+                  }, 300);
+                } else if (isScrollScrolled.current) {
+                  setTimeout(() => {
+                    isScrollScrolled.current = false;
+                  }, 300);
+                }
+
                 scrollTouchStartPos.current = null;
-                setTimeout(() => {
-                  isScrollScrolled.current = false;
-                }, 250);
               }}
-              className={cn("flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2 pb-16", isSelectMode && "select-text cursor-text")}
+              onTouchCancel={() => {
+                if (longPressTimerRef.current) {
+                  clearTimeout(longPressTimerRef.current);
+                  longPressTimerRef.current = null;
+                }
+                if (isLongPressActiveRef.current) {
+                  if (cardDragControls) {
+                    cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
+                  }
+                  setIsSwipeUnlocked?.(false);
+                  isLongPressActiveRef.current = false;
+                }
+                scrollTouchStartPos.current = null;
+              }}
+              className={cn(
+                "flex-1 custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2 pb-16",
+                isSwipeUnlocked ? "overflow-y-hidden" : "overflow-y-auto",
+                isSelectMode && "select-text cursor-text"
+              )}
               style={{
-                touchAction: isSelectMode ? 'auto' : (hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y')),
+                touchAction: isSelectMode ? 'auto' : (isSwipeUnlocked ? 'none' : (hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y'))),
                 WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain'
               }}

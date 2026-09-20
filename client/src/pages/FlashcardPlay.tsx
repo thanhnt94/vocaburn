@@ -603,6 +603,7 @@ export default function FlashcardPlay() {
   const [isFlyToolbarOpen, setIsFlyToolbarOpen] = useState(false)
   const [isAutoAdvance, setIsAutoAdvance] = useState(false)
   const [autoNextSec, setAutoNextSec] = useState<number | null>(null)
+  const [isSwipeUnlocked, setIsSwipeUnlocked] = useState(false)
 
   // Sync initial state from backend setting
   useEffect(() => {
@@ -615,6 +616,7 @@ export default function FlashcardPlay() {
     setActiveDragGrade(null)
     setIsFlyingOut(false)
     setIsFlyToolbarOpen(false)
+    setIsSwipeUnlocked(false)
     cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
   }, [currentIndex, isFlipped])
 
@@ -631,7 +633,9 @@ export default function FlashcardPlay() {
         }
       }
       checkOverflow()
-      const timer = setTimeout(checkOverflow, 100)
+      const t1 = setTimeout(checkOverflow, 120)
+      const t2 = setTimeout(checkOverflow, 350)
+      const t3 = setTimeout(checkOverflow, 750)
 
       let observer: ResizeObserver | null = null
       if (typeof ResizeObserver !== 'undefined') {
@@ -642,7 +646,9 @@ export default function FlashcardPlay() {
       }
 
       return () => {
-        clearTimeout(timer)
+        clearTimeout(t1)
+        clearTimeout(t2)
+        clearTimeout(t3)
         if (observer) observer.disconnect()
       }
     } else {
@@ -1700,7 +1706,7 @@ export default function FlashcardPlay() {
   const canDragSkim = swipeToRate && !isSelectMode && isFlipped && isNonRatingMode && !isFlyingOut;
   const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && !isNonRatingMode && activeMode !== 'autoplay' && !isFlyingOut;
   const canDragPostRate = swipeToRate && !isSelectMode && hasRated && !isNonRatingMode && activeMode !== 'autoplay' && !isFlyingOut;
-  const isCardDraggable = canDragRate || canDragPostRate || canDragSkim;
+  const isCardDraggable = (canDragRate || canDragPostRate || canDragSkim) && (!hasBackOverflow || isSwipeUnlocked);
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -1766,6 +1772,7 @@ export default function FlashcardPlay() {
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
+    setIsSwipeUnlocked(false);
     if (!isCardDraggable || !activeDragGrade) {
       cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
       setDragOffset({ x: 0, y: 0 });
@@ -4172,6 +4179,8 @@ export default function FlashcardPlay() {
                   activeMode={effectiveCardMode}
                   handleNext={handleNext}
                   handleOpenCardHub={handleOpenCardHub}
+                  isSwipeUnlocked={isSwipeUnlocked}
+                  setIsSwipeUnlocked={setIsSwipeUnlocked}
                 />
               )}
             </motion.div>
