@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAnimation } from 'framer-motion';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, X, Sparkles, ChevronRight } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise';
-import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
+import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar, MemrisePetalHUD } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { FlashcardQuickControlsSheet } from '@/components/flashcard/FlashcardFlyToolbar';
 import { playCorrectSound, playIncorrectSound, cancelAllAudio } from '@/lib/audio';
@@ -107,6 +107,9 @@ export default function MemrisePlay() {
   // Flashcard3DCard specific dummy states
   const [isFlipped, setIsFlipped] = useState(false);
   const [justAnswered, setJustAnswered] = useState(false);
+  const [isQuitModalOpen, setIsQuitModalOpen] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [activeDragGrade, setActiveDragGrade] = useState<any>(null);
   const backScrollRef = useRef<HTMLDivElement | null>(null);
   const cardDragControls = useAnimation();
   
@@ -194,6 +197,63 @@ export default function MemrisePlay() {
       }
     }
   }, [currentCard?.card_id, stage, currentPracticeData?.question_key, autoPlayAudio]);
+
+  // Keyboard navigation (Space to flip, Space/Enter to advance)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if (e.key === ' ' || e.key === 'Enter') {
+        if (stage === 6) {
+          e.preventDefault();
+          handleAnswerSubmit(true);
+        } else if (stage === 1) {
+          e.preventDefault();
+          if (!isFlipped && e.key === ' ') {
+            setIsFlipped(true);
+          } else if (isFlipped) {
+            handleAnswerSubmit(true);
+          }
+        } else if (answered) {
+          e.preventDefault();
+          handleManualNext();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [stage, isFlipped, answered, currentCard?.card_id]);
+
+  const handleCardDrag = (_e: any, info: any) => {
+    const x = info.offset.x;
+    setDragOffset({ x, y: info.offset.y });
+    if (Math.abs(x) > 60) {
+      setActiveDragGrade({ direction: 'next', label: 'Tiếp tục ➔' });
+    } else {
+      setActiveDragGrade(null);
+    }
+  };
+
+  const handleCardDragEnd = (_e: any, info: any) => {
+    const threshold = 70;
+    const isSwiped = Math.abs(info.offset.x) > threshold || Math.abs(info.velocity.x) > 450;
+    if (isSwiped) {
+      cardDragControls.start({
+        x: info.offset.x > 0 ? 500 : -500,
+        opacity: 0,
+        transition: { duration: 0.2 }
+      }).then(() => {
+        cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+        handleAnswerSubmit(true);
+      });
+    } else {
+      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 400, damping: 25 } });
+    }
+    setDragOffset({ x: 0, y: 0 });
+    setActiveDragGrade(null);
+  };
 
   useEffect(() => {
     if (!queue[0]) {
@@ -495,17 +555,23 @@ export default function MemrisePlay() {
       if (hapticEnabled) triggerHaptic('error');
     }
     
-    // Fire and forget stats update
-    axios.post('/api/v1/memrise/submit-answer', {
-      card_id: card.card_id,
-      is_correct: isCorrect,
-      session_type: sessionType
-    }).catch(e => console.error("Failed to submit answer", e));
+    // Fire and forget stats update (skip if stage === 6 because card bloomed on stage 5)
+    if (card.stage !== 6) {
+      axios.post('/api/v1/memrise/submit-answer', {
+        card_id: card.card_id,
+        is_correct: isCorrect,
+        session_type: sessionType
+      }).catch(e => console.error("Failed to submit answer", e));
+    }
     
     if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
-    autoNextTimeout.current = setTimeout(() => {
+    if (card.stage === 1 || card.stage === 6) {
       advanceQueue(isCorrect, card);
-    }, 1500);
+    } else {
+      autoNextTimeout.current = setTimeout(() => {
+        advanceQueue(isCorrect, card);
+      }, 1500);
+    }
   };
 
   const handleManualNext = () => {
@@ -577,31 +643,38 @@ export default function MemrisePlay() {
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
       {/* Per-Card Stage Tracker HUD */}
-      <div className="w-full p-4 flex items-center justify-between shrink-0 relative z-50">
-        <button onClick={() => navigate(`/deck/${id}`)} className="p-2 bg-slate-200/50 hover:bg-slate-200 active:scale-95 rounded-xl transition-all cursor-pointer">
-          <X className="w-5 h-5 text-slate-600" />
-        </button>
-        <div className="text-xs font-black tracking-[0.2em] text-slate-400 uppercase">
-          MEMRISE SESSION
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100/80 border border-emerald-200 text-emerald-700 font-bold rounded-xl text-xs shadow-sm">
-          <span className="text-base drop-shadow-sm">
-            {stage === 1 ? '🌱' : stage === 2 ? '🌿' : stage === 3 ? '🪴' : stage === 4 ? '🌳' : stage === 5 ? '🌸' : '🌺'}
-          </span>
-          <span>
-            {stage === 1 ? 'Stage 1: Intro' : stage === 2 ? 'Stage 2: MCQ' : stage === 3 ? 'Stage 3: MCQ #2' : stage === 4 ? 'Stage 4: Listening' : stage === 5 ? 'Stage 5: Typing' : 'Bloomed!'}
-          </span>
-        </div>
-      </div>
+      {/* Top Petal HUD & Progress Header */}
+      <MemrisePetalHUD
+        stage={stage}
+        bloomedCount={bloomedCount}
+        totalCards={totalCards}
+        sessionType={sessionType}
+        onOpenQuitModal={() => setIsQuitModalOpen(true)}
+      />
       
       {/* Play Area */}
       <div className="flex-1 relative overflow-y-auto w-full max-w-2xl mx-auto p-4 flex flex-col min-h-0">
         {stage === 6 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 pb-16">
-            <div className="text-[120px] mb-8 drop-shadow-xl animate-bounce">🌺</div>
-            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-3">Mastered!</h2>
-            <p className="text-xl text-emerald-600 font-bold mb-8 px-4">{currentCard.front}</p>
-            <p className="text-slate-500 dark:text-slate-400">You've successfully bloomed this word.</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 pb-16 max-w-md mx-auto">
+            <div className="text-[100px] sm:text-[120px] mb-4 drop-shadow-2xl animate-bounce">🌺</div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-black text-xs uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>ĐÃ NỞ HOA HOÀN TẤT!</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
+              {currentCard.front}
+            </h2>
+            <p className="text-base font-semibold text-slate-500 dark:text-slate-400 mb-8 px-4">
+              {currentCard.back}
+            </p>
+            <button
+              type="button"
+              onClick={() => handleAnswerSubmit(true)}
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-200 dark:shadow-none flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <span>TIẾP TỤC BÀI HỌC</span>
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         ) : stage === 1 ? (
           <div className="flex-1 min-h-0 flex flex-col relative w-full h-full pb-16">
@@ -627,13 +700,13 @@ export default function MemrisePlay() {
               effectiveShowFsrs={false}
               selectedOption={null}
               hasRated={false}
-              activeDragGrade={null}
-              dragOffset={{ x: 0, y: 0 }}
+              activeDragGrade={activeDragGrade}
+              dragOffset={dragOffset}
               canDragRate={true}
               hasBackOverflow={false}
               backScrollRef={backScrollRef}
-              handleCardDrag={() => {}}
-              handleCardDragEnd={() => handleAnswerSubmit(true)}
+              handleCardDrag={handleCardDrag}
+              handleCardDragEnd={handleCardDragEnd}
               cardDragControls={cardDragControls}
               activeMasteryUpgrade={null}
               currentTime={new Date()}
@@ -793,6 +866,55 @@ export default function MemrisePlay() {
         modeSettings={modeSettings}
         setModeSettings={setModeSettings}
       />
+
+      {/* ── Quit / Pause Session Confirmation Modal ── */}
+      {isQuitModalOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-3xl mx-auto shadow-xs">
+              🌱
+            </div>
+            
+            <div className="text-center space-y-1.5">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                Tạm dừng phiên học?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed px-2">
+                Tiến độ của các từ bạn đã học tới bước hiện tại đã được <span className="text-emerald-600 dark:text-emerald-400 font-bold">tự động lưu vào hệ thống</span>. Bạn có thể quay lại tiếp tục bất kỳ lúc nào mà không sợ mất bài.
+              </p>
+            </div>
+
+            {/* Quick Stats in Modal */}
+            <div className="grid grid-cols-2 gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 text-center">
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Đã nở hoa</span>
+                <span className="text-base font-black text-emerald-600">{bloomedCount} / {totalCards} từ</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Đang gieo mầm</span>
+                <span className="text-base font-black text-amber-500">{queue.length} từ</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsQuitModalOpen(false)}
+                className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                Tiếp tục học
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/deck/${id}`)}
+                className="px-4 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Tạm dừng & Thoát
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
