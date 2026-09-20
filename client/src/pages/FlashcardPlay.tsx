@@ -659,7 +659,7 @@ export default function FlashcardPlay() {
           setIsFlipped(true);
           setShowFeedback(true);
           setJustAnswered(true);
-        } else if (!canDragRate) {
+        } else if (!isCardDraggable) {
           setIsFlipped(false);
         }
       }
@@ -1684,9 +1684,11 @@ export default function FlashcardPlay() {
     }
   }
 
-  const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
-  const canDragPostRate = swipeToRate && !isSelectMode && hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay' && !isFlyingOut;
-  const isCardDraggable = canDragRate || canDragPostRate;
+  const isNonRatingMode = isSpeedSkimMode || activeMode === 'flip';
+  const canDragSkim = swipeToRate && !isSelectMode && isFlipped && isNonRatingMode && !isFlyingOut;
+  const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && !isNonRatingMode && activeMode !== 'autoplay' && !isFlyingOut;
+  const canDragPostRate = swipeToRate && !isSelectMode && hasRated && !isNonRatingMode && activeMode !== 'autoplay' && !isFlyingOut;
+  const isCardDraggable = canDragRate || canDragPostRate || canDragSkim;
 
   const handleCardDrag = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -1700,6 +1702,18 @@ export default function FlashcardPlay() {
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
     const dist = Math.hypot(dx, dy);
+
+    // ════════ SKIM / FLIP MODE GESTURES: Right = NEXT CARD, Left = FLIP BACK ════════
+    if (isNonRatingMode) {
+      if (absX < 35) {
+        setActiveDragGrade(null);
+      } else if (dx > 0) {
+        setActiveDragGrade({ direction: 'next', grade: 0, label: 'NEXT CARD', color: 'emerald' });
+      } else {
+        setActiveDragGrade({ direction: 'undo', grade: 0, label: 'FLIP BACK', color: 'amber' });
+      }
+      return;
+    }
 
     // ════════ POST-RATING GESTURES: Right = NEXT CARD, Left = UNDO ════════
     if (hasRated) {
@@ -1749,8 +1763,8 @@ export default function FlashcardPlay() {
     const vy = info.velocity.y;
     const dir = activeDragGrade.direction;
 
-    // ════════ POST-RATING COMMITMENT ════════
-    if (hasRated) {
+    // ════════ POST-RATING / SKIM COMMITMENT ════════
+    if (hasRated || isNonRatingMode) {
       if (dir === 'next') {
         const isCommitted = (dx >= 55 && vx >= -60) || (dx >= 25 && vx > 200);
         if (isCommitted) {
@@ -1800,7 +1814,11 @@ export default function FlashcardPlay() {
             rotate: 0,
             transition: { type: 'spring', stiffness: 500, damping: 32 }
           }).catch(() => {});
-          handleUndoRating();
+          if (isNonRatingMode) {
+            setIsFlipped(false);
+          } else {
+            handleUndoRating();
+          }
           return;
         }
       }
