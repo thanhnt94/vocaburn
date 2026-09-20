@@ -97,13 +97,9 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
             if c not in ordered_cols:
                 ordered_cols.append(c)
 
-    user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
-    user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
-
     study_resolved = resolve_effective_study_settings(
         deck.practice_settings,
-        user_sett.settings if user_sett else None,
-        user_global_sett_dict
+        user_sett.settings if user_sett else None
     )
 
     return {
@@ -115,9 +111,6 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
         "study_defaults": study_resolved["creator_study_defaults"],
         "creator_study_defaults": study_resolved["creator_study_defaults"],
         "user_study_settings": study_resolved["user_study_settings"],
-        "user_global_settings": study_resolved["user_global_settings"],
-        "study_profiles": study_resolved["study_profiles"],
-        "active_profile_id": study_resolved["active_profile_id"],
         "effective_study_settings": study_resolved["effective_study_settings"],
         "setting_origin": study_resolved["setting_origin"],
         "is_study_customized": study_resolved["is_customized"]
@@ -241,8 +234,6 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
     else:
         # Save user settings for roadmap pipeline, roadmap_active, and user preferences
         reset_study_defaults = payload.get("reset_study_defaults", False)
-        apply_global_settings = payload.get("apply_global_settings", False)
-        save_as_global_settings = payload.get("save_as_global_settings", False)
 
         user_sett_res = await db.execute(
             select(UserDeckSettings).where(
@@ -252,9 +243,6 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         )
         user_sett = user_sett_res.scalar_one_or_none()
         from sqlalchemy.orm.attributes import flag_modified
-        
-        user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
-        user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
 
         from app.modules.deck.utils import STUDY_SETTINGS_KEYS
 
@@ -271,8 +259,7 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             
             study_resolved = resolve_effective_study_settings(
                 deck.practice_settings,
-                user_sett.settings if user_sett else None,
-                user_global_sett_dict
+                user_sett.settings if user_sett else None
             )
             return {
                 "status": "ok",
@@ -280,126 +267,10 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 "study_defaults": study_resolved["creator_study_defaults"],
                 "creator_study_defaults": study_resolved["creator_study_defaults"],
                 "user_study_settings": study_resolved["user_study_settings"],
-                "user_global_settings": study_resolved["user_global_settings"],
                 "effective_study_settings": study_resolved["effective_study_settings"],
                 "setting_origin": study_resolved["setting_origin"],
                 "is_study_customized": study_resolved["is_customized"]
             }
-
-        if apply_global_settings:
-            if not user_sett:
-                user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings={})
-                db.add(user_sett)
-            elif not isinstance(user_sett.settings, dict):
-                user_sett.settings = {}
-            for k in STUDY_SETTINGS_KEYS:
-                if k in user_global_sett_dict and user_global_sett_dict[k] is not None:
-                    user_sett.settings[k] = user_global_sett_dict[k]
-            user_sett.settings["_origin"] = "user_global"
-            flag_modified(user_sett, "settings")
-            await db.commit()
-
-            study_resolved = resolve_effective_study_settings(
-                deck.practice_settings,
-                user_sett.settings,
-                user_global_sett_dict
-            )
-            return {
-                "status": "ok",
-                "message": "Applied global settings",
-                "study_defaults": study_resolved["creator_study_defaults"],
-                "creator_study_defaults": study_resolved["creator_study_defaults"],
-                "user_study_settings": study_resolved["user_study_settings"],
-                "user_global_settings": study_resolved["user_global_settings"],
-                "effective_study_settings": study_resolved["effective_study_settings"],
-                "setting_origin": study_resolved["setting_origin"],
-                "is_study_customized": study_resolved["is_customized"]
-            }
-
-        apply_profile_id = payload.get("apply_profile_id")
-        create_study_profile = payload.get("create_study_profile")
-        delete_study_profile_id = payload.get("delete_study_profile_id")
-        set_active_profile_id = payload.get("set_active_profile_id")
-
-        if delete_study_profile_id:
-            custom_profs = list(user_global_sett_obj.study_profiles or [])
-            filtered = [p for p in custom_profs if p.get("id") != delete_study_profile_id]
-            user_global_sett_obj = await UserSettingsService.update_settings(db, user_id, {"study_profiles": filtered})
-            user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
-
-        if set_active_profile_id:
-            user_global_sett_obj = await UserSettingsService.update_settings(db, user_id, {"active_profile_id": set_active_profile_id})
-            user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
-
-        if create_study_profile and isinstance(create_study_profile, dict):
-            import time
-            prof_name = str(create_study_profile.get("name", "Hồ sơ mới")).strip() or "Hồ sơ mới"
-            prof_icon = str(create_study_profile.get("icon", "sparkles")).strip()
-            prof_id = f"custom-{int(time.time() * 1000)}"
-            
-            prof_settings_raw = create_study_profile.get("settings") or settings or (user_sett.settings if user_sett and isinstance(user_sett.settings, dict) else {})
-            from app.modules.deck.utils import SYSTEM_STUDY_DEFAULTS
-            cleaned_prof_settings = {}
-            for k in STUDY_SETTINGS_KEYS:
-                if k in prof_settings_raw and prof_settings_raw[k] is not None:
-                    cleaned_prof_settings[k] = prof_settings_raw[k]
-                elif k in user_global_sett_dict and user_global_sett_dict[k] is not None:
-                    cleaned_prof_settings[k] = user_global_sett_dict[k]
-                else:
-                    cleaned_prof_settings[k] = SYSTEM_STUDY_DEFAULTS.get(k)
-                    
-            new_prof = {
-                "id": prof_id,
-                "name": prof_name,
-                "icon": prof_icon,
-                "is_system": False,
-                "settings": cleaned_prof_settings
-            }
-            
-            custom_profs = list(user_global_sett_obj.study_profiles or [])
-            custom_profs.append(new_prof)
-            user_global_sett_obj = await UserSettingsService.update_settings(db, user_id, {"study_profiles": custom_profs, "active_profile_id": prof_id})
-            user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
-            
-            if not user_sett:
-                user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings={})
-                db.add(user_sett)
-            elif not isinstance(user_sett.settings, dict):
-                user_sett.settings = {}
-            for k, v in cleaned_prof_settings.items():
-                user_sett.settings[k] = v
-            user_sett.settings["_origin"] = f"profile:{prof_id}:{prof_name}"
-            user_sett.settings["_profile_id"] = prof_id
-            flag_modified(user_sett, "settings")
-            await db.commit()
-
-        elif apply_profile_id:
-            all_profs = user_global_sett_dict.get("study_profiles", [])
-            target_prof = next((p for p in all_profs if p.get("id") == apply_profile_id), None)
-            if target_prof and isinstance(target_prof.get("settings"), dict):
-                if not user_sett:
-                    user_sett = UserDeckSettings(user_id=user_id, deck_id=deck_id, settings={})
-                    db.add(user_sett)
-                elif not isinstance(user_sett.settings, dict):
-                    user_sett.settings = {}
-                for k, v in target_prof["settings"].items():
-                    if k in STUDY_SETTINGS_KEYS:
-                        user_sett.settings[k] = v
-                prof_name = target_prof.get("name", "Hồ sơ")
-                user_sett.settings["_origin"] = f"profile:{apply_profile_id}:{prof_name}"
-                user_sett.settings["_profile_id"] = apply_profile_id
-                flag_modified(user_sett, "settings")
-                await db.commit()
-
-        if save_as_global_settings:
-            source_dict = settings if isinstance(settings, dict) else (user_sett.settings if user_sett and isinstance(user_sett.settings, dict) else {})
-            study_updates = {}
-            for k in STUDY_SETTINGS_KEYS:
-                if k in source_dict and source_dict[k] is not None:
-                    study_updates[k] = source_dict[k]
-            if study_updates:
-                user_global_sett_obj = await UserSettingsService.update_settings(db, user_id, study_updates)
-                user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
 
         if not user_sett:
             cleaned_settings = dict(settings) if isinstance(settings, dict) else {}
@@ -502,14 +373,10 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             
         await db.commit()
 
-    user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
-    user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
-
     eff_user_sett = user_sett.settings if ('user_sett' in locals() and user_sett and isinstance(user_sett.settings, dict)) else (creator_user_sett.settings if ('creator_user_sett' in locals() and creator_user_sett and isinstance(creator_user_sett.settings, dict)) else None)
     study_resolved = resolve_effective_study_settings(
         deck.practice_settings,
-        eff_user_sett,
-        user_global_sett_dict
+        eff_user_sett
     )
 
     return {
@@ -517,9 +384,6 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
         "study_defaults": study_resolved["creator_study_defaults"],
         "creator_study_defaults": study_resolved["creator_study_defaults"],
         "user_study_settings": study_resolved["user_study_settings"],
-        "user_global_settings": study_resolved["user_global_settings"],
-        "study_profiles": study_resolved["study_profiles"],
-        "active_profile_id": study_resolved["active_profile_id"],
         "effective_study_settings": study_resolved["effective_study_settings"],
         "setting_origin": study_resolved["setting_origin"],
         "is_study_customized": study_resolved["is_customized"]

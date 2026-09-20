@@ -299,14 +299,9 @@ export default function FlashcardPlay() {
     creatorDefaults,
     isCustomized,
     settingOrigin,
-    studyProfiles,
-    activeProfileId,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
-    applyProfile,
-    createCustomProfile,
-    deleteCustomProfile,
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
@@ -483,7 +478,7 @@ export default function FlashcardPlay() {
     if (urlMode === 'new' || urlMode === 'fsrs' || urlMode === 'roadmap' || urlMode === 'review' || urlMode === 'skim' || urlMode === 'autoplay') {
       return urlMode;
     }
-    return userSettings.quiz_learning_mode || 'fsrs';
+    return 'fsrs';
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
@@ -546,21 +541,17 @@ export default function FlashcardPlay() {
     const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
     if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
       setActiveMode(urlMode);
-      updateUserSettings({ quiz_learning_mode: urlMode as any });
     }
     const urlOrder = searchParams.get('order');
     if (urlOrder === 'random') {
       setRandomEnabled(true);
-      updateUserSettings({ random_enabled: true });
     } else if (urlOrder === 'sequential') {
       setRandomEnabled(false);
-      updateUserSettings({ random_enabled: false });
     }
   }, [])
 
   const handleToggleRandom = (nextVal: boolean) => {
     setRandomEnabled(nextVal);
-    updateUserSettings({ random_enabled: nextVal });
     saveGeneralSettings({ random_enabled: nextVal });
 
     const searchParams = new URLSearchParams(window.location.search);
@@ -941,18 +932,13 @@ export default function FlashcardPlay() {
       const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
       const isCustom = quizRes.data.is_study_customized;
       const origin = quizRes.data.setting_origin;
-      const userGlobal = quizRes.data.user_global_settings;
-      const profiles = quizRes.data.study_profiles;
-      const activeProfId = quizRes.data.active_profile_id;
-
-      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin, userGlobal, profiles, activeProfId);
+      syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin);
 
       const searchParams = new URLSearchParams(window.location.search);
       const rawUrlMode = searchParams.get('mode');
       const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
       if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
         setActiveMode(urlMode);
-        updateUserSettings({ quiz_learning_mode: urlMode as any });
       } else if (effectiveStudy.learning_mode) {
         const rawEff = effectiveStudy.learning_mode;
         const eff = (rawEff === 'speed_skim' || rawEff === 'flip') ? 'skim' : rawEff;
@@ -962,11 +948,9 @@ export default function FlashcardPlay() {
       const urlOrder = searchParams.get('order');
       if (urlOrder === 'random') {
         setRandomEnabled(true);
-        updateUserSettings({ random_enabled: true });
         saveGeneralSettings({ random_enabled: true });
       } else if (urlOrder === 'sequential') {
         setRandomEnabled(false);
-        updateUserSettings({ random_enabled: false });
         saveGeneralSettings({ random_enabled: false });
       }
       
@@ -2643,14 +2627,12 @@ export default function FlashcardPlay() {
     setAutoNextSec(null)
     setFsrsCompletionData(null)
     setActiveMode(mode)
-    updateUserSettings({ quiz_learning_mode: mode as any })
     saveGeneralSettings({ learning_mode: mode })
 
     let effectiveRandom = randomEnabled
     if (order !== undefined) {
       effectiveRandom = (order === 'random')
       setRandomEnabled(effectiveRandom)
-      updateUserSettings({ random_enabled: effectiveRandom })
       saveGeneralSettings({ random_enabled: effectiveRandom })
     }
 
@@ -4366,11 +4348,6 @@ export default function FlashcardPlay() {
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
         resetToCreatorDefaults={resetToCreatorDefaults}
-        studyProfiles={studyProfiles}
-        activeProfileId={activeProfileId}
-        applyProfile={applyProfile}
-        createCustomProfile={createCustomProfile}
-        deleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         frontFontSize={frontFontSize}

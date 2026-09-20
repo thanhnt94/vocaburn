@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import axios from 'axios'
-import { useSettingsStore, type StudyProfile } from '@/store/useSettingsStore'
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none'
 export type ImageDisplayMode = 'always' | 'front' | 'back' | 'none'
@@ -80,11 +79,8 @@ export function usePlaySettings(
   const [showActionDock, setShowActionDockState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_action_dock ?? true)
   const [swipeToRate, setSwipeToRateState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.swipe_to_rate ?? true)
 
-  // Creator baseline & user customization status & 3-tier origin & profiles
+  // Creator baseline & user customization status
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
-  const [userGlobalSettings, setUserGlobalSettings] = useState<Partial<StudySettingsState>>({})
-  const [studyProfiles, setStudyProfiles] = useState<StudyProfile[]>([])
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
   const [isCustomized, setIsCustomized] = useState<boolean>(false)
   const [settingOrigin, setSettingOrigin] = useState<SettingOrigin>('deck_default')
 
@@ -94,22 +90,10 @@ export function usePlaySettings(
     creatorStudyDefaults?: Partial<StudySettingsState>,
     userStudySettings?: Partial<StudySettingsState>,
     customizedFlag?: boolean,
-    origin?: SettingOrigin,
-    globalSettings?: Partial<StudySettingsState>,
-    profiles?: StudyProfile[],
-    activeProfId?: string | null
+    origin?: SettingOrigin
   ) => {
     if (creatorStudyDefaults && typeof creatorStudyDefaults === 'object') {
       setCreatorDefaults(creatorStudyDefaults)
-    }
-    if (globalSettings && typeof globalSettings === 'object') {
-      setUserGlobalSettings(globalSettings)
-    }
-    if (profiles && Array.isArray(profiles)) {
-      setStudyProfiles(profiles)
-    }
-    if (activeProfId !== undefined) {
-      setActiveProfileId(activeProfId)
     }
 
     if (origin) {
@@ -283,10 +267,7 @@ export function usePlaySettings(
 
     try {
       const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        settings: {
-          ...updates,
-          study_settings: updates
-        },
+        settings: updates,
         is_creator: false
       })
       if (res.data?.effective_study_settings) {
@@ -295,10 +276,7 @@ export function usePlaySettings(
           res.data.creator_study_defaults,
           res.data.user_study_settings,
           res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings,
-          res.data.study_profiles,
-          res.data.active_profile_id
+          res.data.setting_origin
         )
       }
     } catch (err) {
@@ -393,8 +371,7 @@ export function usePlaySettings(
           res.data.creator_study_defaults,
           res.data.user_study_settings,
           res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings
+          res.data.setting_origin
         )
       } else {
         const baseline: StudySettingsState = {
@@ -426,77 +403,6 @@ export function usePlaySettings(
     }
   }, [deckId, creatorDefaults, syncStudySettings])
 
-  // Apply personal user global settings into this deck
-  const applyGlobalSettings = useCallback(async () => {
-    if (!deckId || deckId === 'quick') return
-    try {
-      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: false,
-        apply_global_settings: true
-      })
-      if (res.data?.effective_study_settings) {
-        syncStudySettings(
-          res.data.effective_study_settings,
-          res.data.creator_study_defaults,
-          res.data.user_study_settings,
-          res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings
-        )
-      } else {
-        setSettingOrigin('user_global')
-        setIsCustomized(true)
-      }
-    } catch (err) {
-      console.error('[usePlaySettings] Failed to apply global settings:', err)
-    }
-  }, [deckId, syncStudySettings])
-
-  // Save current deck study settings as personal user global settings
-  const saveAsGlobalSettings = useCallback(async () => {
-    if (!deckId || deckId === 'quick') return
-    const currentStudySettings = {
-      autoplay_audio: autoPlayAudio,
-      show_images: showImages,
-      learning_mode: learningMode,
-      front_valign: frontValign,
-      front_halign: frontHalign,
-      front_font_size: frontFontSize,
-      back_valign: backValign,
-      back_halign: backHalign,
-      random_enabled: randomEnabled,
-      sfx_enabled: sfxEnabled,
-      haptic_enabled: hapticEnabled,
-      quick_learn_enabled: quickLearnEnabled,
-      auto_next_delay: autoNextDelay,
-      show_fsrs: showFsrs,
-      card_flip_trigger: cardFlipTrigger || 'both',
-      card_rating_mode: cardRatingMode || 'both',
-      show_action_dock: showActionDock,
-      swipe_to_rate: swipeToRate
-    }
-    try {
-      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: false,
-        save_as_global_settings: true,
-        settings: currentStudySettings
-      })
-      useSettingsStore.getState().setUserSettings(currentStudySettings)
-      if (res.data?.effective_study_settings) {
-        syncStudySettings(
-          res.data.effective_study_settings,
-          res.data.creator_study_defaults,
-          res.data.user_study_settings,
-          res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings
-        )
-      }
-    } catch (err) {
-      console.error('[usePlaySettings] Failed to save as global settings:', err)
-    }
-  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, showActionDock, swipeToRate, syncStudySettings])
-
   // Save current settings as the creator's deck defaults (baseline for all learners)
   const saveAsCreatorDefaults = useCallback(async () => {
     if (!deckId || deckId === 'quick') return
@@ -527,7 +433,6 @@ export function usePlaySettings(
       const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
         settings: {
-          ...currentDefaults,
           study_defaults: currentDefaults
         }
       })
@@ -540,103 +445,13 @@ export function usePlaySettings(
           res.data.creator_study_defaults,
           res.data.user_study_settings,
           res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings
+          res.data.setting_origin
         )
       }
     } catch (err) {
       console.error('[usePlaySettings] Failed to save creator defaults:', err)
     }
   }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, showActionDock, swipeToRate, syncStudySettings])
-
-  // Apply a specific profile/template to this deck
-  const applyProfile = useCallback(async (profileId: string) => {
-    if (!deckId || deckId === 'quick') return
-    try {
-      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: false,
-        apply_profile_id: profileId
-      })
-      setActiveProfileId(profileId)
-      if (res.data?.effective_study_settings) {
-        syncStudySettings(
-          res.data.effective_study_settings,
-          res.data.creator_study_defaults,
-          res.data.user_study_settings,
-          res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings,
-          res.data.study_profiles,
-          res.data.active_profile_id
-        )
-      }
-    } catch (err) {
-      console.error('[usePlaySettings] Failed to apply profile:', err)
-    }
-  }, [deckId, syncStudySettings])
-
-  // Save current settings as a new custom profile/template
-  const createCustomProfile = useCallback(async (name: string, icon = 'sparkles') => {
-    if (!deckId || deckId === 'quick') return
-    const currentStudySettings = {
-      autoplay_audio: autoPlayAudio,
-      show_images: showImages,
-      learning_mode: learningMode,
-      front_valign: frontValign,
-      front_halign: frontHalign,
-      front_font_size: frontFontSize,
-      back_valign: backValign,
-      back_halign: backHalign,
-      random_enabled: randomEnabled,
-      sfx_enabled: sfxEnabled,
-      haptic_enabled: hapticEnabled,
-      quick_learn_enabled: quickLearnEnabled,
-      auto_next_delay: autoNextDelay,
-      show_fsrs: showFsrs,
-      card_flip_trigger: cardFlipTrigger || 'both',
-      card_rating_mode: cardRatingMode || 'both'
-    }
-    try {
-      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: false,
-        create_study_profile: {
-          name,
-          icon,
-          settings: currentStudySettings
-        }
-      })
-      if (res.data?.effective_study_settings) {
-        syncStudySettings(
-          res.data.effective_study_settings,
-          res.data.creator_study_defaults,
-          res.data.user_study_settings,
-          res.data.is_study_customized,
-          res.data.setting_origin,
-          res.data.user_global_settings,
-          res.data.study_profiles,
-          res.data.active_profile_id
-        )
-      }
-    } catch (err) {
-      console.error('[usePlaySettings] Failed to create custom profile:', err)
-    }
-  }, [deckId, autoPlayAudio, showImages, learningMode, frontValign, frontHalign, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode, syncStudySettings])
-
-  // Delete a custom profile
-  const deleteCustomProfile = useCallback(async (profileId: string) => {
-    if (!deckId || deckId === 'quick') return
-    try {
-      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: false,
-        delete_study_profile_id: profileId
-      })
-      if (res.data?.study_profiles) {
-        setStudyProfiles(res.data.study_profiles)
-      }
-    } catch (err) {
-      console.error('[usePlaySettings] Failed to delete custom profile:', err)
-    }
-  }, [deckId])
 
   return {
     sfxEnabled,
@@ -678,20 +493,12 @@ export function usePlaySettings(
     swipeToRate,
     setSwipeToRate,
     creatorDefaults,
-    userGlobalSettings,
-    studyProfiles,
-    activeProfileId,
     isCustomized,
     settingOrigin,
     setSettingOrigin,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
-    applyGlobalSettings,
-    saveAsGlobalSettings,
-    saveAsCreatorDefaults,
-    applyProfile,
-    createCustomProfile,
-    deleteCustomProfile
+    saveAsCreatorDefaults
   }
 }

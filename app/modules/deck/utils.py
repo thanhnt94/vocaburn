@@ -373,17 +373,22 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
 
 
 def resolve_effective_study_settings(
-    deck_practice_settings: Optional[dict] = None,
-    user_deck_settings: Optional[dict] = None,
-    user_global_settings: Optional[dict] = None
+    deck_practice_settings: Any = None,
+    user_deck_settings: Any = None,
+    user_global_settings: Any = None
 ) -> dict:
     """
-    Resolves study settings using 3-tier hierarchy:
+    Resolves study settings using strictly a 2-tier hierarchy:
     Tier 1 (Base): Creator Deck Defaults (deck.practice_settings.study_defaults)
-    Tier 2 (User Default): User Global Account Settings (user_global_settings)
-    Tier 3 (King / Highest): User Deck Overrides (UserDeckSettings.settings)
+    Tier 2 (King / Highest): Learner Deck Overrides (UserDeckSettings.settings)
+    There are NO global user defaults for deck study settings.
     """
     import json
+    if hasattr(deck_practice_settings, "practice_settings"):
+        deck_practice_settings = deck_practice_settings.practice_settings
+    if hasattr(user_deck_settings, "settings"):
+        user_deck_settings = user_deck_settings.settings
+
     if isinstance(deck_practice_settings, str):
         try:
             deck_practice_settings = json.loads(deck_practice_settings)
@@ -394,11 +399,6 @@ def resolve_effective_study_settings(
             user_deck_settings = json.loads(user_deck_settings)
         except Exception:
             user_deck_settings = None
-    if isinstance(user_global_settings, str):
-        try:
-            user_global_settings = json.loads(user_global_settings)
-        except Exception:
-            user_global_settings = None
 
     creator_defaults = {}
     if deck_practice_settings and isinstance(deck_practice_settings, dict):
@@ -415,14 +415,6 @@ def resolve_effective_study_settings(
                 norm = normalize_study_setting_value(k, deck_practice_settings[k])
                 if norm is not None:
                     creator_defaults[k] = norm
-
-    global_defaults = {}
-    if user_global_settings and isinstance(user_global_settings, dict):
-        for k in STUDY_SETTINGS_KEYS:
-            if k in user_global_settings and user_global_settings[k] is not None:
-                norm = normalize_study_setting_value(k, user_global_settings[k])
-                if norm is not None:
-                    global_defaults[k] = norm
 
     user_overrides = {}
     if user_deck_settings and isinstance(user_deck_settings, dict):
@@ -489,28 +481,18 @@ def resolve_effective_study_settings(
     else:
         setting_origin = "deck_default"
 
-    raw_custom = (
-        user_global_settings.get("custom_study_profiles")
-        or user_global_settings.get("study_profiles")
-        or []
-    ) if isinstance(user_global_settings, dict) else []
-    custom_profiles = [
-        p for p in raw_custom
-        if isinstance(p, dict) and not p.get("is_system") and not str(p.get("id", "")).startswith("preset-")
-    ]
-    study_profiles = get_all_study_profiles(custom_profiles)
-    active_profile_id = user_global_settings.get("active_profile_id") if isinstance(user_global_settings, dict) else None
-
-    return {
+    res = {
         "effective_study_settings": effective,
         "creator_study_defaults": creator_defaults,
         "user_study_settings": user_overrides,
-        "user_global_settings": global_defaults,
-        "study_profiles": study_profiles,
-        "active_profile_id": active_profile_id,
+        "user_global_settings": {},
+        "study_profiles": [],
+        "active_profile_id": None,
         "setting_origin": setting_origin,
         "is_customized": is_customized
     }
+    res.update(effective)
+    return res
 
 
 

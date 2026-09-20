@@ -71,8 +71,8 @@ export default function MemrisePlay() {
     frontValign, setFrontValign, frontHalign, setFrontHalign, frontFontSize, setFrontFontSize,
     backValign, setBackValign, backHalign, setBackHalign, creatorDefaults,
     cardFlipTrigger, setCardFlipTrigger, cardRatingMode, setCardRatingMode,
-    isCustomized, settingOrigin, studyProfiles, activeProfileId, syncStudySettings,
-    saveGeneralSettings, resetToCreatorDefaults, applyProfile, createCustomProfile, deleteCustomProfile, saveAsCreatorDefaults
+    isCustomized, settingOrigin, syncStudySettings,
+    saveGeneralSettings, resetToCreatorDefaults, saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
   // Timeout ref to allow immediate skip
@@ -541,11 +541,6 @@ export default function MemrisePlay() {
         setCardRatingMode={setCardRatingMode}
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
-        studyProfiles={studyProfiles}
-        activeProfileId={activeProfileId}
-        onApplyProfile={applyProfile}
-        onCreateCustomProfile={createCustomProfile}
-        onDeleteCustomProfile={deleteCustomProfile}
         onSaveAsCreatorDefaults={saveAsCreatorDefaults}
         onResetToCreatorDefaults={resetToCreatorDefaults}
         modeSettings={modeSettings}

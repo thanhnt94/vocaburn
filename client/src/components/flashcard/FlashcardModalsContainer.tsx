@@ -123,11 +123,6 @@ export interface FlashcardModalsContainerProps {
   isCustomized: boolean
   settingOrigin: any
   resetToCreatorDefaults: () => void
-  studyProfiles: any[]
-  activeProfileId?: string | null
-  applyProfile: (id: string) => void
-  createCustomProfile: (name: string) => void
-  deleteCustomProfile: (id: string) => void
   frontHalign: 'left' | 'center'
   setFrontHalign: (val: 'left' | 'center') => void
   frontFontSize?: string
@@ -264,11 +259,6 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   isCustomized,
   settingOrigin,
   resetToCreatorDefaults,
-  studyProfiles,
-  activeProfileId,
-  applyProfile,
-  createCustomProfile,
-  deleteCustomProfile,
   frontHalign,
   setFrontHalign,
   frontFontSize,
@@ -527,20 +517,12 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         showImages={showImages}
         setShowImages={setShowImages}
         showFsrs={effectiveShowFsrs}
-        setShowFsrs={(val: boolean) => {
-          setShowFsrs(val);
-          updateUserSettings({ show_fsrs: val });
-        }}
+        setShowFsrs={setShowFsrs}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
         onResetToCreatorDefaults={resetToCreatorDefaults}
-        studyProfiles={studyProfiles}
-        activeProfileId={activeProfileId || undefined}
-        onApplyProfile={applyProfile}
-        onCreateCustomProfile={createCustomProfile}
-        onDeleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         frontFontSize={frontFontSize}

@@ -680,14 +680,9 @@ export default function PracticePlay() {
     setCardRatingMode,
     isCustomized,
     settingOrigin,
-    studyProfiles,
-    activeProfileId,
     syncStudySettings,
     saveGeneralSettings,
     resetToCreatorDefaults,
-    applyProfile,
-    createCustomProfile,
-    deleteCustomProfile,
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
@@ -1415,17 +1410,12 @@ export default function PracticePlay() {
       const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
       const isCustom = quizRes.data.is_study_customized;
       const origin = quizRes.data.setting_origin;
-      const userGlobal = quizRes.data.user_global_settings;
-
       syncStudySettings(
         effectiveStudy,
         creatorStudyDefs,
         userStudyOverrides,
         isCustom,
-        origin,
-        userGlobal,
-        quizRes.data.study_profiles,
-        quizRes.data.active_profile_id
+        origin
       );
 
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
@@ -6515,11 +6505,6 @@ export default function PracticePlay() {
         isCustomized={isCustomized}
         settingOrigin={settingOrigin}
         onResetToCreatorDefaults={resetToCreatorDefaults}
-        studyProfiles={studyProfiles}
-        activeProfileId={activeProfileId}
-        onApplyProfile={applyProfile}
-        onCreateCustomProfile={createCustomProfile}
-        onDeleteCustomProfile={deleteCustomProfile}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
         frontFontSize={frontFontSize}

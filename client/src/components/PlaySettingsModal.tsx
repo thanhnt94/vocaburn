@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 import { 
   Brain, 
   Route, 
@@ -16,15 +16,12 @@ import {
   Settings,
   Sliders,
   BookOpen,
-  BookmarkPlus,
-  BookmarkCheck,
   Move,
   Layers,
-  Headphones,
   Volume2,
   Zap,
-  Shuffle,
   Eye,
+  Shuffle,
   Star,
   Type,
   Hand,
@@ -32,18 +29,22 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import type { StudyProfile } from '@/store/useSettingsStore'
 import {
-  SYSTEM_TEMPLATES,
-  StudyTemplateSelector,
   SegmentedControl,
   ToggleRow,
   getFrontFontSizeStyle,
-  type StudySettings,
-  type StudyTemplateItem,
 } from '@/components/common/study'
 
 export type PlaySettingsTab = 'mode' | 'gestures' | 'display' | 'audio'
+
+const MODES_LIST = [
+  { id: 'fsrs', label: 'Flashcard FSRS', desc: 'Spaced repetition v6', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
+  { id: 'roadmap', label: 'Daily Roadmap', desc: 'Step-by-step goals', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
+  { id: 'new', label: 'New Cards', desc: 'Cards never seen before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
+  { id: 'review', label: 'Review Due', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
+  { id: 'hardest', label: 'Hardest Cards', desc: 'Frequently forgotten', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
+  { id: 'flip', label: 'Quick Flip', desc: 'Free-form flip cards', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
+]
 
 interface PlaySettingsModalProps {
   isOpen: boolean;
@@ -74,11 +75,6 @@ interface PlaySettingsModalProps {
   setRandomEnabled?: (enabled: boolean) => void;
   isCustomized?: boolean;
   settingOrigin?: string;
-  studyProfiles?: StudyProfile[];
-  activeProfileId?: string | null;
-  onApplyProfile?: (profileId: string) => Promise<void> | void;
-  onCreateCustomProfile?: (name: string, icon?: string) => Promise<void> | void;
-  onDeleteCustomProfile?: (profileId: string) => Promise<void> | void;
   onResetToCreatorDefaults?: () => Promise<void> | void;
   onSaveAsCreatorDefaults?: () => Promise<void> | void;
   frontHalign?: 'center' | 'left';
@@ -128,10 +124,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setRandomEnabled,
   isCustomized = false,
   settingOrigin = 'deck_default',
-  studyProfiles = [],
-  activeProfileId = null,
-  onApplyProfile,
-  onCreateCustomProfile,
   onResetToCreatorDefaults,
   onSaveAsCreatorDefaults,
   frontHalign = 'left',
@@ -158,227 +150,9 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   // Active Tab - Default to 'mode' as requested by user
   const [activeTab, setActiveTab] = useState<PlaySettingsTab>('mode')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false)
-  const [newProfileName, setNewProfileName] = useState<string>('')
   const [copied, setCopied] = useState<boolean>(false)
 
   const starred = isStarred ?? Boolean(currentQuestion?.is_starred)
-
-  // Track selected template id
-  const [selectedProfileId, setSelectedProfileId] = useState<string>(() => {
-    if (activeProfileId) return activeProfileId
-    if (!isCustomized && settingOrigin === 'deck_default') return 'deck-default'
-    if (isCustomized) return 'current-custom'
-    return 'deck-default'
-  })
-
-  // Snapshot of custom settings to allow switching back to "Current Customization"
-  const customSnapshotRef = useRef<any>(null)
-
-  useEffect(() => {
-    if (isOpen && (isCustomized || selectedProfileId === 'current-custom') && !customSnapshotRef.current) {
-      customSnapshotRef.current = {
-        learningMode: activeMode,
-        autoPlayAudio,
-        showImages,
-        frontValign,
-        frontHalign,
-        frontFontSize,
-        backValign,
-        backHalign,
-        randomEnabled,
-        sfxEnabled,
-        hapticEnabled,
-        quickLearnEnabled,
-        showFsrs,
-        cardFlipTrigger,
-        cardRatingMode
-      }
-    }
-    if (!isOpen) {
-      customSnapshotRef.current = null
-    }
-  }, [isOpen, isCustomized, selectedProfileId, activeMode, autoPlayAudio, showImages, frontValign, frontHalign, frontFontSize, backValign, backHalign, randomEnabled, sfxEnabled, hapticEnabled, quickLearnEnabled, showFsrs, cardFlipTrigger, cardRatingMode])
-
-  useEffect(() => {
-    if (activeProfileId) {
-      setSelectedProfileId(activeProfileId)
-    } else if (!isCustomized && settingOrigin === 'deck_default') {
-      setSelectedProfileId('deck-default')
-    } else if (isCustomized && selectedProfileId === 'deck-default') {
-      setSelectedProfileId('current-custom')
-    }
-  }, [activeProfileId, isCustomized, settingOrigin])
-
-  // Deduplicate profiles strictly by id
-  const systemProfilesList = React.useMemo(() => {
-    const seen = new Set<string>()
-    return (studyProfiles || []).filter(p => {
-      if (!p || !p.id || !p.is_system || seen.has(p.id)) return false
-      seen.add(p.id)
-      return true
-    })
-  }, [studyProfiles])
-
-  const customProfilesList = React.useMemo(() => {
-    const seen = new Set<string>()
-    return (studyProfiles || []).filter(p => {
-      if (!p || !p.id || p.is_system || String(p.id).startsWith('preset-') || seen.has(p.id)) return false
-      seen.add(p.id)
-      return true
-    })
-  }, [studyProfiles])
-
-  const MODES_LIST = [
-    { id: 'fsrs', label: 'Flashcard FSRS', desc: 'Spaced repetition v6', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
-    { id: 'roadmap', label: 'Daily Roadmap', desc: 'Step-by-step goals', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
-    { id: 'new', label: 'New Cards', desc: 'Cards never seen before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
-    { id: 'review', label: 'Review Due', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
-    { id: 'hardest', label: 'Hardest Cards', desc: 'Frequently forgotten', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
-    { id: 'flip', label: 'Quick Flip', desc: 'Free-form flip cards', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
-  ]
-
-  const currentSettings: StudySettings = {
-    card_flip_trigger: cardFlipTrigger || 'both',
-    card_rating_mode: cardRatingMode || 'both',
-    quiz_learning_mode: activeMode,
-    learning_mode: activeMode,
-    front_valign: frontValign || 'center',
-    front_halign: frontHalign || 'left',
-    front_font_size: frontFontSize || '100%',
-    back_valign: backValign || 'center',
-    back_halign: backHalign || 'left',
-    autoplay_audio: autoPlayAudio || 'always',
-    show_images: showImages || 'both',
-    show_fsrs: showFsrs ?? true,
-    sfx_enabled: sfxEnabled ?? true,
-    haptic_enabled: hapticEnabled ?? true,
-    random_enabled: randomEnabled ?? false,
-    quick_learn_enabled: quickLearnEnabled ?? false,
-  }
-
-  const handleSelectCurrentCustom = () => {
-    setSelectedProfileId('current-custom')
-    if (customSnapshotRef.current) {
-      const s = customSnapshotRef.current
-      if (applyLearningMode && s.learningMode) applyLearningMode(s.learningMode)
-      if (setAutoPlayAudio && s.autoPlayAudio) setAutoPlayAudio(s.autoPlayAudio)
-      if (setShowImages && s.showImages) setShowImages(s.showImages)
-      if (setFrontValign && s.frontValign) setFrontValign(s.frontValign)
-      if (setFrontHalign && s.frontHalign) setFrontHalign(s.frontHalign)
-      if (setFrontFontSize && s.frontFontSize) setFrontFontSize(s.frontFontSize)
-      if (setBackValign && s.backValign) setBackValign(s.backValign)
-      if (setBackHalign && s.backHalign) setBackHalign(s.backHalign)
-      if (setRandomEnabled && s.randomEnabled !== undefined) setRandomEnabled(s.randomEnabled)
-      if (setSfxEnabled && s.sfxEnabled !== undefined) setSfxEnabled(s.sfxEnabled)
-      if (setHapticEnabled && s.hapticEnabled !== undefined) setHapticEnabled(s.hapticEnabled)
-      if (setQuickLearnEnabled && s.quickLearnEnabled !== undefined) setQuickLearnEnabled(s.quickLearnEnabled)
-      if (setShowFsrs && s.showFsrs !== undefined) setShowFsrs(s.showFsrs)
-      if (setCardFlipTrigger && s.cardFlipTrigger) setCardFlipTrigger(s.cardFlipTrigger)
-      if (setCardRatingMode && s.cardRatingMode) setCardRatingMode(s.cardRatingMode)
-    }
-  }
-
-  const handleSelectDeckDefault = async () => {
-    setSelectedProfileId('deck-default')
-    if (onResetToCreatorDefaults) {
-      setIsSyncing(true)
-      try {
-        await onResetToCreatorDefaults()
-      } finally {
-        setIsSyncing(false)
-      }
-    }
-  }
-
-  const handleApplyTemplateInstant = async (profileId: string) => {
-    setSelectedProfileId(profileId)
-    if (!onApplyProfile) return
-    setIsSyncing(true)
-    try {
-      await onApplyProfile(profileId)
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
-  const allTemplates: StudyTemplateItem[] = React.useMemo(() => {
-    const list: StudyTemplateItem[] = []
-
-    if (isCustomized || selectedProfileId === 'current-custom') {
-      list.push({
-        id: 'current-custom',
-        name: 'Current Customization',
-        badge: 'Active Custom',
-        desc: 'Your personalized active study configuration for this session.',
-        icon: 'sparkles',
-        isCustom: true,
-        settings: currentSettings,
-      })
-    }
-
-    list.push({
-      id: 'deck-default',
-      name: 'Deck Creator Default',
-      badge: 'Creator Baseline',
-      desc: 'Original baseline settings designed specifically for this deck by the author.',
-      icon: 'sparkles',
-      isDeckDefault: true,
-      settings: {},
-    })
-
-    if (systemProfilesList.length > 0) {
-      systemProfilesList.forEach((p) => {
-        list.push({
-          id: p.id,
-          name: p.name,
-          badge: p.badge || 'System',
-          desc: p.description || '',
-          icon: p.icon || 'sparkles',
-          isSystem: true,
-          settings: p.settings || {},
-        })
-      })
-    } else {
-      list.push(...SYSTEM_TEMPLATES)
-    }
-
-    customProfilesList.forEach((p) => {
-      list.push({
-        id: p.id,
-        name: p.name,
-        badge: 'My Template',
-        desc: p.description || 'User saved template',
-        icon: p.icon || 'sparkles',
-        isCustom: true,
-        settings: p.settings || {},
-      })
-    })
-
-    return list
-  }, [isCustomized, selectedProfileId, currentSettings, systemProfilesList, customProfilesList])
-
-  const handleSelectTemplate = (tpl: StudyTemplateItem) => {
-    if (tpl.id === 'current-custom') {
-      handleSelectCurrentCustom()
-    } else if (tpl.id === 'deck-default') {
-      handleSelectDeckDefault()
-    } else {
-      handleApplyTemplateInstant(tpl.id)
-    }
-  }
-
-  const handleSaveProfile = async () => {
-    if (!onCreateCustomProfile || !newProfileName.trim()) return
-    setIsSyncing(true)
-    try {
-      await onCreateCustomProfile(newProfileName.trim())
-      setIsSaveModalOpen(false)
-      setNewProfileName('')
-    } finally {
-      setIsSyncing(false)
-    }
-  }
 
   const handleResetToCreator = async () => {
     if (!onResetToCreatorDefaults) return
@@ -412,8 +186,6 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
       setTimeout(() => setCopied(false), 2000)
     }
   }
-
-  const isDeckDefaultActive = !isCustomized && (settingOrigin === 'deck_default' || selectedProfileId === 'deck-default')
 
   const TABS: { id: PlaySettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'mode', label: 'Mode', icon: Brain },
