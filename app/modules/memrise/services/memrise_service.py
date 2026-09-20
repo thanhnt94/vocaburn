@@ -47,7 +47,7 @@ class MemriseService:
             return {"cards": [], "message": "No new cards to plant."}
 
         # 2. Get deck settings for Q/A mapping
-        # 1. Resolve practice settings for MCQ, Typing, Listening pairs
+        deck = await db.scalar(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
         practice_settings = migrate_practice_settings(deck.practice_settings if (deck and deck.practice_settings) else {})
         mcq_pairs = practice_settings.get("mcq", {}).get("active_pairs", [])
         typing_pairs = practice_settings.get("typing", {}).get("active_pairs", [])
