@@ -17,15 +17,71 @@ import { selectDistractors } from '@/lib/distractor';
 import confetti from 'canvas-confetti';
 import { triggerHaptic } from '@/lib/haptic';
 
-const getVal = (item: any, key: string) => {
+const getVal = (item: any, key: string): string => {
   if (!item) return '';
-  const keyStr = String(key || '').trim().toLowerCase();
-  if (item[keyStr]) return String(item[keyStr]);
-  if (item.others && item.others[keyStr]) return String(item.others[keyStr]);
-  if (keyStr === 'front') return String(item.front || item.content || '');
-  if (keyStr === 'back') return String(item.back || item.explanation || '');
+  const rawKey = String(key || '').trim();
+  if (!rawKey) return '';
+  const keyLower = rawKey.toLowerCase();
+  
+  if (item[rawKey] !== undefined && item[rawKey] !== null) return String(item[rawKey]);
+  if (item[keyLower] !== undefined && item[keyLower] !== null) return String(item[keyLower]);
+
+  if (item.others && typeof item.others === 'object') {
+    if (item.others[rawKey] !== undefined && item.others[rawKey] !== null) {
+      return String(item.others[rawKey]);
+    }
+    for (const [k, v] of Object.entries(item.others)) {
+      if (k.toLowerCase() === keyLower && v !== undefined && v !== null) {
+        return String(v);
+      }
+    }
+  }
+
+  if (keyLower === 'front' || keyLower === 'content') return String(item.front || item.content || '');
+  if (keyLower === 'back' || keyLower === 'explanation') return String(item.back || item.explanation || '');
   return '';
 };
+
+function extractPair(pair: any, defaultQ: string = 'front', defaultA: string = 'back'): { qKey: string; aKey: string; aKeys: string[] } {
+  if (!pair) {
+    return { qKey: defaultQ, aKey: defaultA, aKeys: [defaultA] };
+  }
+  if (typeof pair === 'string') {
+    const parts = pair.split(/[-:>➜]/);
+    const q = (parts[0] || defaultQ).trim();
+    const a = (parts[1] || defaultA).trim();
+    return { qKey: q, aKey: a, aKeys: [a] };
+  }
+  const qKey = String(
+    pair.q || pair.prompt_col || pair.question_col || pair.question || pair.from || pair.source || defaultQ
+  ).trim();
+
+  const rawA = pair.a !== undefined ? pair.a : (
+    pair.answer_col !== undefined ? pair.answer_col : (
+      pair.answer !== undefined ? pair.answer : (
+        pair.to !== undefined ? pair.to : (
+          pair.target !== undefined ? pair.target : defaultA
+        )
+      )
+    )
+  );
+
+  let aKeys: string[] = [];
+  if (Array.isArray(rawA)) {
+    aKeys = rawA.map((x: any) => String(x).trim()).filter(Boolean);
+  } else if (typeof rawA === 'string' && rawA.includes(',')) {
+    aKeys = rawA.split(',').map((x: string) => x.trim()).filter(Boolean);
+  } else if (rawA !== undefined && rawA !== null && String(rawA).trim()) {
+    aKeys = [String(rawA).trim()];
+  }
+
+  if (aKeys.length === 0) {
+    aKeys = [defaultA];
+  }
+
+  const aKey = aKeys[0] || defaultA;
+  return { qKey, aKey, aKeys };
+}
 
 export default function MemrisePlay() {
   const { id, sessionType } = useParams<{ id: string, sessionType: 'plant' | 'water' }>();
@@ -120,6 +176,14 @@ export default function MemrisePlay() {
     cancelAllAudio();
   }, [currentCard?.card_id, stage]);
 
+  // Auto-play audio when entering Stage 4 (Listening)
+  useEffect(() => {
+    if (stage === 4 && currentPracticeData) {
+      const qKey = currentPracticeData.question_key || 'front';
+      playCardAudio(qKey);
+    }
+  }, [currentCard?.card_id, stage, currentPracticeData?.question_key]);
+
   useEffect(() => {
     if (!queue[0]) {
       setCurrentPracticeData(null);
@@ -128,11 +192,17 @@ export default function MemrisePlay() {
     const card = queue[0];
     const s = getStageOrTestType(card);
 
+    const mcqPairs: any[] = modeSettings?.mcq?.active_pairs || [];
+    const typingPairs: any[] = modeSettings?.typing?.active_pairs || [];
+    const listeningPairs: any[] = modeSettings?.listening?.active_pairs || [];
+
     if (s === 2) {
-      // Stage 2: Forward MCQ (q = word, a = definition)
-      const pair = modeSettings?.mcq?.active_pairs?.[0] || { q: 'front', a: 'back' };
-      const qKey = pair.q || 'front';
-      const aKey = Array.isArray(pair.a) ? (pair.a[0] || 'back') : (pair.a || 'back');
+      // Stage 2: MCQ (Pair 0)
+      const pairIndex = (sessionType === 'water' && mcqPairs.length > 1 && card.card_id)
+        ? Math.abs(card.card_id) % mcqPairs.length
+        : 0;
+      const pair = mcqPairs[pairIndex] || mcqPairs[0] || { q: 'front', a: 'back' };
+      const { qKey, aKey } = extractPair(pair, 'front', 'back');
       
       const qText = getVal(card, qKey) || getVal(card, 'front');
       const aText = getVal(card, aKey) || getVal(card, 'back');
@@ -180,13 +250,14 @@ export default function MemrisePlay() {
         answer_key: aKey,
       });
     } else if (s === 3) {
-      // Stage 3: Reverse MCQ (q = definition, a = word)
-      const pair = modeSettings?.mcq?.active_pairs?.[0] || { q: 'front', a: 'back' };
-      const qKey = Array.isArray(pair.a) ? (pair.a[0] || 'back') : (pair.a || 'back');
-      const aKey = pair.q || 'front';
+      // Stage 3: MCQ #2
+      // If creator defined >= 2 pairs, pick pair 1 (different from pair 0).
+      // If only 1 pair defined, pick pair 0 (strictly NO manual reverse!).
+      const pair = (mcqPairs.length > 1 ? mcqPairs[1] : mcqPairs[0]) || { q: 'front', a: 'back' };
+      const { qKey, aKey } = extractPair(pair, 'front', 'back');
       
-      const qText = getVal(card, qKey) || getVal(card, 'back');
-      const aText = getVal(card, aKey) || getVal(card, 'front');
+      const qText = getVal(card, qKey) || getVal(card, 'front');
+      const aText = getVal(card, aKey) || getVal(card, 'back');
       
       const distractorPool: any[] = [];
       const numChoices = modeSettings?.mcq?.num_choices || 4;
@@ -232,10 +303,11 @@ export default function MemrisePlay() {
       });
     } else if (s === 4) {
       // Stage 4: Listening / Audio Dictation
-      const pair = modeSettings?.listening?.active_pairs?.[0] || { q: 'front', a: ['front'] };
-      const audioKey = pair.q || 'front';
-      const rawAns = pair.a || ['front'];
-      const ansKeys: string[] = Array.isArray(rawAns) ? rawAns : [rawAns];
+      const pairIndex = (sessionType === 'water' && listeningPairs.length > 1 && card.card_id)
+        ? Math.abs(card.card_id) % listeningPairs.length
+        : 0;
+      const pair = listeningPairs[pairIndex] || listeningPairs[0] || { q: 'front', a: ['front'] };
+      const { qKey: audioKey, aKeys: ansKeys } = extractPair(pair, 'front', 'front');
 
       const acceptableAnswers: string[] = [];
       for (const k of ansKeys) {
@@ -245,11 +317,12 @@ export default function MemrisePlay() {
         }
       }
       if (acceptableAnswers.length === 0) {
-        const frontVal = getVal(card, 'front');
-        if (frontVal) acceptableAnswers.push(frontVal);
+        const fallback = getVal(card, 'front');
+        if (fallback) acceptableAnswers.push(fallback);
       }
       const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
       const audioUrl = card.audio_data?.audio_url || 
+                       card.others?.[`${audioKey}_audio_url`] ||
                        card.others?.front_audio_url || 
                        card.others?.back_audio_url || 
                        card.others?.audio || '';
@@ -264,10 +337,11 @@ export default function MemrisePlay() {
       });
     } else if (s === 5) {
       // Stage 5: Typing / Active Recall Production
-      const pair = modeSettings?.typing?.active_pairs?.[0] || { q: 'back', a: ['front'] };
-      const qKey = pair.q || 'back';
-      const rawAns = pair.a || ['front'];
-      const ansKeys: string[] = Array.isArray(rawAns) ? rawAns : [rawAns];
+      const pairIndex = (sessionType === 'water' && typingPairs.length > 1 && card.card_id)
+        ? Math.abs(card.card_id) % typingPairs.length
+        : 0;
+      const pair = typingPairs[pairIndex] || typingPairs[0] || { q: 'back', a: ['front'] };
+      const { qKey, aKeys: ansKeys } = extractPair(pair, 'back', 'front');
 
       const acceptableAnswers: string[] = [];
       for (const k of ansKeys) {
@@ -277,8 +351,8 @@ export default function MemrisePlay() {
         }
       }
       if (acceptableAnswers.length === 0) {
-        const frontVal = getVal(card, 'front');
-        if (frontVal) acceptableAnswers.push(frontVal);
+        const fallback = getVal(card, 'front');
+        if (fallback) acceptableAnswers.push(fallback);
       }
       const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
 
@@ -292,7 +366,7 @@ export default function MemrisePlay() {
     } else {
       setCurrentPracticeData(null);
     }
-  }, [queue[0], modeSettings, session]);
+  }, [queue[0], modeSettings, session, sessionType]);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -303,17 +377,20 @@ export default function MemrisePlay() {
           axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: null }))
         ]);
 
-        if (settingsRes.data) {
-          const userSettings = settingsRes.data.user_settings;
-          const creatorSettings = settingsRes.data.creator_settings;
-          const isObjEmpty = (obj: any) => !obj || Object.keys(obj).length === 0;
-          const parsed = !isObjEmpty(userSettings) ? userSettings : (!isObjEmpty(creatorSettings) ? creatorSettings : null);
-          if (parsed) {
-            setModeSettings(prev => ({ ...prev, ...parsed }));
-          }
+        const creatorSettings = settingsRes?.data?.creator_settings;
+        const userSettings = settingsRes?.data?.user_settings;
+        const sessionPracticeSettings = res?.data?.practice_settings;
+        const effectiveSettings = creatorSettings || userSettings || sessionPracticeSettings;
+
+        if (effectiveSettings) {
+          setModeSettings(prev => ({ ...prev, ...effectiveSettings }));
         }
+
         if (res.data.cards && res.data.cards.length > 0) {
-          setSession(res.data);
+          setSession({
+            ...res.data,
+            practice_settings: effectiveSettings || res.data.practice_settings
+          });
           setQueue([...res.data.cards]);
           setTotalCards(res.data.cards.length);
           setBloomedCount(0);
@@ -484,7 +561,7 @@ export default function MemrisePlay() {
             {stage === 1 ? '🌱' : stage === 2 ? '🌿' : stage === 3 ? '🪴' : stage === 4 ? '🌳' : stage === 5 ? '🌸' : '🌺'}
           </span>
           <span>
-            {stage === 1 ? 'Stage 1: Intro' : stage === 2 ? 'Stage 2: MCQ' : stage === 3 ? 'Stage 3: Reverse MCQ' : stage === 4 ? 'Stage 4: Listening' : stage === 5 ? 'Stage 5: Typing' : 'Bloomed!'}
+            {stage === 1 ? 'Stage 1: Intro' : stage === 2 ? 'Stage 2: MCQ' : stage === 3 ? 'Stage 3: MCQ #2' : stage === 4 ? 'Stage 4: Listening' : stage === 5 ? 'Stage 5: Typing' : 'Bloomed!'}
           </span>
         </div>
       </div>
@@ -563,7 +640,7 @@ export default function MemrisePlay() {
              starredCards={{}}
              onToggleStar={() => {}}
              onCheckTyping={handleTypingCheck}
-             onPlayAudio={(face, rate) => playCardAudio(face || 'front', rate || 1.0)}
+             onPlayAudio={(face, rate) => playCardAudio(currentPracticeData?.question_key || face || 'front', rate || 1.0)}
           />
         ) : (
           <PracticeTypingCard
