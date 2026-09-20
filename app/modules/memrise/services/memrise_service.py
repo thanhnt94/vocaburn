@@ -24,6 +24,93 @@ class MemriseService:
     ]
 
     @classmethod
+    def _resolve_card_audio_info(cls, c: Flashcard, display_col: str, practice_settings: dict) -> dict:
+        norm_col = (display_col or "front").strip().lower()
+        audio_configs = practice_settings.get("audio_configs", []) if isinstance(practice_settings, dict) else []
+        matched_cfg = None
+
+        if audio_configs and isinstance(audio_configs, list):
+            matched_cfg = next((
+                cfg for cfg in audio_configs
+                if str(cfg.get("data_col") or "").strip().lower() == norm_col
+            ), None)
+            if not matched_cfg:
+                matched_cfg = next((
+                    cfg for cfg in audio_configs
+                    if str(cfg.get("source_col") or "").strip().lower() == norm_col
+                    or str(cfg.get("audio_content_col") or "").strip().lower() == norm_col
+                ), None)
+            if not matched_cfg:
+                matched_cfg = next((
+                    cfg for cfg in audio_configs
+                    if str(cfg.get("url_col") or "").strip().lower() == norm_col
+                    or str(cfg.get("audio_url_col") or "").strip().lower() == norm_col
+                ), None)
+            if not matched_cfg:
+                if norm_col == "front" and len(audio_configs) > 0:
+                    matched_cfg = audio_configs[0]
+                elif norm_col == "back" and len(audio_configs) > 1:
+                    matched_cfg = audio_configs[1]
+
+        target_url_col = None
+        source_col = None
+        lang = None
+
+        if matched_cfg:
+            target_url_col = matched_cfg.get("url_col") or matched_cfg.get("audio_url_col")
+            source_col = matched_cfg.get("source_col") or matched_cfg.get("audio_content_col")
+            lang = matched_cfg.get("lang")
+        else:
+            pairs = practice_settings.get("audio_pairs", []) if isinstance(practice_settings, dict) else []
+            pair = next((
+                p for p in pairs
+                if str(p.get("text_col") or p.get("data_col") or "").strip().lower() == norm_col
+            ), None)
+            if pair:
+                target_url_col = pair.get("audio_url_col")
+                source_col = pair.get("audio_content_col")
+                lang = pair.get("lang")
+
+        if not target_url_col:
+            if norm_col == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+                target_url_col = "front_audio_url"
+            elif norm_col == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+                target_url_col = "back_audio_url"
+            else:
+                target_url_col = f"{display_col}_audio_url"
+
+        if not source_col:
+            source_col = "front_audio_content" if norm_col == "front" else ("back_audio_content" if norm_col == "back" else display_col)
+
+        # Check existing audio url on card c (case-insensitive)
+        audio_url = None
+        if target_url_col and c.others and isinstance(c.others, dict):
+            lower_target = target_url_col.strip().lower()
+            for k, v in c.others.items():
+                if str(k).strip().lower() == lower_target and v and str(v).strip():
+                    audio_url = str(v).strip()
+                    break
+
+        if not audio_url and target_url_col and hasattr(c, target_url_col):
+            val = getattr(c, target_url_col, None)
+            if val and str(val).strip():
+                audio_url = str(val).strip()
+
+        if not audio_url:
+            if norm_col == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+                audio_url = c.audio or getattr(c, "front_audio_url", None) or (c.others.get("front_audio_url") if c.others else None)
+            elif norm_col == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+                audio_url = getattr(c, "back_audio_url", None) or (c.others.get("back_audio_url") if c.others else None)
+
+        return {
+            "audio_url": str(audio_url).strip() if audio_url else None,
+            "audio_col": display_col,
+            "url_col": target_url_col,
+            "source_col": source_col,
+            "lang": lang
+        }
+
+    @classmethod
     async def get_plant_session(cls, db: AsyncSession, user_id: int, deck_id: int, limit: int = 10) -> Dict:
         """Fetch unseen/learning cards for a planting session."""
         # 1. Fetch unseen cards (no progress or stage < 6)
@@ -113,10 +200,7 @@ class MemriseService:
             payload["mcq_rev_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config_stage3)
             payload["typing_data"] = TypingEngine.generate_question(card_data, typing_config)
             payload["listening_data"] = TypingEngine.generate_question(card_data, listening_config)
-            payload["audio_data"] = {
-                "audio_url": (c.others.get(f"{listening_q_col}_audio_url") or c.others.get('front_audio_url') or c.others.get('back_audio_url')) if c.others else None,
-                "audio_col": listening_q_col
-            }
+            payload["audio_data"] = cls._resolve_card_audio_info(c, listening_q_col, practice_settings)
 
             session_cards.append(payload)
 
@@ -223,10 +307,7 @@ class MemriseService:
             payload["mcq_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config)
             payload["typing_data"] = TypingEngine.generate_question(card_data, typing_config)
             payload["listening_data"] = TypingEngine.generate_question(card_data, listening_config)
-            payload["audio_data"] = {
-                "audio_url": (c.others.get(f"{listening_q_col}_audio_url") or c.others.get('front_audio_url') or c.others.get('back_audio_url')) if c.others else None,
-                "audio_col": listening_q_col
-            }
+            payload["audio_data"] = cls._resolve_card_audio_info(c, listening_q_col, practice_settings)
 
             session_cards.append(payload)
 

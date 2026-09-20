@@ -1014,10 +1014,11 @@ async def import_text_update(request: Request, deck_id: int, data: dict, db: Asy
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 async def generate_single_card_audio_helper(c, face: str, force: bool, db: AsyncSession) -> Optional[str]:
-    # Select text based on face
+    # Select text based on face and deck audio_configs
     text = ""
     target_url_col = ""
-    is_custom = face not in ("front", "back")
+    norm_face = (face or "front").strip().lower()
+    is_custom = norm_face not in ("front", "back")
 
     from app.modules.deck.models import FlashcardDeck
     deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == c.deck_id))
@@ -1027,23 +1028,44 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     voice_name = None
     voice_mapping = {}
     content_col = None
+    matched_cfg = None
 
     if deck and deck.practice_settings and isinstance(deck.practice_settings, dict):
         ps = deck.practice_settings
         voice_mapping = ps.get("voice_mapping", {})
         audio_configs = ps.get("audio_configs", [])
 
-        matched_cfg = None
-        if audio_configs:
+        if audio_configs and isinstance(audio_configs, list):
+            # 1. Match by data_col FIRST (this is the display column selected by user)
             matched_cfg = next((
                 cfg for cfg in audio_configs
-                if cfg.get("id") == face or cfg.get("url_col") == face or cfg.get("audio_url_col") == face
-                or cfg.get("source_col") == face or cfg.get("audio_content_col") == face or cfg.get("data_col") == face
+                if str(cfg.get("data_col") or "").strip().lower() == norm_face
             ), None)
+            # 2. Match by source_col
             if not matched_cfg:
-                if face == "front" and len(audio_configs) > 0:
+                matched_cfg = next((
+                    cfg for cfg in audio_configs
+                    if str(cfg.get("source_col") or "").strip().lower() == norm_face
+                    or str(cfg.get("audio_content_col") or "").strip().lower() == norm_face
+                ), None)
+            # 3. Match by url_col
+            if not matched_cfg:
+                matched_cfg = next((
+                    cfg for cfg in audio_configs
+                    if str(cfg.get("url_col") or "").strip().lower() == norm_face
+                    or str(cfg.get("audio_url_col") or "").strip().lower() == norm_face
+                ), None)
+            # 4. Match by id
+            if not matched_cfg:
+                matched_cfg = next((
+                    cfg for cfg in audio_configs
+                    if str(cfg.get("id") or "").strip().lower() == norm_face
+                ), None)
+            # Fallbacks for standard front/back
+            if not matched_cfg:
+                if norm_face == "front" and len(audio_configs) > 0:
                     matched_cfg = audio_configs[0]
-                elif face == "back" and len(audio_configs) > 1:
+                elif norm_face == "back" and len(audio_configs) > 1:
                     matched_cfg = audio_configs[1]
 
         if matched_cfg:
@@ -1052,14 +1074,18 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             target_url_col = matched_cfg.get("url_col") or matched_cfg.get("audio_url_col")
         else:
             if not is_custom:
-                cfg_key = "front_audio_config" if face == "front" else "back_audio_config"
+                cfg_key = "front_audio_config" if norm_face == "front" else "back_audio_config"
                 cfg = ps.get(cfg_key, {})
                 if isinstance(cfg, dict):
                     target_lang = cfg.get("lang")
                     content_col = cfg.get("audio_content_col")
+                    target_url_col = cfg.get("audio_url_col")
             else:
                 pairs = ps.get("audio_pairs", [])
-                pair = next((p for p in pairs if p.get("text_col") == face), None)
+                pair = next((
+                    p for p in pairs
+                    if str(p.get("text_col") or p.get("data_col") or "").strip().lower() == norm_face
+                ), None)
                 if pair:
                     target_lang = pair.get("lang")
                     content_col = pair.get("audio_content_col")
@@ -1072,84 +1098,148 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     if target_lang == "none":
         return None
 
+    # Fallback default target_url_col
+    if not target_url_col:
+        if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+            target_url_col = "front_audio_url"
+        elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+            target_url_col = "back_audio_url"
+        else:
+            target_url_col = f"{face}_audio_url"
+
+    # ── STEP 1: CHECK IF AUDIO URL ALREADY EXISTS (CACHE-FIRST) ──
+    # If not force and card already has an audio link for this column, NEVER regenerate!
+    if not force:
+        existing_url = None
+
+        # 1. Check target_url_col in c.others (case-insensitive)
+        if target_url_col and c.others and isinstance(c.others, dict):
+            lower_target = target_url_col.strip().lower()
+            for k, v in c.others.items():
+                if str(k).strip().lower() == lower_target and v and str(v).strip():
+                    existing_url = str(v).strip()
+                    break
+
+        # 2. Check direct attribute on c
+        if not existing_url and target_url_col and hasattr(c, target_url_col):
+            val = getattr(c, target_url_col, None)
+            if val and str(val).strip():
+                existing_url = str(val).strip()
+
+        # 3. Check front / back standard fields
+        if not existing_url:
+            if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+                if c.audio and str(c.audio).strip():
+                    existing_url = str(c.audio).strip()
+                elif hasattr(c, "front_audio_url") and c.front_audio_url and str(c.front_audio_url).strip():
+                    existing_url = str(c.front_audio_url).strip()
+                elif c.others and isinstance(c.others, dict) and c.others.get("front_audio_url"):
+                    existing_url = str(c.others.get("front_audio_url")).strip()
+            elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+                if hasattr(c, "back_audio_url") and c.back_audio_url and str(c.back_audio_url).strip():
+                    existing_url = str(c.back_audio_url).strip()
+                elif c.others and isinstance(c.others, dict) and c.others.get("back_audio_url"):
+                    existing_url = str(c.others.get("back_audio_url")).strip()
+
+        if existing_url:
+            logger.info(f"[AUDIO CACHE HIT] Card {c.id} column '{face}' has existing audio link: '{existing_url}'. Reading directly without regeneration.")
+            # Resolve central:// or relative URLs if needed
+            from app.modules.sso_module.service import SSOService
+            try:
+                sso_config = await SSOService.get_config(db)
+                if sso_config.is_enabled and sso_config.server_url:
+                    base = sso_config.server_url.rstrip('/')
+                    if existing_url.startswith("central://"):
+                        return f"{base}/static/{existing_url[10:].lstrip('/')}"
+                    elif existing_url.startswith("central-tts://"):
+                        return f"{base}/static/uploads/tts/{existing_url[14:].lstrip('/')}"
+                    elif existing_url.startswith("central-media://"):
+                        return f"{base}/static/uploads/media/{existing_url[16:].lstrip('/')}"
+                    elif existing_url.startswith("/static/"):
+                        return f"{base}{existing_url}"
+            except Exception:
+                pass
+            return existing_url
+
+    # ── STEP 2: EXTRACT READING TEXT (source_col) ──
     if content_col:
-        if content_col == "front":
+        lower_content = content_col.strip().lower()
+        if lower_content in ("front", "content"):
             text = c.content
-        elif content_col == "back":
+        elif lower_content in ("back", "explanation"):
             text = c.explanation
-        elif hasattr(c, content_col):
-            text = getattr(c, content_col)
-        elif c.others and content_col in c.others:
-            text = c.others.get(content_col)
+        elif c.others and isinstance(c.others, dict):
+            for k, v in c.others.items():
+                if str(k).strip().lower() == lower_content and v and str(v).strip():
+                    text = str(v).strip()
+                    break
+        if not text and hasattr(c, content_col):
+            val = getattr(c, content_col, None)
+            if val and str(val).strip():
+                text = str(val).strip()
 
     if not text:
-        if face == "front":
-            text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None) or c.content
-        elif face == "back":
-            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.explanation
-        elif c.others and face in c.others:
-            text = c.others.get(face)
-        elif hasattr(c, face):
-            text = getattr(c, face, None)
+        # Fallback to display column / face
+        if norm_face in ("front", "content"):
+            text = c.front_audio_content or (c.others.get("front_audio_content") if c.others and isinstance(c.others, dict) else None) or c.content
+        elif norm_face in ("back", "explanation"):
+            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others and isinstance(c.others, dict) else None) or c.explanation
+        elif c.others and isinstance(c.others, dict):
+            for k, v in c.others.items():
+                if str(k).strip().lower() == norm_face and v and str(v).strip():
+                    text = str(v).strip()
+                    break
+        if not text and hasattr(c, face):
+            val = getattr(c, face, None)
+            if val and str(val).strip():
+                text = str(val).strip()
 
     if not text or not str(text).strip():
         return None
+
     from app.modules.deck.services.audio_generator import AudioGenerator
     text = AudioGenerator.clean_text_for_tts(str(text))
     if not text:
         return None
-        
+
     # Determine physical path and absolute URL based on requested deck_id and card_id
     from app.core.config import settings
     folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(c.deck_id), "audio")
-    
+
     if not is_custom:
-        filename = f"{c.id}_front.mp3" if face == "front" else f"{c.id}_back.mp3"
+        filename = f"{c.id}_front.mp3" if norm_face == "front" else f"{c.id}_back.mp3"
     else:
-        filename = f"{c.id}_{face}.mp3"
-        
+        safe_face = re.sub(r'[^a-zA-Z0-9_-]', '_', face)
+        filename = f"{c.id}_{safe_face}.mp3"
+
     physical_path = os.path.join(folder_path, filename)
-    
-    # Construct relative URL
     url = f"/uploads/{c.deck_id}/audio/{filename}"
-    
-    # Check if we already have it generated on disk (skip if force=True)
+
+    # Check if we already have it generated on local disk (skip if force=True)
     if os.path.exists(physical_path) and not force:
-        # File is on disk, just make sure database is synchronized
-        db_updated = False
-        if not is_custom:
-            if face == "front":
-                if c.audio != url:
-                    c.audio = url
-                    db_updated = True
-            else:
-                if c.back_audio_url != url:
-                    c.back_audio_url = url
-                    db_updated = True
-        else:
-            if target_url_col:
-                if not c.others:
-                    c.others = {}
-                if c.others.get(target_url_col) != url:
-                    c.others[target_url_col] = url
-                    db_updated = True
-        if db_updated:
-            from sqlalchemy.orm.attributes import flag_modified
-            if is_custom:
-                flag_modified(c, "others")
-            await db.commit()
+        if not c.others:
+            c.others = {}
+        if target_url_col:
+            c.others[target_url_col] = url
+        if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+            c.audio = url
+        elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+            c.back_audio_url = url
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(c, "others")
+        await db.commit()
         return url
-    
+
     # Delete existing file if force regeneration
     if force and os.path.exists(physical_path):
         try:
             os.remove(physical_path)
         except Exception:
             pass
-        
+
     # Generate if not exists
     success = False
-    
+
     # Check if Central SSO is enabled and try centralized TTS
     from app.modules.sso_module.service import SSOService
     try:
@@ -1179,104 +1269,57 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                     data = response.json()
                     filename_tts = data.get("filename") or os.path.basename(data.get("url"))
                     central_ref = data.get("canonical_url") or f"central://vocaburn/{c.deck_id}/audio/{filename_tts}"
-                    
-                    # Save back to database
-                    if not is_custom:
-                        if face == "front":
-                            c.audio = central_ref
-                        else:
-                            c.back_audio_url = central_ref
-                    else:
-                        if target_url_col:
-                            if not c.others:
-                                c.others = {}
-                            c.others[target_url_col] = central_ref
-                        
+
+                    # ── SAVE TO DATABASE (target_url_col & others) ──
+                    if not c.others:
+                        c.others = {}
+                    if target_url_col:
+                        c.others[target_url_col] = central_ref
+                    if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+                        c.audio = central_ref
+                    elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+                        c.back_audio_url = central_ref
+
                     from sqlalchemy.orm.attributes import flag_modified
-                    if is_custom:
-                        flag_modified(c, "others")
+                    flag_modified(c, "others")
                     await db.commit()
-                    
+
                     # Return the fully resolved URL for immediate UI play/preview
                     rel_url = data.get("url") or f"/static/vocaburn/{c.deck_id}/audio/{filename_tts}"
                     resolved_url = f"{sso_config.server_url.rstrip('/')}{rel_url}" if rel_url.startswith("/") else rel_url
-                    logger.info(f"[TTS CENTRAL SUCCESS] Stored logical reference {central_ref} in card {c.id}")
+                    logger.info(f"[TTS CENTRAL SUCCESS] Stored logical reference {central_ref} in card {c.id} ({target_url_col})")
                     return resolved_url
                 else:
                     logger.error(f"[TTS CENTRAL ERROR] Centralized TTS endpoint returned status {response.status_code}: {response.text}")
     except Exception as sso_err:
         logger.warning(f"[TTS CENTRAL WARNING] Centralized TTS request failed, will fallback to local generation: {sso_err}")
- 
+
     # Fallback to local generation if centralized TTS failed or wasn't active
     if not success:
         try:
             from app.modules.deck.services.audio_generator import AudioGenerator
-            logger.info(f"[TTS LOCAL] Generating TTS locally using edge-tts/gTTS for text: '{text[:30]}...' with lang: {target_lang}")
-            
-            # Pass target_lang to centralized TTS request
-            if sso_config.is_enabled and sso_config.server_url:
-                try:
-                    import httpx
-                    async with httpx.AsyncClient() as client:
-                        response = await client.post(
-                             f"{sso_config.server_url.rstrip('/')}/api/tts/generate",
-                             json={
-                                 "text": text,
-                                 "lang": target_lang,
-                                 "app": "vocaburn",
-                                 "folder": str(c.deck_id),
-                                 "subfolder": "audio"
-                             },
-                             timeout=20.0
-                        )
-                        if response.status_code == 200:
-                            data = response.json()
-                            filename_tts = data.get("filename") or os.path.basename(data.get("url"))
-                            central_ref = data.get("canonical_url") or f"central://vocaburn/{c.deck_id}/audio/{filename_tts}"
-                            if not is_custom:
-                                if face == "front":
-                                    c.audio = central_ref
-                                else:
-                                    c.back_audio_url = central_ref
-                            else:
-                                if target_url_col:
-                                    if not c.others:
-                                        c.others = {}
-                                    c.others[target_url_col] = central_ref
-                            from sqlalchemy.orm.attributes import flag_modified
-                            if is_custom:
-                                flag_modified(c, "others")
-                            await db.commit()
-                            rel_url = data.get("url") or f"/static/vocaburn/{c.deck_id}/audio/{filename_tts}"
-                            resolved_url = f"{sso_config.server_url.rstrip('/')}{rel_url}" if rel_url.startswith("/") else rel_url
-                            return resolved_url
-                except Exception as sso_retry_err:
-                    logger.warning(f"[TTS CENTRAL RETRY WARNING] Centralized retry failed: {sso_retry_err}")
-
+            logger.info(f"[TTS LOCAL] Generating TTS locally for text: '{text[:30]}...' with lang: {target_lang}")
             success = await AudioGenerator.generate_tts(text, physical_path, target_lang)
         except Exception as e:
             import traceback
             logger.error(f"Failed to generate audio locally: {e}\n{traceback.format_exc()}")
             return None
-            
+
     if not success:
         return None
-        
-    # Save back to database
-    if not is_custom:
-        if face == "front":
-            c.audio = url
-        else:
-            c.back_audio_url = url
-    else:
-        if target_url_col:
-            if not c.others:
-                c.others = {}
-            c.others[target_url_col] = url
-        
+
+    # Save local URL back to database
+    if not c.others:
+        c.others = {}
+    if target_url_col:
+        c.others[target_url_col] = url
+    if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+        c.audio = url
+    elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+        c.back_audio_url = url
+
     from sqlalchemy.orm.attributes import flag_modified
-    if is_custom:
-        flag_modified(c, "others")
+    flag_modified(c, "others")
     await db.commit()
     return url
 

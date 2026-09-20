@@ -153,23 +153,29 @@ export default function MemrisePlay() {
 
   const mockQuestion = useMemo(() => {
     if (!currentCard) return null;
+    const others = { ...(currentCard.others || {}) };
+    if (currentCard.audio_data?.url_col && currentCard.audio_data?.audio_url) {
+      others[currentCard.audio_data.url_col] = currentCard.audio_data.audio_url;
+    }
+    const audioUrl = currentCard.audio_data?.audio_url || others.front_audio_url || others.audio || '';
     return {
       id: currentCard.card_id,
       content: currentCard.front,
       explanation: currentCard.back,
       front: currentCard.front,
       back: currentCard.back,
-      audio: currentCard.audio_data?.audio_url || currentCard.others?.front_audio_url || currentCard.others?.audio || '',
-      front_audio_url: currentCard.others?.front_audio_url || '',
-      back_audio_url: currentCard.others?.back_audio_url || '',
-      others: currentCard.others || {}
+      audio: audioUrl,
+      front_audio_url: others.front_audio_url || audioUrl,
+      back_audio_url: others.back_audio_url || '',
+      others: others
     } as any;
   }, [currentCard?.card_id, currentCard?.front, currentCard?.back, currentCard?.others, currentCard?.audio_data]);
 
   const { playCardAudio } = usePracticeAudio({
     currentQuestion: mockQuestion,
     session: session,
-    currentPracticeData
+    currentPracticeData,
+    practiceSettings: session?.practice_settings || creatorDefaults
   });
 
   useEffect(() => {
@@ -627,6 +633,7 @@ export default function MemrisePlay() {
              onToggleStar={() => {}}
              onSelectOption={handleMcqSelect}
              onPreviewInsight={() => {}}
+             onPlayAudio={(face, rate) => playCardAudio(currentPracticeData?.question_key || face || 'front', rate || 1.0)}
           />
         ) : stage === 4 ? (
           <PracticeListeningCard

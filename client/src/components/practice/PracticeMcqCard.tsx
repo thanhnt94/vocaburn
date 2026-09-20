@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sparkles, Bookmark } from 'lucide-react'
+import { Sparkles, Bookmark, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import type { Question } from '@/types/flashcard'
@@ -16,6 +16,7 @@ export interface PracticeMcqCardProps {
   onSelectOption: (index: number) => void
   onPreviewInsight: (card: any) => void
   sessionQuestions?: Question[]
+  onPlayAudio?: (face?: string, rate?: number) => void
 }
 
 const getVal = (card: any, key: string) => {
@@ -33,7 +34,8 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
   onToggleStar,
   onSelectOption,
   onPreviewInsight,
-  sessionQuestions = []
+  sessionQuestions = [],
+  onPlayAudio
 }) => {
   const { question, choices, choice_item_ids, correct_index, question_key, answer_key } = practiceData
 
@@ -46,25 +48,41 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-amber-200/25 dark:bg-amber-500/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-orange-100/35 dark:bg-orange-500/10 blur-2xl pointer-events-none" />
 
-          {/* Top Row: Question Pill on Left, Bookmark on Right */}
+          {/* Top Row: Question Pill on Left, Bookmark and Audio on Right */}
           <div className="w-full flex items-center justify-between mb-4 relative z-10">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100/80 dark:bg-amber-950/60 border border-amber-200/70 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 font-black text-xs shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 fill-amber-300" />
               <span>Question {currentIndex + 1}</span>
             </span>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (currentQuestion?.id) {
-                  onToggleStar(currentQuestion.id)
-                }
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-600 dark:text-amber-400/80 dark:hover:text-amber-300 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 transition-all active:scale-90 cursor-pointer touch-manipulation"
-              title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Remove bookmark" : "Bookmark question"}
-            >
-              <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-amber-400")} />
-            </button>
+            <div className="flex items-center gap-1">
+              {onPlayAudio && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onPlayAudio(question_key || 'front')
+                  }}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-700 dark:text-amber-400 hover:bg-amber-100/70 dark:hover:bg-amber-950/40 transition-all active:scale-90 cursor-pointer touch-manipulation"
+                  title="Listen to question"
+                >
+                  <Volume2 className="w-5 h-5" />
+                </button>
+              )}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (currentQuestion?.id) {
+                    onToggleStar(currentQuestion.id)
+                  }
+                }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-600 dark:text-amber-400/80 dark:hover:text-amber-300 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 transition-all active:scale-90 cursor-pointer touch-manipulation"
+                title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Remove bookmark" : "Bookmark question"}
+              >
+                <Bookmark className={cn("w-5 h-5 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-amber-400")} />
+              </button>
+            </div>
           </div>
 
           {/* Question Text */}

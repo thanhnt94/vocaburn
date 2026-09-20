@@ -34,10 +34,15 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
     if not key:
         return (getattr(card, "content", None) or "").strip()
     # 1. Check card.others dict FIRST for custom column keys (e.g. kanji, meaning, hiragana, etc.)
-    if hasattr(card, "others") and card.others and isinstance(card.others, dict) and key in card.others:
-        val = card.others.get(key)
-        if val is not None and str(val).strip():
-            return str(val).strip()
+    if hasattr(card, "others") and card.others and isinstance(card.others, dict):
+        if key in card.others:
+            val = card.others.get(key)
+            if val is not None and str(val).strip():
+                return str(val).strip()
+        lower_key = str(key).strip().lower()
+        for k, v in card.others.items():
+            if str(k).strip().lower() == lower_key and v is not None and str(v).strip():
+                return str(v).strip()
     if key in ("front", "content"):
         return (getattr(card, "content", None) or "").strip()
     if key in ("back", "explanation"):

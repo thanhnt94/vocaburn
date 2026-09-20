@@ -40,7 +40,7 @@ import {
   PracticeRoadmapTestView,
   PracticeBottomBar
 } from '@/components/practice'
-import { usePracticeAudio } from '@/hooks/usePracticeAudio'
+import { usePracticeAudio, resolveAudioConfig, getCardFieldValue } from '@/hooks/usePracticeAudio'
 import type { Question, Option } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -307,39 +307,43 @@ export default function PracticePlay() {
     }
     window.speechSynthesis.cancel();
 
-    // Check custom audio pairs in session/deck settings for language & script column
     const qAny = currentQuestion as any;
-    const pairs = session?.practice_settings?.audio_pairs || session?.creator_settings?.audio_pairs || [];
-    const pair = pairs.find((p: any) => p.text_col === face);
+    const effectiveSettings = session?.practice_settings || session?.creator_settings || {};
+    const cfg = resolveAudioConfig(face, effectiveSettings);
 
-    let audioUrl = '';
-    let script = '';
+    if (!cfg.enabled) {
+      console.log(`[AUDIO] Column '${face}' is disabled in audio settings.`);
+      return;
+    }
 
-    if (face === 'front') {
-      audioUrl = qAny.audio || qAny.front_audio_url || qAny.others?.front_audio_url || '';
-      script = qAny.front_audio_content || qAny.others?.front_audio_content || qAny.content || '';
-    } else if (face === 'back') {
-      audioUrl = qAny.back_audio_url || qAny.others?.back_audio_url || '';
-      script = qAny.back_audio_content || qAny.others?.back_audio_content || qAny.explanation || '';
-    } else {
-      if (pair) {
-        const urlCol = pair.audio_url_col;
-        const contentCol = pair.audio_content_col;
-        if (urlCol) audioUrl = qAny[urlCol] || qAny.others?.[urlCol] || '';
-        if (contentCol) script = qAny[contentCol] || qAny.others?.[contentCol] || '';
-      }
-      if (!script || !script.trim()) {
-        script = qAny[face] || qAny.others?.[face] || '';
-      }
-      if (!audioUrl && pair && pair.audio_url_col) {
-        audioUrl = qAny[pair.audio_url_col] || qAny.others?.[pair.audio_url_col] || '';
+    // Check if audio URL already exists
+    let audioUrl = getCardFieldValue(qAny, cfg.urlCol);
+    if (!audioUrl) {
+      const normFace = face.trim().toLowerCase();
+      if (normFace === 'front' || cfg.dataCol === 'front') {
+        audioUrl = qAny.audio || qAny.front_audio_url || qAny.others?.front_audio_url || qAny.others?.audio || '';
+      } else if (normFace === 'back' || cfg.dataCol === 'back') {
+        audioUrl = qAny.back_audio_url || qAny.others?.back_audio_url || '';
       }
     }
 
-    // Lazily generate audio if it is not yet created on backend
+    // Extract text
+    let script = getCardFieldValue(qAny, cfg.sourceCol);
+    if (!script) {
+      script = getCardFieldValue(qAny, cfg.dataCol) || getCardFieldValue(qAny, face);
+    }
+    if (!script) {
+      if (face === 'front' || cfg.dataCol === 'front') {
+        script = qAny.content || '';
+      } else if (face === 'back' || cfg.dataCol === 'back') {
+        script = qAny.explanation || '';
+      }
+    }
+
+    // Lazily generate audio only if missing
     if (!audioUrl && currentQuestion.id && script && script.trim()) {
       try {
-        console.log(`[CLIENT TTS] Audio file missing. Requesting Edge TTS generation for question ${currentQuestion.id} (${face})...`);
+        console.log(`[CLIENT TTS] Audio link missing. Requesting TTS generation for question ${currentQuestion.id} (${face})...`);
         const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${encodeURIComponent(face)}`);
         if (currentQuestionIdRef.current !== targetQuestionId) {
           console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
@@ -347,37 +351,41 @@ export default function PracticePlay() {
         }
         audioUrl = res.data.url;
         if (audioUrl) {
-          if (face === 'front') {
+          if (!currentQuestion.others) currentQuestion.others = {};
+          if (cfg.urlCol) {
+            currentQuestion.others[cfg.urlCol] = audioUrl;
+            (currentQuestion as any)[cfg.urlCol] = audioUrl;
+          }
+          if (face === 'front' || cfg.dataCol === 'front') {
             currentQuestion.audio = audioUrl;
-          } else if (face === 'back') {
-            if (!currentQuestion.others) currentQuestion.others = {};
+            currentQuestion.front_audio_url = audioUrl;
+            currentQuestion.others.front_audio_url = audioUrl;
+          } else if (face === 'back' || cfg.dataCol === 'back') {
+            currentQuestion.back_audio_url = audioUrl;
             currentQuestion.others.back_audio_url = audioUrl;
-          } else if (pair && pair.audio_url_col) {
-            if (!currentQuestion.others) currentQuestion.others = {};
-            currentQuestion.others[pair.audio_url_col] = audioUrl;
           }
         }
       } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio file for question ${currentQuestion.id}:`, err.message);
+        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio for question ${currentQuestion.id}:`, err?.message);
       }
     }
 
     if (audioUrl) {
       const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl;
       const cacheBustedUrl = `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-      console.log(`[TTS PLAYBACK] Playing Edge TTS server audio: ${cacheBustedUrl}`);
+      console.log(`[TTS PLAYBACK] Playing audio: ${cacheBustedUrl}`);
       const audio = new Audio(cacheBustedUrl);
       audio.playbackRate = rate;
       activeAudioRef.current = audio;
       audio.play().catch(err => {
-        console.warn(`[TTS FALLBACK WARNING] Playback of generated audio file ${cacheBustedUrl} failed. Error:`, err.message);
+        console.warn(`[TTS FALLBACK WARNING] Playback of audio failed. Error:`, err?.message);
         if (script && script.trim()) {
-          speakWithEdgeTTS(script, pair?.lang);
+          speakWithEdgeTTS(script, cfg.lang);
         }
       });
     } else if (script && script.trim()) {
       console.log(`[TTS EDGE STREAM] Streaming Edge TTS for face ${face}: "${script}"`);
-      speakWithEdgeTTS(script, pair?.lang);
+      speakWithEdgeTTS(script, cfg.lang);
     }
   };
 
@@ -386,17 +394,16 @@ export default function PracticePlay() {
     const qText = currentPracticeData.question || '';
     const aText = currentPracticeData.correct_answer || '';
     const qKey = currentPracticeData.question_key || 'front';
-    const aKey = currentPracticeData.answer_key || 'back';
+    const rawAKey = currentPracticeData.answer_key || 'back';
+    const aKey = Array.isArray(rawAKey) ? (rawAKey[0] || 'back') : rawAKey;
 
     const containsJp = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
     const containsVi = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
-
     const detectLang = (str: string) => containsJp(str) ? 'ja-JP' : (containsVi(str) ? 'vi-VN' : 'en-US');
 
-    // Look up audio pair configs to find explicit language for qKey and aKey
-    const pairs = session?.practice_settings?.audio_pairs || session?.creator_settings?.audio_pairs || [];
-    const qPair = pairs.find((p: any) => p.text_col === qKey);
-    const aPair = pairs.find((p: any) => p.text_col === aKey);
+    const effectiveSettings = session?.practice_settings || session?.creator_settings || {};
+    const qCfg = resolveAudioConfig(qKey, effectiveSettings);
+    const aCfg = resolveAudioConfig(aKey, effectiveSettings);
 
     // Stop any ongoing audio
     if (activeAudioRef.current) {
@@ -406,11 +413,13 @@ export default function PracticePlay() {
     window.speechSynthesis.cancel();
 
     const segments: { text: string; langCode: string }[] = [];
-    if (qText) segments.push({ text: qText, langCode: qPair?.lang || detectLang(qText) });
-    if (aText) segments.push({ text: aText, langCode: aPair?.lang || detectLang(aText) });
+    if (qText && qCfg.enabled) segments.push({ text: qText, langCode: qCfg.lang !== 'multi' ? qCfg.lang : detectLang(qText) });
+    if (aText && aCfg.enabled) segments.push({ text: aText, langCode: aCfg.lang !== 'multi' ? aCfg.lang : detectLang(aText) });
     
     // Use Edge TTS sequentially
-    speakEdgeTTSSequentially(segments, 500);
+    if (segments.length > 0) {
+      speakEdgeTTSSequentially(segments, 500);
+    }
   };
 
   const [session, setSession] = useState<any>(null)
@@ -3575,6 +3584,7 @@ export default function PracticePlay() {
         onSelectOption={handleMCQAnswer}
         onPreviewInsight={setPreviewInsightCard}
         sessionQuestions={session?.questions || []}
+        onPlayAudio={playCardAudio}
       />
     );
   };
