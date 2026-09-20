@@ -623,16 +623,28 @@ export default function FlashcardPlay() {
 
   useEffect(() => {
     if (isFlipped && backScrollRef.current) {
+      const el = backScrollRef.current
       const checkOverflow = () => {
-        const el = backScrollRef.current
         if (el) {
-          const isOverflowing = el.scrollHeight > el.clientHeight + 6
+          const isOverflowing = el.scrollHeight > el.clientHeight + 4
           setHasBackOverflow(isOverflowing)
         }
       }
       checkOverflow()
-      const timer = setTimeout(checkOverflow, 80)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(checkOverflow, 100)
+
+      let observer: ResizeObserver | null = null
+      if (typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(() => {
+          checkOverflow()
+        })
+        observer.observe(el)
+      }
+
+      return () => {
+        clearTimeout(timer)
+        if (observer) observer.disconnect()
+      }
     } else {
       setHasBackOverflow(false)
     }
@@ -1705,9 +1717,11 @@ export default function FlashcardPlay() {
 
     // ════════ SKIM / FLIP MODE GESTURES: Right = NEXT CARD, Left = FLIP BACK ════════
     if (isNonRatingMode) {
-      if (absX < 35) {
+      if (absX < 40 || absY > absX * 0.7) {
         setActiveDragGrade(null);
-      } else if (dx > 0) {
+        return;
+      }
+      if (dx > 0) {
         setActiveDragGrade({ direction: 'next', grade: 0, label: 'NEXT CARD', color: 'emerald' });
       } else {
         setActiveDragGrade({ direction: 'undo', grade: 0, label: 'FLIP BACK', color: 'amber' });
@@ -1717,9 +1731,11 @@ export default function FlashcardPlay() {
 
     // ════════ POST-RATING GESTURES: Right = NEXT CARD, Left = UNDO ════════
     if (hasRated) {
-      if (absX < 35) {
+      if (absX < 40 || absY > absX * 0.7) {
         setActiveDragGrade(null);
-      } else if (dx > 0) {
+        return;
+      }
+      if (dx > 0) {
         setActiveDragGrade({ direction: 'next', grade: 0, label: 'NEXT CARD', color: 'emerald' });
       } else {
         setActiveDragGrade({ direction: 'undo', grade: 0, label: 'UNDO', color: 'amber' });
@@ -1728,6 +1744,12 @@ export default function FlashcardPlay() {
     }
 
     // ════════ UNRATED CARD: 4-Way Compass Swipe ════════
+    // If card has vertical overflow, suppress vertical swipe so user can scroll content
+    if (hasBackOverflow && absY > absX * 0.7) {
+      setActiveDragGrade(null);
+      return;
+    }
+
     // Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
     if (dist < 35) {
       setActiveDragGrade(null);
@@ -1737,7 +1759,7 @@ export default function FlashcardPlay() {
       } else {
         setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
       }
-    } else {
+    } else if (!hasBackOverflow) {
       if (dy > 0) {
         setActiveDragGrade({ direction: 'hard', grade: 2, label: 'HARD', color: 'amber' });
       } else {
@@ -1765,8 +1787,16 @@ export default function FlashcardPlay() {
 
     // ════════ POST-RATING / SKIM COMMITMENT ════════
     if (hasRated || isNonRatingMode) {
+      // If movement was largely vertical (scrolling), cancel swipe commitment
+      if (Math.abs(dy) > Math.abs(dx) * 0.7) {
+        cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
+        setDragOffset({ x: 0, y: 0 });
+        setActiveDragGrade(null);
+        return;
+      }
+
       if (dir === 'next') {
-        const isCommitted = (dx >= 55 && vx >= -60) || (dx >= 25 && vx > 200);
+        const isCommitted = (dx >= 55 && vx >= -60 && Math.abs(dx) > Math.abs(dy) * 1.2) || (dx >= 30 && vx > 200 && Math.abs(dx) > Math.abs(dy) * 1.4);
         if (isCommitted) {
           setIsFlyingOut(true);
           const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
@@ -1804,7 +1834,7 @@ export default function FlashcardPlay() {
           return;
         }
       } else if (dir === 'undo') {
-        const isCommitted = (dx <= -55 && vx <= 60) || (dx <= -25 && vx < -200);
+        const isCommitted = (dx <= -55 && vx <= 60 && Math.abs(dx) > Math.abs(dy) * 1.2) || (dx <= -30 && vx < -200 && Math.abs(dx) > Math.abs(dy) * 1.4);
         if (isCommitted) {
           setActiveDragGrade(null);
           setDragOffset({ x: 0, y: 0 });

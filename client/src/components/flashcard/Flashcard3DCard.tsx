@@ -230,13 +230,16 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     );
   };
 
+  const isHorizontalOnlyDrag = isFlipped && (hasBackOverflow || activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip' || hasRated);
+
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
       <motion.div
         key={currentQuestion?.id ?? currentIndex}
         initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
         className="w-full h-full relative cursor-grab active:cursor-grabbing"
-        drag={canDragRate ? true : false}
+        drag={canDragRate ? (isHorizontalOnlyDrag ? "x" : true) : false}
+        dragDirectionLock={isHorizontalOnlyDrag}
         dragElastic={0.75}
         onDrag={handleCardDrag}
         onDragEnd={handleCardDragEnd}
@@ -245,7 +248,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           rotate: canDragRate && !isFlyingOut ? `${(dragOffset?.x || 0) * 0.11}deg` : undefined,
           touchAction: isSelectMode
             ? 'auto'
-            : (canDragRate ? 'none' : 'pan-y'),
+            : (isHorizontalOnlyDrag ? 'pan-y' : (canDragRate ? 'none' : 'pan-y')),
         }}
       >
         <div
