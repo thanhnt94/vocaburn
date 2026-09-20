@@ -149,16 +149,16 @@ export const MemriseBottomBar: React.FC<MemriseBottomBarProps> = ({
               className="flex-1 h-12 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-indigo-300/50 dark:shadow-none flex items-center justify-center gap-2 uppercase tracking-wider active:scale-[0.98] transition-all cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>LẬT MẶT SAU</span>
+              <span>FLIP CARD</span>
               <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
             </button>
             <button
               type="button"
               onClick={() => onNext()}
               className="px-3.5 h-12 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap active:scale-[0.98]"
-              title="Tôi đã thuộc từ này, chuyển bước tiếp theo"
+              title="Already know this word, skip to next step"
             >
-              <span>ĐÃ BIẾT</span>
+              <span>KNOWN</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -168,7 +168,7 @@ export const MemriseBottomBar: React.FC<MemriseBottomBarProps> = ({
               type="button"
               onClick={() => onFlip()}
               className="w-12 h-12 flex-shrink-0 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl flex items-center justify-center active:scale-95 transition-all cursor-pointer"
-              title="Lật lại mặt trước"
+              title="Flip back to front"
             >
               <RotateCcw className="w-5 h-5" />
             </button>
@@ -177,7 +177,7 @@ export const MemriseBottomBar: React.FC<MemriseBottomBarProps> = ({
               onClick={() => onNext()}
               className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 dark:shadow-none flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
             >
-              <span>TIẾP TỤC (NEXT)</span>
+              <span>CONTINUE</span>
               <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
               <ChevronRight className="w-4 h-4" />
             </button>

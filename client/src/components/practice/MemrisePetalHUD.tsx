@@ -12,11 +12,11 @@ export interface MemrisePetalHUDProps {
 
 const STAGE_CONFIGS: Record<number, { label: string; icon: string; petalCount: number; color: string; bg: string }> = {
   1: { label: 'Intro', icon: '🌱', petalCount: 1, color: 'text-amber-500', bg: 'bg-amber-500' },
-  2: { label: 'Trắc nghiệm 1', icon: '🌿', petalCount: 2, color: 'text-emerald-500', bg: 'bg-emerald-500' },
-  3: { label: 'Trắc nghiệm 2', icon: '🪴', petalCount: 3, color: 'text-teal-500', bg: 'bg-teal-500' },
-  4: { label: 'Luyện nghe', icon: '🌳', petalCount: 4, color: 'text-sky-500', bg: 'bg-sky-500' },
-  5: { label: 'Gõ từ vựng', icon: '🌸', petalCount: 5, color: 'text-purple-500', bg: 'bg-purple-500' },
-  6: { label: 'Nở hoa!', icon: '🌺', petalCount: 5, color: 'text-rose-500', bg: 'bg-rose-500' },
+  2: { label: 'MCQ 1', icon: '🌿', petalCount: 2, color: 'text-emerald-500', bg: 'bg-emerald-500' },
+  3: { label: 'MCQ 2', icon: '🪴', petalCount: 3, color: 'text-teal-500', bg: 'bg-teal-500' },
+  4: { label: 'Listening', icon: '🌳', petalCount: 4, color: 'text-sky-500', bg: 'bg-sky-500' },
+  5: { label: 'Typing', icon: '🌸', petalCount: 5, color: 'text-purple-500', bg: 'bg-purple-500' },
+  6: { label: 'Bloomed!', icon: '🌺', petalCount: 5, color: 'text-rose-500', bg: 'bg-rose-500' },
 }
 
 export const MemrisePetalHUD: React.FC<MemrisePetalHUDProps> = ({
@@ -49,7 +49,7 @@ export const MemrisePetalHUD: React.FC<MemrisePetalHUDProps> = ({
           type="button"
           onClick={onOpenQuitModal}
           className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 rounded-2xl transition-all cursor-pointer text-slate-600 dark:text-slate-300"
-          title="Tạm dừng phiên học"
+          title="Pause session"
         >
           <X className="w-5 h-5" />
         </button>
@@ -58,9 +58,9 @@ export const MemrisePetalHUD: React.FC<MemrisePetalHUDProps> = ({
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-1.5 text-xs font-black text-slate-700 dark:text-slate-200">
             <span className="text-base">{isPlant ? '🌺' : '💧'}</span>
-            <span>{isPlant ? 'Đã nở:' : 'Đã tưới:'}</span>
+            <span>{isPlant ? 'Bloomed:' : 'Watered:'}</span>
             <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{bloomedCount}</span>
-            <span className="text-slate-400 font-medium">/ {totalCards} từ</span>
+            <span className="text-slate-400 font-medium">/ {totalCards} cards</span>
             <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900">
               {pct}%
             </span>

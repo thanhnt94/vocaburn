@@ -131,12 +131,25 @@ export default function MemrisePlay() {
     frontValign, setFrontValign, frontHalign, setFrontHalign, frontFontSize, setFrontFontSize,
     backValign, setBackValign, backHalign, setBackHalign, creatorDefaults,
     cardFlipTrigger, setCardFlipTrigger, cardRatingMode, setCardRatingMode,
+    autoNextDelay, setAutoNextDelay,
     isCustomized, settingOrigin, syncStudySettings,
     saveGeneralSettings, resetToCreatorDefaults, saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
-  // Timeout ref to allow immediate skip
+  // Timeout ref to allow auto advance
   const autoNextTimeout = useRef<any>(null);
+  const isAdvancingRef = useRef<boolean>(false);
+  const lastAnswerCorrectRef = useRef<boolean>(true);
+
+  // Ensure timer cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoNextTimeout.current) {
+        clearTimeout(autoNextTimeout.current);
+        autoNextTimeout.current = null;
+      }
+    };
+  }, []);
 
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null);
   
@@ -198,13 +211,25 @@ export default function MemrisePlay() {
     }
   }, [currentCard?.card_id, stage, currentPracticeData?.question_key, autoPlayAudio]);
 
-  // Keyboard navigation (Space to flip, Space/Enter to advance)
+  // Keyboard navigation (Space to flip, Space/Enter to advance, 1-4 for choices)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         return;
       }
+
+      // Allow 1-4 for MCQ choices when unanswered
+      if (!answered && (stage === 2 || stage === 3) && currentPracticeData?.choices) {
+        const choicesCount = currentPracticeData.choices.length;
+        const keyNum = parseInt(e.key);
+        if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= choicesCount) {
+          e.preventDefault();
+          handleMcqSelect(keyNum - 1);
+          return;
+        }
+      }
+
       if (e.key === ' ' || e.key === 'Enter') {
         if (stage === 6) {
           e.preventDefault();
@@ -224,13 +249,13 @@ export default function MemrisePlay() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [stage, isFlipped, answered, currentCard?.card_id]);
+  }, [stage, isFlipped, answered, currentCard?.card_id, currentPracticeData?.choices]);
 
   const handleCardDrag = (_e: any, info: any) => {
     const x = info.offset.x;
     setDragOffset({ x, y: info.offset.y });
     if (Math.abs(x) > 60) {
-      setActiveDragGrade({ direction: 'next', label: 'Tiếp tục ➔' });
+      setActiveDragGrade({ direction: 'next', label: 'Continue ➔' });
     } else {
       setActiveDragGrade(null);
     }
@@ -521,31 +546,52 @@ export default function MemrisePlay() {
   }, [id, sessionType]);
 
   const advanceQueue = (isCorrect: boolean, answeredCard: MemriseCardPayload) => {
+    if (autoNextTimeout.current) {
+      clearTimeout(autoNextTimeout.current);
+      autoNextTimeout.current = null;
+    }
+
+    if (isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
+    setTimeout(() => {
+      isAdvancingRef.current = false;
+    }, 250);
+
     const newQueue = [...queue];
     newQueue.shift(); // remove from front
 
-    if (isCorrect) {
-      if (answeredCard.stage === 6) {
-        // It was shown as Bloomed, now we remove it
+    if (sessionType === 'water') {
+      if (isCorrect) {
         setBloomedCount(prev => prev + 1);
       } else {
-        answeredCard.stage = (answeredCard.stage || 1) + 1;
-        if (answeredCard.stage <= 6) {
-          if (answeredCard.stage === 6) {
-            // Reached stage 6, show it immediately so user sees the bloom
-            newQueue.splice(0, 0, answeredCard);
-          } else {
-            const insertPos = Math.min(3, newQueue.length);
-            newQueue.splice(insertPos, 0, answeredCard);
-          }
-        } else {
-          setBloomedCount(prev => prev + 1);
-        }
+        // Re-insert card into queue to review again
+        const insertPos = Math.min(1, newQueue.length);
+        newQueue.splice(insertPos, 0, answeredCard);
       }
     } else {
-      answeredCard.stage = 1; // reset to introduction
-      const insertPos = Math.min(1, newQueue.length);
-      newQueue.splice(insertPos, 0, answeredCard);
+      if (isCorrect) {
+        if (answeredCard.stage === 6) {
+          // It was shown as Bloomed, now we remove it
+          setBloomedCount(prev => prev + 1);
+        } else {
+          answeredCard.stage = (answeredCard.stage || 1) + 1;
+          if (answeredCard.stage <= 6) {
+            if (answeredCard.stage === 6) {
+              // Reached stage 6, show it immediately so user sees the bloom
+              newQueue.splice(0, 0, answeredCard);
+            } else {
+              const insertPos = Math.min(3, newQueue.length);
+              newQueue.splice(insertPos, 0, answeredCard);
+            }
+          } else {
+            setBloomedCount(prev => prev + 1);
+          }
+        }
+      } else {
+        answeredCard.stage = 1; // reset to introduction
+        const insertPos = Math.min(1, newQueue.length);
+        newQueue.splice(insertPos, 0, answeredCard);
+      }
     }
     
     setQueue(newQueue);
@@ -565,6 +611,7 @@ export default function MemrisePlay() {
   const handleAnswerSubmit = (isCorrect: boolean) => {
     if (queue.length === 0) return;
     const card = queue[0];
+    lastAnswerCorrectRef.current = isCorrect;
     
     if (isCorrect) {
       if ((userSettings as any)?.sound_effects_enabled !== false) playCorrectSound();
@@ -586,29 +633,37 @@ export default function MemrisePlay() {
       }).catch(e => console.error("Failed to submit answer", e));
     }
     
-    if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
-    if (card.stage === 1 || card.stage === 6) {
+    if (autoNextTimeout.current) {
+      clearTimeout(autoNextTimeout.current);
+      autoNextTimeout.current = null;
+    }
+
+    const s = getStageOrTestType(card);
+    // Stage 1 (Intro) and Stage 6 (Bloomed celebration) are completed explicitly by clicking Next
+    if (s === 1 || s === 6) {
       advanceQueue(isCorrect, card);
-    } else {
+      return;
+    }
+
+    // For MCQ and Typing (stages 2, 3, 4, 5):
+    // 1. If wrong: NEVER auto-advance. User MUST review the feedback and press Next manually.
+    // 2. If correct: Only auto-advance if Quick Learn (quickLearnEnabled) is explicitly enabled in settings.
+    if (isCorrect && quickLearnEnabled) {
+      const delay = (autoNextDelay && autoNextDelay > 0 ? autoNextDelay : 1.2) * 1000;
       autoNextTimeout.current = setTimeout(() => {
         advanceQueue(isCorrect, card);
-      }, 1500);
+      }, delay);
     }
   };
 
   const handleManualNext = () => {
     if (autoNextTimeout.current) {
       clearTimeout(autoNextTimeout.current);
+      autoNextTimeout.current = null;
     }
     if (queue.length > 0) {
       const card = queue[0];
-      const s = getStageOrTestType(card);
-      let isCorrect = true;
-      if (s === 2 || s === 3) {
-        isCorrect = selectedOption !== null && selectedOption === currentPracticeData?.correct_index;
-      } else if (s === 4 || s === 5) {
-        isCorrect = !!typingFeedback?.isCorrect;
-      }
+      const isCorrect = lastAnswerCorrectRef.current;
       advanceQueue(isCorrect, card);
     }
   };
@@ -688,7 +743,7 @@ export default function MemrisePlay() {
             <div className="text-[100px] sm:text-[120px] mb-4 drop-shadow-2xl animate-bounce">🌺</div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-black text-xs uppercase tracking-wider mb-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>ĐÃ NỞ HOA HOÀN TẤT!</span>
+              <span>FLOWER BLOOMED!</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
               {currentCard.front}
@@ -701,7 +756,7 @@ export default function MemrisePlay() {
               onClick={() => handleAnswerSubmit(true)}
               className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-200 dark:shadow-none flex items-center justify-center gap-2 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
             >
-              <span>TIẾP TỤC BÀI HỌC</span>
+              <span>CONTINUE LESSON</span>
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
