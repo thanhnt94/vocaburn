@@ -10,7 +10,7 @@ import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBott
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { FlashcardQuickControlsSheet } from '@/components/flashcard/FlashcardFlyToolbar';
 import { playCorrectSound, playIncorrectSound, cancelAllAudio } from '@/lib/audio';
-import { usePracticeAudio } from '@/hooks/usePracticeAudio';
+import { usePracticeAudio, resolveAudioConfig, getCardFieldValue } from '@/hooks/usePracticeAudio';
 import { PlaySettingsModal } from '@/components/PlaySettingsModal';
 import { usePlaySettings } from '@/hooks/usePlaySettings';
 import { selectDistractors } from '@/lib/distractor';
@@ -159,6 +159,7 @@ export default function MemrisePlay() {
     }
     const audioUrl = currentCard.audio_data?.audio_url || others.front_audio_url || others.audio || '';
     return {
+      ...currentCard,
       id: currentCard.card_id,
       content: currentCard.front,
       explanation: currentCard.back,
@@ -182,13 +183,17 @@ export default function MemrisePlay() {
     cancelAllAudio();
   }, [currentCard?.card_id, stage]);
 
-  // Auto-play audio when entering Stage 4 (Listening)
+  // Auto-play audio when entering Stage 4 (Listening) or Stage 1 (Intro with autoplay)
   useEffect(() => {
     if (stage === 4 && currentPracticeData) {
       const qKey = currentPracticeData.question_key || 'front';
       playCardAudio(qKey);
+    } else if (stage === 1 && currentCard) {
+      if (autoPlayAudio === 'always' || autoPlayAudio === 'front') {
+        playCardAudio('front');
+      }
     }
-  }, [currentCard?.card_id, stage, currentPracticeData?.question_key]);
+  }, [currentCard?.card_id, stage, currentPracticeData?.question_key, autoPlayAudio]);
 
   useEffect(() => {
     if (!queue[0]) {
@@ -327,8 +332,11 @@ export default function MemrisePlay() {
         if (fallback) acceptableAnswers.push(fallback);
       }
       const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
+      const effectivePs = session?.practice_settings || modeSettings || {};
+      const cfg = resolveAudioConfig(audioKey, effectivePs);
       const audioUrl = card.audio_data?.audio_url || 
-                       card.others?.[`${audioKey}_audio_url`] ||
+                       getCardFieldValue(card, cfg.urlCol) ||
+                       getCardFieldValue(card, `${audioKey}_audio_url`) ||
                        card.others?.front_audio_url || 
                        card.others?.back_audio_url || 
                        card.others?.audio || '';
@@ -383,19 +391,33 @@ export default function MemrisePlay() {
           axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: null }))
         ]);
 
-        const creatorSettings = settingsRes?.data?.creator_settings;
-        const userSettings = settingsRes?.data?.user_settings;
-        const sessionPracticeSettings = res?.data?.practice_settings;
-        const effectiveSettings = creatorSettings || userSettings || sessionPracticeSettings;
+        const isObjNonEmpty = (obj: any) => obj && typeof obj === 'object' && Object.keys(obj).length > 0;
+        const creatorSettings = isObjNonEmpty(settingsRes?.data?.creator_settings) ? settingsRes.data.creator_settings : null;
+        const userSettings = isObjNonEmpty(settingsRes?.data?.user_settings) ? settingsRes.data.user_settings : null;
+        const sessionPracticeSettings = isObjNonEmpty(res?.data?.practice_settings) ? res.data.practice_settings : null;
+        const effectiveSettings = {
+          ...(sessionPracticeSettings || {}),
+          ...(creatorSettings || userSettings || {})
+        };
 
-        if (effectiveSettings) {
+        if (isObjNonEmpty(effectiveSettings)) {
           setModeSettings(prev => ({ ...prev, ...effectiveSettings }));
+        }
+
+        if (settingsRes?.data?.effective_study_settings) {
+          syncStudySettings(
+            settingsRes.data.effective_study_settings,
+            settingsRes.data.creator_study_defaults,
+            settingsRes.data.user_study_settings,
+            settingsRes.data.is_study_customized,
+            settingsRes.data.setting_origin
+          );
         }
 
         if (res.data.cards && res.data.cards.length > 0) {
           setSession({
             ...res.data,
-            practice_settings: effectiveSettings || res.data.practice_settings
+            practice_settings: isObjNonEmpty(effectiveSettings) ? effectiveSettings : res.data.practice_settings
           });
           setQueue([...res.data.cards]);
           setTotalCards(res.data.cards.length);
