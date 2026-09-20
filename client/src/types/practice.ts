@@ -1,6 +1,6 @@
 import type { Question, Option } from './flashcard'
 
-export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'roadmap_test' | 'roadmap_mcq' | 'roadmap_typing' | string
+export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'listening_mcq' | 'listening_typing' | 'roadmap_test' | 'roadmap_mcq' | 'roadmap_typing' | string
 
 export interface PracticePair {
   q: string

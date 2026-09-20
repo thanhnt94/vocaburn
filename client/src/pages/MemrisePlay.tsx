@@ -381,15 +381,26 @@ export default function MemrisePlay() {
       const { qKey: audioKey, aKeys: ansKeys } = extractPair(pair, 'front', 'front');
 
       const acceptableAnswers: string[] = [];
+      const addAnswer = (v: string) => {
+        if (!v) return;
+        if (v.includes('|')) {
+          v.split('|').forEach(p => {
+            const c = p.trim();
+            if (c && !acceptableAnswers.includes(c)) acceptableAnswers.push(c);
+          });
+        } else {
+          const c = v.trim();
+          if (c && !acceptableAnswers.includes(c)) acceptableAnswers.push(c);
+        }
+      };
+
       for (const k of ansKeys) {
         const val = getVal(card, k);
-        if (val && !acceptableAnswers.includes(val)) {
-          acceptableAnswers.push(val);
-        }
+        if (val) addAnswer(val);
       }
       if (acceptableAnswers.length === 0) {
         const fallback = getVal(card, 'front');
-        if (fallback) acceptableAnswers.push(fallback);
+        if (fallback) addAnswer(fallback);
       }
       const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
       const effectivePs = session?.practice_settings || modeSettings || {};
@@ -418,15 +429,26 @@ export default function MemrisePlay() {
       const { qKey, aKeys: ansKeys } = extractPair(pair, 'back', 'front');
 
       const acceptableAnswers: string[] = [];
+      const addAnswer = (v: string) => {
+        if (!v) return;
+        if (v.includes('|')) {
+          v.split('|').forEach(p => {
+            const c = p.trim();
+            if (c && !acceptableAnswers.includes(c)) acceptableAnswers.push(c);
+          });
+        } else {
+          const c = v.trim();
+          if (c && !acceptableAnswers.includes(c)) acceptableAnswers.push(c);
+        }
+      };
+
       for (const k of ansKeys) {
         const val = getVal(card, k);
-        if (val && !acceptableAnswers.includes(val)) {
-          acceptableAnswers.push(val);
-        }
+        if (val) addAnswer(val);
       }
       if (acceptableAnswers.length === 0) {
         const fallback = getVal(card, 'front');
-        if (fallback) acceptableAnswers.push(fallback);
+        if (fallback) addAnswer(fallback);
       }
       const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
 
@@ -608,7 +630,14 @@ export default function MemrisePlay() {
     const correctAnswers = data?.acceptable_answers && data.acceptable_answers.length > 0
       ? data.acceptable_answers
       : [data?.correct_answer || ''];
-    const isCorrect = correctAnswers.some((a: string) => a.replace(/<[^>]+>/g, '').trim().toLowerCase() === cleanInput);
+    const isCorrect = correctAnswers.some((a: string) => {
+      if (!a) return false;
+      const cleanA = a.replace(/<[^>]+>/g, '').trim().toLowerCase();
+      if (cleanA.includes('|')) {
+        return cleanA.split('|').some(p => p.trim() === cleanInput);
+      }
+      return cleanA === cleanInput;
+    });
     
     setTypingFeedback({ checked: true, isCorrect });
     handleAnswerSubmit(isCorrect);

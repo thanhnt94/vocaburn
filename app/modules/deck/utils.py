@@ -16,17 +16,28 @@ def fix_static_urls(val: Any) -> Any:
     return val
 
 def migrate_practice_settings(settings: Optional[dict]) -> dict:
-    """Normalizes legacy practice settings into structured mcq, typing, listening config dict."""
+    """Normalizes legacy practice settings into structured mcq, typing, listening_mcq, listening_typing config dict."""
     if not settings:
         return {}
-    if any(k in settings for k in ("mcq", "typing", "listening")):
-        return settings
+    new_settings = dict(settings)
     active_pairs = settings.get("active_pairs", [])
     num_choices = settings.get("num_choices", 4)
-    new_settings = dict(settings)
-    new_settings["mcq"] = {"active_pairs": active_pairs, "num_choices": num_choices}
-    new_settings["typing"] = {"active_pairs": active_pairs}
-    new_settings["listening"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    if "mcq" not in new_settings:
+        new_settings["mcq"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    if "typing" not in new_settings:
+        new_settings["typing"] = {"active_pairs": active_pairs}
+    
+    # Listening migration: support listening_mcq and listening_typing
+    old_listening = settings.get("listening", {})
+    l_pairs = old_listening.get("active_pairs") if isinstance(old_listening, dict) else active_pairs
+    l_num_choices = old_listening.get("num_choices", 4) if isinstance(old_listening, dict) else num_choices
+    
+    if "listening_mcq" not in new_settings:
+        new_settings["listening_mcq"] = {"active_pairs": l_pairs or active_pairs, "num_choices": l_num_choices}
+    if "listening_typing" not in new_settings:
+        new_settings["listening_typing"] = {"active_pairs": l_pairs or active_pairs}
+    if "listening" not in new_settings:
+        new_settings["listening"] = {"active_pairs": l_pairs or active_pairs, "num_choices": l_num_choices}
     return new_settings
 
 def extract_card_val(card: Any, key: Optional[str]) -> str:
@@ -54,10 +65,14 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
     return (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
 
 def extract_card_answers(card: Any, key: Any) -> list[str]:
-    """Extracts a list of non-empty text answers for a given column key or list of keys."""
+    """Extracts a list of non-empty text answers for a given column key or list of keys, supporting '|' delimiter."""
     if not key:
         default_val = (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
-        return [default_val] if default_val else []
+        if not default_val:
+            return []
+        if "|" in default_val:
+            return [p.strip() for p in default_val.split("|") if p.strip()]
+        return [default_val]
 
     keys = []
     if isinstance(key, (list, tuple, set)):
@@ -73,25 +88,37 @@ def extract_card_answers(card: Any, key: Any) -> list[str]:
     results = []
     for k in keys:
         val = extract_card_val(card, k)
-        if val and val not in results:
-            results.append(val)
+        if val:
+            if "|" in val:
+                for sub in val.split("|"):
+                    sub_clean = sub.strip()
+                    if sub_clean and sub_clean not in results:
+                        results.append(sub_clean)
+            elif val not in results:
+                results.append(val)
 
     if not results:
         fallback = (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
         if fallback:
-            results.append(fallback)
+            if "|" in fallback:
+                for sub in fallback.split("|"):
+                    sub_clean = sub.strip()
+                    if sub_clean and sub_clean not in results:
+                        results.append(sub_clean)
+            else:
+                results.append(fallback)
 
     return results
 
 
 def get_enabled_practice_modes(practice_settings: Optional[dict]) -> list[str]:
-    """Returns a list of enabled practice mode keys (e.g. ['mcq', 'typing'])."""
+    """Returns a list of enabled practice mode keys (e.g. ['mcq', 'typing', 'listening_mcq', 'listening_typing'])."""
     if not practice_settings or not isinstance(practice_settings, dict):
         return []
     try:
         migrated = migrate_practice_settings(practice_settings)
         enabled = []
-        for mode_key in ("mcq", "typing", "listening"):
+        for mode_key in ("mcq", "typing", "listening", "listening_mcq", "listening_typing"):
             m = migrated.get(mode_key, {})
             if isinstance(m, dict):
                 if m.get("enabled") is False:

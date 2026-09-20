@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-export type PracticeModeKey = 'mcq' | 'typing' | 'listening' | 'flip'
+export type PracticeModeKey = 'mcq' | 'typing' | 'listening' | 'listening_mcq' | 'listening_typing' | 'flip'
 
 export interface QuestionAnswerPair {
   q: string
@@ -58,8 +58,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
   const [typingPairs, setTypingPairs] = useState<QuestionAnswerPair[]>([])
 
-  const [listeningPairs, setListeningPairs] = useState<QuestionAnswerPair[]>([])
-  const [listeningNumChoices, setListeningNumChoices] = useState<number>(4)
+  const [listeningMcqPairs, setListeningMcqPairs] = useState<QuestionAnswerPair[]>([])
+  const [listeningMcqNumChoices, setListeningMcqNumChoices] = useState<number>(4)
+
+  const [listeningTypingPairs, setListeningTypingPairs] = useState<QuestionAnswerPair[]>([])
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -97,7 +99,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
   mcqPairs.forEach(p => { addCols(p.q); addCols(p.a) })
   typingPairs.forEach(p => { addCols(p.q); addCols(p.a) })
-  listeningPairs.forEach(p => { addCols(p.q); addCols(p.a) })
+  listeningMcqPairs.forEach(p => { addCols(p.q); addCols(p.a) })
+  listeningTypingPairs.forEach(p => { addCols(p.q); addCols(p.a) })
 
   const availableColumns: string[] = Array.from(new Set([
     ...rawAvailableColumns,
@@ -130,19 +133,29 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
         setTypingPairs([{ q: 'back', a: 'front', prompt_col: 'back', answer_col: 'front', name: 'Nghĩa (Đề) ➜ Từ vựng (Gõ)' }])
       }
 
-      // Listening
-      const listeningConfig = effectiveSettings.listening || {}
-      setListeningNumChoices(listeningConfig.num_choices || 4)
-      const rawListeningPairs = listeningConfig.active_pairs || effectiveSettings.active_pairs || []
-      if (Array.isArray(rawListeningPairs) && rawListeningPairs.length > 0) {
-        setListeningPairs(rawListeningPairs.map(normalizePair))
+      // Listening MCQ
+      const listeningMcqConfig = effectiveSettings.listening_mcq || effectiveSettings.listening || {}
+      setListeningMcqNumChoices(listeningMcqConfig.num_choices || 4)
+      const rawListeningMcqPairs = listeningMcqConfig.active_pairs || effectiveSettings.listening?.active_pairs || effectiveSettings.active_pairs || []
+      if (Array.isArray(rawListeningMcqPairs) && rawListeningMcqPairs.length > 0) {
+        setListeningMcqPairs(rawListeningMcqPairs.map(normalizePair))
       } else {
-        setListeningPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Nghe phát âm ➜ Chọn nghĩa' }])
+        setListeningMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Nghe phát âm ➜ Chọn nghĩa' }])
+      }
+
+      // Listening Typing
+      const listeningTypingConfig = effectiveSettings.listening_typing || effectiveSettings.listening || {}
+      const rawListeningTypingPairs = listeningTypingConfig.active_pairs || effectiveSettings.listening?.active_pairs || effectiveSettings.active_pairs || []
+      if (Array.isArray(rawListeningTypingPairs) && rawListeningTypingPairs.length > 0) {
+        setListeningTypingPairs(rawListeningTypingPairs.map(normalizePair))
+      } else {
+        setListeningTypingPairs([{ q: 'front', a: 'front', prompt_col: 'front', answer_col: 'front', name: 'Nghe phát âm ➜ Gõ từ vựng' }])
       }
     } else {
       setMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
       setTypingPairs([{ q: 'back', a: 'front', prompt_col: 'back', answer_col: 'front' }])
-      setListeningPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
+      setListeningMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
+      setListeningTypingPairs([{ q: 'front', a: 'front', prompt_col: 'front', answer_col: 'front' }])
     }
   }, [practiceSettingsData, initialSettings])
 
@@ -156,14 +169,16 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   const getCurrentPairs = (): QuestionAnswerPair[] => {
     if (activeModeTab === 'mcq') return mcqPairs
     if (activeModeTab === 'typing') return typingPairs
-    if (activeModeTab === 'listening') return listeningPairs
+    if (activeModeTab === 'listening_mcq' || activeModeTab === 'listening') return listeningMcqPairs
+    if (activeModeTab === 'listening_typing') return listeningTypingPairs
     return []
   }
 
   const setCurrentPairs = (updater: (prev: QuestionAnswerPair[]) => QuestionAnswerPair[]) => {
     if (activeModeTab === 'mcq') setMcqPairs(updater)
     else if (activeModeTab === 'typing') setTypingPairs(updater)
-    else if (activeModeTab === 'listening') setListeningPairs(updater)
+    else if (activeModeTab === 'listening_mcq' || activeModeTab === 'listening') setListeningMcqPairs(updater)
+    else if (activeModeTab === 'listening_typing') setListeningTypingPairs(updater)
   }
 
   const handleAddPair = () => {
@@ -182,24 +197,29 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   }
 
   const handleUpdatePair = (index: number, field: 'q' | 'a', value: string | string[]) => {
-    setCurrentPairs((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], [field]: value }
-      return next
-    })
+    setCurrentPairs((prev) =>
+      prev.map((p, i) => {
+        if (i !== index) return p
+        const updated = { ...p, [field]: value }
+        if (field === 'q') updated.prompt_col = String(value)
+        if (field === 'a') updated.answer_col = value
+        updated.name = `${updated.q} ➜ ${Array.isArray(updated.a) ? updated.a.join(', ') : updated.a}`
+        return updated
+      })
+    )
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setIsSaving(true)
     try {
       const baseSettings = practiceSettingsData?.creator_settings || initialSettings || {}
 
       const formattedMcqPairs = mcqPairs.map((p) => ({
         q: p.q,
-        a: Array.isArray(p.a) ? p.a[0] : p.a,
+        a: Array.isArray(p.a) ? p.a : [p.a],
         prompt_col: p.q,
-        answer_col: Array.isArray(p.a) ? p.a[0] : p.a,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
       }))
 
       const formattedTypingPairs = typingPairs.map((p) => ({
@@ -209,7 +229,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
       }))
 
-      const formattedListeningPairs = listeningPairs.map((p) => ({
+      const formattedListeningMcqPairs = listeningMcqPairs.map((p) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
+      const formattedListeningTypingPairs = listeningTypingPairs.map((p) => ({
         q: p.q,
         a: Array.isArray(p.a) ? p.a : [p.a],
         prompt_col: p.q,
@@ -223,9 +250,12 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       const typingSettings = {
         active_pairs: formattedTypingPairs,
       }
-      const listeningSettings = {
-        num_choices: listeningNumChoices,
-        active_pairs: formattedListeningPairs,
+      const listeningMcqSettings = {
+        num_choices: listeningMcqNumChoices,
+        active_pairs: formattedListeningMcqPairs,
+      }
+      const listeningTypingSettings = {
+        active_pairs: formattedListeningTypingPairs,
       }
 
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
@@ -234,7 +264,9 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           disabled_modes: disabledModes,
           mcq: mcqSettings,
           typing: typingSettings,
-          listening: listeningSettings,
+          listening_mcq: listeningMcqSettings,
+          listening_typing: listeningTypingSettings,
+          listening: listeningMcqSettings, // Backward compatibility
         },
         is_creator: true,
       })
@@ -272,18 +304,29 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       activeBorder: 'border-indigo-500',
       activeBg: 'bg-indigo-50',
       activeText: 'text-indigo-700',
-      desc: 'Show prompt question and require typing exact answer characters'
+      desc: 'Show prompt question and require typing exact answer characters (supports | delimiter)'
     },
     {
-      key: 'listening' as const,
-      label: 'Listening Drill',
-      sublabel: 'Listening',
+      key: 'listening_mcq' as const,
+      label: 'Listening MCQ',
+      sublabel: 'Nghe chọn',
       icon: Headphones,
       color: 'text-sky-600',
       activeBorder: 'border-sky-500',
       activeBg: 'bg-sky-50',
       activeText: 'text-sky-700',
-      desc: 'Play TTS audio pronunciation and select matching translation'
+      desc: 'Play TTS audio pronunciation and select matching translation from choices'
+    },
+    {
+      key: 'listening_typing' as const,
+      label: 'Listening Typing',
+      sublabel: 'Nghe gõ',
+      icon: Keyboard,
+      color: 'text-cyan-600',
+      activeBorder: 'border-cyan-500',
+      activeBg: 'bg-cyan-50',
+      activeText: 'text-cyan-700',
+      desc: 'Play TTS audio pronunciation and type the exact vocabulary (supports | delimiter)'
     },
     {
       key: 'flip' as const,
@@ -298,7 +341,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     },
   ]
 
-  const activeModeConfig = modesConfig.find(m => m.key === activeModeTab)!
+  const activeModeConfig = modesConfig.find(m => m.key === activeModeTab) || modesConfig[0]
   const isCurrentModeEnabled = !disabledModes.includes(activeModeTab)
   const currentPairs = getCurrentPairs()
 
@@ -324,8 +367,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           </div>
         )}
 
-        {/* 4 Mode Pills Switcher */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* 5 Mode Pills Switcher */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {modesConfig.map((m) => {
             const Icon = m.icon
             const isSelected = activeModeTab === m.key
@@ -444,10 +487,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           </div>
         )}
 
-        {activeModeTab === 'listening' && (
+        {(activeModeTab === 'listening_mcq' || activeModeTab === 'listening') && (
           <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <span className="text-xs font-black text-slate-800 block">Listening Drill Options Count:</span>
+              <span className="text-xs font-black text-slate-800 block">Listening MCQ Options Count:</span>
               <span className="text-[10px] text-slate-400 font-medium">Number of answer choices displayed after audio plays</span>
             </div>
 
@@ -456,10 +499,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                 <button
                   key={num}
                   type="button"
-                  onClick={() => setListeningNumChoices(num)}
+                  onClick={() => setListeningMcqNumChoices(num)}
                   className={cn(
                     "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
-                    listeningNumChoices === num
+                    listeningMcqNumChoices === num
                       ? "bg-sky-600 text-white border-sky-600 shadow-sky-200"
                       : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   )}
@@ -480,10 +523,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                   Active Column Pairs for {activeModeConfig.sublabel}:
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {activeModeTab === 'typing'
-                    ? 'Designate prompt question column and target vocabulary column to type'
-                    : activeModeTab === 'listening'
-                    ? 'Designate audio script/voice column and target correct answer column'
+                  {activeModeTab === 'typing' || activeModeTab === 'listening_typing'
+                    ? 'Designate prompt question/audio column and target vocabulary column to type (supports | for multiple accepted answers)'
+                    : activeModeTab === 'listening_mcq' || activeModeTab === 'listening'
+                    ? 'Designate audio script/voice column and target correct answer choice column'
                     : 'Designate question display column and correct answer column'}
                 </span>
               </div>

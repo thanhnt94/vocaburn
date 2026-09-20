@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Sparkles, Bookmark, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
@@ -31,6 +31,25 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   onCheckTyping
 }) => {
   const { question, correct_answer } = practiceData
+
+  const acceptableAnswers = useMemo(() => {
+    const raw = practiceData.acceptable_answers && practiceData.acceptable_answers.length > 0
+      ? practiceData.acceptable_answers
+      : [correct_answer || '']
+    const list: string[] = []
+    raw.forEach(ans => {
+      if (!ans) return
+      if (ans.includes('|')) {
+        ans.split('|').forEach(p => {
+          const c = p.trim()
+          if (c && !list.includes(c)) list.push(c)
+        })
+      } else if (ans.trim() && !list.includes(ans.trim())) {
+        list.push(ans.trim())
+      }
+    })
+    return list
+  }, [practiceData.acceptable_answers, correct_answer])
 
   return (
     <div className="flex-1 bg-gradient-to-b from-slate-50 via-amber-50/15 to-slate-50 dark:from-slate-950 dark:via-slate-900/60 dark:to-slate-950 md:rounded-[2.5rem] rounded-[1.5rem] border border-slate-100/80 dark:border-slate-800 md:p-6 p-3 flex flex-col justify-between gap-3 md:gap-5 shadow-2xl shadow-amber-100/20 dark:shadow-none min-h-0 overflow-y-auto custom-scrollbar">
@@ -92,13 +111,13 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
           {!typingFeedback.isCorrect && (
             <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200 text-xs shadow-sm">
               <p className="font-black uppercase tracking-wider text-[9px] opacity-60 mb-1">
-                {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1
+                {acceptableAnswers.length > 1
                   ? "Accepted Correct Answers"
                   : "Correct Answer"}
               </p>
-              {practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 ? (
+              {acceptableAnswers.length > 1 ? (
                 <div className="flex flex-wrap gap-2 mt-1.5">
-                  {practiceData.acceptable_answers.map((ans, idx) => (
+                  {acceptableAnswers.map((ans, idx) => (
                     <span
                       key={idx}
                       className="px-3 py-1 bg-white/90 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-xl font-bold text-sm text-emerald-900 dark:text-emerald-300 shadow-2xs inline-flex items-center gap-1.5"
@@ -114,9 +133,9 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
             </div>
           )}
 
-          {typingFeedback.isCorrect && practiceData.acceptable_answers && practiceData.acceptable_answers.length > 1 && (() => {
+          {typingFeedback.isCorrect && acceptableAnswers.length > 1 && (() => {
             const cleanInput = typingInput.trim().toLowerCase()
-            const otherAnswers = practiceData.acceptable_answers.filter(
+            const otherAnswers = acceptableAnswers.filter(
               a => a.replace(/<[^<]+?>/g, '').trim().toLowerCase() !== cleanInput
             )
             if (otherAnswers.length === 0) return null

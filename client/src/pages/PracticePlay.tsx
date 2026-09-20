@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star, Bookmark } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star, Bookmark, Headphones } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -276,6 +276,8 @@ const getBaseMode = (mode: string | undefined): string => {
   if (mode.startsWith('roadmap_')) {
     return mode.replace('roadmap_', '');
   }
+  if (mode === 'listening-mcq') return 'listening_mcq';
+  if (mode === 'listening-typing') return 'listening_typing';
   return mode;
 };
 
@@ -651,7 +653,9 @@ export default function PracticePlay() {
   const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
-    listening: { active_pairs: [{ q: 'front', a: ['front'] }] },
+    listening_mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    listening_typing: { active_pairs: [{ q: 'front', a: ['front'] }] },
+    listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   })
 
@@ -868,7 +872,7 @@ export default function PracticePlay() {
     const item_front = getVal(qObj, 'front');
     const item_back = getVal(qObj, 'back');
 
-    if (subMode === 'mcq') {
+    if (subMode === 'mcq' || subMode === 'listening_mcq') {
       // Build candidate pool
       const all_items_data = session.questions.map((q: any) => ({
         id: q.id,
@@ -948,7 +952,7 @@ export default function PracticePlay() {
         question_key,
         answer_key: primary_answer_key
       });
-    } else if (subMode === 'typing' || subMode === 'listening') {
+    } else if (subMode === 'typing' || subMode === 'listening' || subMode === 'listening_typing') {
       const rawAnswerKey = activePair.a;
       const answer_keys: string[] = Array.isArray(rawAnswerKey)
         ? rawAnswerKey
@@ -957,14 +961,25 @@ export default function PracticePlay() {
             : [typeof rawAnswerKey === 'string' ? rawAnswerKey : 'front']);
 
       const acceptable_answers: string[] = [];
+      const addAnswer = (v: string) => {
+        if (!v) return;
+        if (v.includes('|')) {
+          v.split('|').forEach(part => {
+            const clean = part.trim();
+            if (clean && !acceptable_answers.includes(clean)) acceptable_answers.push(clean);
+          });
+        } else {
+          const clean = v.trim();
+          if (clean && !acceptable_answers.includes(clean)) acceptable_answers.push(clean);
+        }
+      };
+
       for (const aKey of answer_keys) {
         const val = getVal(qObj, aKey);
-        if (val && !acceptable_answers.includes(val)) {
-          acceptable_answers.push(val);
-        }
+        if (val) addAnswer(val);
       }
-      if (correctAns && !acceptable_answers.includes(correctAns)) {
-        acceptable_answers.unshift(correctAns);
+      if (correctAns) {
+        addAnswer(correctAns);
       }
       const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
 
@@ -2505,9 +2520,22 @@ export default function PracticePlay() {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
 
     const cleanInput = typingInput.trim().toLowerCase();
-    const acceptableAnswers: string[] = (currentPracticeData.acceptable_answers && currentPracticeData.acceptable_answers.length > 0)
+    const rawAnswers: string[] = (currentPracticeData.acceptable_answers && currentPracticeData.acceptable_answers.length > 0)
       ? currentPracticeData.acceptable_answers
       : [currentPracticeData.correct_answer || ''];
+
+    const acceptableAnswers: string[] = [];
+    rawAnswers.forEach(ans => {
+      if (!ans) return;
+      if (ans.includes('|')) {
+        ans.split('|').forEach(p => {
+          const c = p.trim();
+          if (c && !acceptableAnswers.includes(c)) acceptableAnswers.push(c);
+        });
+      } else if (ans.trim() && !acceptableAnswers.includes(ans.trim())) {
+        acceptableAnswers.push(ans.trim());
+      }
+    });
 
     const isCorrect = acceptableAnswers.some((ans: string) => {
       if (!ans) return false;
@@ -3554,19 +3582,25 @@ export default function PracticePlay() {
       );
     }
 
-    if (baseMode === 'listening') {
+    if (baseMode === 'listening' || baseMode === 'listening_mcq' || baseMode === 'listening_typing') {
+      const isMcqListening = baseMode === 'listening_mcq' || (baseMode === 'listening' && Array.isArray(practiceData.choices) && practiceData.choices.length > 0);
       return (
         <PracticeListeningCard
           currentIndex={currentIndex}
           currentQuestion={currentQuestion}
           practiceData={practiceData}
           answered={answered}
+          listeningType={isMcqListening ? 'mcq' : 'typing'}
           typingInput={typingInput}
           setTypingInput={setTypingInput}
           typingFeedback={typingFeedback}
+          onCheckTyping={handleTypingAnswer}
+          selectedOption={selectedOption}
+          onSelectOption={handleMCQAnswer}
+          onPreviewInsight={setPreviewInsightCard}
+          sessionQuestions={session?.questions || []}
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
-          onCheckTyping={handleTypingAnswer}
           onPlayAudio={playCardAudio}
         />
       );
@@ -4152,19 +4186,39 @@ export default function PracticePlay() {
                       setPracticeAnswers({});
                       setSelectedOption(null);
                       setShowFeedback(false);
-                      navigate(`/practice/${id}/listening`, { replace: true });
-                      fetchSession('practice', 'listening');
+                      navigate(`/practice/${id}/listening_mcq`, { replace: true });
+                      fetchSession('practice', 'listening_mcq');
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      baseMode === 'listening'
+                      baseMode === 'listening_mcq' || (baseMode === 'listening' && Array.isArray(currentPracticeData?.choices) && currentPracticeData.choices.length > 0)
                         ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
                         : "text-slate-500 hover:text-slate-700"
                     )}
-                    title="Listening"
+                    title="Listening MCQ (Nghe chọn đáp án)"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Listening</span>
+                    <span className="hidden md:inline">Nghe chọn</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPracticeAnswers({});
+                      setSelectedOption(null);
+                      setShowFeedback(false);
+                      navigate(`/practice/${id}/listening_typing`, { replace: true });
+                      fetchSession('practice', 'listening_typing');
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
+                      baseMode === 'listening_typing' || (baseMode === 'listening' && (!currentPracticeData?.choices || currentPracticeData.choices.length === 0))
+                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                    title="Listening Typing (Nghe gõ từ)"
+                  >
+                    <Headphones className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Nghe gõ</span>
                   </button>
                 </div>
               </div>
@@ -5702,14 +5756,15 @@ export default function PracticePlay() {
                 {/* 2. Practice Sub-mode */}
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hình thức luyện tập</label>
-                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
                     {[
                       { id: 'mcq', label: 'Trắc nghiệm', icon: HelpCircle },
                       { id: 'typing', label: 'Tự gõ', icon: Keyboard },
-                      { id: 'listening', label: 'Luyện nghe', icon: Volume2 }
+                      { id: 'listening_mcq', label: 'Nghe chọn', icon: Volume2 },
+                      { id: 'listening_typing', label: 'Nghe gõ', icon: Headphones }
                     ].map(m => {
                       const IconComp = m.icon;
-                      const active = practiceSubMode === m.id;
+                      const active = practiceSubMode === m.id || (m.id === 'listening_mcq' && practiceSubMode === 'listening');
                       return (
                         <button
                           key={m.id}
@@ -5718,7 +5773,7 @@ export default function PracticePlay() {
                             setSelectedOption(null);
                             setShowFeedback(false);
                             navigate(`/practice/${id}/${m.id}`, { replace: true });
-                            fetchSession('practice', m.id as 'mcq' | 'typing' | 'listening');
+                            fetchSession('practice', m.id as any);
                           }}
                           className={cn(
                             "flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-[10px] font-bold transition-all",

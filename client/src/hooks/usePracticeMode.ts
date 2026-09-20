@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { selectDistractors } from '@/lib/distractor';
 import { useAppStore } from '@/store/useAppStore';
 
-export type PracticeSubMode = 'mcq' | 'typing' | 'listening';
+export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'listening_mcq' | 'listening_typing';
 export type PracticeRange = 'all' | 'learned';
 
 export function usePracticeMode(
@@ -31,9 +31,11 @@ export function usePracticeMode(
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null);
 
   // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<PracticeSubMode, { active_pairs: { q: string; a: string | string[] }[]; num_choices?: number }>>({
+  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string; a: string | string[] }[]; num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
+    listening_mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
+    listening_typing: { active_pairs: [{ q: 'front', a: ['front'] }] },
     listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   });
 
@@ -94,7 +96,7 @@ export function usePracticeMode(
     const item_front = getVal(qObj, 'front');
     const item_back = getVal(qObj, 'back');
 
-    if (subMode === 'mcq') {
+    if (subMode === 'mcq' || subMode === 'listening_mcq') {
       // Build candidate pool
       const all_items_data = session.questions.map((q: any) => ({
         id: q.id,
@@ -120,14 +122,17 @@ export function usePracticeMode(
         if (distractor_pool.length >= 20) break;
         if (other.id !== qObj.id) {
           const d_val = getVal(other, primary_answer_key);
+          const d_q_val = getVal(other, question_key);
           const d_front = getVal(other, 'front');
           const d_back = getVal(other, 'back');
           if (d_val && d_val.toLowerCase() !== 'nan') {
             distractor_pool.push({
               text: d_val,
+              q_text: d_q_val,
               front: d_front,
               back: d_back,
               id: other.id,
+              card: other,
               type: (other.others && typeof other.others === 'object' ? (other.others.type || other.others.pos || '') : '')
             });
           }
@@ -140,14 +145,15 @@ export function usePracticeMode(
         front: item_front,
         back: item_back,
         id: qObj.id,
+        card: qObj,
         type: (qObj.others && typeof qObj.others === 'object' ? (qObj.others.type || qObj.others.pos || '') : '')
       };
 
       const needed = num_choices - 1;
-      const distractors = selectDistractors(correct_item_data, distractor_pool, needed);
+      const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed);
 
       // Assemble choices
-      const choices_data = ([correct_item_data] as any[]).concat(distractors);
+      const choices_data = ([correct_item_data] as any[]).concat(selectedDistractors);
       // Shuffle choices_data using Fisher-Yates algorithm
       for (let i = choices_data.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -164,12 +170,13 @@ export function usePracticeMode(
         question: questionText,
         choices,
         choice_item_ids,
+        choices_data,
         correct_index: correct_index !== -1 ? correct_index : 0,
         correct_answer: correctAns,
         question_key,
         answer_key: primary_answer_key
       });
-    } else if (subMode === 'typing' || subMode === 'listening') {
+    } else if (subMode === 'typing' || subMode === 'listening' || subMode === 'listening_typing') {
       const rawAnswerKey = activePair.a;
       const answer_keys: string[] = Array.isArray(rawAnswerKey)
         ? rawAnswerKey
@@ -178,14 +185,25 @@ export function usePracticeMode(
             : [typeof rawAnswerKey === 'string' ? rawAnswerKey : 'front']);
 
       const acceptable_answers: string[] = [];
+      const addAnswer = (v: string) => {
+        if (!v) return;
+        if (v.includes('|')) {
+          v.split('|').forEach(part => {
+            const clean = part.trim();
+            if (clean && !acceptable_answers.includes(clean)) acceptable_answers.push(clean);
+          });
+        } else {
+          const clean = v.trim();
+          if (clean && !acceptable_answers.includes(clean)) acceptable_answers.push(clean);
+        }
+      };
+
       for (const aKey of answer_keys) {
         const val = getVal(qObj, aKey);
-        if (val && !acceptable_answers.includes(val)) {
-          acceptable_answers.push(val);
-        }
+        if (val) addAnswer(val);
       }
-      if (correctAns && !acceptable_answers.includes(correctAns)) {
-        acceptable_answers.unshift(correctAns);
+      if (correctAns) {
+        addAnswer(correctAns);
       }
       const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
 

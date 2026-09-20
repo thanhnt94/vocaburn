@@ -118,15 +118,26 @@ export const STUDY_MODES: StudyModeOption[] = [
     getUrl: (id) => `/practice/${id}/typing`
   },
   {
-    id: 'listening',
-    name: 'Listening Test',
-    fullName: 'Audio Comprehension',
+    id: 'listening_mcq',
+    name: 'Listening MCQ',
+    fullName: 'Audio Recognition',
     emoji: '🎧',
-    desc: 'Audio comprehension and listening recall',
-    badge: () => 'Audio',
+    desc: 'Audio pronunciation with multiple choices',
+    badge: () => 'Audio MCQ',
     badgeColor: 'bg-sky-100 text-sky-700',
     color: 'from-sky-500 to-blue-600',
-    getUrl: (id) => `/practice/${id}/listening`
+    getUrl: (id) => `/practice/${id}/listening_mcq`
+  },
+  {
+    id: 'listening_typing',
+    name: 'Listening Typing',
+    fullName: 'Audio Dictation',
+    emoji: '⌨️',
+    desc: 'Audio pronunciation and exact spelling drill',
+    badge: () => 'Dictation',
+    badgeColor: 'bg-cyan-100 text-cyan-700',
+    color: 'from-cyan-500 to-teal-600',
+    getUrl: (id) => `/practice/${id}/listening_typing`
   }
 ]
 

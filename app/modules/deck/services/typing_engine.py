@@ -34,8 +34,14 @@ class TypingEngine:
         acceptable_answers = []
         for a_key in answer_keys:
             val = get_val(item_data, a_key)
-            if val and val not in acceptable_answers:
-                acceptable_answers.append(val)
+            if val:
+                if '|' in val:
+                    for sub in val.split('|'):
+                        sub_clean = sub.strip()
+                        if sub_clean and sub_clean not in acceptable_answers:
+                            acceptable_answers.append(sub_clean)
+                elif val not in acceptable_answers:
+                    acceptable_answers.append(val)
 
         correct_answer = acceptable_answers[0] if acceptable_answers else get_val(item_data, answer_keys[0])
 
@@ -53,27 +59,38 @@ class TypingEngine:
     def validate_answer(user_input: str, correct_answer: Union[str, List[str]], acceptable_answers: Optional[List[str]] = None) -> dict:
         """
         Normalize strings (lowercase, strip whitespace, remove HTML tags).
-        Return True if user_input matches correct_answer or any of acceptable_answers.
+        Return True if user_input matches correct_answer or any of acceptable_answers (supports '|' delimiter).
         """
         if not user_input:
             user_input = ""
 
         normalized_input = user_input.strip().lower()
 
-        candidates = []
+        raw_candidates = []
         if isinstance(correct_answer, list):
-            candidates.extend(correct_answer)
+            raw_candidates.extend(correct_answer)
         elif correct_answer:
-            candidates.append(correct_answer)
+            raw_candidates.append(correct_answer)
 
         if acceptable_answers and isinstance(acceptable_answers, list):
             for a in acceptable_answers:
-                if a and a not in candidates:
-                    candidates.append(a)
+                if a and a not in raw_candidates:
+                    raw_candidates.append(a)
+
+        candidates = []
+        for c in raw_candidates:
+            c_str = str(c or '')
+            if '|' in c_str:
+                for sub in c_str.split('|'):
+                    s_clean = sub.strip()
+                    if s_clean and s_clean not in candidates:
+                        candidates.append(s_clean)
+            elif c_str.strip() and c_str.strip() not in candidates:
+                candidates.append(c_str.strip())
 
         is_correct = False
         for cand in candidates:
-            clean_cand = re.sub(r'<[^<]+?>', '', str(cand or '')).strip().lower()
+            clean_cand = re.sub(r'<[^<]+?>', '', cand).strip().lower()
             if normalized_input == clean_cand:
                 is_correct = True
                 break
