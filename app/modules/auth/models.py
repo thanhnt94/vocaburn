@@ -30,6 +30,7 @@ class UserGlobalSettings(Base):
     haptic_enabled = Column(Boolean, default=True)
     autoplay_audio = Column(String(20), default="never") # 'never' | 'always' | 'question'
     quick_learn_enabled = Column(Boolean, default=False)
+    auto_next_delay = Column(Integer, nullable=True, default=None)
     random_enabled = Column(Boolean, default=False)
     show_images = Column(String(20), default="always")
     show_fsrs = Column(Boolean, default=True)

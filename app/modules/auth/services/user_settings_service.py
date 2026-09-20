@@ -23,7 +23,7 @@ class UserSettingsService:
         
         allowed_fields = {
             "theme", "focus_timer_active", "sfx_enabled", "haptic_enabled",
-            "autoplay_audio", "quick_learn_enabled", "random_enabled",
+            "autoplay_audio", "quick_learn_enabled", "auto_next_delay", "random_enabled",
             "show_images", "show_fsrs", "quiz_learning_mode",
             "practice_submode", "practice_range", "score_mode", "time_mode",
             "last_deck_id", "paste_columns", "quick_add_columns",
@@ -76,6 +76,7 @@ class UserSettingsService:
             "haptic_enabled": settings_obj.haptic_enabled,
             "autoplay_audio": settings_obj.autoplay_audio,
             "quick_learn_enabled": settings_obj.quick_learn_enabled,
+            "auto_next_delay": getattr(settings_obj, 'auto_next_delay', None),
             "random_enabled": settings_obj.random_enabled,
             "show_images": settings_obj.show_images,
             "show_fsrs": settings_obj.show_fsrs,

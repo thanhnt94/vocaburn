@@ -831,16 +831,14 @@ export default function FlashcardPlay() {
 
   const handleCycleAutoNext = useCallback((nextSec: number) => {
     setAutoNextSec(nextSec);
-    if (setAutoNextDelay) setAutoNextDelay(nextSec);
     const isEnabled = nextSec > 0;
     setIsAutoAdvance(isEnabled);
-    if (setQuickLearnEnabled) setQuickLearnEnabled(isEnabled);
     saveGeneralSettings({
       auto_next_delay: nextSec,
       quick_learn_enabled: isEnabled,
     });
     showLocalToast?.(nextSec === 0 ? 'Auto Next: OFF' : `Auto Next: ${nextSec}s`, 'info');
-  }, [setAutoNextDelay, setQuickLearnEnabled, saveGeneralSettings, showLocalToast]);
+  }, [saveGeneralSettings, showLocalToast]);
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 

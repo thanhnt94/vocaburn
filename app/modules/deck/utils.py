@@ -120,6 +120,7 @@ SYSTEM_STUDY_DEFAULTS = {
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
     "quick_learn_enabled": False,   # boolean
+    "auto_next_delay": None,        # Optional[int]: None (use mode default), 0 (off), 1, 2, 3...
     "show_fsrs": True,              # boolean
     "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
     "card_rating_mode": "both",     # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
@@ -147,7 +148,8 @@ SYSTEM_STUDY_PROFILES = [
             "sfx_enabled": True,
             "haptic_enabled": True,
             "random_enabled": False,
-            "quick_learn_enabled": True
+            "quick_learn_enabled": True,
+            "auto_next_delay": 2
         }
     },
     {
@@ -338,6 +340,14 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         if val_str in ("false", "0", "no", "tắt", "không", "ko", "off", "disable", "disabled"):
             return False
         return bool(val)
+    if key == "auto_next_delay":
+        if val is None:
+            return None
+        try:
+            val_int = int(float(val))
+            return max(0, min(10, val_int))
+        except Exception:
+            return None
     if key == "learning_mode":
         val_str = str(val).lower().strip()
         if val_str in ("fsrs", "roadmap", "new", "review", "hardest", "flip", "mcq", "typing", "listening"):
