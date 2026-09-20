@@ -48,6 +48,8 @@ export interface FlashcardFlyToolbarProps {
   sfxEnabled?: boolean
   setSfxEnabled?: (val: boolean) => void
   effectiveAutoAdvance?: boolean
+  autoNextSec?: number
+  onCycleAutoNext?: (nextSec: number) => void
   setIsAutoAdvance?: (val: boolean) => void
   setQuickLearnEnabled?: (val: boolean) => void
   showImages?: any
@@ -145,6 +147,8 @@ export interface FlashcardQuickControlsSheetProps {
   sfxEnabled: boolean
   setSfxEnabled: (val: boolean) => void
   effectiveAutoAdvance: boolean
+  autoNextSec?: number
+  onCycleAutoNext?: (nextSec: number) => void
   setIsAutoAdvance: (val: boolean) => void
   setQuickLearnEnabled?: (val: boolean) => void
   showImages: any
@@ -205,6 +209,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   sfxEnabled,
   setSfxEnabled,
   effectiveAutoAdvance,
+  autoNextSec,
+  onCycleAutoNext,
   setIsAutoAdvance,
   setQuickLearnEnabled,
   showImages,
@@ -690,38 +696,62 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         </div>
                       </button>
 
-                      {/* 4. Auto Next */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextVal = !effectiveAutoAdvance
-                          setIsAutoAdvance(nextVal)
-                          if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
-                          showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          effectiveAutoAdvance
-                            ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={`Auto Advance: ${effectiveAutoAdvance ? 'ON' : 'OFF'}`}
-                      >
-                        <div className={cn(
-                          "w-8 h-8 rounded-xl flex items-center justify-center",
-                          effectiveAutoAdvance
-                            ? "bg-amber-500 text-white shadow-2xs"
-                            : "bg-white text-slate-400 border border-slate-200/60"
-                        )}>
-                          <Zap className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", effectiveAutoAdvance ? "text-amber-600" : "text-slate-400")}>
-                            {effectiveAutoAdvance ? "ON" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
+                      {/* 4. Auto Next (Cycle: OFF -> 1s -> 2s -> 3s -> OFF) */}
+                      {(() => {
+                        const isAutoOn = autoNextSec !== undefined ? autoNextSec > 0 : effectiveAutoAdvance
+                        const autoBadgeText = autoNextSec !== undefined
+                          ? (autoNextSec > 0 ? `${autoNextSec}s` : 'OFF')
+                          : (effectiveAutoAdvance ? 'ON' : 'OFF')
+
+                        const handleClick = () => {
+                          if (onCycleAutoNext) {
+                            const currentSec = autoNextSec !== undefined ? autoNextSec : (effectiveAutoAdvance ? 2 : 0)
+                            let nextSec = 0
+                            if (currentSec === 0) nextSec = 1
+                            else if (currentSec === 1) nextSec = 2
+                            else if (currentSec === 2) nextSec = 3
+                            else nextSec = 0
+                            onCycleAutoNext(nextSec)
+                          } else {
+                            const nextVal = !effectiveAutoAdvance
+                            setIsAutoAdvance(nextVal)
+                            if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
+                            showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                          }
+                        }
+
+                        return (
+                          <button
+                            type="button"
+                            onClick={handleClick}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                              isAutoOn
+                                ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                                : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                            )}
+                            title={`Auto Next: ${autoBadgeText}`}
+                          >
+                            <div className={cn(
+                              "w-8 h-8 rounded-xl flex items-center justify-center",
+                              isAutoOn
+                                ? "bg-amber-500 text-white shadow-2xs"
+                                : "bg-white text-slate-400 border border-slate-200/60"
+                            )}>
+                              <Zap className="w-4 h-4" />
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
+                              <span className={cn(
+                                "text-[8px] font-black uppercase tracking-wider",
+                                isAutoOn ? "text-amber-600" : "text-slate-400"
+                              )}>
+                                {autoBadgeText}
+                              </span>
+                            </div>
+                          </button>
+                        )
+                      })()}
                     </div>
                   </div>
 

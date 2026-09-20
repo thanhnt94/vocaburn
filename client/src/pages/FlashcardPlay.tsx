@@ -264,6 +264,8 @@ export default function FlashcardPlay() {
     setSfxEnabled,
     quickLearnEnabled,
     setQuickLearnEnabled,
+    autoNextDelay,
+    setAutoNextDelay,
     hapticEnabled,
     setHapticEnabled,
     showImages,
@@ -600,6 +602,7 @@ export default function FlashcardPlay() {
   const [isFlyingOut, setIsFlyingOut] = useState(false)
   const [isFlyToolbarOpen, setIsFlyToolbarOpen] = useState(false)
   const [isAutoAdvance, setIsAutoAdvance] = useState(false)
+  const [autoNextSec, setAutoNextSec] = useState<number | null>(null)
 
   // Sync initial state from backend setting
   useEffect(() => {
@@ -796,7 +799,32 @@ export default function FlashcardPlay() {
   }, [activeMode, roadmapStatus]);
 
   const effectiveCardMode = isSpeedSkimMode ? 'speed_skim' : activeMode;
-  const effectiveAutoAdvance = isSpeedSkimMode || isAutoAdvance || Boolean(quickLearnEnabled);
+
+  const effectiveAutoNextSec = useMemo(() => {
+    if (autoNextSec !== null) return autoNextSec;
+    if (autoNextDelay !== undefined && autoNextDelay !== null) {
+      return autoNextDelay;
+    }
+    if (isSpeedSkimMode) {
+      return 2; // Default 2s for Speed Skim
+    }
+    return quickLearnEnabled ? 1 : 0;
+  }, [autoNextSec, autoNextDelay, isSpeedSkimMode, quickLearnEnabled]);
+
+  const effectiveAutoAdvance = effectiveAutoNextSec > 0;
+
+  const handleCycleAutoNext = useCallback((nextSec: number) => {
+    setAutoNextSec(nextSec);
+    if (setAutoNextDelay) setAutoNextDelay(nextSec);
+    const isEnabled = nextSec > 0;
+    setIsAutoAdvance(isEnabled);
+    if (setQuickLearnEnabled) setQuickLearnEnabled(isEnabled);
+    saveGeneralSettings({
+      auto_next_delay: nextSec,
+      quick_learn_enabled: isEnabled,
+    });
+    showLocalToast?.(nextSec === 0 ? 'Auto Next: OFF' : `Auto Next: ${nextSec}s`, 'info');
+  }, [setAutoNextDelay, setQuickLearnEnabled, saveGeneralSettings, showLocalToast]);
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
 
@@ -2481,7 +2509,7 @@ export default function FlashcardPlay() {
 
   // Auto-advance timer in Skim Mode (when card is flipped to back face)
   useEffect(() => {
-    if (!isSpeedSkimMode || !quickLearnEnabled || !isFlipped || hasRated || isFlyToolbarOpen || isSettingsModalOpen || isQuitModalOpen) {
+    if (!isSpeedSkimMode || effectiveAutoNextSec <= 0 || !isFlipped || hasRated || isFlyToolbarOpen || isSettingsModalOpen || isQuitModalOpen) {
       return;
     }
 
@@ -2490,8 +2518,8 @@ export default function FlashcardPlay() {
       return;
     }
 
-    // Auto-advance after audio completion (800ms buffer) or comfortable reading pause (1800ms if no audio)
-    const advanceDelay = autoPlayAudio !== 'none' ? 800 : 1800;
+    // Auto-advance based on user-selected delay (1s, 2s, or 3s)
+    const advanceDelay = effectiveAutoNextSec * 1000;
     const timer = setTimeout(() => {
       handleNext();
     }, advanceDelay);
@@ -2501,16 +2529,15 @@ export default function FlashcardPlay() {
     };
   }, [
     isSpeedSkimMode,
+    effectiveAutoNextSec,
     isFlipped,
     hasRated,
     isPlayingAudio,
     isLoadingAudio,
-    autoPlayAudio,
     isFlyToolbarOpen,
     isSettingsModalOpen,
     isQuitModalOpen,
-    currentIndex,
-    quickLearnEnabled
+    currentIndex
   ]);
 
   // Auto Play Hands-Free Loop Effect
@@ -2569,6 +2596,7 @@ export default function FlashcardPlay() {
   ]);
 
   const applyLearningMode = async (mode: string, order?: 'sequential' | 'random') => {
+    setAutoNextSec(null)
     setFsrsCompletionData(null)
     setActiveMode(mode)
     updateUserSettings({ quiz_learning_mode: mode as any })
@@ -3672,6 +3700,8 @@ export default function FlashcardPlay() {
         sfxEnabled={sfxEnabled}
         setSfxEnabled={setSfxEnabled}
         effectiveAutoAdvance={effectiveAutoAdvance}
+        autoNextSec={effectiveAutoNextSec}
+        onCycleAutoNext={handleCycleAutoNext}
         setIsAutoAdvance={setIsAutoAdvance}
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
@@ -4370,9 +4400,10 @@ export default function FlashcardPlay() {
         sfxEnabled={sfxEnabled}
         setSfxEnabled={setSfxEnabled}
         effectiveAutoAdvance={effectiveAutoAdvance}
+        autoNextSec={effectiveAutoNextSec}
+        onCycleAutoNext={handleCycleAutoNext}
         setIsAutoAdvance={(val) => {
-          setIsAutoAdvance(val);
-          setQuickLearnEnabled(val);
+          handleCycleAutoNext(val ? (effectiveAutoNextSec > 0 ? effectiveAutoNextSec : 2) : 0);
         }}
         setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}

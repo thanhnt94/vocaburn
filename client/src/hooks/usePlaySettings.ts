@@ -23,6 +23,7 @@ export interface StudySettingsState {
   sfx_enabled: boolean
   haptic_enabled: boolean
   quick_learn_enabled: boolean
+  auto_next_delay?: number
   show_fsrs: boolean
   card_flip_trigger?: CardFlipTrigger
   card_rating_mode?: CardRatingMode
@@ -44,6 +45,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   sfx_enabled: true,
   haptic_enabled: true,
   quick_learn_enabled: false,
+  auto_next_delay: 2,
   show_fsrs: true,
   card_flip_trigger: 'both',
   card_rating_mode: 'both',
@@ -60,6 +62,7 @@ export function usePlaySettings(
   // Deck-scoped local state (strictly isolated per deck, never stored in global useAppStore)
   const [sfxEnabled, setSfxEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.sfx_enabled)
   const [quickLearnEnabled, setQuickLearnEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.quick_learn_enabled)
+  const [autoNextDelay, setAutoNextDelayState] = useState<number>(DEFAULT_STUDY_SETTINGS.auto_next_delay ?? 2)
   const [hapticEnabled, setHapticEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.haptic_enabled)
   const [showImages, setShowImagesState] = useState<ImageDisplayMode>(DEFAULT_STUDY_SETTINGS.show_images)
   const [showFsrs, setShowFsrsState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_fsrs)
@@ -129,6 +132,9 @@ export function usePlaySettings(
       }
       if (effectiveSettings.quick_learn_enabled !== undefined) {
         setQuickLearnEnabledState(Boolean(effectiveSettings.quick_learn_enabled))
+      }
+      if (effectiveSettings.auto_next_delay !== undefined) {
+        setAutoNextDelayState(Number(effectiveSettings.auto_next_delay))
       }
       if (effectiveSettings.haptic_enabled !== undefined) {
         setHapticEnabledState(Boolean(effectiveSettings.haptic_enabled))
@@ -230,6 +236,7 @@ export function usePlaySettings(
     // 1. Immediately update local state
     if (updates.sfx_enabled !== undefined) setSfxEnabledState(updates.sfx_enabled)
     if (updates.quick_learn_enabled !== undefined) setQuickLearnEnabledState(updates.quick_learn_enabled)
+    if (updates.auto_next_delay !== undefined) setAutoNextDelayState(updates.auto_next_delay)
     if (updates.haptic_enabled !== undefined) setHapticEnabledState(updates.haptic_enabled)
     if (updates.show_images !== undefined) setShowImagesState(updates.show_images as ImageDisplayMode)
     if (updates.show_fsrs !== undefined) setShowFsrsState(updates.show_fsrs)
@@ -304,6 +311,10 @@ export function usePlaySettings(
 
   const setQuickLearnEnabled = useCallback((enabled: boolean) => {
     saveGeneralSettings({ quick_learn_enabled: enabled })
+  }, [saveGeneralSettings])
+
+  const setAutoNextDelay = useCallback((delay: number) => {
+    saveGeneralSettings({ auto_next_delay: delay })
   }, [saveGeneralSettings])
 
   const setHapticEnabled = useCallback((enabled: boolean) => {
@@ -390,6 +401,7 @@ export function usePlaySettings(
         }
         setSfxEnabledState(baseline.sfx_enabled)
         setQuickLearnEnabledState(baseline.quick_learn_enabled)
+        setAutoNextDelayState(baseline.auto_next_delay ?? 2)
         setHapticEnabledState(baseline.haptic_enabled)
         setShowImagesState(baseline.show_images)
         setShowFsrsState(baseline.show_fsrs)
@@ -454,6 +466,7 @@ export function usePlaySettings(
       sfx_enabled: sfxEnabled,
       haptic_enabled: hapticEnabled,
       quick_learn_enabled: quickLearnEnabled,
+      auto_next_delay: autoNextDelay,
       show_fsrs: showFsrs,
       card_flip_trigger: cardFlipTrigger || 'both',
       card_rating_mode: cardRatingMode || 'both',
@@ -498,6 +511,7 @@ export function usePlaySettings(
       sfx_enabled: sfxEnabled,
       haptic_enabled: hapticEnabled,
       quick_learn_enabled: quickLearnEnabled,
+      auto_next_delay: autoNextDelay,
       show_fsrs: showFsrs,
       card_flip_trigger: cardFlipTrigger || 'both',
       card_rating_mode: cardRatingMode || 'both',
@@ -575,6 +589,7 @@ export function usePlaySettings(
       sfx_enabled: sfxEnabled,
       haptic_enabled: hapticEnabled,
       quick_learn_enabled: quickLearnEnabled,
+      auto_next_delay: autoNextDelay,
       show_fsrs: showFsrs,
       card_flip_trigger: cardFlipTrigger || 'both',
       card_rating_mode: cardRatingMode || 'both'
@@ -626,6 +641,8 @@ export function usePlaySettings(
     setSfxEnabled,
     quickLearnEnabled,
     setQuickLearnEnabled,
+    autoNextDelay,
+    setAutoNextDelay,
     hapticEnabled,
     setHapticEnabled,
     showImages,
