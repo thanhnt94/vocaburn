@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -100,6 +100,9 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   handleNext,
   handleOpenCardHub
 }) => {
+  const scrollTouchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const isScrollScrolled = useRef<boolean>(false);
+
   useEffect(() => {
     if (cardDragControls && !isFlyingOut) {
       cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
@@ -230,7 +233,8 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     );
   };
 
-  const isHorizontalOnlyDrag = isFlipped && (hasBackOverflow || activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip' || hasRated);
+  const isNonRatingMode = activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip';
+  const isHorizontalOnlyDrag = isFlipped && isNonRatingMode;
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
@@ -358,7 +362,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           {/* ═══════════ BACK SIDE ═══════════ */}
           <div
             onClick={(e) => {
-              if (isSelectMode) return;
+              if (isSelectMode || isScrollScrolled.current) return;
               const target = e.target as HTMLElement;
               if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('[data-no-flip]')) {
                 return;
@@ -400,9 +404,52 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             {/* Top Banner */}
             {renderCardTopHeader('back')}
 
+            {/* 4-Way Swipe Zone Handle when card has vertical scroll */}
+            {hasBackOverflow && !hasRated && !isNonRatingMode && (
+              <div 
+                className="w-full flex items-center justify-center py-1.5 shrink-0 select-none cursor-grab active:cursor-grabbing z-20"
+                title="Drag from here to rate: Left=Again, Down=Hard, Right=Good, Up=Easy"
+              >
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100/95 hover:bg-indigo-50 border border-slate-200/90 text-[9.5px] font-black text-slate-600 shadow-2xs transition-all active:scale-95 group">
+                  <span className="text-indigo-500 text-xs">↕↔</span>
+                  <span className="tracking-wider uppercase">Swipe Zone: 4-Way Rating</span>
+                  <span className="text-[8px] text-slate-400 font-mono tracking-tight group-hover:text-indigo-600">
+                    ←Again • ↓Hard • ↑Easy • Good→
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Definition & explanation */}
             <div 
               ref={backScrollRef}
+              onPointerDownCapture={(e) => {
+                if (hasBackOverflow) {
+                  e.stopPropagation();
+                }
+              }}
+              onTouchStart={(e) => {
+                if (hasBackOverflow) {
+                  const t = e.touches[0];
+                  scrollTouchStartPos.current = { x: t.clientX, y: t.clientY };
+                  isScrollScrolled.current = false;
+                }
+              }}
+              onTouchMove={(e) => {
+                if (hasBackOverflow && scrollTouchStartPos.current) {
+                  const t = e.touches[0];
+                  const dist = Math.hypot(t.clientX - scrollTouchStartPos.current.x, t.clientY - scrollTouchStartPos.current.y);
+                  if (dist > 8) {
+                    isScrollScrolled.current = true;
+                  }
+                }
+              }}
+              onTouchEnd={() => {
+                scrollTouchStartPos.current = null;
+                setTimeout(() => {
+                  isScrollScrolled.current = false;
+                }, 250);
+              }}
               className={cn("flex-1 overflow-y-auto custom-scrollbar my-2 md:my-3 flex flex-col pr-1 md:pr-2 pb-16", isSelectMode && "select-text cursor-text")}
               style={{
                 touchAction: isSelectMode ? 'auto' : (hasBackOverflow ? 'pan-y' : (canDragRate ? 'none' : 'pan-y')),

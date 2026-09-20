@@ -1744,12 +1744,6 @@ export default function FlashcardPlay() {
     }
 
     // ════════ UNRATED CARD: 4-Way Compass Swipe ════════
-    // If card has vertical overflow, suppress vertical swipe so user can scroll content
-    if (hasBackOverflow && absY > absX * 0.7) {
-      setActiveDragGrade(null);
-      return;
-    }
-
     // Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
     if (dist < 35) {
       setActiveDragGrade(null);
@@ -1759,7 +1753,7 @@ export default function FlashcardPlay() {
       } else {
         setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
       }
-    } else if (!hasBackOverflow) {
+    } else {
       if (dy > 0) {
         setActiveDragGrade({ direction: 'hard', grade: 2, label: 'HARD', color: 'amber' });
       } else {
