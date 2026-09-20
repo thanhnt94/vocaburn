@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -9,7 +9,8 @@ import type { MemriseCardPayload, MemriseSessionResponse } from '@/types/memrise
 import { PracticeMcqCard, PracticeTypingCard, PracticeListeningCard, MemriseBottomBar } from '@/components/practice';
 import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard';
 import { FlashcardQuickControlsSheet } from '@/components/flashcard/FlashcardFlyToolbar';
-import { playCorrectSound, playIncorrectSound } from '@/lib/audio';
+import { playCorrectSound, playIncorrectSound, cancelAllAudio } from '@/lib/audio';
+import { usePracticeAudio } from '@/hooks/usePracticeAudio';
 import { PlaySettingsModal } from '@/components/PlaySettingsModal';
 import { usePlaySettings } from '@/hooks/usePlaySettings';
 import { selectDistractors } from '@/lib/distractor';
@@ -19,10 +20,10 @@ import { triggerHaptic } from '@/lib/haptic';
 const getVal = (item: any, key: string) => {
   if (!item) return '';
   const keyStr = String(key || '').trim().toLowerCase();
-  if (item[keyStr]) return item[keyStr];
-  if (item.others && item.others[keyStr]) return item.others[keyStr];
-  if (keyStr === 'front') return item.front || item.content;
-  if (keyStr === 'back') return item.back || item.explanation;
+  if (item[keyStr]) return String(item[keyStr]);
+  if (item.others && item.others[keyStr]) return String(item.others[keyStr]);
+  if (keyStr === 'front') return String(item.front || item.content || '');
+  if (keyStr === 'back') return String(item.back || item.explanation || '');
   return '';
 };
 
@@ -81,36 +82,62 @@ export default function MemrisePlay() {
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null);
   
   const getStageOrTestType = (card: any) => {
-    let s = 1;
+    if (!card) return 1;
     if (sessionType === 'plant') {
-      s = card.stage || 1;
+      return card.stage || 1;
     } else {
-      if (card.test_type === 'mcq') s = 2;
-      else if (card.test_type === 'audio') s = 4;
-      else s = 5; // typing
+      if (card.test_type === 'mcq') return 2;
+      if (card.test_type === 'audio') return 4;
+      return 5; // typing
     }
-    
-    // Fallback: If typing is required but typing_data is missing, fallback to MCQ
-    if (s === 5 && !card.typing_data) {
-      s = 2;
-    }
-    
-    return s;
   };
 
+  const currentCard = queue[0] || null;
+  const stage = currentCard ? getStageOrTestType(currentCard) : 1;
+
+  const mockQuestion = useMemo(() => {
+    if (!currentCard) return null;
+    return {
+      id: currentCard.card_id,
+      content: currentCard.front,
+      explanation: currentCard.back,
+      front: currentCard.front,
+      back: currentCard.back,
+      audio: currentCard.audio_data?.audio_url || currentCard.others?.front_audio_url || currentCard.others?.audio || '',
+      front_audio_url: currentCard.others?.front_audio_url || '',
+      back_audio_url: currentCard.others?.back_audio_url || '',
+      others: currentCard.others || {}
+    } as any;
+  }, [currentCard?.card_id, currentCard?.front, currentCard?.back, currentCard?.others, currentCard?.audio_data]);
+
+  const { playCardAudio } = usePracticeAudio({
+    currentQuestion: mockQuestion,
+    session: session,
+    currentPracticeData
+  });
+
   useEffect(() => {
-    if (!queue[0]) return;
+    cancelAllAudio();
+  }, [currentCard?.card_id, stage]);
+
+  useEffect(() => {
+    if (!queue[0]) {
+      setCurrentPracticeData(null);
+      return;
+    }
     const card = queue[0];
     const s = getStageOrTestType(card);
-    if (s === 2 || s === 3) {
+
+    if (s === 2) {
+      // Stage 2: Forward MCQ (q = word, a = definition)
       const pair = modeSettings?.mcq?.active_pairs?.[0] || { q: 'front', a: 'back' };
-      const qKey = pair.q;
-      const aKey = Array.isArray(pair.a) ? pair.a[0] : pair.a;
+      const qKey = pair.q || 'front';
+      const aKey = Array.isArray(pair.a) ? (pair.a[0] || 'back') : (pair.a || 'back');
       
-      const qText = getVal(card, qKey);
-      const aText = getVal(card, aKey);
+      const qText = getVal(card, qKey) || getVal(card, 'front');
+      const aText = getVal(card, aKey) || getVal(card, 'back');
       
-      const distractorPool = [];
+      const distractorPool: any[] = [];
       const numChoices = modeSettings?.mcq?.num_choices || 4;
       
       for (const other of session?.cards || []) {
@@ -140,10 +167,7 @@ export default function MemrisePlay() {
         card: card
       };
       const selectedDistractors = selectDistractors(correctData, distractorPool, numChoices - 1);
-      
-      const choicesData = [correctData, ...selectedDistractors];
-      choicesData.sort(() => Math.random() - 0.5);
-      
+      const choicesData = [correctData, ...selectedDistractors].sort(() => Math.random() - 0.5);
       const choices = choicesData.map((c: any) => c.text);
       const correctIndex = choices.indexOf(aText);
       
@@ -151,11 +175,122 @@ export default function MemrisePlay() {
         question: qText,
         choices,
         correct_index: correctIndex !== -1 ? correctIndex : 0,
+        correct_answer: aText,
         question_key: qKey,
         answer_key: aKey,
       });
+    } else if (s === 3) {
+      // Stage 3: Reverse MCQ (q = definition, a = word)
+      const pair = modeSettings?.mcq?.active_pairs?.[0] || { q: 'front', a: 'back' };
+      const qKey = Array.isArray(pair.a) ? (pair.a[0] || 'back') : (pair.a || 'back');
+      const aKey = pair.q || 'front';
+      
+      const qText = getVal(card, qKey) || getVal(card, 'back');
+      const aText = getVal(card, aKey) || getVal(card, 'front');
+      
+      const distractorPool: any[] = [];
+      const numChoices = modeSettings?.mcq?.num_choices || 4;
+      
+      for (const other of session?.cards || []) {
+        if (distractorPool.length >= 20) break;
+        if (other.card_id !== card.card_id) {
+          const dVal = getVal(other, aKey);
+          if (dVal && dVal !== 'nan') {
+            distractorPool.push({ 
+              text: dVal, 
+              id: other.card_id,
+              front: getVal(other, 'front'),
+              back: getVal(other, 'back'),
+              type: other.others?.type || other.others?.pos || '',
+              q_text: getVal(other, qKey)
+            });
+          }
+        }
+      }
+      
+      const correctData = { 
+        text: aText, 
+        id: card.card_id,
+        q_text: qText,
+        front: getVal(card, 'front'),
+        back: getVal(card, 'back'),
+        type: card.others?.type || card.others?.pos || '',
+        card: card
+      };
+      const selectedDistractors = selectDistractors(correctData, distractorPool, numChoices - 1);
+      const choicesData = [correctData, ...selectedDistractors].sort(() => Math.random() - 0.5);
+      const choices = choicesData.map((c: any) => c.text);
+      const correctIndex = choices.indexOf(aText);
+      
+      setCurrentPracticeData({
+        question: qText,
+        choices,
+        correct_index: correctIndex !== -1 ? correctIndex : 0,
+        correct_answer: aText,
+        question_key: qKey,
+        answer_key: aKey,
+      });
+    } else if (s === 4) {
+      // Stage 4: Listening / Audio Dictation
+      const pair = modeSettings?.listening?.active_pairs?.[0] || { q: 'front', a: ['front'] };
+      const audioKey = pair.q || 'front';
+      const rawAns = pair.a || ['front'];
+      const ansKeys: string[] = Array.isArray(rawAns) ? rawAns : [rawAns];
+
+      const acceptableAnswers: string[] = [];
+      for (const k of ansKeys) {
+        const val = getVal(card, k);
+        if (val && !acceptableAnswers.includes(val)) {
+          acceptableAnswers.push(val);
+        }
+      }
+      if (acceptableAnswers.length === 0) {
+        const frontVal = getVal(card, 'front');
+        if (frontVal) acceptableAnswers.push(frontVal);
+      }
+      const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
+      const audioUrl = card.audio_data?.audio_url || 
+                       card.others?.front_audio_url || 
+                       card.others?.back_audio_url || 
+                       card.others?.audio || '';
+
+      setCurrentPracticeData({
+        question: getVal(card, audioKey) || getVal(card, 'front'),
+        correct_answer: primaryAns,
+        acceptable_answers: acceptableAnswers,
+        audio_url: audioUrl,
+        question_key: audioKey,
+        answer_key: ansKeys[0] || 'front'
+      });
+    } else if (s === 5) {
+      // Stage 5: Typing / Active Recall Production
+      const pair = modeSettings?.typing?.active_pairs?.[0] || { q: 'back', a: ['front'] };
+      const qKey = pair.q || 'back';
+      const rawAns = pair.a || ['front'];
+      const ansKeys: string[] = Array.isArray(rawAns) ? rawAns : [rawAns];
+
+      const acceptableAnswers: string[] = [];
+      for (const k of ansKeys) {
+        const val = getVal(card, k);
+        if (val && !acceptableAnswers.includes(val)) {
+          acceptableAnswers.push(val);
+        }
+      }
+      if (acceptableAnswers.length === 0) {
+        const frontVal = getVal(card, 'front');
+        if (frontVal) acceptableAnswers.push(frontVal);
+      }
+      const primaryAns = acceptableAnswers[0] || getVal(card, 'front');
+
+      setCurrentPracticeData({
+        question: getVal(card, qKey) || getVal(card, 'back'),
+        correct_answer: primaryAns,
+        acceptable_answers: acceptableAnswers,
+        question_key: qKey,
+        answer_key: ansKeys[0] || 'front'
+      });
     } else {
-       setCurrentPracticeData(card.typing_data || card.mcq_data);
+      setCurrentPracticeData(null);
     }
   }, [queue[0], modeSettings, session]);
 
@@ -271,11 +406,17 @@ export default function MemrisePlay() {
   const handleManualNext = () => {
     if (autoNextTimeout.current) {
       clearTimeout(autoNextTimeout.current);
-      if (queue.length > 0) {
-         // Determine if it was correct based on current feedback
-         const isCorrect = (selectedOption !== null && selectedOption === queue[0].mcq_data?.correct_index) || (typingFeedback?.isCorrect);
-         advanceQueue(!!isCorrect, queue[0]);
+    }
+    if (queue.length > 0) {
+      const card = queue[0];
+      const s = getStageOrTestType(card);
+      let isCorrect = true;
+      if (s === 2 || s === 3) {
+        isCorrect = selectedOption !== null && selectedOption === currentPracticeData?.correct_index;
+      } else if (s === 4 || s === 5) {
+        isCorrect = !!typingFeedback?.isCorrect;
       }
+      advanceQueue(isCorrect, card);
     }
   };
 
@@ -291,9 +432,11 @@ export default function MemrisePlay() {
     if (answered || queue.length === 0) return;
     setAnswered(true);
     const card = queue[0];
-    const data = card.typing_data || card.mcq_data;
+    const data = currentPracticeData || card.typing_data || card.listening_data;
     const cleanInput = typingInput.trim().toLowerCase();
-    const correctAnswers = data?.acceptable_answers || [data?.correct_answer || ''];
+    const correctAnswers = data?.acceptable_answers && data.acceptable_answers.length > 0
+      ? data.acceptable_answers
+      : [data?.correct_answer || ''];
     const isCorrect = correctAnswers.some((a: string) => a.replace(/<[^>]+>/g, '').trim().toLowerCase() === cleanInput);
     
     setTypingFeedback({ checked: true, isCorrect });
@@ -324,11 +467,7 @@ export default function MemrisePlay() {
     );
   }
 
-  const currentCard = queue[0];
   if (!currentCard) return null;
-
-  const stage = getStageOrTestType(currentCard);
-  const mockQuestion = { id: currentCard.card_id, content: currentCard.front, explanation: currentCard.back, front: currentCard.front, back: currentCard.back, others: currentCard.others } as any;
 
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
@@ -342,9 +481,11 @@ export default function MemrisePlay() {
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100/80 border border-emerald-200 text-emerald-700 font-bold rounded-xl text-xs shadow-sm">
           <span className="text-base drop-shadow-sm">
-            {currentCard.stage === 1 ? '🌱' : currentCard.stage === 2 ? '🌿' : currentCard.stage === 3 ? '🪴' : currentCard.stage === 4 ? '🌳' : currentCard.stage === 5 ? '🌸' : '🌺'}
+            {stage === 1 ? '🌱' : stage === 2 ? '🌿' : stage === 3 ? '🪴' : stage === 4 ? '🌳' : stage === 5 ? '🌸' : '🌺'}
           </span>
-          <span>Stage {currentCard.stage || 1}</span>
+          <span>
+            {stage === 1 ? 'Stage 1: Intro' : stage === 2 ? 'Stage 2: MCQ' : stage === 3 ? 'Stage 3: Reverse MCQ' : stage === 4 ? 'Stage 4: Listening' : stage === 5 ? 'Stage 5: Typing' : 'Bloomed!'}
+          </span>
         </div>
       </div>
       
@@ -402,7 +543,7 @@ export default function MemrisePlay() {
           <PracticeMcqCard
              currentIndex={0}
              currentQuestion={mockQuestion}
-             practiceData={currentPracticeData || currentCard.mcq_data}
+             practiceData={currentPracticeData || (stage === 3 ? currentCard.mcq_rev_data : currentCard.mcq_data)}
              answered={answered}
              selectedOption={selectedOption}
              starredCards={{}}
@@ -414,7 +555,7 @@ export default function MemrisePlay() {
           <PracticeListeningCard
              currentIndex={0}
              currentQuestion={mockQuestion}
-             practiceData={{ ...currentCard.mcq_data, audio_url: currentCard.audio_data?.audio_url }}
+             practiceData={currentPracticeData || currentCard.listening_data}
              answered={answered}
              typingInput={typingInput}
              setTypingInput={setTypingInput}
@@ -422,13 +563,13 @@ export default function MemrisePlay() {
              starredCards={{}}
              onToggleStar={() => {}}
              onCheckTyping={handleTypingCheck}
-             onPlayAudio={() => {}}
+             onPlayAudio={(face, rate) => playCardAudio(face || 'front', rate || 1.0)}
           />
         ) : (
           <PracticeTypingCard
              currentIndex={0}
              currentQuestion={mockQuestion}
-             practiceData={currentCard.typing_data}
+             practiceData={currentPracticeData || currentCard.typing_data}
              answered={answered}
              typingInput={typingInput}
              setTypingInput={setTypingInput}
@@ -442,7 +583,7 @@ export default function MemrisePlay() {
 
       {/* Footer for all modes */}
       <MemriseBottomBar
-        baseMode={stage === 6 ? 'flashcard' : stage === 1 ? 'flashcard' : stage === 4 ? 'listening' : stage === 5 ? 'typing' : 'mcq'}
+        baseMode={stage === 6 ? 'flashcard' : stage === 1 ? 'flashcard' : stage === 5 ? 'typing' : stage === 4 ? 'listening' : 'mcq'}
         typingInput={typingInput}
         setTypingInput={setTypingInput}
         onCheckTyping={handleTypingCheck}
@@ -452,7 +593,7 @@ export default function MemrisePlay() {
         isFlipped={stage === 6 ? true : isFlipped}
         justAnswered={justAnswered}
         onOpenSettings={() => setIsQuickControlsOpen(true)}
-        onPlayAudio={() => {}}
+        onPlayAudio={() => playCardAudio(isFlipped ? 'back' : 'front')}
         onOpenFeedback={() => {}}
         onNext={() => {
           if (stage === 1 || stage === 6) handleAnswerSubmit(true);

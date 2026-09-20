@@ -9,7 +9,7 @@ from app.modules.memrise.models import MemriseCardProgress, MemriseSession
 from app.modules.deck.models import Flashcard, FlashcardDeck, UserDeckSettings
 from app.modules.deck.services.mcq_engine import MCQEngine
 from app.modules.deck.services.typing_engine import TypingEngine
-from app.modules.deck.utils import resolve_effective_study_settings
+from app.modules.deck.utils import resolve_effective_study_settings, migrate_practice_settings
 
 class MemriseService:
     WATERING_INTERVALS = [
@@ -49,9 +49,25 @@ class MemriseService:
         # 2. Get deck settings for Q/A mapping
         deck = await db.scalar(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
         user_settings = await db.scalar(select(UserDeckSettings).where(UserDeckSettings.user_id == user_id, UserDeckSettings.deck_id == deck_id))
-        practice_config = resolve_effective_study_settings(deck, user_settings)
-        q_col = practice_config.get("question_col", "front")
-        a_col = practice_config.get("answer_col", "back")
+        
+        practice_settings = migrate_practice_settings(deck.practice_settings if (deck and deck.practice_settings) else {})
+        mcq_pairs = practice_settings.get("mcq", {}).get("active_pairs", [])
+        typing_pairs = practice_settings.get("typing", {}).get("active_pairs", [])
+        listening_pairs = practice_settings.get("listening", {}).get("active_pairs", [])
+
+        mcq_pair = mcq_pairs[0] if mcq_pairs else {"q": "front", "a": "back"}
+        mcq_q_col = mcq_pair.get("q") or "front"
+        mcq_a_col = mcq_pair.get("a") or "back"
+        if isinstance(mcq_a_col, list) and mcq_a_col:
+            mcq_a_col = mcq_a_col[0]
+
+        typing_pair = typing_pairs[0] if typing_pairs else {"q": "back", "a": ["front"]}
+        typing_q_col = typing_pair.get("q") or "back"
+        typing_a_cols = typing_pair.get("a") or ["front"]
+
+        listening_pair = listening_pairs[0] if listening_pairs else {"q": "front", "a": ["front"]}
+        listening_q_col = listening_pair.get("q") or "front"
+        listening_a_cols = listening_pair.get("a") or ["front"]
 
         # 3. Get all deck cards for MCQ distractors
         all_cards_stmt = select(Flashcard).where(Flashcard.deck_id == deck_id)
@@ -65,13 +81,6 @@ class MemriseService:
             progress = await cls._get_or_create_progress(db, user_id, deck_id, c.id)
             stage = progress.stage
 
-            # If audio doesn't exist, skip stage 4
-            has_audio = bool(c.others and (c.others.get('front_audio_url') or c.others.get('back_audio_url')))
-            if stage == 4 and not has_audio:
-                stage = 5  # Skip to typing
-                progress.stage = 5
-                await db.flush()
-
             card_data = cls._card_to_dict(c)
             payload = {
                 "card_id": c.id,
@@ -82,20 +91,20 @@ class MemriseService:
                 "is_bloomed": progress.is_bloomed
             }
 
-            # Generate interaction payload based on stage
-            if stage in (2, 3):
-                # Reverse for stage 3
-                mcq_config = {'q_col': a_col if stage == 3 else q_col, 'a_col': q_col if stage == 3 else a_col, 'num_choices': 4}
-                payload["mcq_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config)
-            elif stage == 4:
-                # Audio MCQ or typing? We can default to typing engine for validation if it's text input, or just MCQ
-                payload["audio_data"] = {"audio_url": c.others.get('front_audio_url') or c.others.get('back_audio_url')}
-                # Generate MCQ for audio stage as well
-                mcq_config = {'q_col': q_col, 'a_col': a_col, 'num_choices': 4}
-                payload["mcq_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config)
-            elif stage == 5:
-                typing_config = {'q_col': q_col, 'a_cols': a_col}
-                payload["typing_data"] = TypingEngine.generate_question(card_data, typing_config)
+            # Generate interaction payloads for ALL stages so queue transitions are seamless
+            mcq_config_fwd = {'q_col': mcq_q_col, 'a_col': mcq_a_col, 'num_choices': 4}
+            mcq_config_rev = {'q_col': mcq_a_col, 'a_col': mcq_q_col, 'num_choices': 4}
+            typing_config = {'q_col': typing_q_col, 'a_cols': typing_a_cols}
+            listening_config = {'q_col': listening_q_col, 'a_cols': listening_a_cols}
+
+            payload["mcq_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config_fwd)
+            payload["mcq_rev_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config_rev)
+            payload["typing_data"] = TypingEngine.generate_question(card_data, typing_config)
+            payload["listening_data"] = TypingEngine.generate_question(card_data, listening_config)
+            payload["audio_data"] = {
+                "audio_url": (c.others.get('front_audio_url') or c.others.get('back_audio_url')) if c.others else None,
+                "audio_col": listening_q_col
+            }
 
             session_cards.append(payload)
 
@@ -111,7 +120,8 @@ class MemriseService:
 
         return {
             "session_id": session.id,
-            "cards": session_cards
+            "cards": session_cards,
+            "practice_settings": practice_settings
         }
 
     @classmethod
@@ -137,9 +147,25 @@ class MemriseService:
 
         deck = await db.scalar(select(FlashcardDeck).where(FlashcardDeck.id == deck_id))
         user_settings = await db.scalar(select(UserDeckSettings).where(UserDeckSettings.user_id == user_id, UserDeckSettings.deck_id == deck_id))
-        practice_config = resolve_effective_study_settings(deck, user_settings)
-        q_col = practice_config.get("question_col", "front")
-        a_col = practice_config.get("answer_col", "back")
+        
+        practice_settings = migrate_practice_settings(deck.practice_settings if (deck and deck.practice_settings) else {})
+        mcq_pairs = practice_settings.get("mcq", {}).get("active_pairs", [])
+        typing_pairs = practice_settings.get("typing", {}).get("active_pairs", [])
+        listening_pairs = practice_settings.get("listening", {}).get("active_pairs", [])
+
+        mcq_pair = mcq_pairs[0] if mcq_pairs else {"q": "front", "a": "back"}
+        mcq_q_col = mcq_pair.get("q") or "front"
+        mcq_a_col = mcq_pair.get("a") or "back"
+        if isinstance(mcq_a_col, list) and mcq_a_col:
+            mcq_a_col = mcq_a_col[0]
+
+        typing_pair = typing_pairs[0] if typing_pairs else {"q": "back", "a": ["front"]}
+        typing_q_col = typing_pair.get("q") or "back"
+        typing_a_cols = typing_pair.get("a") or ["front"]
+
+        listening_pair = listening_pairs[0] if listening_pairs else {"q": "front", "a": ["front"]}
+        listening_q_col = listening_pair.get("q") or "front"
+        listening_a_cols = listening_pair.get("a") or ["front"]
 
         all_cards_stmt = select(Flashcard).where(Flashcard.deck_id == deck_id)
         all_cards_res = await db.execute(all_cards_stmt)
@@ -152,11 +178,8 @@ class MemriseService:
 
             card_data = cls._card_to_dict(c)
             
-            # Randomly pick a test type for watering
-            test_type = random.choice(["mcq", "typing"])
-            has_audio = bool(c.others and (c.others.get('front_audio_url') or c.others.get('back_audio_url')))
-            if has_audio and random.random() < 0.3:
-                test_type = "audio"
+            # Randomly pick a test type for watering: mcq, typing, or audio (dictation)
+            test_type = random.choice(["mcq", "typing", "audio"])
 
             payload = {
                 "card_id": c.id,
@@ -167,14 +190,17 @@ class MemriseService:
                 "others": c.others,
             }
 
-            if test_type in ("mcq", "audio"):
-                mcq_config = {'q_col': q_col, 'a_col': a_col, 'num_choices': 4}
-                payload["mcq_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config)
-                if test_type == "audio":
-                    payload["audio_data"] = {"audio_url": c.others.get('front_audio_url') or c.others.get('back_audio_url')}
-            elif test_type == "typing":
-                typing_config = {'q_col': q_col, 'a_cols': a_col}
-                payload["typing_data"] = TypingEngine.generate_question(card_data, typing_config)
+            mcq_config = {'q_col': mcq_q_col, 'a_col': mcq_a_col, 'num_choices': 4}
+            typing_config = {'q_col': typing_q_col, 'a_cols': typing_a_cols}
+            listening_config = {'q_col': listening_q_col, 'a_cols': listening_a_cols}
+
+            payload["mcq_data"] = MCQEngine.generate_question(card_data, all_cards_data, mcq_config)
+            payload["typing_data"] = TypingEngine.generate_question(card_data, typing_config)
+            payload["listening_data"] = TypingEngine.generate_question(card_data, listening_config)
+            payload["audio_data"] = {
+                "audio_url": (c.others.get('front_audio_url') or c.others.get('back_audio_url')) if c.others else None,
+                "audio_col": listening_q_col
+            }
 
             session_cards.append(payload)
 
@@ -189,7 +215,8 @@ class MemriseService:
 
         return {
             "session_id": session.id,
-            "cards": session_cards
+            "cards": session_cards,
+            "practice_settings": practice_settings
         }
 
     @classmethod
