@@ -2299,6 +2299,170 @@ async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get
         "column_counts": col_counts
     }
 
+@router.get("/{deck_id}/sub-lessons")
+async def get_deck_sub_lessons(
+    request: Request,
+    deck_id: int,
+    column: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = AuthService.get_user_id(request)
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+    from app.modules.deck.models import Flashcard, UserCardMastery
+    import re
+    
+    # 1. Fetch cards for this deck
+    res = await db.execute(select(Flashcard).where(Flashcard.deck_id == deck_id))
+    cards = res.scalars().all()
+    total_cards = len(cards)
+    
+    # 2. Extract practice_settings configuration
+    practice_settings = deck.practice_settings or {}
+    grouping_cfg = practice_settings.get("sub_lesson_grouping", {})
+    is_configured_enabled = bool(grouping_cfg.get("enabled", False))
+    configured_column = grouping_cfg.get("column")
+    
+    # Active column: explicitly requested in query param, or creator configured column
+    active_col = column if column else configured_column
+    
+    # 3. Discover all candidate columns in this deck
+    excluded_cols = {
+        "front", "back", "front_audio_url", "back_audio_url", 
+        "front_audio_content", "back_audio_content", "front_img", 
+        "back_img", "audio", "image", "id", "item_id", 
+        "order_in_container", "other_content", "ai_explanation"
+    }
+    
+    col_distinct_map = {}
+    for c in cards:
+        if c.others and isinstance(c.others, dict):
+            for k, v in c.others.items():
+                if k not in excluded_cols and not k.startswith("_"):
+                    if k not in col_distinct_map:
+                        col_distinct_map[k] = set()
+                    val_str = str(v).strip() if v is not None else ""
+                    if val_str:
+                        col_distinct_map[k].add(val_str)
+                        
+    # Build candidate columns list (columns with between 1 and 300 distinct values)
+    available_columns = []
+    for col_key, distinct_vals in sorted(col_distinct_map.items()):
+        val_count = len(distinct_vals)
+        if 1 <= val_count <= 300:
+            clean_label = col_key.replace("_", " ").title()
+            sample_preview = sorted(list(distinct_vals))[:4]
+            available_columns.append({
+                "column": col_key,
+                "label": clean_label,
+                "distinct_count": val_count,
+                "sample_values": sample_preview
+            })
+            
+    # Also add question_type if deck has multiple question types
+    q_types = set(str(c.question_type).strip() for c in cards if c.question_type)
+    if len(q_types) > 1:
+        available_columns.append({
+            "column": "question_type",
+            "label": "Question Type",
+            "distinct_count": len(q_types),
+            "sample_values": sorted(list(q_types))[:4]
+        })
+
+    # If no active column chosen yet, default to configured column or first available column if configured enabled
+    if not active_col and is_configured_enabled and available_columns:
+        active_col = available_columns[0]["column"]
+
+    # 4. If we have an active column, compute groups & mastery progress
+    groups = []
+    if active_col:
+        mastery_map = {}
+        if user_id:
+            card_ids = [c.id for c in cards]
+            if card_ids:
+                m_res = await db.execute(
+                    select(UserCardMastery).where(
+                        UserCardMastery.user_id == user_id,
+                        UserCardMastery.card_id.in_(card_ids)
+                    )
+                )
+                for m in m_res.scalars().all():
+                    mastery_map[m.card_id] = m
+
+        now_utc = datetime.utcnow()
+        group_cards_map = {}
+
+        for c in cards:
+            c_val = ""
+            if c.others and isinstance(c.others, dict):
+                c_val = str(c.others.get(active_col, "") or "").strip()
+            elif hasattr(c, active_col):
+                c_val = str(getattr(c, active_col) or "").strip()
+                
+            group_key = c_val if c_val else "__empty__"
+            if group_key not in group_cards_map:
+                group_cards_map[group_key] = []
+            group_cards_map[group_key].append(c)
+
+        def natural_sort_key(s):
+            return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
+        sorted_keys = sorted(
+            [k for k in group_cards_map.keys() if k != "__empty__"],
+            key=natural_sort_key
+        )
+        if "__empty__" in group_cards_map:
+            sorted_keys.append("__empty__")
+
+        for g_key in sorted_keys:
+            g_cards = group_cards_map[g_key]
+            g_total = len(g_cards)
+            
+            mastered_cnt = 0
+            learning_cnt = 0
+            new_cnt = 0
+            due_cnt = 0
+            
+            for gc in g_cards:
+                m = mastery_map.get(gc.id)
+                if not m or (m.state == 0 and not m.last_review):
+                    new_cnt += 1
+                elif m.state == 2 or m.box_level == 5:
+                    mastered_cnt += 1
+                else:
+                    learning_cnt += 1
+                    
+                if m and m.due and m.due <= now_utc:
+                    due_cnt += 1
+
+            pct = round((mastered_cnt / g_total) * 100) if g_total > 0 else 0
+            display_name = g_key if g_key != "__empty__" else "(Uncategorized)"
+            
+            groups.append({
+                "value": g_key,
+                "label": display_name,
+                "total_cards": g_total,
+                "mastered_count": mastered_cnt,
+                "learning_count": learning_cnt,
+                "new_count": new_cnt,
+                "due_count": due_cnt,
+                "mastered_pct": pct
+            })
+
+    return {
+        "enabled": is_configured_enabled,
+        "is_configured": is_configured_enabled,
+        "configured_column": configured_column,
+        "active_column": active_col,
+        "active_column_label": active_col.replace("_", " ").title() if active_col else None,
+        "total_cards": total_cards,
+        "total_groups": len(groups),
+        "groups": groups,
+        "available_columns": available_columns
+    }
+
 @router.post("/{deck_id}/add-column")
 async def add_deck_column(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)

@@ -4,12 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { DeckFsrsStatsCard } from '../overview/DeckFsrsStatsCard'
 import { DeckRecentHistory } from '../overview/DeckRecentHistory'
+import { DeckSubLessonsSection } from '../overview/DeckSubLessonsSection'
 import { BookOpen, Compass, Layers, Sparkles, Tag } from 'lucide-react'
 
 export interface DeckOverviewTabProps {
   embedded?: boolean
   deckId?: string | number
-  onNavigateTab?: (tab: string) => void
+  onNavigateTab?: (tab: string, params?: Record<string, string>) => void
 }
 
 export function DeckOverviewTab({
@@ -93,7 +94,14 @@ export function DeckOverviewTab({
         totalCards={totalCards}
       />
 
-      {/* 2. Recent Practice History */}
+      {/* 2. Bite-Sized Sub-Lessons & Modules */}
+      <DeckSubLessonsSection
+        deckId={id!}
+        isOwner={Boolean(deckData?.is_creator || deckData?.can_edit)}
+        onNavigateTab={onNavigateTab}
+      />
+
+      {/* 3. Recent Practice History */}
       <DeckRecentHistory
         attempts={deckData?.recent_attempts || []}
         isLoading={isDeckLoading}

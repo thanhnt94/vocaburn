@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronDown, MessageSquare, Play, Volume2, Maximize2, Hash, Minimize2, Check, X, RotateCcw, AlertCircle, LayoutGrid, Timer, Flame, Trophy, Sparkles, Lightbulb, StickyNote, Target, CheckCircle2, XCircle, Clock, BookOpen, Copy, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, TrendingUp, Award, Lock, Keyboard, VolumeX, Settings, RefreshCw, Undo2, LogOut, Zap, Music, Image, Plus, Star, Bookmark, Headphones } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
@@ -283,6 +283,9 @@ const getBaseMode = (mode: string | undefined): string => {
 
 export default function PracticePlay() {
   const { id, subMode } = useParams()
+  const [searchParams] = useSearchParams()
+  const subCol = searchParams.get('sub_col')
+  const subVal = searchParams.get('sub_val')
   const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -1388,9 +1391,14 @@ export default function PracticePlay() {
       const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
       const isFolder = typeof id === 'string' && id.startsWith('folder_')
       const folderId = isFolder ? id.replace('folder_', '') : null
-      const playDataUrl = isFolder
+      let playDataUrl = isFolder
         ? `/api/v1/folder/${folderId}/play-data${modeParam}`
         : (isRoadmapTestMode ? `/api/v1/deck/${id}/roadmap-test-questions` : `/api/v1/deck/${id}/play-data${modeParam}`)
+
+      if (subCol && subVal !== null) {
+        const delimiter = playDataUrl.includes('?') ? '&' : '?'
+        playDataUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
+      }
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
@@ -4042,7 +4050,7 @@ export default function PracticePlay() {
             displayStepIdx={roadmapStatus?.current_step_index || 0}
             allDone={Boolean(isRoadmapAllDone)}
             deckId={id || ''}
-            deckTitle={session?.title || session?.deck_title || session?.quiz_title || 'Luyện tập'}
+            deckTitle={session?.sub_group ? `${session.title || 'Practice'} • ${session.sub_group.value === '__empty__' ? '(Uncategorized)' : session.sub_group.value}` : (session?.title || session?.deck_title || session?.quiz_title || 'Practice')}
             subCurr={subCurr}
             subTotal={subTotal}
             streakCount={roadmapStatus?.streak || gamify.streak || 0}

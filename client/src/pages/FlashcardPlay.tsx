@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import confetti from 'canvas-confetti'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, MousePointer, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 import axios from 'axios'
@@ -74,6 +74,9 @@ import { useCardAI } from '@/hooks/useCardAI'
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const subCol = searchParams.get('sub_col')
+  const subVal = searchParams.get('sub_val')
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
 
   const [isHeaderSurging, setIsHeaderSurging] = useState(false)
@@ -904,13 +907,18 @@ export default function FlashcardPlay() {
       const isFolder = typeof id === 'string' && id.startsWith('folder_')
       const folderId = isFolder ? id.replace('folder_', '') : null
       const isGlobalFocus = id === 'global-focus'
-      const fetchUrl = id === 'quick' 
+      let fetchUrl = id === 'quick' 
         ? '/api/v1/deck/quick-play-data' 
         : isGlobalFocus
           ? '/api/v1/deck/global-focus/play-data'
           : isFolder
             ? `/api/v1/folder/${folderId}/play-data${modeParam}`
             : `/api/v1/deck/${id}/play-data${modeParam}`
+
+      if (subCol && subVal !== null) {
+        const delimiter = fetchUrl.includes('?') ? '&' : '?'
+        fetchUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
+      }
       const quizRes = await axios.get(fetchUrl)
       const questions = quizRes.data.questions || []
       setSession({ ...quizRes.data, questions })
@@ -3982,7 +3990,7 @@ export default function FlashcardPlay() {
               displayStepIdx={displayStepIdx}
               allDone={Boolean(roadmapStatus?.all_done)}
               deckId={id || ''}
-              deckTitle={session?.title}
+              deckTitle={session?.sub_group ? `${session.title} • ${session.sub_group.value === '__empty__' ? '(Uncategorized)' : session.sub_group.value}` : session?.title}
               subCurr={subCurr}
               subTotal={subTotal}
               progressPillText={progressPillText}

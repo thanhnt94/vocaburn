@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -44,6 +44,9 @@ export function DeckCardsTab({
 }: DeckCardsTabProps) {
   const { id: paramId } = useParams()
   const id = deckId ? String(deckId) : paramId
+  const [searchParams, setSearchParams] = useSearchParams()
+  const subCol = searchParams.get('sub_col')
+  const subVal = searchParams.get('sub_val')
   const queryClient = useQueryClient()
 
   const [internalSearch, setInternalSearch] = useState('')
@@ -111,14 +114,16 @@ export function DeckCardsTab({
 
   // 1. Fetch server-side paginated questions list with keepPreviousData
   const { data, isLoading } = useQuery({
-    queryKey: ['quiz-questions', id, currentPage, debouncedSearch],
+    queryKey: ['quiz-questions', id, currentPage, debouncedSearch, subCol, subVal],
     queryFn: async () => {
       if (!id) return { questions: [], total: 0 }
       const res = await axios.get(`/api/v1/deck/${id}/questions`, {
         params: {
           page: currentPage,
           size: pageSize,
-          search: debouncedSearch.trim()
+          search: debouncedSearch.trim(),
+          sub_col: subCol || undefined,
+          sub_val: subVal !== null ? subVal : undefined
         }
       })
       return res.data
@@ -340,6 +345,34 @@ export function DeckCardsTab({
           onClearSelection={handleClearSelection}
         />
       </div>
+
+      {/* Active Sub-Lesson Filter Pill Banner */}
+      {subCol && subVal !== null && (
+        <div className="flex items-center justify-between p-2.5 px-3 bg-indigo-50/80 border border-indigo-100 rounded-2xl text-xs font-bold text-indigo-900 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-black text-indigo-500">Group filter:</span>
+            <span>{subCol}:</span>
+            <span className="font-black bg-white px-2 py-0.5 rounded-lg border border-indigo-200/80 text-indigo-700">
+              {subVal === '__empty__' ? '(Uncategorized)' : subVal}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchParams((prev) => {
+                const u = new URLSearchParams(prev)
+                u.delete('sub_col')
+                u.delete('sub_val')
+                return u
+              }, { replace: true })
+            }}
+            className="text-[11px] font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Clear filter</span>
+          </button>
+        </div>
+      )}
 
       {/* 2. Cards List */}
       {isLoading ? (

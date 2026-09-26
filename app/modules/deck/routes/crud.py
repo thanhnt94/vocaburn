@@ -351,6 +351,21 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
                 cast(Flashcard.others[filter_col], String) == '""',
                 cast(Flashcard.others[filter_col], String) == ''
             ))
+
+    sub_col = request.query_params.get("sub_col")
+    sub_val = request.query_params.get("sub_val")
+    if sub_col and sub_val is not None:
+        if sub_val == "__empty__":
+            query = query.filter(or_(
+                Flashcard.others[sub_col] == None,
+                cast(Flashcard.others[sub_col], String) == '""',
+                cast(Flashcard.others[sub_col], String) == ''
+            ))
+        else:
+            query = query.filter(or_(
+                cast(Flashcard.others[sub_col], String) == f'"{sub_val}"',
+                cast(Flashcard.others[sub_col], String) == sub_val
+            ))
             
     if sort_by == "az":
         query = query.order_by(Flashcard.content.asc())

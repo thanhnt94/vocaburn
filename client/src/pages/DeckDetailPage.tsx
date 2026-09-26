@@ -236,8 +236,8 @@ export function DeckDetailPage() {
     setIsSettingsMenuOpen(false)
   }
 
-  const handleTabChange = (tab: DeckDetailTab) => {
-    if (tab === 'settings' && isOwner) {
+  const handleTabChange = (tab: DeckDetailTab, additionalParams?: Record<string, string>) => {
+    if (tab === 'settings' && isOwner && !additionalParams) {
       setIsSettingsMenuOpen((prev) => !prev)
       return
     }
@@ -245,6 +245,9 @@ export function DeckDetailPage() {
     setSearchParams((prev) => {
       const updated = new URLSearchParams(prev)
       updated.set('tab', tab)
+      if (additionalParams) {
+        Object.entries(additionalParams).forEach(([k, v]) => updated.set(k, v))
+      }
       return updated
     }, { replace: true })
   }
@@ -519,7 +522,7 @@ export function DeckDetailPage() {
               transition={{ duration: 0.15 }}
             >
               {activeTab === 'overview' && (
-                <DeckOverviewTab embedded deckId={id} onNavigateTab={(t: string) => handleTabChange(t as DeckDetailTab)} />
+                <DeckOverviewTab embedded deckId={id} onNavigateTab={(t: string, params?: Record<string, string>) => handleTabChange(t as DeckDetailTab, params)} />
               )}
               {activeTab === 'cards' && (
                 <DeckCardsTab 

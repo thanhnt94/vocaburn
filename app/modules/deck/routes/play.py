@@ -1204,7 +1204,15 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
     }
 
 @router.get("/{deck_id}/play-data")
-async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str] = None, lightweight: Optional[bool] = None, db: AsyncSession = Depends(get_db)):
+async def get_deck_play_data(
+    request: Request,
+    deck_id: int,
+    mode: Optional[str] = None,
+    lightweight: Optional[bool] = None,
+    sub_col: Optional[str] = Query(None),
+    sub_val: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
     user_id = AuthService.get_user_id(request)
     
     # Check if deck exists and enforce privacy
@@ -1234,6 +1242,19 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         deck = result.scalar_one_or_none()
         if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
+        source_cards = deck.cards or []
+        if sub_col and sub_val is not None:
+            def matches_sub_light(c):
+                val = ""
+                if c.others and isinstance(c.others, dict):
+                    val = str(c.others.get(sub_col, "") or "").strip()
+                elif hasattr(c, sub_col):
+                    val = str(getattr(c, sub_col) or "").strip()
+                if sub_val == "__empty__":
+                    return not val
+                return val == sub_val.strip()
+            source_cards = [c for c in source_cards if matches_sub_light(c)]
+
         cards_list = [{
             "id": c.id,
             "original_index": i + 1,
@@ -1248,7 +1269,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "image": fix_static_urls(c.back_img),
             "audio": fix_static_urls(c.front_audio_url),
             "others": fix_static_urls(c.others)
-        } for i, c in enumerate(deck.cards)]
+        } for i, c in enumerate(source_cards)]
         
         await resolve_play_cards(cards_list, db)
         return {
@@ -1262,7 +1283,12 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
             "category_id": deck.category_id,
             "creator_id": deck.creator_id,
             "cards": cards_list,
-            "questions": cards_list
+            "questions": cards_list,
+            "sub_group": {
+                "column": sub_col,
+                "value": sub_val,
+                "total_cards": len(cards_list)
+            } if sub_col and sub_val is not None else None
         }
 
     is_practice = mode in ("mcq", "typing", "listening")
@@ -1319,10 +1345,23 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     user_today_time = today_time_res.scalar() or 0
     user_all_time_time = all_time_time_res.scalar() or 0
 
+    source_cards = deck.cards or []
+    if sub_col and sub_val is not None:
+        def matches_sub(c):
+            val = ""
+            if c.others and isinstance(c.others, dict):
+                val = str(c.others.get(sub_col, "") or "").strip()
+            elif hasattr(c, sub_col):
+                val = str(getattr(c, sub_col) or "").strip()
+            if sub_val == "__empty__":
+                return not val
+            return val == sub_val.strip()
+        source_cards = [c for c in source_cards if matches_sub(c)]
+
     # 3. Fetch Mastery records in 1 indexed query (Skip for practice mode)
     mastery_records = {}
-    if not is_practice and user_id and deck.cards:
-        card_ids = [c.id for c in deck.cards]
+    if not is_practice and user_id and source_cards:
+        card_ids = [c.id for c in source_cards]
         mastery_stmt = select(UserCardMastery).where(
             UserCardMastery.user_id == user_id,
             UserCardMastery.card_id.in_(card_ids)
@@ -1363,7 +1402,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
     
     if is_practice:
         # Ultra-fast path for practice: just card data, no FSRS computation
-        for i, c in enumerate(deck.cards):
+        for i, c in enumerate(source_cards):
             cards_list.append({
                 "id": c.id,
                 "original_index": i + 1,
@@ -1392,7 +1431,7 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         # Instantiate scheduler once only if needed for review cards
         scheduler = None
         
-        for idx, c in enumerate(deck.cards):
+        for idx, c in enumerate(source_cards):
             m = mastery_records.get(c.id)
             
             m_state = m.state if m else 0
@@ -1487,7 +1526,12 @@ async def get_deck_play_data(request: Request, deck_id: int, mode: Optional[str]
         "active_profile_id": study_resolved["active_profile_id"],
         "effective_study_settings": study_resolved["effective_study_settings"],
         "setting_origin": study_resolved["setting_origin"],
-        "is_study_customized": study_resolved["is_customized"]
+        "is_study_customized": study_resolved["is_customized"],
+        "sub_group": {
+            "column": sub_col,
+            "value": sub_val,
+            "total_cards": len(cards_list)
+        } if sub_col and sub_val is not None else None
     }
 
 
