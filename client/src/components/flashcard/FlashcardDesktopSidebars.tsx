@@ -472,6 +472,7 @@ export const FlashcardDesktopRightAside: React.FC<{
                 setIsMapOpen={setIsMapOpen}
                 filterMode={mobileMapFilterMode}
                 setFilterMode={setMobileMapFilterMode}
+                subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
               />
             </>
           )}

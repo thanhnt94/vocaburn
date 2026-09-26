@@ -74,7 +74,7 @@ import { useCardAI } from '@/hooks/useCardAI'
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const subCol = searchParams.get('sub_col')
   const subVal = searchParams.get('sub_val')
   const { user, gamify, setUser, setGamify, addXp } = useAppStore()
@@ -846,9 +846,14 @@ export default function FlashcardPlay() {
 
 
   useEffect(() => {
+    setCurrentIndex(0)
+    setSessionAnswers({})
+    setSelectedOption(null)
+    setShowFeedback(false)
+    setIsFlipped(false)
     fetchSession()
     fetchRoadmapStatus()
-  }, [id])
+  }, [id, subCol, subVal])
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
   useEffect(() => {

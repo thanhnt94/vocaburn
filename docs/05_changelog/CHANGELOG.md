@@ -3,7 +3,19 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-26]
-#### Tích Hợp Bật/Tắt Toàn Diện Cả Chế Độ Học & Luyện Tập (Integrated Study & Practice Mode Access Control)
+#### Tích Hợp Phân Loại Category & Học Theo Nhóm Ngay Trong Card Map (Card Map Category Grouping & Instant Study Switcher)
+- **Sửa Lỗi Chuyển Hướng Bay Ra Trang Chủ Khi Học Sub-Lesson (`DeckSubLessonsSection.tsx`)**:
+  - Khắc phục đường dẫn URL lỗi `/quiz/${deckId}/flashcard` và `/quiz/${deckId}/practice` thành `/flashcard/${deckId}/play?sub_col=...&sub_val=...` và `/practice/${deckId}/mcq?sub_col=...&sub_val=...`.
+  - Loại bỏ hoàn toàn lỗi route fallback dẫn đến trang chủ `/`.
+- **Tích Hợp Phân Loại Category/Sub-Lesson Trực Tiếp Vào Card Map (`QuestionMapGrid.tsx`)**:
+  - **Tự động nhận diện cột phân nhóm (Dynamic Column Discovery)**: Tích hợp `sub_lesson_grouping` từ cài đặt bộ thẻ hoặc tự động phát hiện tất cả các cột phân loại khả dụng trong `card.others` (`Category`, `Unit`, `Lesson`, `Topic`, `Part of Speech`...).
+  - **Bộ chuyển cột phân loại linh hoạt**: Nếu bộ thẻ có nhiều cột phân loại, cung cấp menu chọn cột gom nhóm ngay trên đầu Card Map (`Group by: Category ▾`).
+  - **Thanh cuộn chip nhóm trực quan (Horizontal Group Pills)**: Hiển thị toàn bộ các nhóm/chủ đề kèm số lượng thẻ thực tế (`All Cards`, `Unit 1 (15)`, `Unit 2 (20)`...).
+  - **Lọc thẻ tức thì trong phiên học**: Chọn bất kỳ nhóm nào sẽ lọc ngay danh sách thẻ trong Card Map, cập nhật biểu đồ phân bổ Mastered / Learning / Unseen theo nhóm đó, đồng thời các nút lọc trạng thái (Mastered, Learning, Unseen, Hard, Starred) sẽ lọc trên tập thẻ của nhóm đã chọn.
+  - **Chuyển đổi phạm vi học theo nhóm 1-Tap (Instant Study Group Switcher)**:
+    - Nút CTA nổi bật `🎯 Study this group only: [Tên nhóm] (X thẻ) →`: Cho phép người học chuyển đổi phiên học hiện tại sang học riêng nhóm đó ngay lập tức mà không cần thoát ra ngoài.
+    - Huy hiệu nhóm đang học kèm nút `🌐 Switch back to All Cards`: Dễ dàng chuyển ngược lại học toàn bộ bộ thẻ chỉ với 1 cú chạm.
+    - Cập nhật URL phản ứng nhanh (`useSearchParams`) kích hoạt tải lại phiên học mượt mà trong cả `FlashcardPlay.tsx` và `PracticePlay.tsx` mà không reload lại toàn bộ trang web.
 - **Tích Hợp Đồng Bộ Learn Modes & Practice Modes**:
   - Mở rộng hệ thống quản lý quyền truy cập chế độ học tại Deck Settings Group 5 (`StudySettingsEditor.tsx`), tích hợp cả 2 nhóm chế độ trong cùng một giao diện điều khiển với bộ chuyển tab con:
     - 📚 **Learn Modes (3)**: FSRS Spaced Repetition, Speed Skim, Memrise Mode.

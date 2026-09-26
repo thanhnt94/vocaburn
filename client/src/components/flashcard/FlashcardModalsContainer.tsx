@@ -345,6 +345,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
                 filterMode={mobileMapFilterMode}
                 setFilterMode={setMobileMapFilterMode}
                 showFiltersInline={true}
+                subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
               />
             </div>
           </motion.div>

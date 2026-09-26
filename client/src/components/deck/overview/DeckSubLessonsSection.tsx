@@ -142,11 +142,11 @@ export function DeckSubLessonsSection({
   }
 
   const handleStudySubLesson = (col: string, val: string) => {
-    navigate(`/quiz/${deckId}/flashcard?sub_col=${encodeURIComponent(col)}&sub_val=${encodeURIComponent(val)}`)
+    navigate(`/flashcard/${deckId}/play?sub_col=${encodeURIComponent(col)}&sub_val=${encodeURIComponent(val)}`)
   }
 
   const handlePracticeSubLesson = (col: string, val: string) => {
-    navigate(`/quiz/${deckId}/practice?sub_col=${encodeURIComponent(col)}&sub_val=${encodeURIComponent(val)}`)
+    navigate(`/practice/${deckId}/mcq?sub_col=${encodeURIComponent(col)}&sub_val=${encodeURIComponent(val)}`)
   }
 
   const handleViewCards = (col: string, val: string) => {
@@ -158,11 +158,11 @@ export function DeckSubLessonsSection({
   }
 
   const handleStudyFullDeck = () => {
-    navigate(`/quiz/${deckId}/flashcard`)
+    navigate(`/flashcard/${deckId}/play`)
   }
 
   const handlePracticeFullDeck = () => {
-    navigate(`/quiz/${deckId}/practice`)
+    navigate(`/practice/${deckId}/mcq`)
   }
 
   return (

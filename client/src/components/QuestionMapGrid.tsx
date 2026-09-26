@@ -1,8 +1,29 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import axios from 'axios'
 import { cn } from '@/lib/utils'
-import { LayoutGrid, BookOpen, Brain, Trophy, Flame, Star, EyeOff, Search, Sparkles } from 'lucide-react'
+import {
+  LayoutGrid,
+  BookOpen,
+  Brain,
+  Trophy,
+  Flame,
+  Star,
+  EyeOff,
+  Search,
+  Sparkles,
+  FolderTree,
+  ChevronDown,
+  ArrowRight,
+  X,
+} from 'lucide-react'
 
 interface Question {
+  id?: number
+  content?: string
+  explanation?: string
+  others?: Record<string, any>
   options?: any[]
   stats?: {
     total?: number
@@ -23,6 +44,7 @@ interface Question {
   }
   is_ignored?: boolean
   is_starred?: boolean
+  [key: string]: any
 }
 
 interface QuestionMapGridProps {
@@ -36,6 +58,8 @@ interface QuestionMapGridProps {
   filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
   setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored') => void
   showFiltersInline?: boolean
+  subLessonGrouping?: { enabled?: boolean; column?: string; hide_uncategorized?: boolean }
+  onSwitchGroup?: (col: string | null, val: string | null) => void
 }
 
 export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
@@ -49,14 +73,185 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   filterMode,
   setFilterMode,
   showFiltersInline = true,
+  subLessonGrouping,
+  onSwitchGroup,
 }) => {
   const isPractice = mainTab === 'practice'
+  const { id: deckId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeSessionSubCol = searchParams.get('sub_col')
+  const activeSessionSubVal = searchParams.get('sub_val')
+
   const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
   const [jumpInput, setJumpInput] = useState('')
   const activeCardRef = useRef<HTMLButtonElement | null>(null)
 
   const activeFilterMode = filterMode !== undefined ? filterMode : internalFilterMode
   const activeSetFilterMode = setFilterMode !== undefined ? setFilterMode : setInternalFilterMode
+
+  // ── 1. Fetch Deck Sub-Lessons (all groups & candidate columns in deck) ──
+  const isDeckValid = !!deckId && deckId !== 'quick' && deckId !== 'global-focus' && !deckId.startsWith('folder_')
+  const { data: subLessonsData } = useQuery({
+    queryKey: ['deck-sub-lessons', deckId],
+    queryFn: async () => {
+      const res = await axios.get(`/api/v1/deck/${deckId}/sub-lessons`)
+      return res.data
+    },
+    enabled: isDeckValid,
+    staleTime: 60 * 1000,
+  })
+
+  // ── 2. Discover Available Grouping Columns ──
+  const availableColumns = useMemo(() => {
+    if (subLessonsData?.available_columns && subLessonsData.available_columns.length > 0) {
+      return subLessonsData.available_columns.map((c: any) => ({
+        column: c.column,
+        label: c.label || c.column.replace(/_/g, ' ').toUpperCase(),
+        distinctCount: c.distinct_count || 0,
+      }))
+    }
+
+    // Local discovery from current questions' others object
+    const colMap: Record<string, Set<string>> = {}
+    const excluded = new Set([
+      'front', 'back', 'audio', 'image', 'front_audio_url', 'back_audio_url',
+      'front_img', 'back_img', 'ai_explanation', 'hint', 'mnemonic', 'id',
+      'order_in_container', 'other_content',
+    ])
+
+    questions?.forEach((q) => {
+      if (q.others && typeof q.others === 'object') {
+        Object.entries(q.others).forEach(([k, v]) => {
+          if (!excluded.has(k) && !k.startsWith('_') && v !== null && v !== undefined) {
+            const strVal = String(v).trim()
+            if (strVal) {
+              if (!colMap[k]) colMap[k] = new Set()
+              colMap[k].add(strVal)
+            }
+          }
+        })
+      }
+    })
+
+    return Object.entries(colMap)
+      .filter(([_, set]) => set.size >= 1 && set.size <= 250)
+      .map(([col, set]) => ({
+        column: col,
+        label: col.replace(/_/g, ' ').toUpperCase(),
+        distinctCount: set.size,
+      }))
+  }, [subLessonsData, questions])
+
+  // ── 3. Active Column to Group by ──
+  const defaultCol = activeSessionSubCol || subLessonGrouping?.column || subLessonsData?.active_column || (availableColumns.length > 0 ? availableColumns[0].column : null)
+  const [selectedCol, setSelectedCol] = useState<string | null>(defaultCol)
+
+  useEffect(() => {
+    if (defaultCol && !selectedCol) {
+      setSelectedCol(defaultCol)
+    }
+  }, [defaultCol, selectedCol])
+
+  const activeCol = selectedCol || defaultCol
+
+  // ── 4. Groups List for Active Column ──
+  const groupsList = useMemo(() => {
+    if (!activeCol) return []
+
+    // If subLessonsData has groups for this active column, use full deck groups
+    if (
+      subLessonsData?.groups &&
+      subLessonsData.groups.length > 0 &&
+      (subLessonsData.active_column === activeCol || subLessonsData.configured_column === activeCol)
+    ) {
+      return subLessonsData.groups.map((g: any) => ({
+        value: g.value,
+        label: g.label || (g.value === '__empty__' ? '(Uncategorized)' : g.value),
+        totalCards: g.total_cards,
+      }))
+    }
+
+    // Otherwise compute from questions locally
+    const counts: Record<string, number> = {}
+    questions?.forEach((q) => {
+      let val = ''
+      const qAny = q as Record<string, any>
+      if (q.others && typeof q.others === 'object') {
+        val = String(q.others[activeCol] || '').trim()
+      } else if (qAny[activeCol]) {
+        val = String(qAny[activeCol] || '').trim()
+      }
+      const key = val || '__empty__'
+      counts[key] = (counts[key] || 0) + 1
+    })
+
+    return Object.entries(counts)
+      .map(([val, cnt]) => ({
+        value: val,
+        label: val === '__empty__' ? '(Uncategorized)' : val,
+        totalCards: cnt,
+      }))
+      .sort((a, b) => {
+        if (a.value === '__empty__') return 1
+        if (b.value === '__empty__') return -1
+        return a.label.localeCompare(b.label, undefined, { numeric: true })
+      })
+  }, [activeCol, subLessonsData, questions])
+
+  // ── 5. Category Selection State (within Card Map) ──
+  const [selectedGroupVal, setSelectedGroupVal] = useState<string>(activeSessionSubVal || 'all')
+
+  useEffect(() => {
+    if (activeSessionSubVal) {
+      setSelectedGroupVal(activeSessionSubVal)
+    }
+  }, [activeSessionSubVal])
+
+  // Handle switching active study session to a specific sub-group
+  const handleSwitchStudyGroup = (col: string | null, val: string | null) => {
+    if (onSwitchGroup) {
+      onSwitchGroup(col, val)
+      setIsMapOpen(false)
+      return
+    }
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (col && val !== null) {
+        next.set('sub_col', col)
+        next.set('sub_val', val)
+      } else {
+        next.delete('sub_col')
+        next.delete('sub_val')
+      }
+      return next
+    })
+    setIsMapOpen(false)
+  }
+
+  // ── 6. Category-Filtered Questions ──
+  const categoryFilteredQuestions = useMemo(() => {
+    if (!questions) return []
+    if (!activeCol || selectedGroupVal === 'all') {
+      return questions.map((q, idx) => ({ ...q, originalIndex: idx }))
+    }
+
+    return questions
+      .map((q, idx) => ({ ...q, originalIndex: idx }))
+      .filter((q) => {
+        let val = ''
+        const qAny = q as Record<string, any>
+        if (q.others && typeof q.others === 'object') {
+          val = String(q.others[activeCol] || '').trim()
+        } else if (qAny[activeCol]) {
+          val = String(qAny[activeCol] || '').trim()
+        }
+        if (selectedGroupVal === '__empty__') {
+          return !val
+        }
+        return val === selectedGroupVal
+      })
+  }, [questions, activeCol, selectedGroupVal])
 
   // Automatically scroll to active card when map is viewed
   useEffect(() => {
@@ -66,7 +261,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       }
     }, 150)
     return () => clearTimeout(timer)
-  }, [currentIndex, activeFilterMode])
+  }, [currentIndex, activeFilterMode, selectedGroupVal])
 
   const getCardStatus = (item: Question): 'ignored' | 'starred' | 'hard' | 'mastered' | 'unseen' | 'learning' => {
     if (item.is_ignored) return 'ignored'
@@ -91,7 +286,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     return 'learning'
   }
 
-  // Pre-calculate status distribution for retention bar and filter pills
+  // Status distribution calculated on categoryFilteredQuestions
   const statusCounts = useMemo(() => {
     let mastered = 0
     let learning = 0
@@ -100,20 +295,18 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     let starred = 0
     let ignored = 0
 
-    if (questions) {
-      questions.forEach((q) => {
-        if (q.is_starred) starred++
-        if (q.is_ignored) ignored++
-        const st = getCardStatus(q)
-        if (st === 'mastered') mastered++
-        else if (st === 'hard') hard++
-        else if (st === 'unseen') unseen++
-        else learning++
-      })
-    }
+    categoryFilteredQuestions.forEach((q) => {
+      if (q.is_starred) starred++
+      if (q.is_ignored) ignored++
+      const st = getCardStatus(q)
+      if (st === 'mastered') mastered++
+      else if (st === 'hard') hard++
+      else if (st === 'unseen') unseen++
+      else learning++
+    })
 
     return {
-      all: questions?.length || 0,
+      all: categoryFilteredQuestions.length,
       mastered,
       learning,
       unseen,
@@ -121,31 +314,31 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       starred,
       ignored,
     }
-  }, [questions])
+  }, [categoryFilteredQuestions])
 
-  const totalCards = questions?.length || 0
+  const totalCards = categoryFilteredQuestions.length
   const masteredPct = totalCards > 0 ? Math.round((statusCounts.mastered / totalCards) * 100) : 0
   const learningPct = totalCards > 0 ? Math.round((statusCounts.learning / totalCards) * 100) : 0
   const unseenPct = Math.max(0, 100 - masteredPct - learningPct)
 
-  // Filtered list of questions with original 0-indexed position
+  // Filtered list with active status mode applied
   const filteredQuestions = useMemo(() => {
-    if (!questions) return []
-    return questions
-      .map((q, idx) => ({ ...q, originalIndex: idx }))
-      .filter((item) => {
-        if (activeFilterMode === 'all') return true
-        return getCardStatus(item) === activeFilterMode
-      })
-  }, [questions, activeFilterMode])
+    return categoryFilteredQuestions.filter((item) => {
+      if (activeFilterMode === 'all') return true
+      return getCardStatus(item) === activeFilterMode
+    })
+  }, [categoryFilteredQuestions, activeFilterMode])
 
   const handleJumpSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const targetIdx = parseInt(jumpInput, 10)
-    if (!isNaN(targetIdx) && targetIdx >= 1 && targetIdx <= totalCards) {
-      navigateToQuestion(targetIdx - 1)
-      setIsMapOpen(false)
-      setJumpInput('')
+    if (!isNaN(targetIdx) && targetIdx >= 1 && targetIdx <= categoryFilteredQuestions.length) {
+      const targetCard = categoryFilteredQuestions[targetIdx - 1]
+      if (targetCard) {
+        navigateToQuestion(targetCard.originalIndex)
+        setIsMapOpen(false)
+        setJumpInput('')
+      }
     }
   }
 
@@ -160,7 +353,160 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   ]
 
   return (
-    <div className="space-y-3.5 flex flex-col h-full">
+    <div className="space-y-3 flex flex-col h-full">
+      {/* ── Sub-Lesson / Category Grouping Bar ── */}
+      {availableColumns.length > 0 && (
+        <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-2.5 shadow-2xs flex-shrink-0 space-y-2">
+          {/* Top Row: Group Column Selector & Active Sub-group Badge */}
+          <div className="flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center gap-1.5 font-bold text-slate-700 min-w-0">
+              <FolderTree className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span className="shrink-0 text-slate-500 font-semibold">Group by:</span>
+              {availableColumns.length > 1 ? (
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={activeCol || ''}
+                    onChange={(e) => {
+                      setSelectedCol(e.target.value)
+                      setSelectedGroupVal('all')
+                    }}
+                    className="appearance-none bg-white border border-slate-200/90 rounded-lg pl-2 pr-6 py-0.5 font-extrabold text-indigo-700 hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer text-[10.5px]"
+                  >
+                    {availableColumns.map((c: any) => (
+                      <option key={c.column} value={c.column}>
+                        {c.label} ({c.distinctCount})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
+                </div>
+              ) : (
+                <span className="font-extrabold text-indigo-700">
+                  {availableColumns[0]?.label || 'Category'}
+                </span>
+              )}
+            </div>
+
+            {/* If currently studying a sub-group session */}
+            {activeSessionSubCol && activeSessionSubVal && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200/80 text-[10px] font-black text-indigo-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="max-w-[100px] truncate" title={activeSessionSubVal === '__empty__' ? '(Uncategorized)' : activeSessionSubVal}>
+                    {activeSessionSubVal === '__empty__' ? '(Uncategorized)' : activeSessionSubVal}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchStudyGroup(null, null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  title="Study All Cards"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Horizontal Scrollable Group Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <button
+              type="button"
+              onClick={() => setSelectedGroupVal('all')}
+              className={cn(
+                "h-7 px-2.5 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
+                selectedGroupVal === 'all'
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                  : "bg-white text-slate-600 hover:bg-slate-100/80 border-slate-200/90"
+              )}
+            >
+              <span>All Cards</span>
+              <span className={cn(
+                "text-[9px] font-black px-1.5 py-0.2 rounded-md",
+                selectedGroupVal === 'all' ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+              )}>
+                {questions?.length || 0}
+              </span>
+            </button>
+
+            {groupsList.map((g: any) => {
+              const isSelected = selectedGroupVal === g.value
+              const isCurrentSessionGroup = activeSessionSubCol === activeCol && activeSessionSubVal === g.value
+              return (
+                <button
+                  key={g.value}
+                  type="button"
+                  onClick={() => setSelectedGroupVal(g.value)}
+                  className={cn(
+                    "h-7 px-2.5 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
+                    isSelected
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                      : isCurrentSessionGroup
+                        ? "bg-indigo-50/80 text-indigo-700 border-indigo-300 font-black"
+                        : "bg-white text-slate-600 hover:bg-slate-100/80 border-slate-200/90"
+                  )}
+                >
+                  {isCurrentSessionGroup && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                  <span className="max-w-[120px] truncate">{g.label}</span>
+                  <span className={cn(
+                    "text-[9px] font-black px-1.5 py-0.2 rounded-md",
+                    isSelected
+                      ? "bg-white/20 text-white"
+                      : isCurrentSessionGroup
+                        ? "bg-indigo-200/60 text-indigo-800"
+                        : "bg-slate-100 text-slate-500"
+                  )}>
+                    {g.totalCards}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Quick Study Switch Banner (High affordance CTA) */}
+          {selectedGroupVal !== 'all' && !(activeSessionSubCol === activeCol && activeSessionSubVal === selectedGroupVal) && (
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => handleSwitchStudyGroup(activeCol, selectedGroupVal)}
+                className="w-full h-8 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-[11px] font-black flex items-center justify-between shadow-xs hover:shadow-indigo-500/25 transition-all active:scale-[0.99] cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span className="shrink-0">Study this group only:</span>
+                  <span className="underline decoration-indigo-300 underline-offset-2 truncate">
+                    {groupsList.find((g: any) => g.value === selectedGroupVal)?.label || selectedGroupVal}
+                  </span>
+                </span>
+                <span className="flex items-center gap-1 text-[10px] uppercase font-black tracking-wider text-indigo-100 shrink-0">
+                  <span>Start</span>
+                  <ArrowRight className="w-3 h-3" />
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* If currently studying a sub-group and selected 'all', offer to switch back to full deck */}
+          {activeSessionSubCol && activeSessionSubVal && selectedGroupVal === 'all' && (
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => handleSwitchStudyGroup(null, null)}
+                className="w-full h-8 px-3 rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white text-[11px] font-black flex items-center justify-between shadow-xs transition-all active:scale-[0.99] cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>🌐 Switch back to All Cards</span>
+                </span>
+                <span className="flex items-center gap-1 text-[10px] uppercase font-black tracking-wider text-slate-300">
+                  <span>Full Deck</span>
+                  <ArrowRight className="w-3 h-3" />
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Retention Progress Distribution Bar ── */}
       <div className="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 shadow-xs flex-shrink-0 space-y-2">
         <div className="flex items-center justify-between text-[10.5px] font-bold">
@@ -257,18 +603,42 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       {/* ── Modern Squircle Card Grid ── */}
       <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 custom-scrollbar">
         {filteredQuestions.length === 0 ? (
-          <div className="py-16 flex flex-col items-center justify-center text-center text-slate-400 gap-2.5">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-xl shadow-xs">
-              🔍
+          categoryFilteredQuestions.length === 0 && selectedGroupVal !== 'all' ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center p-4 gap-3 bg-indigo-50/50 rounded-2xl border border-indigo-100/80 my-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 text-xl shadow-xs">
+                📁
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-black text-slate-800">
+                  Group "{groupsList.find((g: any) => g.value === selectedGroupVal)?.label || selectedGroupVal}" not loaded in current session
+                </p>
+                <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                  Your current session is focused on a different group. Tap below to switch your study session to this group!
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSwitchStudyGroup(activeCol, selectedGroupVal)}
+                className="mt-1 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Switch Study Session to this Group</span>
+              </button>
             </div>
-            <p className="text-xs font-bold text-slate-600">No cards match this filter</p>
-            <button
-              onClick={() => activeSetFilterMode('all')}
-              className="text-xs font-black text-indigo-600 hover:text-indigo-700 underline cursor-pointer"
-            >
-              Reset to All Cards
-            </button>
-          </div>
+          ) : (
+            <div className="py-16 flex flex-col items-center justify-center text-center text-slate-400 gap-2.5">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-xl shadow-xs">
+                🔍
+              </div>
+              <p className="text-xs font-bold text-slate-600">No cards match this filter</p>
+              <button
+                onClick={() => activeSetFilterMode('all')}
+                className="text-xs font-black text-indigo-600 hover:text-indigo-700 underline cursor-pointer"
+              >
+                Reset to All Cards
+              </button>
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-2.5 p-1 pb-6">
             {filteredQuestions.map((item) => {

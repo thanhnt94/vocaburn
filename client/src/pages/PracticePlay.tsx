@@ -283,7 +283,7 @@ const getBaseMode = (mode: string | undefined): string => {
 
 export default function PracticePlay() {
   const { id, subMode } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const subCol = searchParams.get('sub_col')
   const subVal = searchParams.get('sub_val')
   const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
@@ -1227,8 +1227,12 @@ export default function PracticePlay() {
 
 
   useEffect(() => {
+    setCurrentIndex(0)
+    setPracticeAnswers({})
+    setSelectedOption(null)
+    setShowFeedback(false)
     fetchSession(mainTab, subMode || practiceSubMode)
-  }, [id, subMode])
+  }, [id, subMode, subCol, subVal])
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
   useEffect(() => {
@@ -5145,6 +5149,7 @@ export default function PracticePlay() {
                     setIsMapOpen={setIsMapOpen}
                     filterMode={mobileMapFilterMode}
                     setFilterMode={setMobileMapFilterMode}
+                    subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
                   />
                 </>
               )}
@@ -5443,6 +5448,7 @@ export default function PracticePlay() {
                 filterMode={mobileMapFilterMode}
                 setFilterMode={setMobileMapFilterMode}
                 showFiltersInline={true}
+                subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
               />
             </div>
           </motion.div>
