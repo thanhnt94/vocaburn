@@ -10,6 +10,13 @@ import {
   Eye,
   Type,
   Hand,
+  Timer,
+  Clock,
+  Sparkles,
+  AlignLeft,
+  AlignCenter,
+  Sliders,
+  Check
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SegmentedControl } from './SegmentedControl'
@@ -33,6 +40,7 @@ export function StudySettingsEditor({
   const gap = compact ? "gap-3" : "gap-5"
   const sectionPadding = compact ? "p-3" : "p-4 sm:p-5"
 
+  // Font size helpers
   const rawFontSize = settings.front_font_size || '100%'
   const numMatch = String(rawFontSize).match(/\d+/)
   const currentFontPercent = numMatch ? parseInt(numMatch[0], 10) : 100
@@ -45,6 +53,7 @@ export function StudySettingsEditor({
     return 'Huge'
   }
 
+  // Flip trigger helpers
   const tapToFlip = settings.tap_to_flip !== undefined
     ? settings.tap_to_flip
     : (settings.card_flip_trigger !== 'button_only')
@@ -73,9 +82,38 @@ export function StudySettingsEditor({
     onChange('card_flip_trigger', nextTrigger)
   }
 
+  // Auto-next delay helpers
+  const rawDelay = settings.auto_next_delay
+  const isAutoAdvanceEnabled = rawDelay !== null && rawDelay !== undefined && Number(rawDelay) > 0
+  const currentDelaySec = isAutoAdvanceEnabled ? Number(rawDelay) : 2
+
+  const handleToggleAutoAdvance = (enabled: boolean) => {
+    if (enabled) {
+      onChange('auto_next_delay', currentDelaySec > 0 ? currentDelaySec : 2)
+    } else {
+      onChange('auto_next_delay', null)
+    }
+  }
+
+  const handleSetDelaySec = (sec: number) => {
+    onChange('auto_next_delay', sec)
+  }
+
+  const getDelayPillLabel = (sec: number) => {
+    if (sec <= 0.5) return 'Instant (0.5s)'
+    if (sec === 1) return 'Fast (1s)'
+    if (sec === 2) return 'Standard (2s)'
+    if (sec === 3) return 'Relaxed (3s)'
+    if (sec >= 5) return `Extended (${sec}s)`
+    return `${sec}s`
+  }
+
+  // Swipe to rate helper
+  const swipeToRate = settings.swipe_to_rate ?? (settings.card_rating_mode !== 'buttons')
+
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-2 ${gap}`}>
-      {/* GROUP 1: Gestures & Controls */}
+      {/* ═══════════ GROUP 1: GESTURES & CONTROLS ═══════════ */}
       <div className={`space-y-3 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
         <div className="flex items-center gap-2 text-indigo-600">
           <Move className="w-4 h-4" />
@@ -102,11 +140,45 @@ export function StudySettingsEditor({
           compact={compact}
         />
 
-        <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/70 flex items-start gap-2 text-slate-500">
-          <Move className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
-          <p className="text-[11px] leading-relaxed">
-            <span className="font-bold text-slate-700">4-Way Swipe Rating:</span> Always active on card back (Left = Again, Down = Hard, Right = Good, Up = Easy).
-          </p>
+        <ToggleRow
+          icon={Move}
+          label="Swipe to Rate Cards"
+          desc="Swipe cards to rate: Left = Again, Down = Hard, Right = Good, Up = Easy"
+          checked={swipeToRate}
+          onChange={(val) => {
+            onChange('swipe_to_rate', val)
+            const nextMode = val ? (showActionDock ? 'both' : 'swipe_4way') : 'buttons'
+            onChange('card_rating_mode', nextMode)
+          }}
+          compact={compact}
+        />
+
+        <div className="space-y-1.5 pt-1">
+          <label className="text-[11px] font-bold text-slate-700 block">
+            Rating Interface Mode
+          </label>
+          <SegmentedControl
+            value={settings.card_rating_mode || 'both'}
+            onChange={(val) => {
+              onChange('card_rating_mode', val)
+              if (val === 'buttons') {
+                onChange('show_action_dock', true)
+                onChange('swipe_to_rate', false)
+              } else if (val === 'swipe_4way' || val === 'swipe_2way') {
+                onChange('show_action_dock', false)
+                onChange('swipe_to_rate', true)
+              } else {
+                onChange('show_action_dock', true)
+                onChange('swipe_to_rate', true)
+              }
+            }}
+            options={[
+              { id: 'both', label: 'Buttons + Swipes' },
+              { id: 'buttons', label: 'Buttons Only' },
+              { id: 'swipe_4way', label: 'Swipes Only' },
+            ]}
+            compact={compact}
+          />
         </div>
 
         <ToggleRow
@@ -128,7 +200,107 @@ export function StudySettingsEditor({
         />
       </div>
 
-      {/* GROUP 2: Display & Alignment */}
+      {/* ═══════════ GROUP 2: AUTO-ADVANCE & PACING (USER REQUESTED) ═══════════ */}
+      <div className={`space-y-3.5 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-indigo-600">
+            <Timer className="w-4 h-4" />
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+              Auto-Advance & Pacing
+            </h4>
+          </div>
+          {isAutoAdvanceEnabled && (
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              {getDelayPillLabel(currentDelaySec)}
+            </span>
+          )}
+        </div>
+
+        {/* AUTO NEXT TOGGLE */}
+        <ToggleRow
+          icon={Clock}
+          label="Auto Advance (Auto Next)"
+          desc="Automatically move to the next card after rating or flipping without touching the screen"
+          checked={isAutoAdvanceEnabled}
+          onChange={handleToggleAutoAdvance}
+          compact={compact}
+        />
+
+        {/* DELAY SECONDS SELECTION (SHOWN WHEN ENABLED) */}
+        {isAutoAdvanceEnabled && (
+          <div className="space-y-2.5 p-3 rounded-xl bg-white border border-indigo-100 shadow-2xs animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800">
+                Auto-Advance Delay
+              </label>
+              <span className="text-[11px] font-black text-indigo-600">
+                {currentDelaySec}s delay
+              </span>
+            </div>
+
+            {/* PRESET CHIPS */}
+            <div className="grid grid-cols-5 gap-1">
+              {[
+                { sec: 0.5, label: '0.5s', sub: 'Instant' },
+                { sec: 1, label: '1s', sub: 'Fast' },
+                { sec: 2, label: '2s', sub: 'Normal' },
+                { sec: 3, label: '3s', sub: 'Relaxed' },
+                { sec: 5, label: '5s', sub: 'Slow' },
+              ].map((p) => {
+                const active = currentDelaySec === p.sec
+                return (
+                  <button
+                    key={p.sec}
+                    type="button"
+                    onClick={() => handleSetDelaySec(p.sec)}
+                    className={cn(
+                      "flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all cursor-pointer border text-center",
+                      active
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs font-black"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                    )}
+                  >
+                    <span className="text-xs font-black leading-tight">{p.label}</span>
+                    <span className={cn("text-[9px] tracking-tight leading-none mt-0.5", active ? "text-indigo-100" : "text-slate-400")}>
+                      {p.sub}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* FINE-TUNE RANGE SLIDER */}
+            <div className="flex items-center gap-2.5 px-1 pt-1">
+              <span className="text-[10px] font-bold text-slate-400">0.5s</span>
+              <input
+                type="range"
+                min={0.5}
+                max={10}
+                step={0.5}
+                value={currentDelaySec}
+                onChange={(e) => handleSetDelaySec(parseFloat(e.target.value))}
+                className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+              <span className="text-[10px] font-bold text-slate-400">10s</span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-medium">
+              Time the answer remains visible before smoothly transitioning to the next card.
+            </p>
+          </div>
+        )}
+
+        {/* QUICK LEARN MODE */}
+        <ToggleRow
+          icon={Sparkles}
+          label="Quick Learn Mode"
+          desc="Instantly move to the next card with zero delay upon tapping any rating button"
+          checked={settings.quick_learn_enabled ?? false}
+          onChange={(val) => onChange('quick_learn_enabled', val)}
+          compact={compact}
+        />
+      </div>
+
+      {/* ═══════════ GROUP 3: DISPLAY & CARD ALIGNMENT ═══════════ */}
       <div className={`space-y-3 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
         <div className="flex items-center gap-2 text-indigo-600">
           <Layers className="w-4 h-4" />
@@ -137,6 +309,7 @@ export function StudySettingsEditor({
           </h4>
         </div>
 
+        {/* VERTICAL ALIGNMENT */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-slate-700 block">
@@ -169,6 +342,40 @@ export function StudySettingsEditor({
           </div>
         </div>
 
+        {/* HORIZONTAL ALIGNMENT (NEW) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-700 block">
+              Front Text H-Align
+            </label>
+            <SegmentedControl
+              value={settings.front_halign || 'left'}
+              onChange={(val) => onChange('front_halign', val)}
+              options={[
+                { id: 'left', label: 'Left' },
+                { id: 'center', label: 'Center' },
+              ]}
+              compact={compact}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-700 block">
+              Back Text H-Align
+            </label>
+            <SegmentedControl
+              value={settings.back_halign || 'left'}
+              onChange={(val) => onChange('back_halign', val)}
+              options={[
+                { id: 'left', label: 'Left' },
+                { id: 'center', label: 'Center' },
+              ]}
+              compact={compact}
+            />
+          </div>
+        </div>
+
+        {/* ILLUSTRATION IMAGES */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700 block">
             Illustration Images
@@ -185,7 +392,7 @@ export function StudySettingsEditor({
           />
         </div>
 
-        {/* Front Font Size Scale */}
+        {/* FRONT FONT SIZE SCALE */}
         <div className="space-y-2 pt-2 border-t border-slate-200/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -266,7 +473,7 @@ export function StudySettingsEditor({
         />
       </div>
 
-      {/* GROUP 3: Audio & Pronunciation */}
+      {/* ═══════════ GROUP 4: AUDIO & PRONUNCIATION ═══════════ */}
       <div className={`space-y-3 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
         <div className="flex items-center gap-2 text-indigo-600">
           <Headphones className="w-4 h-4" />
@@ -290,10 +497,13 @@ export function StudySettingsEditor({
             ]}
             compact={compact}
           />
+          <p className="text-[11px] text-slate-400 font-medium">
+            Controls which side of the flashcard automatically reads audio pronunciation via Microsoft Neural TTS.
+          </p>
         </div>
       </div>
 
-      {/* GROUP 4: Queue & Algorithm */}
+      {/* ═══════════ GROUP 5: QUEUE & REVIEW ORDER ═══════════ */}
       {!hideQueue && (
         <div className={`space-y-3 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
           <div className="flex items-center gap-2 text-indigo-600">
@@ -336,3 +546,5 @@ export function StudySettingsEditor({
     </div>
   )
 }
+
+export default StudySettingsEditor

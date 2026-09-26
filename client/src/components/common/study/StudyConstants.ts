@@ -21,6 +21,8 @@ export interface StudySettings {
   haptic_enabled: boolean
   random_enabled: boolean
   quick_learn_enabled?: boolean
+  auto_next_delay?: number | null
+  swipe_to_rate?: boolean
 }
 
 export interface StudyTemplateItem {
@@ -53,6 +55,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettings = {
   haptic_enabled: true,
   random_enabled: false,
   quick_learn_enabled: false,
+  auto_next_delay: null,
+  swipe_to_rate: true,
 }
 
 export const SYSTEM_TEMPLATES: StudyTemplateItem[] = [
