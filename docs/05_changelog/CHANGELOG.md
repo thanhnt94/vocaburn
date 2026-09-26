@@ -2,6 +2,33 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-26]
+#### Phân Chia Nhỏ Bài Học Con Linh Hoạt Theo Cột (Dynamic Sub-Lessons & Module Partitioning)
+- **Tự Động Phát Hiện Cột & Phân Nhóm Động (100% Column-Agnostic)**:
+  - Cho phép người tạo hoặc người học chia nhỏ các bộ thẻ quy mô lớn (hàng nghìn thẻ) thành các bài học con/module vừa sức dựa trên **bất kỳ cột phân loại nào** trong bộ thẻ (ví dụ: `Category`, `Topic`, `Loại từ`, `Unit`, `Chapter`, `Cấp độ`...).
+  - API `GET /api/v1/deck/{deck_id}/sub-lessons` tự động quét các cột trong `Flashcard.others`, lọc bỏ các cột hệ thống/media, tính toán số nhóm và lấy mẫu xem trước cho người dùng.
+  - Các thẻ thiếu dữ liệu ở cột đã chọn được tự động gom an toàn vào nhóm `(Uncategorized)` (`__empty__`), đảm bảo không thất thoát bất kỳ thẻ nào.
+  - Sắp xếp thứ tự tự nhiên (Natural alphanumeric sorting): `Unit 1`, `Unit 2`... `Unit 10`.
+- **Cấu Hình Sub-Lessons Trong Settings (`DeckSubLessonSettings.tsx`)**:
+  - Bổ sung tab **Sub-Lessons** (`?tab=settings&subtab=sublessons`) trong cài đặt bộ thẻ với icon `FolderTree`.
+  - Công tắc bật/tắt hiển thị bài học con trên trang Dashboard Overview.
+  - Menu thả xuống và các nút bấm chọn nhanh cột phân loại kèm số nhóm phát hiện được.
+  - Xem trước trực tiếp (Live Preview) toàn bộ danh sách bài học con kèm số thẻ, số thẻ đến hạn và thanh tiến độ độ thuần thục.
+  - Lưu cấu hình vào `deck.practice_settings["sub_lesson_grouping"]` qua API `POST /api/v1/deck/{deck_id}/practice-settings`.
+- **Giao Diện Dashboard Overview & Bộ Chọn Động (`DeckSubLessonsSection.tsx`)**:
+  - Tích hợp trực tiếp vào tab Overview của bộ thẻ (`DeckOverviewTab.tsx`).
+  - **Dynamic Group Selector**: Cho phép người học chuyển đổi cột phân nhóm linh hoạt ngay trên Dashboard (`Group by: [Category ▾]`) mà không cần vào Settings.
+  - **Full Deck Master Mode**: Hero card nổi bật hỗ trợ học Flashcard hoặc luyện tập tất cả các thẻ trong bộ thẻ cùng lúc khi cần.
+  - **Lưới thẻ bài học con (Responsive Mobile-First Grid)**: Hiển thị tên bài học, số thẻ, huy hiệu thẻ đến hạn (`🔴 X due`), thanh tiến độ 3 màu (Đã thuộc / Đang học / Chưa học), cùng 3 nút hành động tiện lợi:
+    - 🎴 **Study**: Học Flashcard riêng bài con đó.
+    - ✍️ **Practice**: Luyện trắc nghiệm / gõ phím riêng bài con đó.
+    - 📋 **Cards**: Xem danh sách thẻ riêng bài con đó.
+- **Tích Hợp Phiên Học (`FlashcardPlay.tsx` & `PracticePlay.tsx`) & Lọc Thẻ (`DeckCardsTab.tsx`)**:
+  - Hỗ trợ tham số truy vấn `sub_col` và `sub_val` trong API `GET /api/v1/deck/{deck_id}/play-data` và `GET /api/v1/deck/{deck_id}/cards`.
+  - Hiển thị nhãn bài học con tương ứng trên thanh tiêu đề HUD (`StudyHeaderTracker`).
+  - Tab Cards hiển thị thanh thông báo filter nhóm đang lọc kèm nút huỷ filter 1-chạm tiện lợi.
+  - Bảo toàn 100% dữ liệu FSRS v6 Spaced Repetition, chuỗi ngày streak và điểm XP trên bản ghi `UserCardMastery` nguyên bản.
+
 ### [2026-09-14]
 #### Chế Độ Học Tập Tổng Hợp (Global Daily Focus Queue) & Tạm Đóng Băng Bộ Thẻ (Deck Freeze Mode)
 - **Chế Độ Học Tập Tổng Hợp (Global Daily Focus Queue)**:

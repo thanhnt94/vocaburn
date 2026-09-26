@@ -94,7 +94,7 @@ async def toggle_deck_freeze(request: Request, deck_id: int, db: AsyncSession = 
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_sett = user_sett_res.scalar_one_or_none()
     if not user_sett:
@@ -437,7 +437,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_sett = user_sett_res.scalar_one_or_none()
     settings = user_sett.settings if (user_sett and user_sett.settings) else {}
@@ -475,7 +475,7 @@ async def get_deck_roadmap_calendar(request: Request, deck_id: int, month: str =
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_sett = user_sett_res.scalar_one_or_none()
     settings = user_sett.settings if (user_sett and user_sett.settings) else {}
@@ -736,7 +736,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                     select(UserDeckSettings).where(
                         UserDeckSettings.user_id == user_id,
                         UserDeckSettings.deck_id == deck_id
-                    )
+                    ).order_by(UserDeckSettings.id.desc()).limit(1)
                 )
                 user_sett = user_sett_res.scalar_one_or_none()
                 settings = user_sett.settings if (user_sett and user_sett.settings) else {}
@@ -767,7 +767,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_sett = user_sett_res.scalar_one_or_none()
     settings = user_sett.settings if (user_sett and user_sett.settings) else {}
@@ -821,7 +821,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_sett = user_sett_res.scalar_one_or_none()
     settings = user_sett.settings if (user_sett and user_sett.settings) else {}
@@ -1073,7 +1073,7 @@ async def submit_roadmap_test(request: Request, deck_id: int, data: dict, db: As
             select(UserDeckSettings.settings).where(
                 UserDeckSettings.user_id == user_id,
                 UserDeckSettings.deck_id == deck_id
-            )
+            ).order_by(UserDeckSettings.id.desc()).limit(1)
         )
         user_sett = user_sett_res.scalar_one_or_none() or {}
         raw_pipeline = user_sett.get("pipeline", [])

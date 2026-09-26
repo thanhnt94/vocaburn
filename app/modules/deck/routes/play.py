@@ -10,6 +10,7 @@ get_deck_roadmap_status_helper = RoadmapService.get_deck_roadmap_status
 get_deck_streak_for_user = RoadmapService.get_deck_streak_for_user
 
 from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks, Query
+from fastapi.responses import JSONResponse
 from typing import Optional
 import logging
 
@@ -880,7 +881,7 @@ async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depen
         select(UserDeckSettings.settings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_custom_settings = user_settings_res.scalar_one_or_none()
     settings_data = user_custom_settings if (user_custom_settings and isinstance(user_custom_settings, dict)) else (deck.practice_settings or {})
@@ -1310,7 +1311,7 @@ async def get_deck_play_data(
     user_sett_stmt = select(UserDeckSettings).where(
         UserDeckSettings.user_id == user_id,
         UserDeckSettings.deck_id == deck_id
-    )
+    ).order_by(UserDeckSettings.id.desc()).limit(1)
     collab_stmt = select(DeckCollaborator).where(
         DeckCollaborator.deck_id == deck_id, 
         DeckCollaborator.user_id == user_id
@@ -1610,7 +1611,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         select(UserDeckSettings.settings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
-        )
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_settings_dict = user_sett_res.scalar_one_or_none() or {}
 
