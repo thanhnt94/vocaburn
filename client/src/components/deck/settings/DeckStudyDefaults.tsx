@@ -54,9 +54,13 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
   // Synchronize state when data loads
   useEffect(() => {
     if (settingsData) {
+      const disabledModes = settingsData?.disabled_modes || 
+                            settingsData?.creator_settings?.disabled_modes || 
+                            creatorDefs?.disabled_modes || []
       const merged: StudySettings = {
         ...DEFAULT_STUDY_SETTINGS,
         ...creatorDefs,
+        disabled_modes: Array.isArray(disabledModes) ? disabledModes : [],
       }
       if (merged.learning_mode && !merged.quiz_learning_mode) {
         merged.quiz_learning_mode = merged.learning_mode
@@ -136,6 +140,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
     setIsSaving(true)
     setMessage(null)
 
+    const disabledModes = settings.disabled_modes || []
     const studyDefaults = {
       ...settings,
       learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
@@ -147,6 +152,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
         is_creator: true,
         settings: {
           study_defaults: studyDefaults,
+          disabled_modes: disabledModes,
         },
       })
 
@@ -168,7 +174,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
     setIsResetting(true)
     setMessage(null)
 
-    const baseline = { ...DEFAULT_STUDY_SETTINGS }
+    const baseline = { ...DEFAULT_STUDY_SETTINGS, disabled_modes: [] }
     setSettings(baseline)
     setSelectedTemplateId('preset-standard')
 
@@ -177,6 +183,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
         is_creator: true,
         settings: {
           study_defaults: baseline,
+          disabled_modes: [],
         },
       })
 

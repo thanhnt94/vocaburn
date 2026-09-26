@@ -23,7 +23,44 @@ export interface StudySettings {
   quick_learn_enabled?: boolean
   auto_next_delay?: number | null
   swipe_to_rate?: boolean
+  disabled_modes?: string[]
 }
+
+export interface LearnModeOption {
+  id: 'fsrs' | 'skim' | 'memrise'
+  name: string
+  shortName: string
+  emoji: string
+  desc: string
+  badge: string
+}
+
+export const CORE_LEARN_MODES: LearnModeOption[] = [
+  {
+    id: 'fsrs',
+    name: 'FSRS Spaced Repetition',
+    shortName: 'FSRS',
+    emoji: '🧠',
+    desc: 'Spaced repetition based on memory retention with 4 rating buttons',
+    badge: 'Recommended'
+  },
+  {
+    id: 'skim',
+    name: 'Speed Skim',
+    shortName: 'Skim',
+    emoji: '⚡',
+    desc: 'Rapid 1-tap/Space card scanning without rating friction (+3 XP)',
+    badge: '1-Tap Rapid'
+  },
+  {
+    id: 'memrise',
+    name: 'Memrise Mode',
+    shortName: 'Memrise',
+    emoji: '🌱',
+    desc: 'Deep multi-stage word mastery: Plant & water step-by-step',
+    badge: 'Deep Study'
+  },
+]
 
 export interface StudyTemplateItem {
   id: string
@@ -57,6 +94,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettings = {
   quick_learn_enabled: false,
   auto_next_delay: null,
   swipe_to_rate: true,
+  disabled_modes: [],
 }
 
 export const SYSTEM_TEMPLATES: StudyTemplateItem[] = [

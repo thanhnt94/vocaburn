@@ -902,6 +902,7 @@ export default function FlashcardPlay() {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
+      const currentSearchParams = new URLSearchParams(window.location.search)
       
       // 1. Core quiz data load: fetched immediately to show flashcards instantly
       const isFolder = typeof id === 'string' && id.startsWith('folder_')
@@ -920,7 +921,38 @@ export default function FlashcardPlay() {
         fetchUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
       }
       const quizRes = await axios.get(fetchUrl)
-      const questions = quizRes.data.questions || []
+      let questions = quizRes.data.questions || []
+
+      // Apply URL filter if specified (e.g. ?filter=new, ?filter=due, ?filter=hard)
+      const urlFilter = currentSearchParams.get('filter')
+      if (urlFilter === 'new') {
+        const filtered = questions.filter((q: any) => {
+          return q.fsrs ? (q.fsrs.state === 0 && q.fsrs.last_review === null) : (q.is_new || !q.stats?.total)
+        })
+        if (filtered.length > 0) questions = filtered
+      } else if (urlFilter === 'due' || urlFilter === 'review') {
+        const filtered = questions.filter((q: any) => {
+          return q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && (q.stats?.total || 0) > 0)
+        })
+        if (filtered.length > 0) questions = filtered
+      } else if (urlFilter === 'hard') {
+        const filtered = questions.filter((q: any) => {
+          const diff = q.fsrs?.difficulty || 0
+          const laps = q.fsrs?.lapses || 0
+          return diff >= 6 || laps > 0 || q.is_hard
+        })
+        if (filtered.length > 0) questions = filtered
+      }
+
+      // Apply random order if specified in URL
+      const initialOrder = currentSearchParams.get('order')
+      if (initialOrder === 'random') {
+        for (let i = questions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [questions[i], questions[j]] = [questions[j], questions[i]];
+        }
+      }
+
       setSession({ ...quizRes.data, questions })
 
       if (questions.length === 0) {
@@ -931,7 +963,7 @@ export default function FlashcardPlay() {
           learned_cards: 0,
           message: isGlobalFocus 
             ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉' 
-            : 'Không có thẻ nào đến hạn ôn tập hôm nay.'
+            : 'Không có thẻ nào phù hợp với bộ lọc này.'
         })
       }
 
@@ -942,8 +974,7 @@ export default function FlashcardPlay() {
       const origin = quizRes.data.setting_origin;
       syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin);
 
-      const searchParams = new URLSearchParams(window.location.search);
-      const rawUrlMode = searchParams.get('mode');
+      const rawUrlMode = currentSearchParams.get('mode');
       const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
       if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
         setActiveMode(urlMode);
@@ -953,7 +984,7 @@ export default function FlashcardPlay() {
         setActiveMode(eff);
       }
 
-      const urlOrder = searchParams.get('order');
+      const urlOrder = currentSearchParams.get('order');
       if (urlOrder === 'random') {
         setRandomEnabled(true);
         saveGeneralSettings({ random_enabled: true });

@@ -74,26 +74,15 @@ export const STUDY_MODES: StudyModeOption[] = [
     getUrl: (id) => `/flashcard/${id}/play?mode=skim`
   },
   {
-    id: 'review',
-    name: 'Review Mode',
-    fullName: 'Continuous Review',
-    emoji: '📚',
-    desc: 'Review all learned cards in a continuous cycle',
-    badge: () => 'Learned',
+    id: 'memrise',
+    name: 'Memrise Mode',
+    fullName: 'Memrise Deep Learning',
+    emoji: '🌱',
+    desc: 'Deep multi-stage word mastery: Plant & water step-by-step',
+    badge: () => 'Deep Study',
     badgeColor: 'bg-emerald-100 text-emerald-700',
-    color: 'from-teal-600 to-emerald-600',
-    getUrl: (id) => `/flashcard/${id}/play?mode=review`
-  },
-  {
-    id: 'new',
-    name: 'New Cards',
-    fullName: 'Learn New Vocabulary',
-    emoji: '✨',
-    desc: 'Focus solely on unlearned vocabulary cards',
-    badge: () => 'NEW',
-    badgeColor: 'bg-purple-100 text-purple-700',
-    color: 'from-purple-600 to-pink-600',
-    getUrl: (id) => `/flashcard/${id}/play?mode=new`
+    color: 'from-emerald-500 to-teal-600',
+    getUrl: (id) => `/memrise/${id}/plant`
   },
   {
     id: 'mcq',
@@ -199,12 +188,30 @@ export function DeckDetailPage() {
   const currentMode = STUDY_MODES.find(m => m.id === selectedStudyMode) || STUDY_MODES[0]
 
   const handleLaunchStudy = (modeId?: string) => {
-    const targetMode = STUDY_MODES.find(m => m.id === (modeId || selectedStudyMode)) || STUDY_MODES[0]
+    const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
+    let targetId = modeId || selectedStudyMode
+    if (disabledModes.includes(targetId)) {
+      const fallback = ['fsrs', 'skim', 'memrise'].find(m => !disabledModes.includes(m)) || 'fsrs'
+      targetId = fallback
+    }
+    const targetMode = STUDY_MODES.find(m => m.id === targetId) || STUDY_MODES[0]
     if (id) {
-      if (modeId) setSelectedStudyMode(modeId)
+      setSelectedStudyMode(targetMode.id)
       setStudySheetType(null)
       navigate(targetMode.getUrl(id))
     }
+  }
+
+  const handleMainLearnClick = () => {
+    const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
+    const configuredDefault = deckMeta?.practice_settings?.study_defaults?.quiz_learning_mode || 
+                              deckMeta?.practice_settings?.study_defaults?.learning_mode || 'fsrs'
+    const normalizedDefault = configuredDefault === 'speed_skim' ? 'skim' : configuredDefault
+    const effectiveMode = disabledModes.includes(normalizedDefault)
+      ? (['fsrs', 'skim', 'memrise'].find(m => !disabledModes.includes(m)) || 'fsrs')
+      : normalizedDefault
+
+    handleLaunchStudy(effectiveMode)
   }
 
   const isOwner = Boolean(
@@ -660,11 +667,11 @@ export function DeckDetailPage() {
       {activeTab !== 'cards' && (
         <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2.5">
-            {/* 1. Learn Button (Opens Modal) */}
+            {/* 1. Learn Button (1-Tap Launch Default Mode | ▾ Open Sheet) */}
             <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20 overflow-hidden">
               <button
                 type="button"
-                onClick={() => setIsLearnModalOpen(true)}
+                onClick={handleMainLearnClick}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 pl-3 pr-2 font-black text-xs sm:text-sm active:scale-[0.98] transition-all cursor-pointer truncate"
                 title="Start Learning"
               >
@@ -880,58 +887,73 @@ export function DeckDetailPage() {
 
                   {/* Modes List */}
                   <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
-                    {STUDY_MODES.slice(0, 4).map((mode) => {
-                      const isSelected = selectedStudyMode === mode.id
-                      return (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => handleLaunchStudy(mode.id)}
-                          className={cn(
-                            "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
-                            isSelected
-                              ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
-                              : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
-                          )}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
-                              isSelected ? "bg-white shadow-xs" : "bg-slate-100"
-                            )}>
-                              {mode.emoji}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-slate-800 truncate">
-                                  {mode.fullName}
-                                </span>
-                                {mode.badge && (
-                                  <span className={cn(
-                                    "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
-                                    mode.badgeColor || "bg-slate-100 text-slate-600"
-                                  )}>
-                                    {mode.badge(dueCount)}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                                {mode.desc}
-                              </p>
-                            </div>
-                          </div>
+                    {(() => {
+                      const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
+                      const activeLearnModes = STUDY_MODES.slice(0, 3).filter(m => !disabledModes.includes(m.id))
 
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                            {isSelected && (
-                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </span>
-                            )}
-                            <ArrowRight className="w-4 h-4 text-slate-400" />
+                      if (activeLearnModes.length === 0) {
+                        return (
+                          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center">
+                            <p className="text-xs text-amber-800 font-bold">
+                              All learning modes have been disabled for this deck by the creator.
+                            </p>
                           </div>
-                        </button>
-                      )
-                    })}
+                        )
+                      }
+
+                      return activeLearnModes.map((mode) => {
+                        const isSelected = selectedStudyMode === mode.id
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => handleLaunchStudy(mode.id)}
+                            className={cn(
+                              "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                              isSelected
+                                ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs"
+                                : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
+                                isSelected ? "bg-white shadow-xs" : "bg-slate-100"
+                              )}>
+                                {mode.emoji}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-slate-800 truncate">
+                                    {mode.fullName}
+                                  </span>
+                                  {mode.badge && (
+                                    <span className={cn(
+                                      "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
+                                      mode.badgeColor || "bg-slate-100 text-slate-600"
+                                    )}>
+                                      {mode.badge(dueCount)}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                  {mode.desc}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              {isSelected && (
+                                <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </span>
+                              )}
+                              <ArrowRight className="w-4 h-4 text-slate-400" />
+                            </div>
+                          </button>
+                        )
+                      })
+                    })()}
                   </div>
                 </div>
               </motion.div>
@@ -987,58 +1009,73 @@ export function DeckDetailPage() {
 
                   {/* Modes List */}
                   <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
-                    {STUDY_MODES.slice(4).map((mode) => {
-                      const isSelected = selectedStudyMode === mode.id
-                      return (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => handleLaunchStudy(mode.id)}
-                          className={cn(
-                            "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
-                            isSelected
-                              ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs"
-                              : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
-                          )}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
-                              isSelected ? "bg-white shadow-xs" : "bg-slate-100"
-                            )}>
-                              {mode.emoji}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-slate-800 truncate">
-                                  {mode.fullName}
-                                </span>
-                                {mode.badge && (
-                                  <span className={cn(
-                                    "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
-                                    mode.badgeColor || "bg-slate-100 text-slate-600"
-                                  )}>
-                                    {mode.badge(dueCount)}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                                {mode.desc}
-                              </p>
-                            </div>
-                          </div>
+                    {(() => {
+                      const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
+                      const activePracticeModes = STUDY_MODES.slice(3).filter(m => !disabledModes.includes(m.id))
 
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                            {isSelected && (
-                              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </span>
-                            )}
-                            <ArrowRight className="w-4 h-4 text-slate-400" />
+                      if (activePracticeModes.length === 0) {
+                        return (
+                          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center">
+                            <p className="text-xs text-amber-800 font-bold">
+                              All practice modes have been disabled for this deck.
+                            </p>
                           </div>
-                        </button>
-                      )
-                    })}
+                        )
+                      }
+
+                      return activePracticeModes.map((mode) => {
+                        const isSelected = selectedStudyMode === mode.id
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => handleLaunchStudy(mode.id)}
+                            className={cn(
+                              "w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer active:scale-[0.99]",
+                              isSelected
+                                ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs"
+                                : "bg-white hover:bg-slate-50 border-slate-200/80 shadow-2xs"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs",
+                                isSelected ? "bg-white shadow-xs" : "bg-slate-100"
+                              )}>
+                                {mode.emoji}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-slate-800 truncate">
+                                    {mode.fullName}
+                                  </span>
+                                  {mode.badge && (
+                                    <span className={cn(
+                                      "px-1.5 py-0.5 rounded-md text-[10px] font-black shrink-0",
+                                      mode.badgeColor || "bg-slate-100 text-slate-600"
+                                    )}>
+                                      {mode.badge(dueCount)}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                  {mode.desc}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              {isSelected && (
+                                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </span>
+                              )}
+                              <ArrowRight className="w-4 h-4 text-slate-400" />
+                            </div>
+                          </button>
+                        )
+                      })
+                    })()}
                   </div>
                 </div>
               </motion.div>

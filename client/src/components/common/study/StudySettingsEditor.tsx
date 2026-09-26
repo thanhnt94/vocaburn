@@ -16,12 +16,13 @@ import {
   AlignLeft,
   AlignCenter,
   Sliders,
-  Check
+  Check,
+  Sprout
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SegmentedControl } from './SegmentedControl'
 import { ToggleRow } from './ToggleRow'
-import { type StudySettings, getFrontFontSizeStyle } from './StudyConstants'
+import { type StudySettings, getFrontFontSizeStyle, CORE_LEARN_MODES } from './StudyConstants'
 
 interface StudySettingsEditorProps {
   settings: Partial<StudySettings>
@@ -503,46 +504,148 @@ export function StudySettingsEditor({
         </div>
       </div>
 
-      {/* ═══════════ GROUP 5: QUEUE & REVIEW ORDER ═══════════ */}
-      {!hideQueue && (
-        <div className={`space-y-3 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
-          <div className="flex items-center gap-2 text-indigo-600">
-            <Brain className="w-4 h-4" />
-            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-              Queue & Review Order
-            </h4>
-          </div>
+      {/* ═══════════ GROUP 5: LEARN MODES & DECK QUEUE ═══════════ */}
+      {!hideQueue && (() => {
+        const disabledModes = settings.disabled_modes || []
+        const isModeEnabled = (mId: string) => !disabledModes.includes(mId)
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 block">
-              Default Flashcard Mode
-            </label>
-            <SegmentedControl
-              value={(() => {
-                const cur = (settings.quiz_learning_mode || settings.learning_mode || 'fsrs') as string
-                return cur === 'speed_skim' ? 'skim' : cur
-              })()}
-              onChange={(val) => onChange('quiz_learning_mode', val)}
-              options={[
-                { id: 'fsrs', label: '🧠 FSRS' },
-                { id: 'skim', label: '⚡ Skim' },
-                { id: 'review', label: '📚 Review' },
-                { id: 'new', label: '✨ New' },
-              ]}
+        const handleToggleMode = (modeId: string, currentEnabled: boolean) => {
+          if (currentEnabled) {
+            // Check how many learn modes are currently active
+            const remaining = CORE_LEARN_MODES.filter(m => m.id !== modeId && isModeEnabled(m.id))
+            if (remaining.length === 0) {
+              alert("At least one learning mode (FSRS, Skim, or Memrise) must remain active for this deck!")
+              return
+            }
+            const nextDisabled = Array.from(new Set([...disabledModes, modeId]))
+            onChange('disabled_modes', nextDisabled)
+
+            // If current default mode is being disabled, switch default to a remaining active mode
+            const curDefault = settings.quiz_learning_mode || settings.learning_mode || 'fsrs'
+            if (curDefault === modeId || (curDefault === 'speed_skim' && modeId === 'skim')) {
+              onChange('quiz_learning_mode', remaining[0].id)
+              onChange('learning_mode', remaining[0].id)
+            }
+          } else {
+            const nextDisabled = disabledModes.filter(m => m !== modeId)
+            onChange('disabled_modes', nextDisabled)
+          }
+        }
+
+        const activeLearnModes = CORE_LEARN_MODES.filter(m => isModeEnabled(m.id))
+        const rawDefault = settings.quiz_learning_mode || settings.learning_mode || 'fsrs'
+        const currentDefault = rawDefault === 'speed_skim' ? 'skim' : rawDefault
+        const safeDefault = activeLearnModes.some(m => m.id === currentDefault)
+          ? currentDefault
+          : (activeLearnModes[0]?.id || 'fsrs')
+
+        return (
+          <div className={`space-y-3.5 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Brain className="w-4 h-4" />
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  Learn Modes & Deck Access
+                </h4>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">
+                {activeLearnModes.length}/3 modes active
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-500 font-medium">
+              Enable or disable the 3 core learning modes for this deck. You can disable modes that are not suitable (e.g. disable FSRS for quick-browse decks).
+            </p>
+
+            {/* 3 Learn Modes Enable/Disable Toggles */}
+            <div className="space-y-2">
+              {CORE_LEARN_MODES.map((mode) => {
+                const enabled = isModeEnabled(mode.id)
+                const isDefault = safeDefault === mode.id
+
+                return (
+                  <div
+                    key={mode.id}
+                    onClick={() => handleToggleMode(mode.id, enabled)}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs group select-none",
+                      enabled
+                        ? "bg-white border-slate-200/80 hover:border-indigo-300"
+                        : "bg-slate-100/60 border-slate-200/50 opacity-60 hover:opacity-80"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <span className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 transition-transform group-hover:scale-105",
+                        enabled ? "bg-indigo-50 border border-indigo-100/80" : "bg-slate-200/60"
+                      )}>
+                        {mode.emoji}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={cn("text-xs font-black truncate", enabled ? "text-slate-800" : "text-slate-500 line-through")}>
+                            {mode.name}
+                          </span>
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500">
+                            {mode.badge}
+                          </span>
+                          {isDefault && enabled && (
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md bg-indigo-100 text-indigo-700 border border-indigo-200">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate">
+                          {mode.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={cn(
+                      "w-10 h-6 rounded-full transition-colors flex items-center px-1 shrink-0",
+                      enabled ? "bg-indigo-600" : "bg-slate-300"
+                    )}>
+                      <div className={cn(
+                        "w-4 h-4 rounded-full bg-white transition-transform shadow-xs",
+                        enabled ? "translate-x-4" : "translate-x-0"
+                      )} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Default Learn Mode Selector */}
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-bold text-slate-700 block">
+                Default Launch Mode (When tapping "Learn")
+              </label>
+              <SegmentedControl
+                value={safeDefault}
+                onChange={(val) => {
+                  onChange('quiz_learning_mode', val)
+                  onChange('learning_mode', val)
+                }}
+                options={activeLearnModes.map(m => ({
+                  id: m.id,
+                  label: `${m.emoji} ${m.shortName}`
+                }))}
+                compact={compact}
+              />
+            </div>
+
+            {/* Randomize Card Order */}
+            <ToggleRow
+              icon={Shuffle}
+              label="Randomize Card Order"
+              desc="Shuffle cards within the review queue"
+              checked={settings.random_enabled ?? false}
+              onChange={(val) => onChange('random_enabled', val)}
               compact={compact}
             />
           </div>
-
-          <ToggleRow
-            icon={Shuffle}
-            label="Randomize Card Order"
-            desc="Shuffle cards within the review queue"
-            checked={settings.random_enabled ?? false}
-            onChange={(val) => onChange('random_enabled', val)}
-            compact={compact}
-          />
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
