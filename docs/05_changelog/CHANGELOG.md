@@ -3,6 +3,39 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-26]
+#### Tích Hợp Bật/Tắt Toàn Diện Cả Chế Độ Học & Luyện Tập (Integrated Study & Practice Mode Access Control)
+- **Tích Hợp Đồng Bộ Learn Modes & Practice Modes**:
+  - Mở rộng hệ thống quản lý quyền truy cập chế độ học tại Deck Settings Group 5 (`StudySettingsEditor.tsx`), tích hợp cả 2 nhóm chế độ trong cùng một giao diện điều khiển với bộ chuyển tab con:
+    - 📚 **Learn Modes (3)**: FSRS Spaced Repetition, Speed Skim, Memrise Mode.
+    - 🎯 **Practice Modes (4)**: 4-Choice Quiz Test (MCQ), Spelling Recall Test (Typing), Audio Recognition MCQ, Audio Dictation Typing.
+  - Cho phép người tạo bộ thẻ bật hoặc tắt bất kỳ chế độ nào không phù hợp (ví dụ: tắt bài tập nghe nếu bộ thẻ không có âm thanh, tắt bài tập gõ chính tả nếu từ vựng không yêu cầu ghi nhớ ký tự).
+  - Tự động ẩn các chế độ đã bị tắt khỏi thanh Dock đáy trang, modal chọn chế độ học, và thanh khởi chạy nhanh trên Overview (`DeckQuickStudyLauncher.tsx`).
+  - Thanh Dock đáy trang (`DeckDetailPage.tsx`): Nút **Practice** tự động thích ứng với chế độ luyện tập đầu tiên còn hoạt động. Nếu tất cả các chế độ luyện tập bị tắt, nút Practice tự động ẩn và nút Learn mở rộng chiếm toàn bộ chiều rộng.
+
+#### Vá Lỗi Lưu Cấu Hình Bài Học Con (Sub-Lessons Persistence Fix)
+- **Sửa Lỗi Bật Lên Không Lưu Được Ở `DeckSubLessonSettings.tsx` & Backend**:
+  - Sửa logic xử lý trong `save_practice_settings` (`features.py`): Nhận diện tự động các cấu hình cấp bộ thẻ (`sub_lesson_grouping`, `disabled_modes`, `study_defaults`), kiểm tra quyền sở hữu/cộng tác/admin và cập nhật an toàn vào `deck.practice_settings` mà không làm mất hoặc ghi đè các cấu hình khác.
+  - Bổ sung `disabled_modes` và `sub_lesson_grouping` trực tiếp vào phản hồi của `GET /api/v1/deck/{deck_id}/practice-settings`.
+  - Cập nhật `DeckSubLessonSettings.tsx` gửi đầy đủ cờ `is_creator: true` kèm cấu hình `sub_lesson_grouping`, đảm bảo trạng thái bật/tắt và cột phân loại được lưu vĩnh viễn vào CSDL.
+
+- **Tách Biệt Bản Chất: Chế Độ Học (Mode) vs Bộ Lọc Thẻ (Filter)**:
+  - Loại bỏ việc gộp nhầm các bộ lọc thẻ (`Review`, `New`) vào danh mục "chế độ học".
+  - Chuẩn hóa 3 chế độ học tập chính thống:
+    1. 🧠 **FSRS Spaced Repetition**: Thuật toán lặp lại ngắt quãng tính toán độ bền vững & khả năng ghi nhớ, đánh giá qua 4 nút (`Again`, `Hard`, `Good`, `Easy`).
+    2. ⚡ **Speed Skim**: Lướt thẻ nhanh 1-tap/Space không áp lực đánh giá (+3 XP).
+    3. 🌱 **Memrise Deep Study**: Học tổng hợp và thuần thục từng từ theo quy trình Gieo hạt (Plant 10 seeds) & Tưới nước (Water due) kết hợp nhiều bài tập trắc nghiệm, gõ từ.
+  - Các tùy chọn *Thẻ mới*, *Thẻ cần ôn*, *Thẻ khó*, và *Trộn thẻ (Shuffle)* được chuẩn hóa thành **Card Scope & Queue Filters** độc lập.
+- **Bật / Tắt Chế Độ Theo Từng Bộ Thẻ (`StudySettingsEditor.tsx` & `DeckStudyDefaults.tsx`)**:
+  - Cho phép người tạo bộ thẻ chủ động **bật/tắt từng chế độ học** (`FSRS`, `Speed Skim`, `Memrise`) theo đặc thù của bộ thẻ (ví dụ bộ thẻ câu mẫu chỉ dùng để lướt thì có thể tắt FSRS).
+  - Ràng buộc an toàn: Bộ thẻ bắt buộc phải duy trì ít nhất 1 chế độ học hoạt động.
+  - Bộ chọn **Default Launch Mode**: Hiển thị động các chế độ đang được kích hoạt để chọn chế độ khởi chạy mặc định khi bấm nút "Learn".
+  - Lưu và đồng bộ hóa trực tiếp vào `disabled_modes` và `study_defaults` trên database.
+- **Đồng Bộ Giao Diện Học Tập Toàn Ứng Dụng**:
+  - **Docked Study Bar & Bottom Sheet (`DeckDetailPage.tsx`)**: Bấm nút **Learn** tự động khởi chạy chế độ học mặc định đang hoạt động. Nút sổ xuống `▾` hiển thị danh sách 3 chế độ khả dụng (tự ẩn các chế độ đã bị tắt).
+  - **Flashcard Study Console (`FlashcardModeModal.tsx`)**: Giao diện mới hiển thị 3 chế độ học cùng bộ lọc phạm vi thẻ (`All Cards`, `Due Only`, `New Only`, `Hard Only`) và thứ tự thẻ (`Sequential` vs `Random`).
+  - **Quick Study Launcher (`DeckQuickStudyLauncher.tsx`)**: Chuyển đổi sang 3 ô chế độ học chuẩn (`FSRS`, `Speed Skim`, `Memrise`), tự ẩn các chế độ bị vô hiệu hóa.
+  - **Màn hình Học Thẻ (`FlashcardPlay.tsx`)**: Tự động áp dụng bộ lọc thẻ qua URL param `?filter=new|due|hard` và xáo trộn ngẫu nhiên `order=random`.
+
 #### Phân Chia Nhỏ Bài Học Con Linh Hoạt Theo Cột (Dynamic Sub-Lessons & Module Partitioning)
 - **Tự Động Phát Hiện Cột & Phân Nhóm Động (100% Column-Agnostic)**:
   - Cho phép người tạo hoặc người học chia nhỏ các bộ thẻ quy mô lớn (hàng nghìn thẻ) thành các bài học con/module vừa sức dựa trên **bất kỳ cột phân loại nào** trong bộ thẻ (ví dụ: `Category`, `Topic`, `Loại từ`, `Unit`, `Chapter`, `Cấp độ`...).

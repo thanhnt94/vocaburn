@@ -113,7 +113,9 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
         "user_study_settings": study_resolved["user_study_settings"],
         "effective_study_settings": study_resolved["effective_study_settings"],
         "setting_origin": study_resolved["setting_origin"],
-        "is_study_customized": study_resolved["is_customized"]
+        "is_study_customized": study_resolved["is_customized"],
+        "disabled_modes": (deck.practice_settings or {}).get("disabled_modes", []),
+        "sub_lesson_grouping": (deck.practice_settings or {}).get("sub_lesson_grouping", {})
     }
 
 @router.post("/{deck_id}/practice-settings")
@@ -170,12 +172,18 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
     user_id = AuthService.get_user_id(request)
     is_creator = payload.get("is_creator", False)
     settings = payload.get("settings")
+    has_deck_level_change = (
+        is_creator
+        or "sub_lesson_grouping" in payload
+        or "disabled_modes" in payload
+        or (isinstance(settings, dict) and any(k in settings for k in ("sub_lesson_grouping", "disabled_modes", "study_defaults")))
+    )
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
-    if is_creator:
+    if has_deck_level_change:
         # Check if user has permission to edit deck settings
         from app.modules.deck.models import DeckCollaborator
         from app.modules.auth.models import User as UserDB
@@ -192,20 +200,26 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             return JSONResponse(status_code=403, content={"error": "No permission to save deck default settings"})
             
         from sqlalchemy.orm.attributes import flag_modified
-        if not deck.practice_settings or not settings:
-            deck.practice_settings = settings or {}
-        else:
-            merged = {}
-            if isinstance(deck.practice_settings, dict):
-                merged.update(deck.practice_settings)
-            if isinstance(settings, dict):
-                merged.update(settings)
-                # Deep merge study_defaults if both present
-                if "study_defaults" in deck.practice_settings and isinstance(deck.practice_settings["study_defaults"], dict) and "study_defaults" in settings and isinstance(settings["study_defaults"], dict):
-                    merged_sd = dict(deck.practice_settings["study_defaults"])
-                    merged_sd.update(settings["study_defaults"])
-                    merged["study_defaults"] = merged_sd
-            deck.practice_settings = merged
+        merged = dict(deck.practice_settings) if isinstance(deck.practice_settings, dict) else {}
+        
+        if isinstance(settings, dict):
+            merged.update(settings)
+            # Deep merge study_defaults if both present
+            if "study_defaults" in deck.practice_settings and isinstance(deck.practice_settings["study_defaults"], dict) and "study_defaults" in settings and isinstance(settings["study_defaults"], dict):
+                merged_sd = dict(deck.practice_settings["study_defaults"])
+                merged_sd.update(settings["study_defaults"])
+                merged["study_defaults"] = merged_sd
+            if "sub_lesson_grouping" in settings:
+                merged["sub_lesson_grouping"] = settings["sub_lesson_grouping"]
+            if "disabled_modes" in settings:
+                merged["disabled_modes"] = settings["disabled_modes"]
+
+        if "sub_lesson_grouping" in payload:
+            merged["sub_lesson_grouping"] = payload["sub_lesson_grouping"]
+        if "disabled_modes" in payload:
+            merged["disabled_modes"] = payload["disabled_modes"]
+
+        deck.practice_settings = merged
         flag_modified(deck, "practice_settings")
         
         # When creator updates deck study defaults, clear any conflicting overrides in their UserDeckSettings

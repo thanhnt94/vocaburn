@@ -694,25 +694,35 @@ export function DeckDetailPage() {
             </div>
 
             {/* 2. Practice & Quiz Button (Split: 1-Tap Start | ▾ Mode Menu) */}
-            <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => handleLaunchStudy('mcq')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 pl-3 pr-2 font-black text-xs sm:text-sm active:scale-[0.98] transition-all cursor-pointer truncate"
-                title="Start Practice Quiz"
-              >
-                <Target className="w-4 h-4 shrink-0 stroke-[2.5]" />
-                <span className="truncate">Practice</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStudySheetType('practice')}
-                className="px-2.5 flex items-center justify-center border-l border-white/20 hover:bg-white/15 active:bg-white/25 transition-all cursor-pointer shrink-0"
-                title="Choose practice test mode"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {(() => {
+              const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
+              const activePracticeModes = STUDY_MODES.slice(3).filter(m => !disabledModes.includes(m.id))
+              if (activePracticeModes.length === 0) return null
+
+              const defaultPracticeMode = activePracticeModes[0].id
+
+              return (
+                <div className="flex-1 flex items-stretch rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchStudy(defaultPracticeMode)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 pl-3 pr-2 font-black text-xs sm:text-sm active:scale-[0.98] transition-all cursor-pointer truncate"
+                    title="Start Practice Quiz"
+                  >
+                    <Target className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                    <span className="truncate">Practice</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudySheetType('practice')}
+                    className="px-2.5 flex items-center justify-center border-l border-white/20 hover:bg-white/15 active:bg-white/25 transition-all cursor-pointer shrink-0"
+                    title="Choose practice test mode"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

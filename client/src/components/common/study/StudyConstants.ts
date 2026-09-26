@@ -62,6 +62,50 @@ export const CORE_LEARN_MODES: LearnModeOption[] = [
   },
 ]
 
+export interface PracticeModeOption {
+  id: 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
+  name: string
+  shortName: string
+  emoji: string
+  desc: string
+  badge: string
+}
+
+export const CORE_PRACTICE_MODES: PracticeModeOption[] = [
+  {
+    id: 'mcq',
+    name: '4-Choice Quiz Test',
+    shortName: 'Quiz',
+    emoji: '🎯',
+    desc: 'Rapid reflex 4 choices multiple choice test',
+    badge: 'Standard Quiz'
+  },
+  {
+    id: 'typing',
+    name: 'Spelling Recall Test',
+    shortName: 'Typing',
+    emoji: '⌨️',
+    desc: 'Deep recall spelling and character typing drill',
+    badge: 'Spelling Drill'
+  },
+  {
+    id: 'listening_mcq',
+    name: 'Audio Recognition MCQ',
+    shortName: 'Audio MCQ',
+    emoji: '🎧',
+    desc: 'Audio pronunciation with multiple choice answers',
+    badge: 'Listening'
+  },
+  {
+    id: 'listening_typing',
+    name: 'Audio Dictation Typing',
+    shortName: 'Dictation',
+    emoji: '🎙️',
+    desc: 'Audio pronunciation and exact spelling dictation',
+    badge: 'Dictation'
+  },
+]
+
 export interface StudyTemplateItem {
   id: string
   name: string

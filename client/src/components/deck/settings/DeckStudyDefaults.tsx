@@ -150,6 +150,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
+        disabled_modes: disabledModes,
         settings: {
           study_defaults: studyDefaults,
           disabled_modes: disabledModes,

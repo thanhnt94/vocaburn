@@ -75,8 +75,10 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
   useEffect(() => {
     if (subLessonsData) {
       setEnabled(subLessonsData.enabled ?? false)
-      if (!selectedColumn) {
-        setSelectedColumn(subLessonsData.configured_column || subLessonsData.available_columns?.[0]?.column || '')
+      if (subLessonsData.configured_column) {
+        setSelectedColumn(subLessonsData.configured_column)
+      } else if (!selectedColumn && subLessonsData.available_columns?.[0]?.column) {
+        setSelectedColumn(subLessonsData.available_columns[0].column)
       }
     }
   }, [subLessonsData])
@@ -88,9 +90,16 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
         sub_lesson_grouping: {
           enabled,
           column: selectedColumn || null
+        },
+        settings: {
+          sub_lesson_grouping: {
+            enabled,
+            column: selectedColumn || null
+          }
         }
       })
 

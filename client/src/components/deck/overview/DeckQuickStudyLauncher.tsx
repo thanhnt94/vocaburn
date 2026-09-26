@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Brain, Trophy, RotateCcw, Sparkles, Compass, Headphones, Keyboard, CheckCircle2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export interface DeckQuickStudyLauncherProps {
   deckId: string | number
@@ -101,40 +102,73 @@ export function DeckQuickStudyLauncher({
       </div>
 
       {/* Practice Tests Row */}
-      <div className="grid grid-cols-3 gap-2.5 pt-1">
-        {!disabledModes.includes('mcq') && (
-          <Link
-            to={`/practice/${deckId}/mcq`}
-            className="p-3 rounded-2xl border border-slate-200/80 hover:border-emerald-500/40 hover:bg-emerald-50/20 bg-slate-50/50 transition-all flex flex-col items-center justify-center text-center gap-1 group active:scale-95 cursor-pointer"
-          >
-            <span className="text-xl group-hover:scale-110 transition-transform">🎯</span>
-            <span className="text-xs font-black text-slate-800 group-hover:text-emerald-600">MCQ Test</span>
-            <span className="text-[9px] text-slate-400 font-bold">4 choices reflex</span>
-          </Link>
-        )}
+      {(() => {
+        const practiceItems = [
+          {
+            id: 'mcq',
+            title: 'MCQ Test',
+            sub: '4 choices reflex',
+            emoji: '🎯',
+            url: `/practice/${deckId}/mcq`,
+            hoverBorder: 'hover:border-emerald-500/40 hover:bg-emerald-50/20',
+            hoverText: 'group-hover:text-emerald-600'
+          },
+          {
+            id: 'typing',
+            title: 'Typing Test',
+            sub: 'Spelling recall drill',
+            emoji: '⌨️',
+            url: `/practice/${deckId}/typing`,
+            hoverBorder: 'hover:border-purple-500/40 hover:bg-purple-50/20',
+            hoverText: 'group-hover:text-purple-600'
+          },
+          {
+            id: 'listening_mcq',
+            title: 'Audio MCQ',
+            sub: 'Audio recognition',
+            emoji: '🎧',
+            url: `/practice/${deckId}/listening_mcq`,
+            hoverBorder: 'hover:border-sky-500/40 hover:bg-sky-50/20',
+            hoverText: 'group-hover:text-sky-600'
+          },
+          {
+            id: 'listening_typing',
+            title: 'Dictation',
+            sub: 'Listen & type spelling',
+            emoji: '🎙️',
+            url: `/practice/${deckId}/listening_typing`,
+            hoverBorder: 'hover:border-cyan-500/40 hover:bg-cyan-50/20',
+            hoverText: 'group-hover:text-cyan-600'
+          },
+        ].filter(item => !disabledModes.includes(item.id))
 
-        {!disabledModes.includes('typing') && (
-          <Link
-            to={`/practice/${deckId}/typing`}
-            className="p-3 rounded-2xl border border-slate-200/80 hover:border-purple-500/40 hover:bg-purple-50/20 bg-slate-50/50 transition-all flex flex-col items-center justify-center text-center gap-1 group active:scale-95 cursor-pointer"
-          >
-            <span className="text-xl group-hover:scale-110 transition-transform">⌨️</span>
-            <span className="text-xs font-black text-slate-800 group-hover:text-purple-600">Typing Test</span>
-            <span className="text-[9px] text-slate-400 font-bold">Deep recall spelling</span>
-          </Link>
-        )}
+        if (practiceItems.length === 0) return null
 
-        {!disabledModes.includes('listening') && (
-          <Link
-            to={`/practice/${deckId}/listening`}
-            className="p-3 rounded-2xl border border-slate-200/80 hover:border-sky-500/40 hover:bg-sky-50/20 bg-slate-50/50 transition-all flex flex-col items-center justify-center text-center gap-1 group active:scale-95 cursor-pointer"
-          >
-            <span className="text-xl group-hover:scale-110 transition-transform">🎧</span>
-            <span className="text-xs font-black text-slate-800 group-hover:text-sky-600">Listening Test</span>
-            <span className="text-[9px] text-slate-400 font-bold">Audio comprehension</span>
-          </Link>
-        )}
-      </div>
+        return (
+          <div className={cn(
+            "grid gap-2.5 pt-1",
+            practiceItems.length === 1 && "grid-cols-1",
+            practiceItems.length === 2 && "grid-cols-2",
+            practiceItems.length === 3 && "grid-cols-3",
+            practiceItems.length >= 4 && "grid-cols-2 sm:grid-cols-4"
+          )}>
+            {practiceItems.map((item) => (
+              <Link
+                key={item.id}
+                to={item.url}
+                className={cn(
+                  "p-3 rounded-2xl border border-slate-200/80 bg-slate-50/50 transition-all flex flex-col items-center justify-center text-center gap-1 group active:scale-95 cursor-pointer",
+                  item.hoverBorder
+                )}
+              >
+                <span className="text-xl group-hover:scale-110 transition-transform">{item.emoji}</span>
+                <span className={cn("text-xs font-black text-slate-800", item.hoverText)}>{item.title}</span>
+                <span className="text-[9px] text-slate-400 font-bold">{item.sub}</span>
+              </Link>
+            ))}
+          </div>
+        )
+      })()}
     </div>
   )
 }
