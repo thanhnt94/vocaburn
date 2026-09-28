@@ -3794,6 +3794,7 @@ export default function FlashcardPlay() {
         setShowFeedback={setShowFeedback}
         setIsFeedbackOpen={setIsFeedbackOpen}
         showFlipBackBtn={showFlipBackBtn}
+        isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
         onOpenCardHub={handleOpenCardHub}
@@ -4483,6 +4484,7 @@ export default function FlashcardPlay() {
         currentQuestion={currentQuestion}
         handleStarQuestion={handleStarQuestion}
         showFlipBackBtn={isFlipped && mainTab !== 'practice'}
+        isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
         activeMode={activeMode}

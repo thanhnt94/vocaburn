@@ -884,6 +884,7 @@ export default function MemrisePlay() {
         currentQuestion={mockQuestion}
         handleStarQuestion={() => {}}
         showFlipBackBtn={true}
+        isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
         activeMode={undefined}

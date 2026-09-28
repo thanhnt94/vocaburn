@@ -2,6 +2,29 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-09-28]
+#### Tính Năng Sao Chép Nội Dung Thẻ Theo Mặt Hiện Tại Cho Quick Action & Micro-Toolbar (Copy Card Face for AI)
+- **Sao chép nội dung thẻ thông minh theo mặt đang xem (`FlashcardFlyToolbar.tsx`)**:
+  - Tích hợp 2 nút hành động mới trong nhóm **Section 5: CARD ACTIONS & DRAWERS** của Quick Controls Sheet:
+    - **Copy Current Face** (nút màu ngọc lục bảo Emerald): Tự động phát hiện mặt thẻ đang hiển thị:
+      - Đang xem mặt trước: Hiển thị `Copy Front` / `Front Face (AI)`. Sao chép nội dung câu hỏi/từ vựng mặt trước.
+      - Đang lật mặt sau: Tự động đổi sang `Copy Back` / `Back Face (AI)`. Sao chép đáp án, nghĩa và giải thích mặt sau.
+    - **Copy Full Card** (nút màu chàm Indigo): Sao chép đồng thời cả mặt trước và mặt sau theo định dạng cấu trúc chuẩn:
+      ```
+      [Front]
+      <Nội dung mặt trước>
+
+      [Back]
+      <Nội dung đáp án, giải thích, mnemonic mặt sau>
+      ```
+  - **Tự động làm sạch dữ liệu chuẩn hóa cho AI Prompt (`cleanTextForAi`)**: Loại bỏ toàn bộ các thẻ BBCode (`[b]`, `[i]`, `[color]`), mã HTML và ký tự escaped (`&nbsp;`, `&quot;`, `&#39;`) để người dùng có thể dán trực tiếp vào ChatGPT, Claude, Gemini hỏi ngay lập tức mà không bị dính tag rác.
+  - **Phản hồi tương tác trực quan (Visual Micro-Feedback)**:
+    - Hiển thị animation đổi trạng thái sang nút `Copied!` kèm biểu tượng dấu tích xanh `✓` trong 2 giây.
+    - Bắn Toast thông báo tức thì: `"Copied Front Face to clipboard! ✓"` hoặc `"Copied Back Face to clipboard! ✓"`.
+  - **Tích hợp đồng bộ trạng thái lật thẻ (`isFlipped`)**:
+    - Truyền đồng bộ cờ `isFlipped` từ `FlashcardPlay.tsx` và `MemrisePlay.tsx` vào `FlashcardQuickControlsSheet` và thanh điều khiển thu nhỏ micro-pill `FlashcardFlyToolbar`.
+    - Nút micro copy trên góc thẻ cũng sao chép chính xác mặt trước/sau tương ứng với trạng thái lật của thẻ 3D.
+
 ### [2026-09-26]
 #### Tích Hợp Phân Loại Category & Học Theo Nhóm Ngay Trong Card Map (Card Map Category Grouping & Instant Study Switcher)
 - **Sửa Lỗi Chuyển Hướng Bay Ra Trang Chủ Khi Học Sub-Lesson (`DeckSubLessonsSection.tsx`)**:

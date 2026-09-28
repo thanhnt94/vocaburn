@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Volume2,
@@ -31,7 +31,10 @@ import {
   TrendingUp,
   Lock,
   AlignLeft,
-  AlignCenter
+  AlignCenter,
+  Copy,
+  Check,
+  ClipboardCopy
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -72,9 +75,70 @@ export interface FlashcardFlyToolbarProps {
   setShowFeedback?: (val: boolean) => void
   setIsFeedbackOpen?: (val: boolean) => void
   showFlipBackBtn?: boolean
+  isFlipped?: boolean
   setIsFlipped?: (val: boolean) => void
   setIsSettingsModalOpen?: (val: boolean) => void
   onOpenCardHub?: (subTab?: 'stats' | 'insight' | 'note' | 'community') => void
+}
+
+/**
+ * Utility helpers to cleanly extract card content for AI assistance
+ */
+export const cleanTextForAi = (raw: string): string => {
+  if (!raw) return ''
+  return raw
+    .replace(/\[\/?(b|i|u|s|color|size|url|align|font|center|quote|code)[^\]]*\]/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim()
+}
+
+export const getCardFrontText = (q: any): string => {
+  if (!q) return ''
+  const front = q.content || q.others?.front || q.front || ''
+  return cleanTextForAi(front)
+}
+
+export const getCardBackText = (q: any): string => {
+  if (!q) return ''
+  const correctOpt = q.options?.find((o: any) => o.is_correct)?.content || ''
+  const explanation = q.explanation || ''
+  const backOther = q.others?.back || q.back || ''
+  const mnemonic = q.mnemonic || ''
+
+  const parts: string[] = []
+  const cleanedCorrect = cleanTextForAi(correctOpt)
+  const cleanedExplanation = cleanTextForAi(explanation)
+  const cleanedBackOther = cleanTextForAi(backOther)
+
+  if (cleanedCorrect && cleanedCorrect !== "Definition revealed.") {
+    parts.push(cleanedCorrect)
+  }
+  if (cleanedExplanation && cleanedExplanation !== cleanedCorrect) {
+    parts.push(cleanedExplanation)
+  }
+  if (parts.length === 0 && cleanedBackOther) {
+    parts.push(cleanedBackOther)
+  }
+  if (mnemonic) {
+    parts.push(`💡 Mnemonic: ${cleanTextForAi(mnemonic)}`)
+  }
+  return parts.join('\n\n').trim()
+}
+
+export const getCardFullText = (q: any): string => {
+  if (!q) return ''
+  const front = getCardFrontText(q)
+  const back = getCardBackText(q)
+  if (front && back) {
+    return `[Front]\n${front}\n\n[Back]\n${back}`
+  }
+  return front || back || ''
 }
 
 /**
@@ -86,7 +150,28 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
   triggerPlayAudio,
   isLoadingAudio = false,
   isPlayingAudio = false,
+  currentQuestion,
+  isFlipped = false,
+  showLocalToast,
 }) => {
+  const [copiedMini, setCopiedMini] = useState(false)
+
+  const handleMiniCopy = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const text = isFlipped ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion)
+    if (!text) {
+      showLocalToast?.("No content on this face to copy", "warning")
+      return
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMini(true)
+      setTimeout(() => setCopiedMini(false), 1500)
+      showLocalToast?.(isFlipped ? "Copied Back Face to clipboard! ✓" : "Copied Front Face to clipboard! ✓", "success")
+    }).catch(() => {
+      showLocalToast?.("Failed to copy to clipboard", "warning")
+    })
+  }
+
   return (
     <div
       className={cn(
@@ -121,7 +206,28 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
 
         <div className="w-[1px] h-3 bg-slate-200/80" />
 
-        {/* 2. Quick Options Menu Button (Opens Bottom Sheet) */}
+        {/* 2. One-Tap Quick Copy Button (Front if !isFlipped, Back if isFlipped) */}
+        <button
+          type="button"
+          onClick={handleMiniCopy}
+          className={cn(
+            "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
+            copiedMini
+              ? "bg-emerald-600 text-white ring-2 ring-emerald-300"
+              : "bg-slate-50 hover:bg-emerald-600 text-slate-500 hover:text-white"
+          )}
+          title={copiedMini ? "Copied!" : (isFlipped ? "Copy Back Face (for AI)" : "Copy Front Face (for AI)")}
+        >
+          {copiedMini ? (
+            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          ) : (
+            <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+          )}
+        </button>
+
+        <div className="w-[1px] h-3 bg-slate-200/80" />
+
+        {/* 3. Quick Options Menu Button (Opens Bottom Sheet) */}
         <button
           type="button"
           onClick={(e) => {
@@ -163,6 +269,7 @@ export interface FlashcardQuickControlsSheetProps {
   currentQuestion: any
   handleStarQuestion: () => void
   showFlipBackBtn?: boolean
+  isFlipped?: boolean
   setIsFlipped?: (val: boolean) => void
   setIsSettingsModalOpen: (val: boolean) => void
   activeMode?: string
@@ -225,6 +332,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   currentQuestion,
   handleStarQuestion,
   showFlipBackBtn,
+  isFlipped = false,
   setIsFlipped,
   setIsSettingsModalOpen,
   activeMode,
@@ -250,6 +358,41 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   showFsrs = true,
   setShowFsrs,
 }) => {
+  const [copiedFace, setCopiedFace] = useState(false)
+  const [copiedFull, setCopiedFull] = useState(false)
+
+  const handleCopyCurrentFace = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const text = isFlipped ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion)
+    if (!text) {
+      showLocalToast?.(`No content on ${isFlipped ? 'back' : 'front'} face to copy`, 'warning')
+      return
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedFace(true)
+      setTimeout(() => setCopiedFace(false), 2000)
+      showLocalToast?.(isFlipped ? "Copied Back Face to clipboard! ✓" : "Copied Front Face to clipboard! ✓", "success")
+    }).catch(() => {
+      showLocalToast?.("Failed to copy to clipboard", "warning")
+    })
+  }
+
+  const handleCopyFullCard = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const text = getCardFullText(currentQuestion)
+    if (!text) {
+      showLocalToast?.("No card content to copy", "warning")
+      return
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedFull(true)
+      setTimeout(() => setCopiedFull(false), 2000)
+      showLocalToast?.("Copied Full Card (Front & Back) to clipboard! ✓", "success")
+    }).catch(() => {
+      showLocalToast?.("Failed to copy to clipboard", "warning")
+    })
+  }
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -1154,6 +1297,94 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         </div>
                         <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-teal-100 flex items-center justify-center text-slate-400 group-hover:text-teal-600 shrink-0 transition-colors ml-1">
                           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+
+                      {/* 5. Copy Current Face */}
+                      <button
+                        type="button"
+                        onClick={handleCopyCurrentFace}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-2xl border transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer",
+                          copiedFace
+                            ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
+                            : "bg-slate-50 hover:bg-emerald-50/70 border-slate-200/80 hover:border-emerald-300"
+                        )}
+                        title={isFlipped ? "Copy Back Face to clipboard (for AI Prompt)" : "Copy Front Face to clipboard (for AI Prompt)"}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-all",
+                            copiedFace
+                              ? "bg-emerald-600 text-white scale-105"
+                              : "bg-emerald-500 text-white group-hover:scale-105"
+                          )}>
+                            {copiedFace ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
+                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">
+                              {copiedFace ? "Copied!" : isFlipped ? "Copy Back" : "Copy Front"}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">
+                              {copiedFace ? "Ready for AI" : isFlipped ? "Back Face (AI)" : "Front Face (AI)"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ml-1",
+                          copiedFace
+                            ? "bg-emerald-100 text-emerald-600"
+                            : "bg-slate-200/60 group-hover:bg-emerald-100 text-slate-400 group-hover:text-emerald-600"
+                        )}>
+                          {copiedFace ? (
+                            <Check className="w-3 h-3 text-emerald-600" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* 6. Copy Full Card */}
+                      <button
+                        type="button"
+                        onClick={handleCopyFullCard}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-2xl border transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer",
+                          copiedFull
+                            ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300"
+                            : "bg-slate-50 hover:bg-indigo-50/70 border-slate-200/80 hover:border-indigo-300"
+                        )}
+                        title="Copy both Front and Back content to clipboard (for AI Prompt)"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-all",
+                            copiedFull
+                              ? "bg-indigo-600 text-white scale-105"
+                              : "bg-indigo-500 text-white group-hover:scale-105"
+                          )}>
+                            {copiedFull ? <Check className="w-4 h-4" /> : <ClipboardCopy className="w-4 h-4" />}
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
+                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">
+                              {copiedFull ? "Copied!" : "Copy Full"}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-medium truncate">
+                              {copiedFull ? "Ready for AI" : "Front & Back (AI)"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ml-1",
+                          copiedFull
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "bg-slate-200/60 group-hover:bg-indigo-100 text-slate-400 group-hover:text-indigo-600"
+                        )}>
+                          {copiedFull ? (
+                            <Check className="w-3 h-3 text-indigo-600" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          )}
                         </div>
                       </button>
                     </div>
