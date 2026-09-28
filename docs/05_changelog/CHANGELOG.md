@@ -3,6 +3,19 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-09-28]
+#### Tối Ưu Hóa & Đưa Bộ Lọc Thẻ Đánh Dấu Sao (Starred) Nổi Bật Trong Card Map (`QuestionMapGrid.tsx`)
+- **Đưa nút lọc Starred lên vị trí thứ 2 (ngay sau All)**:
+  - Thay đổi thứ tự thanh chip lọc: `All` ➔ `⭐ Starred` ➔ `Mastered` ➔ `Learning` ➔ `Unseen` ➔ `Hard` ➔ `Ignored`.
+  - Khắc phục triệt để hiện tượng nút Starred bị đẩy ra xa tít mép phải (thứ 6) và bị che khuất trên màn hình điện thoại hoặc sidebar máy tính do container ngang thiếu thanh cuộn.
+  - Thiết kế nổi bật với tông màu vàng hổ phách (amber), icon ngôi sao phủ màu vàng `fill-amber-500` và badge đếm số lượng thẻ được gắn sao tức thì.
+- **Bổ sung nút lọc Starred nhanh trực tiếp trên thanh tỷ lệ Retention Bar**:
+  - Khi có ít nhất 1 thẻ được gắn sao (`starred > 0`), hiển thị thêm chip tắt nhanh `★ Starred (X)` ngay trên thanh chỉ số Mastered / Learning / Unseen để người học bấm lọc tức thì mà không cần tìm kiếm.
+- **Tách biệt độc lập trạng thái học tập (Learning State) và đánh dấu sao (Starred Flag)**:
+  - Tách hàm `getBaseLearningStatus` để tính toán chính xác cấp độ ghi nhớ (`mastered`, `learning`, `unseen`, `hard`) không bị ghi đè bởi cờ `is_starred`.
+  - Giúp thẻ được gắn sao vẫn xuất hiện đúng trong các bộ lọc tiến độ học tập (Mastered / Learning / Unseen), đồng thời bộ lọc `Starred` gom đủ 100% tất cả thẻ có sao.
+- **Màn hình rỗng trực quan khi lọc Starred (Empty State Guidance)**:
+  - Khi người dùng lọc theo Starred mà chưa có thẻ nào được đánh dấu, hiển thị icon ngôi sao vàng lớn kèm hướng dẫn: *"Tap the Star button (★) while studying cards to bookmark them for quick access here."* và nút quay lại All Cards.
+
 #### Tính Năng Sao Chép Nội Dung Thẻ Theo Mặt Hiện Tại Cho Quick Action & Micro-Toolbar (Copy Card Face for AI)
 - **Sao chép nội dung thẻ thông minh theo mặt đang xem (`FlashcardFlyToolbar.tsx`)**:
   - Tích hợp 2 nút hành động mới trong nhóm **Section 5: CARD ACTIONS & DRAWERS** của Quick Controls Sheet:

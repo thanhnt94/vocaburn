@@ -263,10 +263,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     return () => clearTimeout(timer)
   }, [currentIndex, activeFilterMode, selectedGroupVal])
 
-  const getCardStatus = (item: Question): 'ignored' | 'starred' | 'hard' | 'mastered' | 'unseen' | 'learning' => {
-    if (item.is_ignored) return 'ignored'
-    if (item.is_starred) return 'starred'
-
+  const getBaseLearningStatus = (item: Question): 'hard' | 'mastered' | 'unseen' | 'learning' => {
     const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
     const total = stats.total || 0
     const again = stats.again_count || 0
@@ -286,6 +283,12 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     return 'learning'
   }
 
+  const getCardStatus = (item: Question): 'ignored' | 'starred' | 'hard' | 'mastered' | 'unseen' | 'learning' => {
+    if (item.is_ignored) return 'ignored'
+    if (item.is_starred) return 'starred'
+    return getBaseLearningStatus(item)
+  }
+
   // Status distribution calculated on categoryFilteredQuestions
   const statusCounts = useMemo(() => {
     let mastered = 0
@@ -298,7 +301,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     categoryFilteredQuestions.forEach((q) => {
       if (q.is_starred) starred++
       if (q.is_ignored) ignored++
-      const st = getCardStatus(q)
+      const st = getBaseLearningStatus(q)
       if (st === 'mastered') mastered++
       else if (st === 'hard') hard++
       else if (st === 'unseen') unseen++
@@ -325,7 +328,9 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   const filteredQuestions = useMemo(() => {
     return categoryFilteredQuestions.filter((item) => {
       if (activeFilterMode === 'all') return true
-      return getCardStatus(item) === activeFilterMode
+      if (activeFilterMode === 'starred') return Boolean(item.is_starred)
+      if (activeFilterMode === 'ignored') return Boolean(item.is_ignored)
+      return getBaseLearningStatus(item) === activeFilterMode
     })
   }, [categoryFilteredQuestions, activeFilterMode])
 
@@ -344,11 +349,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
 
   const FILTER_PILLS = [
     { id: 'all' as const, label: 'All', icon: LayoutGrid, count: statusCounts.all, activeColor: 'bg-slate-900 text-white shadow-xs' },
+    { id: 'starred' as const, label: 'Starred', icon: Star, count: statusCounts.starred, activeColor: 'bg-amber-500 text-white shadow-xs' },
     { id: 'mastered' as const, label: 'Mastered', icon: Trophy, count: statusCounts.mastered, activeColor: 'bg-emerald-600 text-white shadow-xs' },
     { id: 'learning' as const, label: 'Learning', icon: Brain, count: statusCounts.learning, activeColor: 'bg-indigo-600 text-white shadow-xs' },
     { id: 'unseen' as const, label: 'Unseen', icon: BookOpen, count: statusCounts.unseen, activeColor: 'bg-slate-600 text-white shadow-xs' },
     { id: 'hard' as const, label: 'Hard', icon: Flame, count: statusCounts.hard, activeColor: 'bg-rose-600 text-white shadow-xs' },
-    { id: 'starred' as const, label: 'Starred', icon: Star, count: statusCounts.starred, activeColor: 'bg-amber-500 text-white shadow-xs' },
     ...(statusCounts.ignored > 0 ? [{ id: 'ignored' as const, label: 'Ignored', icon: EyeOff, count: statusCounts.ignored, activeColor: 'bg-slate-500 text-white shadow-xs' }] : []),
   ]
 
@@ -528,6 +533,30 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
             <span className="font-extrabold text-slate-800">{statusCounts.unseen}</span>
             <span className="text-slate-400 font-medium">({unseenPct}%)</span>
           </span>
+
+          {/* Quick Starred Chip in Retention Bar */}
+          {statusCounts.starred > 0 && (
+            <button
+              type="button"
+              onClick={() => activeSetFilterMode(activeFilterMode === 'starred' ? 'all' : 'starred')}
+              className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-black transition-all cursor-pointer active:scale-95 shadow-2xs",
+                activeFilterMode === 'starred'
+                  ? "bg-amber-500 text-white border-amber-600 shadow-xs"
+                  : "bg-amber-50 hover:bg-amber-100/80 text-amber-700 border-amber-200"
+              )}
+              title={activeFilterMode === 'starred' ? "Showing Starred cards (click to clear)" : "Filter by Starred cards"}
+            >
+              <Star className={cn("w-3 h-3", activeFilterMode === 'starred' ? "fill-white text-white" : "fill-amber-500 text-amber-500")} />
+              <span>Starred</span>
+              <span className={cn(
+                "text-[9px] font-black px-1 rounded-md",
+                activeFilterMode === 'starred' ? "bg-white/20 text-white" : "bg-amber-200/80 text-amber-800"
+              )}>
+                {statusCounts.starred}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Multi-Segment Track */}
@@ -559,6 +588,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
               {FILTER_PILLS.map((pill) => {
                 const isSelected = activeFilterMode === pill.id
                 const IconComponent = pill.icon
+                const isStarredPill = pill.id === 'starred'
                 return (
                   <button
                     key={pill.id}
@@ -567,14 +597,23 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                       "h-7.5 px-2.5 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
                       isSelected
                         ? cn(pill.activeColor, "border-transparent")
-                        : "bg-white/90 text-slate-600 hover:bg-slate-50 border-slate-200/80 hover:text-slate-900"
+                        : isStarredPill
+                          ? "bg-amber-50/90 text-amber-700 hover:bg-amber-100/80 border-amber-200/90"
+                          : "bg-white/90 text-slate-600 hover:bg-slate-50 border-slate-200/80 hover:text-slate-900"
                     )}
                   >
-                    <IconComponent className="w-3 h-3 shrink-0" />
+                    <IconComponent className={cn(
+                      "w-3 h-3 shrink-0",
+                      isStarredPill && !isSelected && "text-amber-500 fill-amber-500"
+                    )} />
                     <span>{pill.label}</span>
                     <span className={cn(
                       "text-[9.5px] font-black px-1.5 py-0.2 rounded-md",
-                      isSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                      isSelected
+                        ? "bg-white/20 text-white"
+                        : isStarredPill
+                          ? "bg-amber-200/70 text-amber-800"
+                          : "bg-slate-100 text-slate-500"
                     )}>
                       {pill.count}
                     </span>
@@ -627,13 +666,27 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
             </div>
           ) : (
             <div className="py-16 flex flex-col items-center justify-center text-center text-slate-400 gap-2.5">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-xl shadow-xs">
-                🔍
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-xs",
+                activeFilterMode === 'starred'
+                  ? "bg-amber-50 text-amber-500 border border-amber-200"
+                  : "bg-slate-100 text-slate-400"
+              )}>
+                {activeFilterMode === 'starred' ? "★" : "🔍"}
               </div>
-              <p className="text-xs font-bold text-slate-600">No cards match this filter</p>
+              <p className="text-xs font-bold text-slate-700">
+                {activeFilterMode === 'starred'
+                  ? "No starred cards in this session"
+                  : "No cards match this filter"}
+              </p>
+              {activeFilterMode === 'starred' && (
+                <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
+                  Tap the Star button (★) while studying cards to bookmark them for quick access here.
+                </p>
+              )}
               <button
                 onClick={() => activeSetFilterMode('all')}
-                className="text-xs font-black text-indigo-600 hover:text-indigo-700 underline cursor-pointer"
+                className="text-xs font-black text-indigo-600 hover:text-indigo-700 underline cursor-pointer mt-1"
               >
                 Reset to All Cards
               </button>

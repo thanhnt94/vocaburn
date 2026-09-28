@@ -1113,6 +1113,8 @@ export default function PracticePlay() {
   const getFilteredCount = (mode: string) => {
     if (!session?.questions) return 0;
     if (mode === 'all') return session.questions.length;
+    if (mode === 'starred') return session.questions.filter((q: any) => Boolean(q.is_starred)).length;
+    if (mode === 'ignored') return session.questions.filter((q: any) => Boolean(q.is_ignored)).length;
     return session.questions.filter((q: any) => getCardBoxId(q) === mode).length;
   };
 
