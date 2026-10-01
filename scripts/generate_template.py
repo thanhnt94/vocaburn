@@ -1,39 +1,30 @@
-import pandas as pd
 import os
+import sys
 
-def create_template():
-    # 1. Info Sheet
-    info_data = {
-        "Key": ["Title", "Description", "Category", "Tags", "Time_Limit"],
-        "Value": ["My Neural Quiz", "This is a sample quiz imported from Excel.", "General", "JLPT, N1, Grammar", "60"]
-    }
-    df_info = pd.DataFrame(info_data)
+# Ensure Vocaburn root is in python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
-    # 2. Data Sheet
-    data_data = {
-        "Question": ["Hệ mặt trời có bao nhiêu hành tinh?", "Ai là người phát triển thuyết tương đối?"],
-        "Option_A": ["7", "Isaac Newton"],
-        "Option_B": ["8", "Albert Einstein"],
-        "Option_C": ["9", "Nikola Tesla"],
-        "Option_D": ["10", "Galileo Galilei"],
-        "Answer": ["B", "B"],
-        "Explanation": ["Sao Diêm Vương không còn được coi là hành tinh từ năm 2006.", "Albert Einstein công bố thuyết tương đối hẹp vào năm 1905."],
-        "AI Analysis": ["Phân tích chuyên sâu về hệ mặt trời...", "Phân tích về vật lý hiện đại..."]
-    }
-    df_data = pd.DataFrame(data_data)
+from app.modules.deck.services.excel_service import ExcelDeckService
 
-    # Save to static directory
-    static_dir = r"c:\Code\Ecosystem\QuizMind\app\static"
-    if not os.path.exists(static_dir):
-        os.makedirs(static_dir)
-        
-    template_path = os.path.join(static_dir, "QuizMind_Template.xlsx")
+def main():
+    static_path = os.path.join(root_dir, "app", "static", "Vocaburn_Template.xlsx")
+    templates_path = os.path.join(root_dir, "templates", "Vocaburn_Template.xlsx")
+    master_path = os.path.join(root_dir, "templates", "Vocaburn_Master_Template.xlsx")
     
-    with pd.ExcelWriter(template_path, engine='openpyxl') as writer:
-        df_info.to_excel(writer, sheet_name='Info', index=False)
-        df_data.to_excel(writer, sheet_name='Data', index=False)
+    os.makedirs(os.path.dirname(static_path), exist_ok=True)
+    os.makedirs(os.path.dirname(templates_path), exist_ok=True)
     
-    print(f"Template created at {template_path}")
+    ExcelDeckService.generate_template_excel(output_path=static_path)
+    ExcelDeckService.generate_template_excel(output_path=templates_path)
+    ExcelDeckService.generate_template_excel(output_path=master_path)
+    
+    print(f"Generated Vocaburn templates successfully:")
+    print(f" - {static_path}")
+    print(f" - {templates_path}")
+    print(f" - {master_path}")
 
 if __name__ == "__main__":
-    create_template()
+    main()

@@ -29,35 +29,37 @@ Bạn cần đọc các file tài liệu theo đúng thứ tự ưu tiên dướ
 6. **[`Vocaburn/docs/03_features_and_ui/DASHBOARD_AND_DAILY_HUB.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/DASHBOARD_AND_DAILY_HUB.md)**:
    - Bố cục 2-tab Home (`Roadmap` | `Learning`), phân tách độc lập 2 trục cử chỉ (lướt dọc snap-scroll vs vuốt ngang đổi tab).
    - Ngăn kéo thông minh Daily Activity Drawer trượt đáy qua `createPortal` và API phân tích nhịp độ 24h (`/api/v1/stats/daily-summary`).
-7. **[`Vocaburn/docs/03_features_and_ui/STUDY_HEADER_TRACKER.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/STUDY_HEADER_TRACKER.md)**: Thanh điều hướng Live HUD 3D flip bar và dải sáng động lực Power Surge.
-8. **[`Vocaburn/docs/04_development_and_ops/DEVELOPMENT_RULES.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/04_development_and_ops/DEVELOPMENT_RULES.md)**: Quy tắc Planning Mode, thư mục tạm `scratch/`, tuyệt đối không dùng localStorage, quy trình deploy VPS.
-9. **[`Vocaburn/docs/04_development_and_ops/FRONTEND_GUIDE.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/04_development_and_ops/FRONTEND_GUIDE.md)**: React 19 + Tailwind v4 + Zustand store, Type Safety checklist và bản vá Safari/WebKit regex lookbehind trong `build_vite.py`.
-10. **[`Vocaburn/docs/02_api_reference/API_REFERENCE.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/02_api_reference/API_REFERENCE.md)**: Danh mục toàn bộ REST API endpoints (`/api/v1/...`).
-
----
-
-## 💻 BƯỚC 2: Đọc & Rà Soát Các Tệp Mã Nguồn Trọng Yếu
-
-Sau khi đọc tài liệu, bạn cần mở và đọc các file code cốt lõi để hiểu cách hệ thống đang vận hành thực tế:
-
-### 2.1. Frontend Code (`Vocaburn/client/src/`)
-| Tệp mã nguồn | Nội dung cần nắm |
-| :--- | :--- |
-| **`App.tsx`** | Định tuyến Router, `ErrorBoundary`, theme provider, root container khóa chiều cao `h-[100dvh] overflow-hidden`. |
-| **`store/useAppStore.ts`** | Zustand store toàn cục. Quản lý user settings đồng bộ backend (KHÔNG dùng localStorage), trạng thái âm thanh, theme, study modes. |
-| **`pages/home/HomePage.tsx`** | Màn hình chính với 2 tab `Roadmap` vs `Learning`, container snap-scroll dọc và bộ lắng nghe cử chỉ vuốt ngang chuyển tab độc lập. |
-| **`components/dashboard/DashboardDailyDrawer.tsx`** | Component ngăn kéo thống kê hoạt động trong ngày, mount ra `document.body` bằng `createPortal`, hiệu ứng kéo vuốt xuống để đóng. |
-| **`pages/deck/DeckDetailPage.tsx`** | Chi tiết bộ thẻ với 2 nút học cố định sát đáy (`Flashcards` & `Practice`), modal sheets chọn chế độ học bằng `createPortal`, nhật ký luyện tập gần đây. |
-| **`pages/flashcard/FlashcardPlayerPage.tsx`** | Trình phát Flashcard cốt lõi xử lý 4 chế độ (FSRS, Continuous, Learn New, Speed Skim), cử chỉ vuốt next/undo cả 2 mặt thẻ, Quick Controls bar. |
-| **`components/study/StudyHeaderTracker.tsx`** | Thanh HUD trên cùng hỗ trợ lật 3D xem thống kê chi tiết và hiệu ứng hào quang Power Surge. |
-
-### 2.2. Backend Code (`Vocaburn/app/`)
-| Tệp mã nguồn | Nội dung cần nắm |
-| :--- | :--- |
-| **`main.py`** | Khởi tạo ứng dụng FastAPI, cấu hình CORS, static files, middleware và nạp routers. |
-| **`database.py`** | Cấu hình SQLAlchemy `AsyncSession`, SQLite WAL mode, engine kết nối cơ sở dữ liệu. |
-| **`modules/deck/services/deck_service.py`** | Nghiệp vụ thẻ, tính toán FSRS v6, truy vấn thẻ đến hạn ôn (due cards), thẻ mới tinh (new cards), lộ trình Roadmap. |
-| **`modules/deck/routes/deck_routes.py`** | REST endpoints xử lý lấy dữ liệu học `/api/v1/deck/{deck_id}/fsrs-play-data`, nộp điểm FSRS `/grade-fsrs`. |
+32: 7. **[`Vocaburn/docs/03_features_and_ui/EXCEL_TEMPLATE_GUIDE.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/EXCEL_TEMPLATE_GUIDE.md)**: Hướng dẫn chi tiết tạo và cấu trúc file Excel chuẩn hóa (6 Sheets, Sub-lessons, FSRS/Skim/Memrise, 4 chế độ Practice, Insight Box).
+33: 8. **[`Vocaburn/docs/03_features_and_ui/STUDY_HEADER_TRACKER.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/STUDY_HEADER_TRACKER.md)**: Thanh điều hướng Live HUD 3D flip bar và dải sáng động lực Power Surge.
+34: 9. **[`Vocaburn/docs/04_development_and_ops/DEVELOPMENT_RULES.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/04_development_and_ops/DEVELOPMENT_RULES.md)**: Quy tắc Planning Mode, thư mục tạm `scratch/`, tuyệt đối không dùng localStorage, quy trình deploy VPS.
+35: 10. **[`Vocaburn/docs/04_development_and_ops/FRONTEND_GUIDE.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/04_development_and_ops/FRONTEND_GUIDE.md)**: React 19 + Tailwind v4 + Zustand store, Type Safety checklist và bản vá Safari/WebKit regex lookbehind trong `build_vite.py`.
+36: 11. **[`Vocaburn/docs/02_api_reference/API_REFERENCE.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/02_api_reference/API_REFERENCE.md)**: Danh mục toàn bộ REST API endpoints (`/api/v1/...`).
+37: 
+38: ---
+39: 
+40: ## 💻 BƯỚC 2: Đọc & Rà Soát Các Tệp Mã Nguồn Trọng Yếu
+41: 
+42: Sau khi đọc tài liệu, bạn cần mở và đọc các file code cốt lõi để hiểu cách hệ thống đang vận hành thực tế:
+43: 
+44: ### 2.1. Frontend Code (`Vocaburn/client/src/`)
+45: | Tệp mã nguồn | Nội dung cần nắm |
+46: | :--- | :--- |
+47: | **`App.tsx`** | Định tuyến Router, `ErrorBoundary`, theme provider, root container khóa chiều cao `h-[100dvh] overflow-hidden`. |
+48: | **`store/useAppStore.ts`** | Zustand store toàn cục. Quản lý user settings đồng bộ backend (KHÔNG dùng localStorage), trạng thái âm thanh, theme, study modes. |
+49: | **`pages/home/HomePage.tsx`** | Màn hình chính với 2 tab `Roadmap` vs `Learning`, container snap-scroll dọc và bộ lắng nghe cử chỉ vuốt ngang chuyển tab độc lập. |
+50: | **`components/dashboard/DashboardDailyDrawer.tsx`** | Component ngăn kéo thống kê hoạt động trong ngày, mount ra `document.body` bằng `createPortal`, hiệu ứng kéo vuốt xuống để đóng. |
+51: | **`pages/deck/DeckDetailPage.tsx`** | Chi tiết bộ thẻ với 2 nút học cố định sát đáy (`Flashcards` & `Practice`), modal sheets chọn chế độ học bằng `createPortal`, nhật ký luyện tập gần đây. |
+52: | **`pages/flashcard/FlashcardPlayerPage.tsx`** | Trình phát Flashcard cốt lõi xử lý 4 chế độ (FSRS, Continuous, Learn New, Speed Skim), cử chỉ vuốt next/undo cả 2 mặt thẻ, Quick Controls bar. |
+53: | **`components/study/StudyHeaderTracker.tsx`** | Thanh HUD trên cùng hỗ trợ lật 3D xem thống kê chi tiết và hiệu ứng hào quang Power Surge. |
+54: 
+55: ### 2.2. Backend Code (`Vocaburn/app/`)
+56: | Tệp mã nguồn | Nội dung cần nắm |
+57: | :--- | :--- |
+58: | **`main.py`** | Khởi tạo ứng dụng FastAPI, cấu hình CORS, static files, middleware và nạp routers. |
+59: | **`database.py`** | Cấu hình SQLAlchemy `AsyncSession`, SQLite WAL mode, engine kết nối cơ sở dữ liệu. |
+60: | **`modules/deck/services/deck_service.py`** | Nghiệp vụ thẻ, tính toán FSRS v6, truy vấn thẻ đến hạn ôn (due cards), thẻ mới tinh (new cards), lộ trình Roadmap. |
+61: | **`modules/deck/services/excel_service.py`** | Bộ phân tích và khởi tạo file Excel chuẩn hóa (`Vocaburn_Template.xlsx`), xử lý 6 sheet, công thức tính toán và cấu hình luyện tập. |
+62: | **`modules/deck/routes/deck_routes.py`** | REST endpoints xử lý lấy dữ liệu học `/api/v1/deck/{deck_id}/fsrs-play-data`, nộp điểm FSRS `/grade-fsrs`. |
 | **`modules/stats/services/analytics_service.py`** | Dịch vụ tổng hợp số liệu học tập trong ngày theo múi giờ client cho Daily Activity Hub. |
 | **`modules/auth/` & `modules/sso_module/`** | Cơ chế xác thực JWT SSO CentralAuth và dynamic handshake. |
 

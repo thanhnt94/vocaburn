@@ -348,7 +348,45 @@ class ExcelDeckService:
                             if "study_defaults" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["study_defaults"], dict):
                                 metadata["practice_settings"]["study_defaults"] = {}
                             metadata["practice_settings"]["study_defaults"][target_key] = norm_val
-                    elif key in ("custom_columns", "insight_columns", "column_order", "study_modes", "default_mode", "ai_prompts", "audio_pairs", "front_audio_config", "back_audio_config", "mcq", "typing", "listening"):
+                    elif key in ("sub_lesson_grouping", "cấu hình bài học con", "phân nhóm bài học", "grouping"):
+                        try:
+                            parsed = json.loads(value)
+                            if isinstance(parsed, dict):
+                                if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                                    metadata["practice_settings"] = {}
+                                metadata["practice_settings"]["sub_lesson_grouping"] = parsed
+                        except:
+                            pass
+                    elif key in ("sub_lesson_column", "cột bài học con", "cột phân nhóm", "nhóm bài học", "group_by_column", "group_column"):
+                        col_val = value.strip().lower()
+                        if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                            metadata["practice_settings"] = {}
+                        if "sub_lesson_grouping" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["sub_lesson_grouping"], dict):
+                            metadata["practice_settings"]["sub_lesson_grouping"] = {"enabled": True, "column": col_val, "hide_uncategorized": False}
+                        else:
+                            metadata["practice_settings"]["sub_lesson_grouping"]["column"] = col_val
+                            metadata["practice_settings"]["sub_lesson_grouping"]["enabled"] = True
+                    elif key in ("sub_lesson_enabled", "bật bài học con", "bật phân nhóm"):
+                        enabled = value.strip().lower() in ("true", "1", "yes", "y", "bật")
+                        if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                            metadata["practice_settings"] = {}
+                        if "sub_lesson_grouping" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["sub_lesson_grouping"], dict):
+                            metadata["practice_settings"]["sub_lesson_grouping"] = {"enabled": enabled, "column": "category", "hide_uncategorized": False}
+                        else:
+                            metadata["practice_settings"]["sub_lesson_grouping"]["enabled"] = enabled
+                    elif key in ("disabled_modes", "chế độ tắt", "tắt chế độ"):
+                        try:
+                            parsed = json.loads(value)
+                            if isinstance(parsed, list):
+                                if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                                    metadata["practice_settings"] = {}
+                                metadata["practice_settings"]["disabled_modes"] = [str(x).strip().lower() for x in parsed]
+                        except:
+                            modes = [m.strip().lower() for m in value.split(",") if m.strip()]
+                            if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
+                                metadata["practice_settings"] = {}
+                            metadata["practice_settings"]["disabled_modes"] = modes
+                    elif key in ("custom_columns", "insight_columns", "column_order", "study_modes", "default_mode", "ai_prompts", "audio_pairs", "front_audio_config", "back_audio_config", "mcq", "typing", "listening", "audio_mcq", "audio_typing"):
                         try:
                             parsed_val = json.loads(value)
                         except:
@@ -542,7 +580,7 @@ class ExcelDeckService:
                                 "answer_col": a_col,
                                 "name": f"{q_col} ➜ {a_col}"
                             })
-                    elif mode in ("listening", "nghe", "listen"):
+                    elif mode in ("listening", "nghe", "listen", "audio_mcq", "listening_mcq"):
                         listening_pairs.append({
                             "q": q_col,
                             "a": a_col,
@@ -551,6 +589,26 @@ class ExcelDeckService:
                             "name": f"{q_col} ➜ {a_col}"
                         })
                         metadata["practice_settings"]["listening"]["num_choices"] = num_choices
+                    elif mode in ("audio_typing", "listening_typing", "dictation", "nghe gõ", "chính tả"):
+                        if "audio_typing" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["audio_typing"], dict):
+                            metadata["practice_settings"]["audio_typing"] = {"active_pairs": []}
+                        if "," in a_col:
+                            a_targets = [col.strip() for col in a_col.split(",") if col.strip()]
+                            metadata["practice_settings"]["audio_typing"]["active_pairs"].append({
+                                "q": q_col,
+                                "a": a_targets,
+                                "prompt_col": q_col,
+                                "answer_col": a_targets,
+                                "name": f"{q_col} ➜ {'/'.join(a_targets)}"
+                            })
+                        else:
+                            metadata["practice_settings"]["audio_typing"]["active_pairs"].append({
+                                "q": q_col,
+                                "a": a_col,
+                                "prompt_col": q_col,
+                                "answer_col": a_col,
+                                "name": f"{q_col} ➜ {a_col}"
+                            })
 
                 if mcq_pairs:
                     metadata["practice_settings"]["mcq"]["active_pairs"] = mcq_pairs
@@ -559,6 +617,10 @@ class ExcelDeckService:
                     metadata["practice_settings"]["typing"]["active_pairs"] = typing_pairs
                 if listening_pairs:
                     metadata["practice_settings"]["listening"]["active_pairs"] = listening_pairs
+                    if "audio_mcq" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["audio_mcq"], dict):
+                        metadata["practice_settings"]["audio_mcq"] = {"active_pairs": listening_pairs, "num_choices": 4}
+                    else:
+                        metadata["practice_settings"]["audio_mcq"]["active_pairs"] = listening_pairs
             except Exception as e:
                 print(f"DEBUG: Error parsing Practice sheet: {e}")
 
@@ -1384,7 +1446,8 @@ class ExcelDeckService:
 
             # Section 2
             ("--- CÀI ĐẶT HỌC MẶC ĐỊNH ĐẦU VÀO (Creator Study Defaults) ---", "", "", "", ""),
-            ("study_learning_mode", "fsrs", "Chế độ học mặc định", "fsrs | roadmap | new | review | hardest | flip", "Chế độ khởi đầu khi người học bấm học thẻ: fsrs (giãn cách), roadmap (lộ trình), flip (lật nhanh)..."),
+            ("study_learning_mode", "fsrs", "Chế độ học mặc định", "fsrs | skim | memrise", "Chế độ flashcard khởi đầu: fsrs (thuật toán FSRS v6 giãn cách), skim (lướt nhanh), memrise (lặp lại tức thì)"),
+            ("disabled_modes", "", "Vô hiệu hóa chế độ", "mcq, typing, audio_mcq, audio_typing, skim, memrise", "Danh sách chế độ muốn tắt cho bộ thẻ này (phân cách bằng dấu phẩy, để trống nếu cho phép tất cả)"),
             ("study_autoplay_audio", "front", "Tự động phát âm thanh", "none | front | back | always", "Tự động phát TTS/Audio: none (tắt), front (mặt trước), back (mặt sau), always (cả hai)"),
             ("study_show_images", "always", "Hiển thị hình ảnh", "always | front | back | none", "Chế độ ảnh: always (luôn hiện), front (chỉ mặt trước), back (chỉ mặt sau), none (ẩn ảnh)"),
             ("study_random_enabled", "FALSE", "Xáo trộn thứ tự thẻ", "TRUE | FALSE", "TRUE: Ngẫu nhiên thứ tự thẻ khi bắt đầu học; FALSE: Theo thứ tự gốc trong bảng"),
@@ -1395,17 +1458,19 @@ class ExcelDeckService:
             ("audio_speech_rate", "1.0", "Tốc độ đọc giọng nói", "0.5 đến 2.0 (mặc định 1.0)", "Tốc độ phát âm Text-to-Speech khi luyện tập"),
 
             # Section 3
-            ("--- CẤU HÌNH CỘT ĐỘNG (Dynamic Columns) ---", "", "", "", ""),
-            ("custom_columns", "pos, cách đọc, hán việt, nghĩa, câu ví dụ, cách đọc câu ví dụ, nghĩa câu ví dụ, english, từ vựng, Cách nhớ cách đọc", "Danh sách cột tùy chỉnh", "Tên cột cách nhau dấu phẩy (,)", "Các cột dữ liệu bổ sung trong sheet Data phục vụ hiển thị và luyện tập"),
+            ("--- CẤU HÌNH PHÂN NHÓM BÀI HỌC CON & CỘT ĐỘNG (Sub-lessons & Dynamic Columns) ---", "", "", "", ""),
+            ("sub_lesson_enabled", "TRUE", "Bật bài học con (Sub-lessons)", "TRUE | FALSE", "TRUE: Cho phép gom nhóm thẻ theo bài học/chương/unit để người học chọn học từng phần riêng biệt"),
+            ("sub_lesson_column", "unit", "Cột phân nhóm bài học", "unit | lesson | chuong | bai...", "Tên cột trong sheet Data chứa tên bài học/unit để hệ thống phân nhóm tự động"),
+            ("custom_columns", "unit, pos, cách đọc, hán việt, nghĩa, câu ví dụ, cách đọc câu ví dụ, nghĩa câu ví dụ, english, từ vựng, Cách Nhớ Từ Vựng, Cách nhớ Hán Tự, Cách nhớ cách đọc", "Danh sách cột tùy chỉnh", "Tên cột cách nhau dấu phẩy (,)", "Các cột dữ liệu bổ sung trong sheet Data phục vụ hiển thị và luyện tập"),
             ("insight_columns", "Cách Nhớ Từ Vựng, Cách nhớ Hán Tự, Cách nhớ cách đọc", "Cột thẻ ghi nhớ (Insight)", "Tên cột cách nhau dấu phẩy (,)", "Các cột đặc biệt sẽ hiển thị dưới dạng khung mẹo ghi nhớ (Insight box) khi lật thẻ"),
 
             # Section 4
             ("--- HƯỚNG DẪN CÁC SHEET CHUYÊN BIỆT (Specialized Sheets Guide) ---", "", "", "", ""),
-            ("sheet_practice", "Xem sheet 'Practice'", "Cấu hình luyện tập đa chế độ", "MCQ | Typing | Listening", "Cấu hình trắc nghiệm (MCQ), gõ từ (Typing), luyện nghe (Listening) theo từng dòng trực quan"),
+            ("sheet_practice", "Xem sheet 'Practice'", "Cấu hình luyện tập đa chế độ", "mcq | typing | audio_mcq | audio_typing", "Cấu hình trắc nghiệm (mcq), gõ từ (typing), trắc nghiệm nghe (audio_mcq), chính tả nghe gõ (audio_typing)"),
             ("sheet_ai_prompts", "Xem sheet 'AI_Prompts'", "Cấu hình AI Prompt mẫu", "Mẫu câu lệnh tùy biến", "Viết prompt tự nhiên nhiều dòng cho từng cột kết quả, dùng {tên_cột} để lấy dữ liệu thẻ"),
             ("sheet_audio", "Xem sheet 'Audio'", "Cấu hình Text-to-Speech", "TTS đa ngôn ngữ", "Chỉ định cột văn bản nguồn, ngôn ngữ phát âm và cột chứa file âm thanh"),
             ("sheet_collaborators", "Xem sheet 'Collaborators'", "Cộng tác viên biên tập", "editor | viewer", "Tên tài khoản hoặc email kèm vai trò biên tập viên hoặc người xem"),
-            ("sheet_data", "Xem sheet 'Data'", "Bảng dữ liệu thẻ flashcard", "front, back + dynamic cols", "Bảng chứa toàn bộ từ vựng flashcard và các cột tùy chỉnh phong phú")
+            ("sheet_data", "Xem sheet 'Data'", "Bảng dữ liệu thẻ flashcard", "unit, front, back + dynamic cols", "Bảng chứa toàn bộ từ vựng flashcard và các cột tùy chỉnh phong phú")
         ]
 
         current_row = 2
@@ -1461,6 +1526,7 @@ class ExcelDeckService:
 
         data_headers = [
             "id",
+            "unit",
             "front",
             "back",
             "pos",
@@ -1494,6 +1560,7 @@ class ExcelDeckService:
         sample_cards = [
             [
                 "",
+                "Unit 1: Bước Ngoặt Cuộc Sống",
                 "契機",
                 "Cơ hội, động cơ, bước ngoặt",
                 "Danh từ",
@@ -1517,6 +1584,7 @@ class ExcelDeckService:
             ],
             [
                 "",
+                "Unit 1: Bước Ngoặt Cuộc Sống",
                 "抱く",
                 "Ôm ấp, nuôi dưỡng (ước mơ, hoài bão)",
                 "Động từ nhóm 1 (Tha động từ)",
@@ -1540,6 +1608,7 @@ class ExcelDeckService:
             ],
             [
                 "",
+                "Unit 2: Thử Thách & Vượt Khó",
                 "克服",
                 "Khắc phục, vượt qua khó khăn",
                 "Danh từ, Động từ Suru",
@@ -1556,6 +1625,30 @@ class ExcelDeckService:
                 "Kokufuku: Cố cùng Phúc sẽ khắc phục được mọi trở ngại.",
                 "こくふく",
                 "Khắc phục, vượt qua khó khăn",
+                "",
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "Unit 2: Thử Thách & Vượt Khó",
+                "挑む",
+                "Thử thách, đương đầu với khó khăn",
+                "Động từ nhóm 1 (Tha động từ)",
+                "いどむ",
+                "THIÊU / KHIÊU",
+                "Thử thách, đương đầu với khó khăn, thử nghiệm điều mới mẻ hoặc nguy hiểm",
+                "新しい記録に挑む。",
+                "あたらしいきろくにいどむ。",
+                "Đương đầu thử thách với kỷ lục mới.",
+                "to challenge, to tackle",
+                "挑む",
+                "Tay (扌) cầm Triệu (兆) đồng đi KHIÊU chiến thử thách.",
+                "Thủ (扌) + Triệu (兆)",
+                "Idomu: Ý đồ mưu đương đầu thử thách mới.",
+                "いどむ",
+                "Thử thách, đương đầu với khó khăn",
                 "",
                 "",
                 "",
@@ -1601,7 +1694,8 @@ class ExcelDeckService:
             ["mcq", "front", "nghĩa", "4", "TRUE", "Trắc nghiệm: Nhìn từ vựng chọn nghĩa tiếng Việt"],
             ["mcq", "nghĩa", "front", "4", "TRUE", "Trắc nghiệm: Nhìn nghĩa tiếng Việt chọn từ vựng tương ứng"],
             ["typing", "nghĩa", "front, từ vựng, cách đọc, english", "", "TRUE", "Gõ từ: Chấp nhận từ vựng, cách đọc hoặc tiếng Anh"],
-            ["listening", "front", "nghĩa", "4", "TRUE", "Luyện nghe: Nghe phát âm tiếng Nhật chọn đáp án đúng"]
+            ["audio_mcq", "front", "nghĩa", "4", "TRUE", "Trắc nghiệm nghe: Nghe âm thanh từ vựng chọn nghĩa tương ứng"],
+            ["audio_typing", "front", "front, cách đọc", "", "TRUE", "Chính tả nghe gõ: Nghe âm thanh gõ lại từ vựng hoặc cách đọc"]
         ]
 
         for r_idx, row_vals in enumerate(sample_practice, start=2):

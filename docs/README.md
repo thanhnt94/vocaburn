@@ -24,6 +24,7 @@ docs/
 │   ├── STUDY_HEADER_TRACKER.md   # Hướng dẫn Live HUD Tracker Bar, 3D Flip & Power Surge
 │   ├── FLASHCARD_AND_PRACTICE_MODES.md # Kiến trúc 4 chế độ Flashcard, 4 chế độ Practice & Cử chỉ
 │   ├── DASHBOARD_AND_DAILY_HUB.md # Bố cục 2-tab Home, snap-scroll dọc & Ngăn kéo Daily Activity
+│   ├── EXCEL_TEMPLATE_GUIDE.md   # Hướng dẫn chi tiết tạo file Excel chuẩn Vocaburn (6 Sheets, Sub-lessons & Insight)
 │   └── AI_PROMPT_GUIDE.md        # Hướng dẫn kỹ thuật viết Prompt tiếng Việt & Thư viện mẫu chuẩn FSRS
 │
 ├── 04_development_and_ops/       # ⚙️ Quy chuẩn Phát triển & Vận hành
@@ -51,6 +52,7 @@ docs/
 ---
 
 ### 3. 🎴 [Tính năng Nghiệp vụ & Giao diện](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/)
+* **[EXCEL_TEMPLATE_GUIDE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/EXCEL_TEMPLATE_GUIDE.md)**: Hướng dẫn chi tiết tạo và cấu trúc file Excel chuẩn hóa gồm 6 sheets (`Info`, `Data`, `Practice`, `AI_Prompts`, `Audio`, `Collaborators`), phân nhóm bài học con (`sub-lessons`), thiết lập chế độ học FSRS/Skim/Memrise, cột mẹo nhớ Insight Box và cấu hình luyện tập 4 chế độ.
 * **[AI_PROMPT_GUIDE.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/AI_PROMPT_GUIDE.md)**: Hướng dẫn kỹ thuật viết Prompt tiếng Việt cho trợ lý giải thích thẻ (`AI Explain`), sinh dữ liệu hàng loạt (`Bulk AI`) và thư viện Prompt mẫu chất lượng cao (giải thích từ vựng, chiết tự Hán tự, ví dụ giao tiếp song ngữ, mẹo ghi nhớ Mnemonic).
 * **[FLASHCARD_AND_PRACTICE_MODES.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/FLASHCARD_AND_PRACTICE_MODES.md)**: Kiến trúc toàn diện 4 chế độ Flashcard (FSRS, Continuous Review vòng lặp vô tận, Learn New Words, Speed Skim), 4 bài luyện tập Practice, thanh 2 nút đáy neo cố định, modal sheets tràn viền `createPortal`, cử chỉ vuốt chuyển câu và hoàn tác cả 2 mặt, Quick Controls haptic/image cycle/font size.
 * **[DASHBOARD_AND_DAILY_HUB.md](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/DASHBOARD_AND_DAILY_HUB.md)**: Bố cục chuẩn Mobile-First của Home Dashboard với 2 tab cốt lõi (`Roadmap` | `Learning`), phân tách độc lập 2 trục cử chỉ (snap-scroll dọc vs vuốt ngang), ngăn kéo thông minh Daily Activity Drawer trượt đáy qua `createPortal` và endpoint phân tích hoạt động theo múi giờ client.

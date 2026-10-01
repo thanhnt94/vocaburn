@@ -2,6 +2,31 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-01]
+#### Hiện Đại Hóa & Chuẩn Hóa File Mẫu Excel `Vocaburn_Template.xlsx` & Tài Liệu Hướng Dẫn Kỹ Thuật (`EXCEL_TEMPLATE_GUIDE.md`)
+- **Khắc phục triệt để lỗi file mẫu tải về từ web bị lỗi thời (Stale Static Cache)**:
+  - File tĩnh trước đây (`app/static/Vocaburn_Template.xlsx`) tạo từ 04/09/2026 và bị kẹt do điều kiện `if not os.path.exists(path)` trong endpoint `GET /api/v1/deck/template/download`.
+  - Cập nhật endpoint để luôn tái tạo tự động (`ExcelDeckService.generate_template_excel(output_path=path)`) đảm bảo file người dùng tải về luôn phản ánh 100% các cập nhật mới nhất của Vocaburn theo thời gian thực.
+  - Khởi tạo đồng thời bản lưu trữ chuẩn tại `Vocaburn/templates/Vocaburn_Template.xlsx` và `Vocaburn/templates/Vocaburn_Master_Template.xlsx`.
+- **Nâng cấp toàn diện cấu trúc 6 Trang Tính (Sheets) của File Excel**:
+  - **Sheet `Info`**:
+    - Chuẩn hóa lại tùy chọn chế độ học mặc định (`study_learning_mode`: `fsrs | skim | memrise`).
+    - Bổ sung trường `disabled_modes` cho phép tác giả vô hiệu hóa các chế độ không phù hợp với bộ thẻ (ví dụ `typing, audio_typing` cho bộ thẻ câu hội thoại dài).
+    - Bổ sung cấu hình phân nhóm bài học con: `sub_lesson_enabled` (`TRUE | FALSE`) và `sub_lesson_column` (`unit`).
+    - Khai báo danh sách `custom_columns` và `insight_columns` chuẩn (`Cách Nhớ Từ Vựng, Cách nhớ Hán Tự, Cách nhớ cách đọc`).
+  - **Sheet `Data`**:
+    - Thêm cột `unit` ngay sau cột `id` để phục vụ phân nhóm bài học con (`Unit 1: Bước Ngoặt Cuộc Sống`, `Unit 2: Thử Thách & Vượt Khó`...).
+    - 4 thẻ từ vựng mẫu tiếng Nhật N2 chi tiết với đầy đủ Kanji, từ loại `pos`, Hiragana `cách đọc`, Hán Việt, nghĩa, câu ví dụ, âm thanh, hình ảnh và 3 cột mẹo nhớ Insight Box.
+  - **Sheet `Practice`**:
+    - Nâng cấp và hỗ trợ đầy đủ 4 chế độ luyện tập: `mcq` (Trắc nghiệm), `typing` (Gõ từ vựng - hỗ trợ nhiều đáp án hợp lệ phân tách bằng dấu phẩy `,`), `audio_mcq` (Nghe trắc nghiệm), và `audio_typing` (Chính tả nghe gõ / Dictation).
+  - **Sheet `AI_Prompts`**:
+    - Cấu hình 3 nút bấm AI mẫu phong phú với biến đại diện đa năng `{front}`, `{cách đọc}`, `{hán việt}`, `{nghĩa}`.
+  - **Sheet `Audio` & `Collaborators`**:
+    - Cấu hình TTS phát âm chuẩn theo mã ngôn ngữ BCP-47 (`ja-JP`, `vi-VN`) và phân quyền cộng tác viên (`editor`, `viewer`).
+- **Phát hành tài liệu chuyên sâu `EXCEL_TEMPLATE_GUIDE.md`**:
+  - Biên soạn tài liệu chi tiết tại [`Vocaburn/docs/03_features_and_ui/EXCEL_TEMPLATE_GUIDE.md`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/docs/03_features_and_ui/EXCEL_TEMPLATE_GUIDE.md) giải thích chi tiết ý nghĩa từng cột, bảng màu, cách viết công thức tính toán và hướng dẫn người dùng tạo bộ thẻ từ Excel lên web.
+  - Đồng bộ liên kết trong `Vocaburn/docs/README.md`, `Vocaburn/docs/START.md` và `.agents/AGENTS.md`.
+
 ### [2026-09-28]
 #### Tối Ưu Hóa & Đưa Bộ Lọc Thẻ Đánh Dấu Sao (Starred) Nổi Bật Trong Card Map (`QuestionMapGrid.tsx`)
 - **Đưa nút lọc Starred lên vị trí thứ 2 (ngay sau All)**:
