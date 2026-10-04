@@ -23,6 +23,8 @@ export interface StudySettingsState {
   haptic_enabled: boolean
   quick_learn_enabled: boolean
   auto_next_delay?: number | null
+  auto_front_delay?: number | null
+  auto_back_delay?: number | null
   show_fsrs: boolean
   card_flip_trigger?: CardFlipTrigger
   card_rating_mode?: CardRatingMode
@@ -45,6 +47,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   haptic_enabled: true,
   quick_learn_enabled: false,
   auto_next_delay: null,
+  auto_front_delay: 2.0,
+  auto_back_delay: 3.0,
   show_fsrs: true,
   card_flip_trigger: 'both',
   card_rating_mode: 'both',
@@ -62,6 +66,8 @@ export function usePlaySettings(
   const [sfxEnabled, setSfxEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.sfx_enabled)
   const [quickLearnEnabled, setQuickLearnEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.quick_learn_enabled)
   const [autoNextDelay, setAutoNextDelayState] = useState<number | null>(DEFAULT_STUDY_SETTINGS.auto_next_delay ?? null)
+  const [autoFrontDelay, setAutoFrontDelayState] = useState<number>(DEFAULT_STUDY_SETTINGS.auto_front_delay ?? 2.0)
+  const [autoBackDelay, setAutoBackDelayState] = useState<number>(DEFAULT_STUDY_SETTINGS.auto_back_delay ?? 3.0)
   const [hapticEnabled, setHapticEnabledState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.haptic_enabled)
   const [showImages, setShowImagesState] = useState<ImageDisplayMode>(DEFAULT_STUDY_SETTINGS.show_images)
   const [showFsrs, setShowFsrsState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_fsrs)
@@ -119,6 +125,12 @@ export function usePlaySettings(
       }
       if (effectiveSettings.auto_next_delay !== undefined) {
         setAutoNextDelayState(effectiveSettings.auto_next_delay === null ? null : Number(effectiveSettings.auto_next_delay))
+      }
+      if (effectiveSettings.auto_front_delay !== undefined) {
+        setAutoFrontDelayState(effectiveSettings.auto_front_delay === null ? 2.0 : Number(effectiveSettings.auto_front_delay))
+      }
+      if (effectiveSettings.auto_back_delay !== undefined) {
+        setAutoBackDelayState(effectiveSettings.auto_back_delay === null ? 3.0 : Number(effectiveSettings.auto_back_delay))
       }
       if (effectiveSettings.haptic_enabled !== undefined) {
         setHapticEnabledState(Boolean(effectiveSettings.haptic_enabled))
@@ -223,6 +235,12 @@ export function usePlaySettings(
     if (updates.auto_next_delay !== undefined) {
       setAutoNextDelayState(updates.auto_next_delay === null ? null : Number(updates.auto_next_delay))
     }
+    if (updates.auto_front_delay !== undefined) {
+      setAutoFrontDelayState(updates.auto_front_delay === null ? 2.0 : Number(updates.auto_front_delay))
+    }
+    if (updates.auto_back_delay !== undefined) {
+      setAutoBackDelayState(updates.auto_back_delay === null ? 3.0 : Number(updates.auto_back_delay))
+    }
     if (updates.haptic_enabled !== undefined) setHapticEnabledState(updates.haptic_enabled)
     if (updates.show_images !== undefined) setShowImagesState(updates.show_images as ImageDisplayMode)
     if (updates.show_fsrs !== undefined) setShowFsrsState(updates.show_fsrs)
@@ -295,6 +313,14 @@ export function usePlaySettings(
 
   const setAutoNextDelay = useCallback((delay: number | null) => {
     saveGeneralSettings({ auto_next_delay: delay })
+  }, [saveGeneralSettings])
+
+  const setAutoFrontDelay = useCallback((delay: number) => {
+    saveGeneralSettings({ auto_front_delay: delay })
+  }, [saveGeneralSettings])
+
+  const setAutoBackDelay = useCallback((delay: number) => {
+    saveGeneralSettings({ auto_back_delay: delay })
   }, [saveGeneralSettings])
 
   const setHapticEnabled = useCallback((enabled: boolean) => {
@@ -381,6 +407,8 @@ export function usePlaySettings(
         setSfxEnabledState(baseline.sfx_enabled)
         setQuickLearnEnabledState(baseline.quick_learn_enabled)
         setAutoNextDelayState(baseline.auto_next_delay ?? null)
+        setAutoFrontDelayState(baseline.auto_front_delay ?? 2.0)
+        setAutoBackDelayState(baseline.auto_back_delay ?? 3.0)
         setHapticEnabledState(baseline.haptic_enabled)
         setShowImagesState(baseline.show_images)
         setShowFsrsState(baseline.show_fsrs)
@@ -420,6 +448,8 @@ export function usePlaySettings(
       haptic_enabled: hapticEnabled,
       quick_learn_enabled: quickLearnEnabled,
       auto_next_delay: autoNextDelay,
+      auto_front_delay: autoFrontDelay,
+      auto_back_delay: autoBackDelay,
       show_fsrs: showFsrs,
       card_flip_trigger: cardFlipTrigger || 'both',
       card_rating_mode: cardRatingMode || 'both',
@@ -460,6 +490,10 @@ export function usePlaySettings(
     setQuickLearnEnabled,
     autoNextDelay,
     setAutoNextDelay,
+    autoFrontDelay,
+    setAutoFrontDelay,
+    autoBackDelay,
+    setAutoBackDelay,
     hapticEnabled,
     setHapticEnabled,
     showImages,

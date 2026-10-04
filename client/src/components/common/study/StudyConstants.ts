@@ -22,6 +22,8 @@ export interface StudySettings {
   random_enabled: boolean
   quick_learn_enabled?: boolean
   auto_next_delay?: number | null
+  auto_front_delay?: number | null
+  auto_back_delay?: number | null
   swipe_to_rate?: boolean
   disabled_modes?: string[]
 }
@@ -137,6 +139,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettings = {
   random_enabled: false,
   quick_learn_enabled: false,
   auto_next_delay: 0,
+  auto_front_delay: 2.0,
+  auto_back_delay: 3.0,
   swipe_to_rate: true,
   disabled_modes: [],
 }

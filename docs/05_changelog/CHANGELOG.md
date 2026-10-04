@@ -3,6 +3,46 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
+#### Nâng Cấp Chế Độ Skim & AutoPlay: Lọc Phạm Vi Thẻ (All / Rev / New) & Tùy Chỉnh Độ Trễ Tự Động Front Delay / Back Delay
+- **Bộ lọc phạm vi thẻ (Card Scope Filter) cho Skim & AutoPlay**:
+  - Khi người dùng chọn chế độ `⚡ SKIM` (Speed Skim) hoặc `🎧 AUTO` (AutoPlay rảnh tay), một thanh phân đoạn phạm vi thẻ thông minh sẽ tự động xuất hiện ngay dưới hàng 5 chế độ:
+    - `[ All Cards ]`: Lướt qua toàn bộ thẻ bài trong bộ thẻ.
+    - `[ Review Due (Rev) ]`: Chỉ lướt/phát các thẻ đã học đến hạn ôn tập (cards with `last_review` or `state > 0`).
+    - `[ Learn New (New) ]`: Chỉ lướt/phát các thẻ hoàn toàn mới chưa từng học (`state === 0` và chưa có review).
+  - Mỗi nút chọn phạm vi hiển thị số lượng thẻ thực tế theo thời gian thực (ví dụ: `All Cards (30)`, `Review Due (12)`, `Learn New (18)`).
+  - Khi đổi phạm vi, hệ thống tự động nhảy ngay đến thẻ đầu tiên khớp phạm vi nếu thẻ hiện tại không khớp.
+  - Cả vòng lặp AutoPlay và phím Next/Auto Next trong Skim đều tự động lọc ứng viên chỉ trong phạm vi đã chọn, tích hợp đồng bộ với URL query (`?scope=review` hoặc `?scope=new`) và backend endpoint `POST /api/v1/deck/{deck_id}/next-card`.
+- **Tùy chỉnh độ trễ Front Delay & Back Delay độc quyền cho chế độ AutoPlay**:
+  - **Điều kiện hiển thị nghiêm ngặt (Strict Conditional Visibility)**: Khối điều khiển nhịp độ `AutoPlay Pacing (Delays)` **CHỈ hiển thị khi người dùng đang ở chế độ AUTO**. Khi chuyển sang bất kỳ chế độ nào khác (`FSRS`, `SKIM`, `REV`, `NEW`), toàn bộ khối này sẽ tự động ẩn đi hoàn toàn để giữ giao diện luôn gọn gàng, thoáng đãng.
+  - **Front Delay**: Thiết lập thời gian dừng đọc mặt trước trước khi tự động lật sang mặt sau (các mốc bấm nhanh: `1s`, `1.5s`, `2s`, `3s`, `5s`).
+  - **Back Delay**: Thiết lập thời gian dừng đọc mặt sau trước khi tự động chuyển sang thẻ tiếp theo (các mốc bấm nhanh: `1.5s`, `2s`, `3s`, `4s`, `6s`).
+  - **Lưu tự động tức thì (Zero-Click Autosave)**: Khi người dùng bấm chọn mốc giây, cấu hình được tự động lưu vào backend qua `usePlaySettings` (`auto_front_delay` & `auto_back_delay`) kèm thông báo toast nhỏ, không cần bất kỳ nút lưu thủ công nào.
+
+#### Chuyển Đổi Hoàn Toàn Sang Cơ Chế Autosave Toàn Diện & Loại Bỏ Triệt Để Các Nút "Save Changes" Bị Trùng Lặp
+- **Cơ chế Autosave Toàn Diện (Zero-Click Safety)**:
+  - Tự động hóa hoàn toàn việc lưu cấu hình trên mọi form và cài đặt mà không yêu cầu người dùng phải bấm nút Lưu thủ công:
+    - **Debounced Save (600ms - 700ms)**: Áp dụng cho các trường nhập văn bản (tiêu đề, mô tả, thẻ tags, URL ảnh bìa, nội dung AI prompts) để hạn chế spam API và đảm bảo gõ phím mượt mà.
+    - **Immediate Save**: Áp dụng ngay khi người dùng tương tác với các công tắc toggle (bật/tắt sub-lessons, public/private), thẻ chọn bài tập, lựa chọn số đáp án MCQ, dropdown cột dữ liệu, tốc độ đọc và giọng đọc TTS.
+  - Áp dụng trên toàn bộ các module cài đặt:
+    - `DeckGeneralForm.tsx`: Tự động lưu thông tin cơ bản bộ thẻ.
+    - `DeckStudyDefaults.tsx`: Tự động lưu thiết lập hiển thị thẻ, thao tác lật, âm thanh SFX, rung phản hồi, auto-advance.
+    - `DeckPracticeConfig.tsx`: Tự động lưu chế độ học mặc định, số đáp án trắc nghiệm, các cặp cột hỏi/đáp.
+    - `DeckSubLessonSettings.tsx`: Tự động lưu trạng thái bật/tắt sub-lesson và cột phân nhóm bài học.
+    - `DeckAudioSettings.tsx`: Tự động lưu cấu hình kênh audio, ma trận giọng đọc Edge TTS, tốc độ đọc speech rate.
+    - `DeckAISettings.tsx`: Tự động lưu danh sách prompt chỉ dẫn AI khi thêm, sửa, xóa hoặc chèn biến.
+    - `DeckPersonalSettings.tsx`: Tự động lưu cấu hình học cá nhân của người học khi chọn template hoặc tinh chỉnh thông số.
+- **Loại bỏ 100% các nút "Save Changes" bị trùng lặp**:
+  - Gỡ bỏ toàn bộ nút bấm thủ công ở chân các thẻ cài đặt (Card Footers).
+  - Gỡ bỏ nút `Save Changes` & `Save Preferences` trên thanh Docked Bottom Bar.
+  - Thanh Docked Bottom Bar nay được giải phóng toàn bộ diện tích để hiển thị thanh chuyển mục con (Inner Section Switcher) trong tầm với ngón cái (Thumb-Reachable Navigation), giúp giao diện di động cực kỳ thoáng đãng và dễ bấm.
+  - Giữ lại các nút kích hoạt tác vụ nền chuyên biệt (*Trigger CentralAuth Batch Queue* và *Batch TTS MP3 Generator*).
+- **Hệ thống phản hồi trạng thái tự động nổi (Floating AutoSave Indicator)**:
+  - Tạo mới `useAutoSaveNotifier.ts` và component `AutoSaveIndicator.tsx` gắn cố định tại góc trên bên phải màn hình (`top-3.5 right-4 z-[120]`).
+  - Sử dụng Framer Motion hiển thị trạng thái mượt mà:
+    - Khi đang ghi: `🔄 Saving...`
+    - Khi thành công: `✓ Auto-saved` (tự động mờ dần và ẩn sau 1.8 giây).
+    - Khi có lỗi: `⚠️ Error saving: ...`
+
 #### Tối Ưu Kiến Trúc Điều Hướng Deck Settings 2 Tầng: 5 Tab Lĩnh Vực Tinh Gọn Trên Cùng & Hợp Nhất "Flashcard" Toàn Diện
 - **Hợp nhất `Columns` và `Study` thành tab `Flashcard` duy nhất (`DeckDetailPage.tsx`, `DeckSettingsTab.tsx`)**:
   - **Giảm số tab trên cùng từ 6 xuống còn 5 tab chuẩn mực**:

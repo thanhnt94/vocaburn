@@ -269,6 +269,10 @@ export default function FlashcardPlay() {
     setQuickLearnEnabled,
     autoNextDelay,
     setAutoNextDelay,
+    autoFrontDelay,
+    setAutoFrontDelay,
+    autoBackDelay,
+    setAutoBackDelay,
     hapticEnabled,
     setHapticEnabled,
     showImages,
@@ -483,6 +487,63 @@ export default function FlashcardPlay() {
     }
     return 'fsrs';
   })
+
+  // Card Scope state for Skim and AutoPlay ('all' | 'review' | 'new')
+  const [cardScope, setCardScope] = useState<'all' | 'review' | 'new'>(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const scopeParam = searchParams.get('scope') || searchParams.get('filter');
+    if (scopeParam === 'review' || scopeParam === 'due') return 'review';
+    if (scopeParam === 'new') return 'new';
+    return 'all';
+  });
+
+  const isCardReview = useCallback((q: any) => {
+    if (!q) return false;
+    return q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && (q.stats?.total || 0) > 0);
+  }, []);
+
+  const isCardNew = useCallback((q: any) => {
+    if (!q) return false;
+    return q.fsrs ? (q.fsrs.state === 0 && q.fsrs.last_review === null) : (q.is_new || !q.stats?.total);
+  }, []);
+
+  const isCardMatchingScope = useCallback((q: any, scope: 'all' | 'review' | 'new') => {
+    if (!q) return false;
+    if (scope === 'all') return true;
+    if (scope === 'review') return isCardReview(q);
+    if (scope === 'new') return isCardNew(q);
+    return true;
+  }, [isCardReview, isCardNew]);
+
+  const scopeCounts = useMemo(() => {
+    if (!session?.questions) return { all: 0, review: 0, new: 0 };
+    const all = session.questions.length;
+    const review = session.questions.filter((q: any) => !q.is_ignored && isCardReview(q)).length;
+    const newCount = session.questions.filter((q: any) => !q.is_ignored && isCardNew(q)).length;
+    return { all, review, new: newCount };
+  }, [session?.questions, isCardReview, isCardNew]);
+
+  const handleSelectCardScope = (newScope: 'all' | 'review' | 'new') => {
+    setCardScope(newScope);
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('scope', newScope);
+    const newPath = window.location.pathname + '?' + searchParams.toString();
+    window.history.replaceState(null, '', newPath);
+
+    if (!session?.questions || session.questions.length === 0) return;
+
+    if (!isCardMatchingScope(currentQuestion, newScope)) {
+      const targetIdx = session.questions.findIndex((q: any) => 
+        !q.is_ignored && isCardMatchingScope(q, newScope)
+      );
+      if (targetIdx !== -1) {
+        navigateToQuestion(targetIdx);
+      } else {
+        showLocalToast(`No ${newScope === 'review' ? 'review due' : 'new'} cards in this deck`, 'warning');
+      }
+    }
+  };
+
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
   const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
@@ -2431,17 +2492,25 @@ export default function FlashcardPlay() {
     const questions = session.questions
     const total = questions.length
 
-    // Auto Play mode: purely hands-free navigation with zero grading/XP
+    // Auto Play mode: purely hands-free navigation with zero grading/XP (respecting cardScope)
     if (activeMode === 'autoplay') {
-      let nextIdx = 0;
-      if (randomEnabled && total > 1) {
-        let rand = Math.floor(Math.random() * total);
-        while (rand === currentIndex) {
-          rand = Math.floor(Math.random() * total);
-        }
-        nextIdx = rand;
+      const validIndices = questions
+        .map((q: any, i: number) => (!q.is_ignored && isCardMatchingScope(q, cardScope)) ? i : -1)
+        .filter((i: number) => i !== -1);
+
+      if (validIndices.length === 0) {
+        const nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+        navigateToQuestion(nextIdx);
+        return;
+      }
+
+      let nextIdx = validIndices[0];
+      if (randomEnabled && validIndices.length > 1) {
+        const candidates = validIndices.filter((i: number) => i !== currentIndex);
+        nextIdx = candidates[Math.floor(Math.random() * candidates.length)] ?? validIndices[0];
       } else {
-        nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+        const forward = validIndices.filter((i: number) => i > currentIndex);
+        nextIdx = forward.length > 0 ? forward[0] : validIndices[0];
       }
       navigateToQuestion(nextIdx);
       return;
@@ -2573,6 +2642,7 @@ export default function FlashcardPlay() {
 
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: effectiveMode,
+        scope: cardScope,
         step_type: activeStepType,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,
@@ -2601,7 +2671,15 @@ export default function FlashcardPlay() {
           setFsrsCompletionData(res?.data || { is_all_completed: true, next_index: -1 });
           return;
         }
-        nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+        if (isSpeedSkimMode && cardScope !== 'all') {
+          const validIndices = questions
+            .map((q: any, i: number) => (!q.is_ignored && isCardMatchingScope(q, cardScope)) ? i : -1)
+            .filter((i: number) => i !== -1);
+          const forward = validIndices.filter((i: number) => i > currentIndex);
+          nextIdx = forward.length > 0 ? forward[0] : (validIndices[0] ?? 0);
+        } else {
+          nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+        }
       }
     } catch (err) {
       console.error("Failed to fetch next card from backend", err)
@@ -2613,7 +2691,15 @@ export default function FlashcardPlay() {
         setFsrsCompletionData({ is_all_completed: true, next_index: -1 });
         return;
       }
-      nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+      if (isSpeedSkimMode && cardScope !== 'all') {
+        const validIndices = questions
+          .map((q: any, i: number) => (!q.is_ignored && isCardMatchingScope(q, cardScope)) ? i : -1)
+          .filter((i: number) => i !== -1);
+        const forward = validIndices.filter((i: number) => i > currentIndex);
+        nextIdx = forward.length > 0 ? forward[0] : (validIndices[0] ?? 0);
+      } else {
+        nextIdx = (currentIndex + 1 < total) ? currentIndex + 1 : 0;
+      }
     }
 
     if (nextIdx === currentIndex) {
@@ -2683,18 +2769,18 @@ export default function FlashcardPlay() {
 
     if (!isFlipped) {
       // Front face -> Auto-flip to Back face
-      const frontDelay = autoPlayAudio !== 'none' ? 1200 : 2500;
+      const frontDelayMs = Math.max(500, Math.round((autoFrontDelay || 2.0) * 1000));
       const timer = setTimeout(() => {
         setIsFlipped(true);
         setJustAnswered(true);
-      }, frontDelay);
+      }, frontDelayMs);
       return () => clearTimeout(timer);
     } else {
       // Back face -> Auto-advance to Next card
-      const backDelay = autoPlayAudio !== 'none' ? 1400 : 3000;
+      const backDelayMs = Math.max(500, Math.round((autoBackDelay || 3.0) * 1000));
       const timer = setTimeout(() => {
         handleNext();
-      }, backDelay);
+      }, backDelayMs);
       return () => clearTimeout(timer);
     }
   }, [
@@ -2704,6 +2790,8 @@ export default function FlashcardPlay() {
     isPlayingAudio,
     isLoadingAudio,
     autoPlayAudio,
+    autoFrontDelay,
+    autoBackDelay,
     isFlyToolbarOpen,
     isSettingsModalOpen,
     isQuitModalOpen,
@@ -4562,6 +4650,13 @@ export default function FlashcardPlay() {
         showingHint={showingHint}
         showFsrs={effectiveShowFsrs}
         setShowFsrs={setShowFsrs}
+        cardScope={cardScope}
+        onSelectCardScope={handleSelectCardScope}
+        scopeCounts={scopeCounts}
+        autoFrontDelay={autoFrontDelay}
+        autoBackDelay={autoBackDelay}
+        onChangeAutoFrontDelay={setAutoFrontDelay}
+        onChangeAutoBackDelay={setAutoBackDelay}
       />
     </div>
   )

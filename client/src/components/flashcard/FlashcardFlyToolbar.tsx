@@ -14,6 +14,7 @@ import {
   Settings,
   X,
   Sliders,
+  Clock,
   RotateCcw,
   Hand,
   Layers,
@@ -294,6 +295,13 @@ export interface FlashcardQuickControlsSheetProps {
   showingHint?: boolean
   showFsrs?: boolean
   setShowFsrs?: (val: boolean) => void
+  cardScope?: 'all' | 'review' | 'new'
+  onSelectCardScope?: (scope: 'all' | 'review' | 'new') => void
+  scopeCounts?: { all: number; review: number; new: number }
+  autoFrontDelay?: number
+  autoBackDelay?: number
+  onChangeAutoFrontDelay?: (val: number) => void
+  onChangeAutoBackDelay?: (val: number) => void
 }
 
 const FLASHCARD_MODES = [
@@ -357,6 +365,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   showingHint = false,
   showFsrs = true,
   setShowFsrs,
+  cardScope = 'all',
+  onSelectCardScope,
+  scopeCounts,
+  autoFrontDelay = 2.0,
+  autoBackDelay = 3.0,
+  onChangeAutoFrontDelay,
+  onChangeAutoBackDelay,
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
@@ -496,6 +511,148 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                       </button>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Conditional Scope Filter for Skim & AutoPlay */}
+            {(activeMode === 'skim' || activeMode === 'speed_skim' || activeMode === 'flip' || activeMode === 'autoplay') && (
+              <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    {activeMode === 'autoplay' ? '🎧 AutoPlay Target Scope' : '⚡ Skim Target Scope'}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400">
+                    Filter Cards
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('all')}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      cardScope === 'all'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : "bg-amber-500 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>All Cards</span>
+                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.all ?? 0}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('review')}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      cardScope === 'review'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : "bg-amber-500 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>Review Due</span>
+                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.review ?? 0}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('new')}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      cardScope === 'new'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : "bg-amber-500 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>Learn New</span>
+                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.new ?? 0}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* AutoPlay Pacing Controls — ONLY VISIBLE WHEN activeMode === 'autoplay' */}
+            {activeMode === 'autoplay' && (
+              <div className="flex flex-col gap-2 p-2.5 rounded-2xl bg-cyan-50/60 border border-cyan-200/90 shadow-2xs">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-cyan-600" />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-900">
+                      AutoPlay Pacing (Delays)
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-cyan-600/80">
+                    Hands-Free Speed
+                  </span>
+                </div>
+
+                {/* Front Delay Row */}
+                <div className="flex items-center justify-between gap-2 p-1.5 bg-white rounded-xl border border-cyan-100 shadow-2xs">
+                  <div className="flex flex-col text-left pl-1">
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">Front Delay</span>
+                    <span className="text-[9px] text-slate-400 font-medium">Read before flip</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 1.5, 2, 3, 5].map((val) => {
+                      const isSelected = Math.abs((autoFrontDelay ?? 2.0) - val) < 0.05;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => {
+                            onChangeAutoFrontDelay?.(val);
+                            showLocalToast?.(`Front Delay set to ${val}s`, 'info');
+                          }}
+                          className={cn(
+                            "px-2 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-cyan-600 text-white shadow-2xs font-black scale-105"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                          )}
+                        >
+                          {val}s
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Back Delay Row */}
+                <div className="flex items-center justify-between gap-2 p-1.5 bg-white rounded-xl border border-cyan-100 shadow-2xs">
+                  <div className="flex flex-col text-left pl-1">
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">Back Delay</span>
+                    <span className="text-[9px] text-slate-400 font-medium">Read before next card</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1.5, 2, 3, 4, 6].map((val) => {
+                      const isSelected = Math.abs((autoBackDelay ?? 3.0) - val) < 0.05;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => {
+                            onChangeAutoBackDelay?.(val);
+                            showLocalToast?.(`Back Delay set to ${val}s`, 'info');
+                          }}
+                          className={cn(
+                            "px-2 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-cyan-600 text-white shadow-2xs font-black scale-105"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                          )}
+                        >
+                          {val}s
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}

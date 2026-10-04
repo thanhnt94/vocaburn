@@ -1596,6 +1596,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     answered_indexes = data.get("answered_indexes", [])
     current_index = data.get("current_index", 0)
     random_enabled = data.get("random_enabled", False)
+    scope = data.get("scope", "all")
 
     from app.modules.deck.models import Flashcard
     cards_res = await db.execute(
@@ -1639,6 +1640,18 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
     effective_answered = set(answered_indexes) | ignored_indexes
 
+    learned_cards_all = []
+    new_cards_all = []
+    for idx, c_id in enumerate(card_ids):
+        if idx in ignored_indexes:
+            continue
+        m = mastery_map.get(c_id)
+        is_new = not m or (m["state"] == 0 and m["last_review"] is None)
+        if is_new:
+            new_cards_all.append(idx)
+        else:
+            learned_cards_all.append(idx)
+
     step_type = data.get("step_type")
     original_mode = mode
     target_mode = mode
@@ -1671,11 +1684,23 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             target_mode = "fsrs_review" if st_helper.get("stage_1_done") else "new"
 
     if target_mode == "autoplay":
-        if random_enabled and total > 1:
+        pool = list(range(total))
+        if scope in ("review", "due") and learned_cards_all:
+            pool = learned_cards_all
+        elif scope == "new" and new_cards_all:
+            pool = new_cards_all
+
+        candidates = [idx for idx in pool if idx not in ignored_indexes]
+        if not candidates:
+            candidates = [idx for idx in range(total) if idx not in ignored_indexes] or [0]
+
+        if random_enabled and len(candidates) > 1:
             import random
-            candidates = [idx for idx in range(total) if idx != current_index and idx not in ignored_indexes]
-            return {"next_index": random.choice(candidates) if candidates else 0, "phase": "autoplay"}
-        next_seq = (current_index + 1) if (current_index + 1 < total) else 0
+            other = [idx for idx in candidates if idx != current_index]
+            return {"next_index": random.choice(other) if other else candidates[0], "phase": "autoplay"}
+
+        forward = [idx for idx in candidates if idx > current_index]
+        next_seq = forward[0] if forward else candidates[0]
         return {"next_index": next_seq, "phase": "autoplay"}
 
     if target_mode == "review":
@@ -1824,8 +1849,14 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     "message": "All new cards skimmed!"
                 }
 
-        # Free Speed Skim / Flip mode: skims through all cards in deck in order or random
-        unanswered_all = [idx for idx in range(total) if idx not in effective_answered and idx not in ignored_indexes]
+        # Free Speed Skim / Flip mode: skims through cards in deck in order or random
+        scope_pool = list(range(total))
+        if scope in ("review", "due") and learned_cards_all:
+            scope_pool = learned_cards_all
+        elif scope == "new" and new_cards_all:
+            scope_pool = new_cards_all
+
+        unanswered_all = [idx for idx in scope_pool if idx not in effective_answered and idx not in ignored_indexes]
         if unanswered_all:
             if len(answered_indexes) == 0:
                 if random_enabled:
@@ -1844,13 +1875,15 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     forward = [idx for idx in candidates if idx > current_index]
                     return {"next_index": forward[0] if forward else candidates[0], "phase": "skim"}
 
-        # When all cards have been skimmed in session, loop continuously in a cycle
-        all_candidates = [idx for idx in range(total) if idx not in ignored_indexes and idx != current_index]
+        # When all cards in scope have been skimmed in session, loop continuously in a cycle
+        all_candidates = [idx for idx in scope_pool if idx not in ignored_indexes and idx != current_index]
         if not all_candidates:
-            all_candidates = [idx for idx in range(total) if idx not in ignored_indexes]
+            all_candidates = [idx for idx in scope_pool if idx not in ignored_indexes]
+        if not all_candidates:
+            all_candidates = [idx for idx in range(total) if idx not in ignored_indexes] or [0]
         if random_enabled:
             import random
-            return {"next_index": random.choice(all_candidates) if all_candidates else 0, "phase": "skim"}
+            return {"next_index": random.choice(all_candidates), "phase": "skim"}
         else:
             forward = [idx for idx in all_candidates if idx > current_index]
             return {"next_index": forward[0] if forward else (all_candidates[0] if all_candidates else 0), "phase": "skim"}
