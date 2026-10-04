@@ -26,9 +26,9 @@ export interface DeckSettingsTabProps {
 }
 
 export type SettingsScope = 'deck' | 'personal'
-export type SettingsSubTab = 'general' | 'columns' | 'study' | 'practice' | 'ai' | 'audio'
+export type SettingsSubTab = 'general' | 'flashcard' | 'practice' | 'ai' | 'audio'
 
-const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'study', 'practice', 'ai', 'audio']
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'flashcard', 'practice', 'ai', 'audio']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
@@ -76,7 +76,7 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
   // URL query parameter synchronization for Sub-Tabs (when in deck scope)
   const rawSubTab = searchParams.get('subtab')
   const normalizedSubTab = (
-    rawSubTab === 'sublessons' ? 'columns' :
+    (rawSubTab === 'columns' || rawSubTab === 'study' || rawSubTab === 'sublessons') ? 'flashcard' :
     (rawSubTab === 'excel' || rawSubTab === 'collab' || rawSubTab === 'danger') ? 'general' :
     rawSubTab
   ) as SettingsSubTab
@@ -99,8 +99,7 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
   const subTabs = [
     { id: 'general' as const, label: 'General', icon: Settings, color: 'text-indigo-600' },
-    { id: 'columns' as const, label: 'Columns', icon: Columns3, color: 'text-blue-600' },
-    { id: 'study' as const, label: 'Study', icon: BookmarkCheck, color: 'text-emerald-600' },
+    { id: 'flashcard' as const, label: 'Flashcard', icon: BookmarkCheck, color: 'text-blue-600' },
     { id: 'practice' as const, label: 'Modes', icon: Sliders, color: 'text-amber-600' },
     { id: 'ai' as const, label: 'AI & Ruby', icon: Sparkles, color: 'text-purple-600' },
     { id: 'audio' as const, label: 'Audio', icon: Volume2, color: 'text-sky-600' },
@@ -205,33 +204,41 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
                 )
               })()}
 
-              {activeSubTab === 'columns' && (() => {
+              {activeSubTab === 'flashcard' && (() => {
                 const rawSubTab = searchParams.get('subtab')
                 const sectionParam = searchParams.get('section')
                 const currentSection = sectionParam || (
+                  rawSubTab === 'study' ? 'display' :
                   rawSubTab === 'sublessons' ? 'sublessons' :
                   'cols'
                 )
-                return currentSection === 'sublessons' ? (
-                  <DeckSubLessonSettings
-                    deckId={id!}
-                    onSaved={() => refetch()}
-                  />
-                ) : (
-                  <DeckColumnSettings
-                    deckId={id!}
-                    isOwner={isOwner}
-                    hideSubLessons
-                  />
+
+                return (
+                  <div className="space-y-4">
+                    {currentSection === 'cols' && (
+                      <DeckColumnSettings
+                        deckId={id!}
+                        isOwner={isOwner}
+                        hideSubLessons
+                      />
+                    )}
+
+                    {currentSection === 'sublessons' && (
+                      <DeckSubLessonSettings
+                        deckId={id!}
+                        onSaved={() => refetch()}
+                      />
+                    )}
+
+                    {currentSection === 'display' && (
+                      <DeckStudyDefaults
+                        deckId={id!}
+                        onSaved={() => refetch()}
+                      />
+                    )}
+                  </div>
                 )
               })()}
-
-              {activeSubTab === 'study' && (
-                <DeckStudyDefaults
-                  deckId={id!}
-                  onSaved={() => refetch()}
-                />
-              )}
 
               {activeSubTab === 'practice' && (
                 <DeckPracticeConfig

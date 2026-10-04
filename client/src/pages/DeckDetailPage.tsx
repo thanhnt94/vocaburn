@@ -140,8 +140,7 @@ export const STUDY_MODES: StudyModeOption[] = [
 
 export const SETTINGS_SUB_TABS = [
   { id: 'general', label: 'General', icon: SettingsIcon },
-  { id: 'columns', label: 'Columns', icon: Columns3 },
-  { id: 'study', label: 'Study', icon: BookmarkCheck },
+  { id: 'flashcard', label: 'Flashcard', icon: BookmarkCheck },
   { id: 'practice', label: 'Modes', icon: Sliders },
   { id: 'ai', label: 'AI & Ruby', icon: Sparkles },
   { id: 'audio', label: 'Audio', icon: Volume2 },
@@ -160,12 +159,10 @@ export const SUBTAB_INNER_SECTIONS: Record<string, InnerSection[]> = {
     { id: 'excel', label: 'Excel Data', icon: FileSpreadsheet },
     { id: 'danger', label: 'Danger Zone', icon: ShieldAlert },
   ],
-  columns: [
+  flashcard: [
     { id: 'cols', label: 'Data Columns', icon: Columns3 },
     { id: 'sublessons', label: 'Sub-Lessons', icon: Layers },
-  ],
-  study: [
-    { id: 'flashcard', label: 'Card Defaults', icon: BookmarkCheck },
+    { id: 'display', label: 'Card Display', icon: BookmarkCheck },
   ],
   practice: [
     { id: 'modes', label: 'Flashcard Modes', icon: Sparkles },
@@ -318,8 +315,8 @@ export function DeckDetailPage() {
       const currentSubTab = updated.get('subtab')
       if (['excel', 'collab', 'danger'].includes(currentSubTab || '')) {
         updated.delete('subtab')
-      } else if (currentSubTab === 'sublessons') {
-        updated.set('subtab', 'columns')
+      } else if (['columns', 'study', 'sublessons'].includes(currentSubTab || '')) {
+        updated.set('subtab', 'flashcard')
       }
       updated.set('section', newSection)
       return updated
@@ -335,20 +332,28 @@ export function DeckDetailPage() {
 
     const rawSubTab = searchParams.get('subtab')
     const subTab = (
-      rawSubTab === 'sublessons' ? 'columns' :
+      (rawSubTab === 'columns' || rawSubTab === 'study' || rawSubTab === 'sublessons') ? 'flashcard' :
       (rawSubTab === 'excel' || rawSubTab === 'collab' || rawSubTab === 'danger') ? 'general' :
       rawSubTab
     ) || 'general'
 
+    const section = searchParams.get('section') || (
+      rawSubTab === 'study' ? 'display' :
+      rawSubTab === 'sublessons' ? 'sublessons' :
+      'cols'
+    )
+
     if (subTab === 'general') {
       const form = document.getElementById('deck-general-form') as HTMLFormElement | null
       if (form) form.requestSubmit()
-    } else if (subTab === 'columns') {
-      const btn = document.getElementById('btn-save-columns') as HTMLButtonElement | null
-      if (btn) btn.click()
-    } else if (subTab === 'study') {
-      const form = document.getElementById('deck-study-defaults-form') as HTMLFormElement | null
-      if (form) form.requestSubmit()
+    } else if (subTab === 'flashcard') {
+      if (section === 'display') {
+        const form = document.getElementById('deck-study-defaults-form') as HTMLFormElement | null
+        if (form) form.requestSubmit()
+      } else {
+        const btn = document.getElementById('btn-save-columns') as HTMLButtonElement | null
+        if (btn) btn.click()
+      }
     } else if (subTab === 'practice') {
       const form = document.getElementById('deck-practice-config-form') as HTMLFormElement | null
       if (form) form.requestSubmit()
@@ -875,7 +880,7 @@ export function DeckDetailPage() {
 
               const rawSubTab = searchParams.get('subtab')
               const activeSubTab = (
-                rawSubTab === 'sublessons' ? 'columns' :
+                (rawSubTab === 'columns' || rawSubTab === 'study' || rawSubTab === 'sublessons') ? 'flashcard' :
                 (rawSubTab === 'excel' || rawSubTab === 'collab' || rawSubTab === 'danger') ? 'general' :
                 rawSubTab
               ) || 'general'
@@ -887,6 +892,8 @@ export function DeckDetailPage() {
                 rawSubTab === 'collab' ? 'collab' :
                 rawSubTab === 'danger' ? 'danger' :
                 rawSubTab === 'sublessons' ? 'sublessons' :
+                rawSubTab === 'study' ? 'display' :
+                rawSubTab === 'columns' ? 'cols' :
                 innerSections[0]?.id || ''
               )
 

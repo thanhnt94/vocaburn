@@ -3,19 +3,23 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
-#### Tối Ưu Kiến Trúc Điều Hướng Deck Settings 2 Tầng: 6 Tab Lĩnh Vực Tinh Gọn Trên Cùng & Dải Mục Con Dưới Đáy Trong Tầm Tay
-- **Khắc phục triệt để tình trạng ôm đồm nhiều chức năng & tối ưu hóa giao diện di động (`DeckDetailPage.tsx`, `DeckSettingsTab.tsx`)**:
-  - **Tầng 1 - Trên Cùng (Top Domain Tabs)**:
-    - 6 tab lĩnh vực chính (`General`, `Columns`, `Study`, `Modes`, `AI & Ruby`, `Audio`) được thiết kế nhỏ gọn, tinh giản, co giãn trên 1 hàng ngang duy nhất (`py-1 px-2.5 text-xs`), loại bỏ hoàn toàn khối 2 hàng cồng kềnh.
-  - **Tầng 2 - Dưới Đáy Trong Tầm Ngón Cái (Docked Bottom Sub-Section Switcher)**:
-    - Thay vì lặp lại 6 tab chính ở dưới đáy, thanh docked bottom giờ đây hiển thị **các mục con (sub-sections) của chính tab đang chọn**:
-      - **Khi ở tab `General`**: Bên trái là dải chuyển mục `[ ⚙️ Basic Info ] [ 👥 Collaborators ] [ 📊 Excel Data ] [ ⚠️ Danger Zone ]`. Người dùng chỉ xem đúng 1 chức năng cần thao tác thay vì phải cuộn màn hình qua 4 khối ôm đồm.
-      - **Khi ở tab `Columns`**: Bên trái là `[ 🗂️ Data Columns ] [ 📑 Sub-Lessons ]`.
-      - **Khi ở tab `Modes`**: Bên trái là `[ 🧠 Flashcard Modes ] [ 🎯 Practice Drills ]`.
-      - **Khi ở tab `AI & Ruby`**: Bên trái là `[ 🪄 AI Prompts ] [ 🈳 Furigana Ruby ]`.
-      - **Khi ở tab `Audio`**: Bên trái là `[ 🔊 Channels ] [ 🎙️ Voice Matrix ] [ ⚡ TTS Studio ]`.
-      - **Khi ở tab `Study`**: Bên trái là `[ 🔖 Card Defaults ]`.
-    - **Bên phải thanh đáy**: Nút **`[ 💾 Save Changes ]`** cố định, đồng bộ lưu dữ liệu chính xác cho mục đang thao tác.
+#### Tối Ưu Kiến Trúc Điều Hướng Deck Settings 2 Tầng: 5 Tab Lĩnh Vực Tinh Gọn Trên Cùng & Hợp Nhất "Flashcard" Toàn Diện
+- **Hợp nhất `Columns` và `Study` thành tab `Flashcard` duy nhất (`DeckDetailPage.tsx`, `DeckSettingsTab.tsx`)**:
+  - **Giảm số tab trên cùng từ 6 xuống còn 5 tab chuẩn mực**:
+    - `[ ⚙️ General ]` `[ 🔖 Flashcard ]` `[ 🎛️ Modes ]` `[ 🤖 AI & Ruby ]` `[ 🔊 Audio ]`.
+    - Thiết kế 1 hàng ngang duy nhất, siêu nhỏ gọn (`py-1 px-2.5 text-xs`), không gãy dòng hay che khuất nội dung.
+  - **Tích hợp trọn vẹn vòng đời Thẻ bài vào tab `Flashcard`**:
+    - Thay vì phân mảnh giữa Cột dữ liệu, Bài học con và Cài đặt thẻ, tab `Flashcard` kết nối trực tiếp 3 mục con trong dải trượt dưới đáy:
+      - `[ 🗂️ Data Columns ]`: Quản lý các trường/cột dữ liệu thẻ, insight column.
+      - `[ 📑 Sub-Lessons ]`: Thiết lập phân nhóm bài học con theo cột.
+      - `[ 🔖 Card Display ]`: Căn chỉnh lề thẻ, cỡ chữ, cử chỉ lật thẻ, âm thanh SFX, rung phản hồi, auto-advance.
+  - **Thanh đáy linh hoạt theo từng tab**:
+    - Khi ở `General`: `[ ⚙️ Basic Info ] [ 👥 Collaborators ] [ 📊 Excel Data ] [ ⚠️ Danger Zone ]`.
+    - Khi ở `Flashcard`: `[ 🗂️ Data Columns ] [ 📑 Sub-Lessons ] [ 🔖 Card Display ]`.
+    - Khi ở `Modes`: `[ 🧠 Flashcard Modes ] [ 🎯 Practice Drills ]`.
+    - Khi ở `AI & Ruby`: `[ 🪄 AI Prompts ] [ 🈳 Furigana Ruby ]`.
+    - Khi ở `Audio`: `[ 🔊 Channels ] [ 🎙️ Voice Matrix ] [ ⚡ TTS Studio ]`.
+    - **Nút Lưu `[ 💾 Save Changes ]`** bên phải thanh đáy kích hoạt lưu đúng form/mục con tương ứng.
 - **Xóa bỏ hoàn toàn cơ chế tự lưu ngầm (Zero Unannounced Auto-Save)**:
   - Tất cả các form, cấu hình sub-lessons, AI, audio đều yêu cầu nhấn nút Lưu rõ ràng, mang lại sự tin cậy và minh bạch 100% cho người dùng.
 
