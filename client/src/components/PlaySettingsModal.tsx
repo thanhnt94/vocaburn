@@ -43,7 +43,7 @@ const MODES_LIST = [
   { id: 'new', label: 'New Cards', desc: 'Cards never seen before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
   { id: 'review', label: 'Review Due', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
   { id: 'hardest', label: 'Hardest Cards', desc: 'Frequently forgotten', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
-  { id: 'flip', label: 'Quick Flip', desc: 'Free-form flip cards', icon: RotateCcw, color: 'text-sky-600', bg: 'bg-sky-50/80', border: 'border-sky-200' }
+  { id: 'skim', label: 'Speed Skim', desc: 'Rapid 1-tap card review (+3 XP)', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' }
 ]
 
 interface PlaySettingsModalProps {
@@ -329,7 +329,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {MODES_LIST.map((mode) => {
                         const Icon = mode.icon
-                        const isSelected = activeMode === mode.id
+                        const isSelected = activeMode === mode.id || (mode.id === 'skim' && (activeMode === 'speed_skim' || activeMode === 'flip'))
                         return (
                           <button
                             key={mode.id}

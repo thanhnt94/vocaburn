@@ -108,20 +108,40 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
 
   // ── 2. Discover Available Grouping Columns ──
   const availableColumns = useMemo(() => {
-    if (subLessonsData?.available_columns && subLessonsData.available_columns.length > 0) {
-      return subLessonsData.available_columns.map((c: any) => ({
-        column: c.column,
-        label: c.label || c.column.replace(/_/g, ' ').toUpperCase(),
-        distinctCount: c.distinct_count || 0,
-      }))
+    const priorityKeywords = [
+      'unit', 'lesson', 'chapter', 'bai', 'nhom', 'chuong',
+      'topic', 'chu_de', 'category', 'danh_muc', 'level', 'cap_do',
+      'part_of_speech', 'pos', 'loai_tu', 'type'
+    ]
+    const getPriority = (col: string) => {
+      const lower = col.toLowerCase().replace(/[\s-]/g, '_')
+      for (let i = 0; i < priorityKeywords.length; i++) {
+        if (lower.includes(priorityKeywords[i])) return i
+      }
+      return 999
     }
 
-    // Local discovery from current questions' others object
+    if (subLessonsData?.available_columns && subLessonsData.available_columns.length > 0) {
+      return [...subLessonsData.available_columns]
+        .map((c: any) => ({
+          column: c.column,
+          label: c.label || c.column.replace(/_/g, ' ').toUpperCase(),
+          distinctCount: c.distinct_count || 0,
+        }))
+        .sort((a, b) => {
+          const pA = getPriority(a.column)
+          const pB = getPriority(b.column)
+          if (pA !== pB) return pA - pB
+          return a.label.localeCompare(b.label)
+        })
+    }
+
+    // Local discovery from current questions' others object + question_type
     const colMap: Record<string, Set<string>> = {}
     const excluded = new Set([
-      'front', 'back', 'audio', 'image', 'front_audio_url', 'back_audio_url',
-      'front_img', 'back_img', 'ai_explanation', 'hint', 'mnemonic', 'id',
-      'order_in_container', 'other_content',
+      'id', 'item_id', 'order_in_container', 'other_content',
+      'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content',
+      'front_img', 'back_img', '_formulas', '_formula'
     ])
 
     questions?.forEach((q) => {
@@ -136,28 +156,53 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
           }
         })
       }
+      if (q.question_type && typeof q.question_type === 'string') {
+        const qt = q.question_type.trim()
+        if (qt) {
+          if (!colMap['question_type']) colMap['question_type'] = new Set()
+          colMap['question_type'].add(qt)
+        }
+      }
     })
 
     return Object.entries(colMap)
-      .filter(([_, set]) => set.size >= 1 && set.size <= 250)
+      .filter(([_, set]) => set.size >= 1)
       .map(([col, set]) => ({
         column: col,
         label: col.replace(/_/g, ' ').toUpperCase(),
         distinctCount: set.size,
       }))
+      .sort((a, b) => {
+        const pA = getPriority(a.column)
+        const pB = getPriority(b.column)
+        if (pA !== pB) return pA - pB
+        return a.label.localeCompare(b.label)
+      })
   }, [subLessonsData, questions])
 
   // ── 3. Active Column to Group by ──
-  const defaultCol = activeSessionSubCol || subLessonGrouping?.column || subLessonsData?.active_column || (availableColumns.length > 0 ? availableColumns[0].column : null)
-  const [selectedCol, setSelectedCol] = useState<string | null>(defaultCol)
+  // Only auto-enable if user is in an active sub-group session or grouping is explicitly enabled in deck settings
+  const isGroupingConfigured = Boolean(
+    activeSessionSubCol || 
+    (subLessonGrouping?.enabled && subLessonGrouping.column) || 
+    (subLessonsData?.enabled && subLessonsData.configured_column)
+  )
+  const initialActiveCol = activeSessionSubCol || (
+    isGroupingConfigured ? (subLessonGrouping?.column || subLessonsData?.configured_column || null) : null
+  )
+  const [selectedCol, setSelectedCol] = useState<string | null>(initialActiveCol)
 
   useEffect(() => {
-    if (defaultCol && !selectedCol) {
-      setSelectedCol(defaultCol)
+    if (activeSessionSubCol) {
+      setSelectedCol(activeSessionSubCol)
+    } else if (subLessonGrouping?.enabled && subLessonGrouping.column) {
+      setSelectedCol(subLessonGrouping.column)
+    } else if (subLessonsData?.enabled && subLessonsData.configured_column) {
+      setSelectedCol(subLessonsData.configured_column)
     }
-  }, [defaultCol, selectedCol])
+  }, [activeSessionSubCol, subLessonGrouping?.enabled, subLessonGrouping?.column, subLessonsData?.enabled, subLessonsData?.configured_column])
 
-  const activeCol = selectedCol || defaultCol
+  const activeCol = selectedCol
 
   // ── 4. Groups List for Active Column ──
   const groupsList = useMemo(() => {
@@ -380,29 +425,25 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
             <div className="flex items-center gap-1.5 font-bold text-slate-700 min-w-0">
               <FolderTree className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
               <span className="shrink-0 text-slate-500 font-semibold">Group by:</span>
-              {availableColumns.length > 1 ? (
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={activeCol || ''}
-                    onChange={(e) => {
-                      setSelectedCol(e.target.value)
-                      setSelectedGroupVal('all')
-                    }}
-                    className="appearance-none bg-white border border-slate-200/90 rounded-lg pl-2 pr-6 py-0.5 font-extrabold text-indigo-700 hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer text-[10.5px]"
-                  >
-                    {availableColumns.map((c: any) => (
-                      <option key={c.column} value={c.column}>
-                        {c.label} ({c.distinctCount})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
-                </div>
-              ) : (
-                <span className="font-extrabold text-indigo-700">
-                  {availableColumns[0]?.label || 'Category'}
-                </span>
-              )}
+              <div className="relative inline-flex items-center">
+                <select
+                  value={activeCol || 'none'}
+                  onChange={(e) => {
+                    const nextVal = e.target.value === 'none' ? null : e.target.value
+                    setSelectedCol(nextVal)
+                    setSelectedGroupVal('all')
+                  }}
+                  className="appearance-none bg-white border border-slate-200/90 rounded-lg pl-2 pr-6 py-0.5 font-extrabold text-indigo-700 hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer text-[10.5px]"
+                >
+                  <option value="none">None (All Cards)</option>
+                  {availableColumns.map((c: any) => (
+                    <option key={c.column} value={c.column}>
+                      {c.label} ({c.distinctCount})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
+              </div>
             </div>
 
             {/* If currently studying a sub-group session */}
@@ -426,63 +467,65 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
             )}
           </div>
 
-          {/* Horizontal Scrollable Group Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <button
-              type="button"
-              onClick={() => setSelectedGroupVal('all')}
-              className={cn(
-                "h-7 px-2.5 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
-                selectedGroupVal === 'all'
-                  ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                  : "bg-white text-slate-600 hover:bg-slate-100/80 border-slate-200/90"
-              )}
-            >
-              <span>All Cards</span>
-              <span className={cn(
-                "text-[9px] font-black px-1.5 py-0.2 rounded-md",
-                selectedGroupVal === 'all' ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
-              )}>
-                {questions?.length || 0}
-              </span>
-            </button>
+          {/* Horizontal Scrollable Group Pills (Only when active column is selected) */}
+          {activeCol && groupsList.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              <button
+                type="button"
+                onClick={() => setSelectedGroupVal('all')}
+                className={cn(
+                  "h-7 px-2.5 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
+                  selectedGroupVal === 'all'
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                    : "bg-white text-slate-600 hover:bg-slate-100/80 border-slate-200/90"
+                )}
+              >
+                <span>All Cards</span>
+                <span className={cn(
+                  "text-[9px] font-black px-1.5 py-0.2 rounded-md",
+                  selectedGroupVal === 'all' ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                )}>
+                  {questions?.length || 0}
+                </span>
+              </button>
 
-            {groupsList.map((g: any) => {
-              const isSelected = selectedGroupVal === g.value
-              const isCurrentSessionGroup = activeSessionSubCol === activeCol && activeSessionSubVal === g.value
-              return (
-                <button
-                  key={g.value}
-                  type="button"
-                  onClick={() => setSelectedGroupVal(g.value)}
-                  className={cn(
-                    "h-7 px-2.5 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
-                    isSelected
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                      : isCurrentSessionGroup
-                        ? "bg-indigo-50/80 text-indigo-700 border-indigo-300 font-black"
-                        : "bg-white text-slate-600 hover:bg-slate-100/80 border-slate-200/90"
-                  )}
-                >
-                  {isCurrentSessionGroup && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
-                  <span className="max-w-[120px] truncate">{g.label}</span>
-                  <span className={cn(
-                    "text-[9px] font-black px-1.5 py-0.2 rounded-md",
-                    isSelected
-                      ? "bg-white/20 text-white"
-                      : isCurrentSessionGroup
-                        ? "bg-indigo-200/60 text-indigo-800"
-                        : "bg-slate-100 text-slate-500"
-                  )}>
-                    {g.totalCards}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+              {groupsList.map((g: any) => {
+                const isSelected = selectedGroupVal === g.value
+                const isCurrentSessionGroup = activeSessionSubCol === activeCol && activeSessionSubVal === g.value
+                return (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setSelectedGroupVal(g.value)}
+                    className={cn(
+                      "h-7 px-2.5 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer shrink-0 border",
+                      isSelected
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : isCurrentSessionGroup
+                          ? "bg-indigo-50/80 text-indigo-700 border-indigo-300 font-black"
+                          : "bg-white text-slate-600 hover:bg-slate-100/80 border-slate-200/90"
+                    )}
+                  >
+                    {isCurrentSessionGroup && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                    <span className="max-w-[120px] truncate">{g.label}</span>
+                    <span className={cn(
+                      "text-[9px] font-black px-1.5 py-0.2 rounded-md",
+                      isSelected
+                        ? "bg-white/20 text-white"
+                        : isCurrentSessionGroup
+                          ? "bg-indigo-200/60 text-indigo-800"
+                          : "bg-slate-100 text-slate-500"
+                    )}>
+                      {g.totalCards}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Quick Study Switch Banner (High affordance CTA) */}
-          {selectedGroupVal !== 'all' && !(activeSessionSubCol === activeCol && activeSessionSubVal === selectedGroupVal) && (
+          {activeCol && selectedGroupVal !== 'all' && !(activeSessionSubCol === activeCol && activeSessionSubVal === selectedGroupVal) && (
             <div className="pt-0.5">
               <button
                 type="button"
@@ -816,7 +859,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                       </span>
                     ) : (
                       <span className="text-[7.5px] font-extrabold uppercase tracking-tight text-indigo-700 mt-1 leading-none">
-                        {selectedOptIdx === -2 ? "FLIP" :
+                        {selectedOptIdx === -2 ? "SKIM" :
                          selectedOptIdx === 0 ? "AGAIN" :
                          selectedOptIdx === 1 ? "HARD" :
                          selectedOptIdx === 2 ? "GOOD" : "EASY"}

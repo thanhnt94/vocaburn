@@ -2369,15 +2369,14 @@ async def get_deck_sub_lessons(
     is_configured_enabled = bool(grouping_cfg.get("enabled", False))
     configured_column = grouping_cfg.get("column")
     
-    # Active column: explicitly requested in query param, or creator configured column
-    active_col = column if column else configured_column
+    # Active column: explicitly requested in query param, or creator configured column ONLY if grouping is enabled
+    active_col = column if column else (configured_column if is_configured_enabled else None)
     
     # 3. Discover all candidate columns in this deck
     excluded_cols = {
-        "front", "back", "front_audio_url", "back_audio_url", 
-        "front_audio_content", "back_audio_content", "front_img", 
-        "back_img", "audio", "image", "id", "item_id", 
-        "order_in_container", "other_content", "ai_explanation"
+        "id", "item_id", "order_in_container", "_formulas", "_formula",
+        "front_audio_url", "back_audio_url", "front_audio_content", "back_audio_content",
+        "front_img", "back_img"
     }
     
     col_distinct_map = {}
@@ -2390,20 +2389,39 @@ async def get_deck_sub_lessons(
                     val_str = str(v).strip() if v is not None else ""
                     if val_str:
                         col_distinct_map[k].add(val_str)
+
+    # Also discover columns explicitly registered in custom_columns
+    custom_cols = practice_settings.get("custom_columns", [])
+    if isinstance(custom_cols, list):
+        for cc in custom_cols:
+            if cc and isinstance(cc, str) and cc not in excluded_cols and not cc.startswith("_"):
+                if cc not in col_distinct_map:
+                    col_distinct_map[cc] = set()
                         
-    # Build candidate columns list (columns with between 1 and 300 distinct values)
+    # Build candidate columns list (prioritizing educational grouping columns)
+    def column_priority_key(col_key: str):
+        col_lower = col_key.lower().replace(" ", "_").replace("-", "_")
+        high_priority_keywords = [
+            "unit", "lesson", "chapter", "bai", "bài", "nhom", "nhóm", "chuong", "chương",
+            "topic", "chu_de", "chủ đề", "category", "danh_muc", "level", "cap_do", "cấp độ",
+            "part_of_speech", "pos", "loai_tu", "loại từ", "type"
+        ]
+        for idx, kw in enumerate(high_priority_keywords):
+            if kw in col_lower:
+                return (0, idx, col_lower)
+        return (1, 0, col_lower)
+
     available_columns = []
     for col_key, distinct_vals in sorted(col_distinct_map.items()):
         val_count = len(distinct_vals)
-        if 1 <= val_count <= 300:
-            clean_label = col_key.replace("_", " ").title()
-            sample_preview = sorted(list(distinct_vals))[:4]
-            available_columns.append({
-                "column": col_key,
-                "label": clean_label,
-                "distinct_count": val_count,
-                "sample_values": sample_preview
-            })
+        clean_label = col_key.replace("_", " ").title()
+        sample_preview = sorted(list(distinct_vals))[:4]
+        available_columns.append({
+            "column": col_key,
+            "label": clean_label,
+            "distinct_count": val_count,
+            "sample_values": sample_preview
+        })
             
     # Also add question_type if deck has multiple question types
     q_types = set(str(c.question_type).strip() for c in cards if c.question_type)
@@ -2415,9 +2433,12 @@ async def get_deck_sub_lessons(
             "sample_values": sorted(list(q_types))[:4]
         })
 
-    # If no active column chosen yet, default to configured column or first available column if configured enabled
+    # Sort columns by educational priority key
+    available_columns.sort(key=lambda x: column_priority_key(x["column"]))
+
+    # If no active column chosen yet, default to configured column or first available column ONLY if creator explicitly enabled grouping
     if not active_col and is_configured_enabled and available_columns:
-        active_col = available_columns[0]["column"]
+        active_col = configured_column or available_columns[0]["column"]
 
     # 4. If we have an active column, compute groups & mastery progress
     groups = []
