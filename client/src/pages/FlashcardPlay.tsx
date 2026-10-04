@@ -597,6 +597,16 @@ export default function FlashcardPlay() {
   const [isFlyToolbarOpen, setIsFlyToolbarOpen] = useState(false)
   const [isAutoAdvance, setIsAutoAdvance] = useState(false)
   const [autoNextSec, setAutoNextSec] = useState<number | null>(null)
+  const autoAdvanceTimerRef = useRef<any>(null)
+
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current)
+        autoAdvanceTimerRef.current = null
+      }
+    }
+  }, [])
 
   // Sync initial state from backend setting
   useEffect(() => {
@@ -1435,8 +1445,14 @@ export default function FlashcardPlay() {
     const shouldAutoAdvance = autoAdvance !== undefined ? autoAdvance : effectiveAutoAdvance;
 
     if (shouldAutoAdvance) {
-      const advanceDelay = autoAdvance === true ? 180 : 120;
-      setTimeout(() => {
+      const advanceDelay = autoAdvance === true 
+        ? 180 
+        : Math.max(0.5, effectiveAutoNextSec > 0 ? effectiveAutoNextSec : 2) * 1000;
+
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+      autoAdvanceTimerRef.current = setTimeout(() => {
         handleNext(newAnswers);
       }, advanceDelay);
     }
@@ -1999,6 +2015,10 @@ export default function FlashcardPlay() {
   };
 
   const handleUndoRating = async () => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
     if (!currentQuestion || undoInProgressRef.current) return;
     undoInProgressRef.current = true;
     try {
@@ -2303,6 +2323,10 @@ export default function FlashcardPlay() {
   };
 
   const navigateToQuestion = (idx: number, customAnswers?: Record<number, any>) => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
     setCurrentIndex(idx)
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
@@ -2369,6 +2393,10 @@ export default function FlashcardPlay() {
   }
 
   const handlePrev = () => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
     cancelAllAudio();
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
@@ -2384,6 +2412,10 @@ export default function FlashcardPlay() {
   };
 
   const handleNext = async (customAnswers?: Record<number, any> | React.MouseEvent) => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
     cancelAllAudio();
     // Immediately stop any actively playing server audio and clear speech synthesis queues when transitioning
     if (activeAudioRef.current) {

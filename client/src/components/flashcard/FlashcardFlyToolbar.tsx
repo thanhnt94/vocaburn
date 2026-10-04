@@ -839,7 +839,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         </div>
                       </button>
 
-                      {/* 4. Auto Next (Cycle: OFF -> 1s -> 2s -> 3s -> OFF) */}
+                      {/* 4. Auto Next (Cycle: OFF -> 1s -> 2s -> 3s -> 5s -> OFF) */}
                       {(() => {
                         const isAutoOn = autoNextSec !== undefined ? autoNextSec > 0 : effectiveAutoAdvance
                         const autoBadgeText = autoNextSec !== undefined
@@ -853,6 +853,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             if (currentSec === 0) nextSec = 1
                             else if (currentSec === 1) nextSec = 2
                             else if (currentSec === 2) nextSec = 3
+                            else if (currentSec === 3) nextSec = 5
                             else nextSec = 0
                             onCycleAutoNext(nextSec)
                           } else {
