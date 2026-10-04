@@ -16,7 +16,7 @@ import {
   DeckPersonalSettings,
   DeckStudyDefaults,
 } from '../settings'
-import { Settings, Sparkles, Volume2, Sliders, FileSpreadsheet, Users, AlertTriangle, Columns3, User, BookmarkCheck } from 'lucide-react'
+import { Settings, Sparkles, Volume2, Sliders, Columns3, BookmarkCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
@@ -25,9 +25,9 @@ export interface DeckSettingsTabProps {
 }
 
 export type SettingsScope = 'deck' | 'personal'
-export type SettingsSubTab = 'general' | 'columns' | 'study' | 'practice' | 'ai' | 'audio' | 'excel' | 'collab' | 'danger'
+export type SettingsSubTab = 'general' | 'columns' | 'study' | 'practice' | 'ai' | 'audio'
 
-const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'study', 'practice', 'ai', 'audio', 'excel', 'collab', 'danger']
+const VALID_SUB_TABS: SettingsSubTab[] = ['general', 'columns', 'study', 'practice', 'ai', 'audio']
 
 export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabProps) {
   const { id: paramId } = useParams()
@@ -74,8 +74,12 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
   // URL query parameter synchronization for Sub-Tabs (when in deck scope)
   const rawSubTab = searchParams.get('subtab')
-  const subtabParam = (rawSubTab === 'sublessons' ? 'columns' : rawSubTab) as SettingsSubTab
-  const activeSubTab: SettingsSubTab = VALID_SUB_TABS.includes(subtabParam) ? subtabParam : 'general'
+  const normalizedSubTab = (
+    rawSubTab === 'sublessons' ? 'columns' :
+    (rawSubTab === 'excel' || rawSubTab === 'collab' || rawSubTab === 'danger') ? 'general' :
+    rawSubTab
+  ) as SettingsSubTab
+  const activeSubTab: SettingsSubTab = VALID_SUB_TABS.includes(normalizedSubTab) ? normalizedSubTab : 'general'
 
   const handleSelectSubTab = (newSubTab: SettingsSubTab) => {
     setSearchParams((prev) => {
@@ -92,15 +96,12 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
   }
 
   const subTabs = [
-    { id: 'general' as const, label: 'General', shortLabel: 'General', icon: Settings, color: 'text-indigo-600', badge: null },
+    { id: 'general' as const, label: 'General & Management', shortLabel: 'General', icon: Settings, color: 'text-indigo-600', badge: null },
     { id: 'columns' as const, label: 'Columns & Sub-Lessons', shortLabel: 'Columns', icon: Columns3, color: 'text-blue-600', badge: null },
     { id: 'study' as const, label: 'Study Defaults', shortLabel: 'Study', icon: BookmarkCheck, color: 'text-indigo-600', badge: null },
     { id: 'practice' as const, label: 'Learning & Practice Modes', shortLabel: 'Modes', icon: Sliders, color: 'text-indigo-600', badge: null },
     { id: 'ai' as const, label: 'AI & Furigana', shortLabel: 'AI & Ruby', icon: Sparkles, color: 'text-purple-600', badge: 'AI' },
     { id: 'audio' as const, label: 'Audio TTS', shortLabel: 'Audio', icon: Volume2, color: 'text-sky-600', badge: 'TTS' },
-    { id: 'excel' as const, label: 'Excel Data', shortLabel: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-600', badge: null },
-    { id: 'collab' as const, label: 'Collaborators', shortLabel: 'Collab', icon: Users, color: 'text-blue-600', badge: null },
-    { id: 'danger' as const, label: 'Danger Zone', shortLabel: 'Danger', icon: AlertTriangle, color: 'text-rose-600', badge: null },
   ]
 
   if (isLoading) {
@@ -128,7 +129,7 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
           {/* STICKY TOP SUB-TAB NAVIGATION BAR */}
           <div className="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-2">
             <div className="bg-white/95 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
-              <div className="grid grid-cols-4 sm:flex sm:items-center sm:gap-1">
+              <div className="grid grid-cols-3 sm:flex sm:items-center sm:gap-1">
                 {subTabs.map((tab) => {
                   const Icon = tab.icon
                   const isActive = activeSubTab === tab.id
@@ -179,11 +180,26 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
               transition={{ duration: 0.15 }}
             >
               {activeSubTab === 'general' && (
-                <DeckGeneralForm
-                  deckId={id!}
-                  initialData={deckData}
-                  onSaved={() => refetch()}
-                />
+                <div className="space-y-6">
+                  {/* 1. Basic Deck Metadata */}
+                  <DeckGeneralForm
+                    deckId={id!}
+                    initialData={deckData}
+                    onSaved={() => refetch()}
+                  />
+
+                  {/* 2. Collaborators */}
+                  <DeckCollaboratorsSettings
+                    deckId={id!}
+                    isOwner={isOwner}
+                  />
+
+                  {/* 3. Excel Data Manager */}
+                  <DeckExcelManager deckId={id!} />
+
+                  {/* 4. Danger Zone */}
+                  <DeckDangerZone deckId={id!} isOwner={isOwner} />
+                </div>
               )}
 
               {activeSubTab === 'columns' && (
@@ -196,6 +212,14 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
               {activeSubTab === 'study' && (
                 <DeckStudyDefaults
                   deckId={id!}
+                  onSaved={() => refetch()}
+                />
+              )}
+
+              {activeSubTab === 'practice' && (
+                <DeckPracticeConfig
+                  deckId={id!}
+                  initialSettings={deckData?.practice_settings}
                   onSaved={() => refetch()}
                 />
               )}
@@ -214,29 +238,6 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
                   initialSettings={deckData?.practice_settings}
                   onSaved={() => refetch()}
                 />
-              )}
-
-              {activeSubTab === 'practice' && (
-                <DeckPracticeConfig
-                  deckId={id!}
-                  initialSettings={deckData?.practice_settings}
-                  onSaved={() => refetch()}
-                />
-              )}
-
-              {activeSubTab === 'excel' && (
-                <DeckExcelManager deckId={id!} />
-              )}
-
-              {activeSubTab === 'collab' && (
-                <DeckCollaboratorsSettings
-                  deckId={id!}
-                  isOwner={isOwner}
-                />
-              )}
-
-              {activeSubTab === 'danger' && (
-                <DeckDangerZone deckId={id!} isOwner={isOwner} />
               )}
             </motion.div>
           </AnimatePresence>

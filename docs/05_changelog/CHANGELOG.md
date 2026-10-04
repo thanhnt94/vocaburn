@@ -31,6 +31,15 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
   - Đổi tên tab `Columns` thành `Columns & Sub-Lessons` (nhãn ngắn: `Columns`).
   - Tích hợp trực tiếp component phân nhóm bài học con (`DeckSubLessonSettings`) vào ngay bên dưới danh sách cột dữ liệu trong `DeckColumnSettings.tsx`. Tác giả có thể vừa quản lý cột mở rộng vừa chọn cột phân nhóm bài học ngay tại một nơi duy nhất.
   - Điều hướng thông minh: Bất kỳ liên kết nào trỏ đến `?subtab=sublessons` (từ trang tổng quan bộ bài hoặc mục bài học con) được tự động map về `subtab=columns`.
+- **Hợp nhất Collaborators, Excel Data, và Danger Zone vào tab General & Management (`DeckSettingsTab.tsx`)**:
+  - Thanh sub-tab trên cùng được tinh giản tối đa chỉ còn 6 tab cốt lõi: `General & Management`, `Columns & Sub-Lessons`, `Study Defaults`, `Learning & Practice Modes`, `AI & Furigana`, và `Audio TTS`.
+  - Trên màn hình mobile, 6 sub-tab được dàn đều thành lưới 3x2 (`grid-cols-3`) vô cùng cân đối, loại bỏ hoàn toàn hiện tượng vỡ dòng hay tràn màn hình.
+  - Trong tab `General & Management`: Hiển thị lần lượt các khối chức năng quản lý toàn diện bộ bài:
+    1. Thông tin cơ bản bộ thẻ (*Deck Metadata Form*: Tiêu đề, mô tả, ảnh bìa, thẻ tag, chế độ công khai/riêng tư).
+    2. Quản lý cộng tác viên (*Collaborators*: Tìm kiếm người dùng, phân quyền chỉnh sửa).
+    3. Nhập/Xuất & Phân tích dữ liệu Excel (*Excel Data Manager*: Tải template, upload merge/replace, phân tích đối chiếu thẻ).
+    4. Vùng nguy hiểm (*Danger Zone*: Đặt lại tiến độ học tập về 0, xóa vĩnh viễn bộ thẻ).
+  - Tự động map các query param cũ (`?subtab=collab`, `?subtab=excel`, `?subtab=danger`) về `subtab=general` để bảo toàn tính tương thích ngược 100%.
 
 #### Đồng Bộ Hóa Toàn Diện Chế Độ Học Trên Bản Đồ Thẻ (Card Map) & Khắc Phục Triệt Để Lỗi Phân Nhóm Cột (Sub-Lesson Grouping)
 - **Đồng bộ hóa nhãn chế độ học (Mode Taxonomy Harmonization)**:
