@@ -3,6 +3,28 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
+#### Khắc Phục Triệt Để Lỗi Tự Động Chuyển Thẻ 2s & Lỗi Thẻ Đầu Tiên Bị Random Thứ Tự (Deck Study Defaults Audit)
+- **Khắc phục lỗi "Vào luôn bị auto next 2s"**:
+  - **Nguyên nhân**:
+    - Trong `FlashcardPlay.tsx`, hook tính toán `effectiveAutoNextSec` có logic mặc định cứng `if (isSpeedSkimMode) return 2;`. Khi bộ thẻ có chế độ mặc định là `speed_skim` (hoặc `skim`), hệ thống luôn tự động ép thời gian chờ 2s và kích hoạt timer tự động nhảy thẻ sau khi lật mặt sau, dù người dùng không hề bật Auto Next.
+    - Trong `SYSTEM_STUDY_PROFILES` (`utils.py`), preset `preset-speed-skim` bị gán cứng `auto_next_delay: 2` và `quick_learn_enabled: True`.
+    - Trong `StudySettingsEditor.tsx`, khi người dùng tắt Auto Advance, hệ thống gửi `auto_next_delay: null` thay vì `0`, khiến giá trị bị bỏ qua và kích hoạt lại fallback 2s.
+  - **Giải pháp**:
+    - Chuẩn hóa `DEFAULT_STUDY_SETTINGS.auto_next_delay = 0` (mặc định tắt hoàn toàn, không tự động chuyển thẻ).
+    - Loại bỏ logic ép 2s trong `effectiveAutoNextSec` của `FlashcardPlay.tsx`: Chỉ khi nào người dùng hoặc tác giả bộ thẻ chủ động bật Auto Next (`autoNextDelay > 0` hoặc `autoNextSec > 0`) thì mới kích hoạt timer.
+    - Trong `StudySettingsEditor.tsx`, khi tắt Auto Advance sẽ lưu rõ ràng `auto_next_delay = 0` và `quick_learn_enabled = false`.
+    - Đưa preset `Standard` (Recommended - FSRS chuẩn) lên vị trí số 1 trong danh sách mẫu của cả Backend (`SYSTEM_STUDY_PROFILES`) và Frontend (`SYSTEM_TEMPLATES`), thay vì để `Speed Skim` ở vị trí đầu tiên.
+- **Khắc phục lỗi "Luôn bị lấy thẻ random xong mới theo thứ tự"**:
+  - **Nguyên nhân**:
+    - Trong `FlashcardPlay.tsx` (`initIndex`), request khởi tạo câu hỏi đầu tiên `/api/v1/deck/{id}/next-card` truyền nhầm `random_enabled: !!userSettings.random_enabled` lấy từ cài đặt người dùng toàn cục (`useAppStore`), hoàn toàn phớt lờ cấu hình của bộ thẻ (`effectiveStudy.random_enabled`). Nếu người dùng từng bật random ở một nơi khác, thẻ đầu tiên khi mở bộ bài luôn bị random.
+    - Trong `play.py` (`get_next_card`), các chế độ lọc `candidates` đều có điều kiện `idx != current_index`. Khi khởi tạo lượt học (`current_index = 0` và `answered_indexes = []`), thẻ số 0 bị loại bỏ vô lý khỏi danh sách ứng viên, khiến hệ thống nhảy cóc sang thẻ 1 hoặc bốc ngẫu nhiên một thẻ khác.
+  - **Giải pháp**:
+    - Trong `FlashcardPlay.tsx`, `initIndex` và `handleNext` được đồng bộ chuẩn xác với cấu hình `effectiveStudy.random_enabled` của từng bộ thẻ (hoặc query param `?order=` nếu có).
+    - Trong `play.py` (`get_next_card`), bổ sung kiểm tra `if len(answered_indexes) == 0:` cho tất cả các chế độ (`fsrs`, `new`, `review`, `speed_skim`). Khi người dùng vừa mở bài học, nếu không bật random thì thẻ trả về chắc chắn là thẻ đầu tiên theo thứ tự gốc (`index 0`), không bao giờ bị bỏ qua thẻ 0 hoặc xáo trộn ngẫu nhiên.
+- **Tối ưu hóa giao diện Tab Study Defaults (`StudySettingsEditor.tsx`)**:
+  - Gom chung cài đặt "Thứ tự hàng đợi thẻ (Card Queue Order: Sequential vs Random)" và "Tự động chuyển thẻ (Auto-Advance & Pacing)" vào cùng Nhóm 2 **Card Order & Auto-Advance**, giúp tác giả và người học dễ dàng quan sát và kiểm soát cả hai thiết lập cùng lúc.
+  - Loại bỏ nút toggle Shuffle Order bị đặt lạc chỗ ở cuối màn hình.
+
 #### Phân Lập Triệt Để 3 Chế Độ Học Tập Cốt Lõi (FSRS v6, Memrise, Speed Skim) & Ghi Nhận Trạng Thái Tiếp Cận Thẻ ("Seen / Skimmed")
 - **Phân tách hoàn toàn và bảo vệ độc lập 3 chế độ học tập**:
   - **FSRS v6**: Duy trì lưu trữ trong `UserCardMastery`, chỉ đánh giá và cập nhật độ bền/độ khó/ngày ôn (`stability`, `difficulty`, `due`, `state`) khi người dùng thực sự thực hiện đánh giá với 4 nút FSRS (`Again`, `Hard`, `Good`, `Easy`). Thẻ mới trong FSRS được nhận diện nghiêm ngặt qua điều kiện `m.state == 0 and m.last_review is None`.

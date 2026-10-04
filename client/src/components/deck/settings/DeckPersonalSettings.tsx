@@ -154,6 +154,9 @@ export function DeckPersonalSettings({
       ...settings,
       learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
       quiz_learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
+      random_enabled: Boolean(settings.random_enabled),
+      auto_next_delay: settings.auto_next_delay !== undefined && settings.auto_next_delay !== null ? Number(settings.auto_next_delay) : 0,
+      quick_learn_enabled: Boolean(settings.quick_learn_enabled),
     }
 
     try {

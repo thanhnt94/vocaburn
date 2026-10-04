@@ -1701,15 +1701,22 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         unanswered_learned = [i for i in learned_cards if i not in effective_answered]
         if unanswered_learned:
-            candidates = [i for i in unanswered_learned if i != current_index]
-            if not candidates:
-                candidates = unanswered_learned
-            if random_enabled:
-                import random
-                next_idx = random.choice(candidates)
+            if len(answered_indexes) == 0:
+                if random_enabled:
+                    import random
+                    next_idx = random.choice(unanswered_learned)
+                else:
+                    next_idx = unanswered_learned[0]
             else:
-                forward = [i for i in candidates if i > current_index]
-                next_idx = forward[0] if forward else candidates[0]
+                candidates = [i for i in unanswered_learned if i != current_index]
+                if not candidates:
+                    candidates = unanswered_learned
+                if random_enabled:
+                    import random
+                    next_idx = random.choice(candidates)
+                else:
+                    forward = [i for i in candidates if i > current_index]
+                    next_idx = forward[0] if forward else candidates[0]
             return {
                 "next_index": next_idx,
                 "phase": "review",
@@ -1749,15 +1756,22 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     unanswered_new.append(idx)
 
         if unanswered_new:
-            candidates = [i for i in unanswered_new if i != current_index]
-            if not candidates:
-                candidates = unanswered_new
-            if random_enabled:
-                import random
-                next_idx = random.choice(candidates)
+            if len(answered_indexes) == 0:
+                if random_enabled:
+                    import random
+                    next_idx = random.choice(unanswered_new)
+                else:
+                    next_idx = unanswered_new[0]
             else:
-                forward = [i for i in candidates if i > current_index]
-                next_idx = forward[0] if forward else candidates[0]
+                candidates = [i for i in unanswered_new if i != current_index]
+                if not candidates:
+                    candidates = unanswered_new
+                if random_enabled:
+                    import random
+                    next_idx = random.choice(candidates)
+                else:
+                    forward = [i for i in candidates if i > current_index]
+                    next_idx = forward[0] if forward else candidates[0]
             return {
                 "next_index": next_idx,
                 "phase": "new",
@@ -1813,15 +1827,22 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         # Free Speed Skim / Flip mode: skims through all cards in deck in order or random
         unanswered_all = [idx for idx in range(total) if idx not in effective_answered and idx not in ignored_indexes]
         if unanswered_all:
-            candidates = [idx for idx in unanswered_all if idx != current_index]
-            if not candidates:
-                candidates = unanswered_all
-            if random_enabled:
-                import random
-                return {"next_index": random.choice(candidates), "phase": "skim"}
+            if len(answered_indexes) == 0:
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(unanswered_all), "phase": "skim"}
+                else:
+                    return {"next_index": unanswered_all[0], "phase": "skim"}
             else:
-                forward = [idx for idx in candidates if idx > current_index]
-                return {"next_index": forward[0] if forward else candidates[0], "phase": "skim"}
+                candidates = [idx for idx in unanswered_all if idx != current_index]
+                if not candidates:
+                    candidates = unanswered_all
+                if random_enabled:
+                    import random
+                    return {"next_index": random.choice(candidates), "phase": "skim"}
+                else:
+                    forward = [idx for idx in candidates if idx > current_index]
+                    return {"next_index": forward[0] if forward else candidates[0], "phase": "skim"}
 
         # When all cards have been skimmed in session, loop continuously in a cycle
         all_candidates = [idx for idx in range(total) if idx not in ignored_indexes and idx != current_index]
@@ -1907,9 +1928,12 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         unanswered_due = [c for c in due_cards if c["idx"] not in effective_answered]
 
         if unanswered_due:
-            candidates = [c for c in unanswered_due if c["idx"] != current_index]
-            if not candidates:
+            if len(answered_indexes) == 0:
                 candidates = unanswered_due
+            else:
+                candidates = [c for c in unanswered_due if c["idx"] != current_index]
+                if not candidates:
+                    candidates = unanswered_due
 
             if random_enabled:
                 import random
@@ -1968,12 +1992,20 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         if all_new_cards:
             unanswered_new = [i for i in all_new_cards if i not in effective_answered]
             if unanswered_new:
-                if random_enabled:
-                    import random
-                    next_idx = random.choice(unanswered_new)
+                if len(answered_indexes) == 0:
+                    if random_enabled:
+                        import random
+                        next_idx = random.choice(unanswered_new)
+                    else:
+                        next_idx = unanswered_new[0]
                 else:
-                    forward_new = [i for i in unanswered_new if i > current_index]
-                    next_idx = forward_new[0] if forward_new else unanswered_new[0]
+                    if random_enabled:
+                        candidates = [i for i in unanswered_new if i != current_index] or unanswered_new
+                        import random
+                        next_idx = random.choice(candidates)
+                    else:
+                        forward_new = [i for i in unanswered_new if i > current_index]
+                        next_idx = forward_new[0] if forward_new else unanswered_new[0]
                 return {
                     "next_index": next_idx,
                     "phase": "new",

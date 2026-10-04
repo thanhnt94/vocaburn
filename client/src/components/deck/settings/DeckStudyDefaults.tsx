@@ -145,6 +145,9 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
       ...settings,
       learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
       quiz_learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
+      random_enabled: Boolean(settings.random_enabled),
+      auto_next_delay: settings.auto_next_delay !== undefined && settings.auto_next_delay !== null ? Number(settings.auto_next_delay) : 0,
+      quick_learn_enabled: Boolean(settings.quick_learn_enabled),
     }
 
     try {
@@ -175,7 +178,15 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
     setIsResetting(true)
     setMessage(null)
 
-    const baseline = { ...DEFAULT_STUDY_SETTINGS, disabled_modes: [] }
+    const baseline: StudySettings = {
+      ...DEFAULT_STUDY_SETTINGS,
+      learning_mode: 'fsrs',
+      quiz_learning_mode: 'fsrs',
+      auto_next_delay: 0,
+      quick_learn_enabled: false,
+      random_enabled: false,
+      disabled_modes: []
+    }
     setSettings(baseline)
     setSelectedTemplateId('preset-standard')
 

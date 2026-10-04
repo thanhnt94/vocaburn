@@ -94,8 +94,10 @@ export function StudySettingsEditor({
   const handleToggleAutoAdvance = (enabled: boolean) => {
     if (enabled) {
       onChange('auto_next_delay', currentDelaySec > 0 ? currentDelaySec : 2)
+      onChange('quick_learn_enabled', true)
     } else {
-      onChange('auto_next_delay', null)
+      onChange('auto_next_delay', 0)
+      onChange('quick_learn_enabled', false)
     }
   }
 
@@ -204,13 +206,13 @@ export function StudySettingsEditor({
         />
       </div>
 
-      {/* ═══════════ GROUP 2: AUTO-ADVANCE & PACING (USER REQUESTED) ═══════════ */}
+      {/* ═══════════ GROUP 2: CARD ORDER & AUTO-ADVANCE ═══════════ */}
       <div className={`space-y-3.5 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-indigo-600">
             <Timer className="w-4 h-4" />
             <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-              Auto-Advance & Pacing
+              Card Order & Auto-Advance
             </h4>
           </div>
           {isAutoAdvanceEnabled && (
@@ -218,6 +220,31 @@ export function StudySettingsEditor({
               {getDelayPillLabel(currentDelaySec)}
             </span>
           )}
+        </div>
+
+        {/* CARD ORDER (SEQUENTIAL VS RANDOM) */}
+        <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Shuffle className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Card Queue Order</span>
+            </label>
+            <span className="text-[10px] font-bold text-slate-400">
+              {settings.random_enabled ? 'Shuffle ON' : 'Sequential (1, 2, 3...)'}
+            </span>
+          </div>
+          <SegmentedControl
+            value={settings.random_enabled ? 'random' : 'sequential'}
+            onChange={(val) => onChange('random_enabled', val === 'random')}
+            options={[
+              { id: 'sequential', label: 'Sequential (In Order)' },
+              { id: 'random', label: 'Random (Shuffle)' },
+            ]}
+            compact={compact}
+          />
+          <p className="text-[10px] text-slate-400 font-medium">
+            Sequential preserves original lesson numbering; Random shuffles cards on review.
+          </p>
         </div>
 
         {/* AUTO NEXT TOGGLE */}
@@ -745,16 +772,6 @@ export function StudySettingsEditor({
                 </p>
               </div>
             )}
-
-            {/* Randomize Card Order */}
-            <ToggleRow
-              icon={Shuffle}
-              label="Randomize Card Order"
-              desc="Shuffle cards within the review queue"
-              checked={settings.random_enabled ?? false}
-              onChange={(val) => onChange('random_enabled', val)}
-              compact={compact}
-            />
           </div>
         )
       })()}

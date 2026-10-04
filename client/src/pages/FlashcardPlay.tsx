@@ -815,11 +815,8 @@ export default function FlashcardPlay() {
     if (autoNextDelay !== undefined && autoNextDelay !== null) {
       return autoNextDelay;
     }
-    if (isSpeedSkimMode) {
-      return 2; // Default 2s for Speed Skim
-    }
     return quickLearnEnabled ? 1 : 0;
-  }, [autoNextSec, autoNextDelay, isSpeedSkimMode, quickLearnEnabled]);
+  }, [autoNextSec, autoNextDelay, quickLearnEnabled]);
 
   const effectiveAutoAdvance = effectiveAutoNextSec > 0;
 
@@ -998,6 +995,8 @@ export default function FlashcardPlay() {
       } else if (urlOrder === 'sequential') {
         setRandomEnabled(false);
         saveGeneralSettings({ random_enabled: false });
+      } else if (effectiveStudy.random_enabled !== undefined) {
+        setRandomEnabled(Boolean(effectiveStudy.random_enabled));
       }
       
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
@@ -1047,6 +1046,12 @@ export default function FlashcardPlay() {
         const urlMode = searchParams.get('mode');
         const urlStep = searchParams.get('step');
         const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
+        const effectiveRandom = urlOrder === 'random'
+          ? true
+          : urlOrder === 'sequential'
+          ? false
+          : (effectiveStudy.random_enabled !== undefined ? Boolean(effectiveStudy.random_enabled) : randomEnabled);
+
         const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
 
         let curIdx = 0;
@@ -1056,7 +1061,7 @@ export default function FlashcardPlay() {
             step_type: activeStepType,
             answered_indexes: [],
             current_index: 0,
-            random_enabled: !!userSettings.random_enabled
+            random_enabled: effectiveRandom
           });
           if (res.data) {
             if (res.data.is_all_completed || res.data.next_index === -1) {
@@ -2539,7 +2544,7 @@ export default function FlashcardPlay() {
         step_type: activeStepType,
         answered_indexes: answeredIndexes,
         current_index: currentIndex,
-        random_enabled: randomEnabled ?? !!userSettings.random_enabled
+        random_enabled: Boolean(randomEnabled)
       });
       if (res.data) {
         if (res.data.is_all_completed || res.data.next_index === -1) {

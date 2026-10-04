@@ -152,7 +152,7 @@ SYSTEM_STUDY_DEFAULTS = {
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
     "quick_learn_enabled": False,   # boolean
-    "auto_next_delay": None,        # Optional[int]: None (use mode default), 0 (off), 1, 2, 3...
+    "auto_next_delay": 0,           # Optional[int]: 0 (off), 1, 2, 3...
     "show_fsrs": True,              # boolean
     "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
     "card_rating_mode": "both",     # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
@@ -163,6 +163,27 @@ SYSTEM_STUDY_DEFAULTS = {
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
 
 SYSTEM_STUDY_PROFILES = [
+    {
+        "id": "preset-standard",
+        "name": "Standard",
+        "description": "Balanced recall: clean question on the front side; audio pronunciation and illustration appear only on the back side.",
+        "icon": "sparkles",
+        "is_system": True,
+        "settings": {
+            **SYSTEM_STUDY_DEFAULTS,
+            "learning_mode": "fsrs",
+            "autoplay_audio": "back",
+            "show_images": "back_only",
+            "show_fsrs": True,
+            "card_flip_trigger": "both",
+            "card_rating_mode": "both",
+            "sfx_enabled": True,
+            "haptic_enabled": True,
+            "random_enabled": False,
+            "auto_next_delay": 0,
+            "quick_learn_enabled": False
+        }
+    },
     {
         "id": "preset-speed-skim",
         "name": "Speed Skim",
@@ -180,8 +201,8 @@ SYSTEM_STUDY_PROFILES = [
             "sfx_enabled": True,
             "haptic_enabled": True,
             "random_enabled": False,
-            "quick_learn_enabled": True,
-            "auto_next_delay": 2
+            "quick_learn_enabled": False,
+            "auto_next_delay": 0
         }
     },
     {
@@ -200,7 +221,9 @@ SYSTEM_STUDY_PROFILES = [
             "card_rating_mode": "swipe_4way",
             "sfx_enabled": False,
             "haptic_enabled": False,
-            "random_enabled": False
+            "random_enabled": False,
+            "auto_next_delay": 0,
+            "quick_learn_enabled": False
         }
     },
     {
@@ -219,26 +242,9 @@ SYSTEM_STUDY_PROFILES = [
             "card_rating_mode": "both",
             "sfx_enabled": True,
             "haptic_enabled": True,
-            "random_enabled": False
-        }
-    },
-    {
-        "id": "preset-standard",
-        "name": "Standard",
-        "description": "Balanced recall: clean question on the front side; audio pronunciation and illustration appear only on the back side.",
-        "icon": "sparkles",
-        "is_system": True,
-        "settings": {
-            **SYSTEM_STUDY_DEFAULTS,
-            "learning_mode": "fsrs",
-            "autoplay_audio": "back",
-            "show_images": "back_only",
-            "show_fsrs": True,
-            "card_flip_trigger": "both",
-            "card_rating_mode": "both",
-            "sfx_enabled": True,
-            "haptic_enabled": True,
-            "random_enabled": False
+            "random_enabled": False,
+            "auto_next_delay": 0,
+            "quick_learn_enabled": False
         }
     },
     {
