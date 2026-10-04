@@ -21,7 +21,6 @@ import {
   Check,
   ArrowRight,
   Target,
-  Save,
   Columns3,
   BookmarkCheck,
   Sliders,
@@ -37,6 +36,7 @@ import { cn } from '@/lib/utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { DeckPagination } from '@/components/deck/DeckPagination'
 import { LearnModeModal } from '@/components/LearnModeModal'
+import { AutoSaveIndicator } from '@/components/deck/settings'
 
 // Lazy load tab components for optimal performance
 const DeckOverviewTab = lazy(() => import('@/components/deck/tabs/DeckOverviewTab'))
@@ -323,48 +323,7 @@ export function DeckDetailPage() {
     }, { replace: true })
   }
 
-  const handleSaveActiveSubTab = () => {
-    if (settingsScope === 'personal') {
-      const form = document.getElementById('deck-personal-settings-form') as HTMLFormElement | null
-      if (form) form.requestSubmit()
-      return
-    }
 
-    const rawSubTab = searchParams.get('subtab')
-    const subTab = (
-      (rawSubTab === 'columns' || rawSubTab === 'study' || rawSubTab === 'sublessons') ? 'flashcard' :
-      (rawSubTab === 'excel' || rawSubTab === 'collab' || rawSubTab === 'danger') ? 'general' :
-      rawSubTab
-    ) || 'general'
-
-    const section = searchParams.get('section') || (
-      rawSubTab === 'study' ? 'display' :
-      rawSubTab === 'sublessons' ? 'sublessons' :
-      'cols'
-    )
-
-    if (subTab === 'general') {
-      const form = document.getElementById('deck-general-form') as HTMLFormElement | null
-      if (form) form.requestSubmit()
-    } else if (subTab === 'flashcard') {
-      if (section === 'display') {
-        const form = document.getElementById('deck-study-defaults-form') as HTMLFormElement | null
-        if (form) form.requestSubmit()
-      } else {
-        const btn = document.getElementById('btn-save-columns') as HTMLButtonElement | null
-        if (btn) btn.click()
-      }
-    } else if (subTab === 'practice') {
-      const form = document.getElementById('deck-practice-config-form') as HTMLFormElement | null
-      if (form) form.requestSubmit()
-    } else if (subTab === 'ai') {
-      const btn = document.getElementById('btn-save-ai-settings') as HTMLButtonElement | null
-      if (btn) btn.click()
-    } else if (subTab === 'audio') {
-      const btn = document.getElementById('btn-save-audio-settings') as HTMLButtonElement | null
-      if (btn) btn.click()
-    }
-  }
 
   const handleTabChange = (tab: DeckDetailTab, additionalParams?: Record<string, string>) => {
     if (tab === 'settings' && isOwner && !additionalParams) {
@@ -451,6 +410,9 @@ export function DeckDetailPage() {
 
   return (
     <div className="fixed inset-0 top-0 bottom-0 md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0b0f19] overflow-hidden text-left select-none">
+      {/* Global floating autosave feedback pill */}
+      <AutoSaveIndicator />
+
       {/* ═══════════ TOP UNIFIED HEADER (SHRINK-0) ═══════════ */}
       <div className="shrink-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-b border-slate-200/70 dark:border-slate-800 shadow-2xs">
         <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3.5 sm:px-6 lg:px-8 xl:px-10">
@@ -850,31 +812,21 @@ export function DeckDetailPage() {
         </div>
       )}
 
-      {/* ═══════════ DOCKED BOTTOM SETTINGS ACTION BAR (SUBTABS ON LEFT, SAVE BUTTON ON RIGHT) ═══════════ */}
+      {/* ═══════════ DOCKED BOTTOM SETTINGS ACTION BAR (SUBTABS ON LEFT IN NATURAL THUMB REACH) ═══════════ */}
       {activeTab === 'settings' && (
         <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 px-2.5 sm:px-5 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-2.5">
             {(() => {
               if (settingsScope === 'personal') {
                 return (
-                  <>
-                    <div className="flex-1 min-w-0 pr-2">
-                      <span className="text-xs font-black text-orange-600 block truncate">
-                        Personal Study Preferences
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium hidden sm:block truncate">
-                        Custom settings that apply exclusively to your account for this deck
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleSaveActiveSubTab}
-                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Save Preferences</span>
-                    </button>
-                  </>
+                  <div className="flex-1 min-w-0 py-1">
+                    <span className="text-xs font-black text-orange-600 block truncate">
+                      Personal Study Preferences
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium truncate block">
+                      Custom study overrides for this deck • All changes automatically saved
+                    </span>
+                  </div>
                 )
               }
 
@@ -898,44 +850,29 @@ export function DeckDetailPage() {
               )
 
               return (
-                <>
-                  {/* LEFT: INNER SUB-SECTION SWITCHER (Smooth scrollable pill track in natural thumb reach) */}
-                  <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0">
-                    {innerSections.map((sec) => {
-                      const Icon = sec.icon
-                      const isActive = activeSection === sec.id
-                      return (
-                        <button
-                          key={sec.id}
-                          type="button"
-                          onClick={() => handleSelectSection(sec.id)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap select-none",
-                            isActive
-                              ? "bg-slate-900 text-white shadow-2xs font-black dark:bg-slate-100 dark:text-slate-900"
-                              : "bg-slate-100/90 hover:bg-slate-200/90 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"
-                          )}
-                        >
-                          <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-orange-400" : "text-slate-400")} />
-                          <span>{sec.label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* RIGHT: PERSISTENT SAVE BUTTON */}
-                  {isOwner && activeSection !== 'danger' && (
-                    <button
-                      type="button"
-                      onClick={handleSaveActiveSubTab}
-                      className="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ml-1"
-                      title="Save changes for active settings section"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Save Changes</span>
-                    </button>
-                  )}
-                </>
+                /* INNER SUB-SECTION SWITCHER (Smooth scrollable pill track in natural thumb reach) */
+                <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0">
+                  {innerSections.map((sec) => {
+                    const Icon = sec.icon
+                    const isActive = activeSection === sec.id
+                    return (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => handleSelectSection(sec.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap select-none",
+                          isActive
+                            ? "bg-slate-900 text-white shadow-2xs font-black dark:bg-slate-100 dark:text-slate-900"
+                            : "bg-slate-100/90 hover:bg-slate-200/90 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"
+                        )}
+                      >
+                        <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-orange-400" : "text-slate-400")} />
+                        <span>{sec.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               )
             })()}
           </div>

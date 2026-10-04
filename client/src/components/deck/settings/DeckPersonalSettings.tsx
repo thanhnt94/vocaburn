@@ -3,7 +3,6 @@ import {
   User,
   Sliders,
   BookmarkCheck,
-  Save,
   RotateCcw,
   Check,
   ShieldAlert,
@@ -20,6 +19,7 @@ import {
   type StudySettings,
   type StudyTemplateItem,
 } from '@/components/common/study'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface DeckPersonalSettingsProps {
   deckId: string | number
@@ -130,54 +130,69 @@ export function DeckPersonalSettings({
     return items
   }, [creatorDefs, userOverrides, isCustomized, userSettings?.study_profiles])
 
+  const autoSaveTimerRef = React.useRef<any>(null)
+
+  const triggerSavePersonalSettings = (nextSettings: StudySettings, immediate = false) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+
+    const execute = async () => {
+      if (!deckId) return
+      setIsSaving(true)
+      useAutoSaveStore.getState().notifySaving()
+
+      const studyOverrides = {
+        ...nextSettings,
+        learning_mode: nextSettings.quiz_learning_mode || nextSettings.learning_mode || 'fsrs',
+        quiz_learning_mode: nextSettings.quiz_learning_mode || nextSettings.learning_mode || 'fsrs',
+        random_enabled: Boolean(nextSettings.random_enabled),
+        auto_next_delay: nextSettings.auto_next_delay !== undefined && nextSettings.auto_next_delay !== null ? Number(nextSettings.auto_next_delay) : 0,
+        quick_learn_enabled: Boolean(nextSettings.quick_learn_enabled),
+      }
+
+      try {
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          is_creator: false,
+          settings: {
+            ...studyOverrides,
+            study_settings: studyOverrides,
+          },
+        })
+
+        queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        useAutoSaveStore.getState().notifySaved()
+        if (onSaved) onSaved()
+      } catch (err: any) {
+        useAutoSaveStore.getState().notifyError(err?.response?.data?.error || 'Failed to save personal preferences')
+      } finally {
+        setIsSaving(false)
+      }
+    }
+
+    if (immediate) {
+      execute()
+    } else {
+      autoSaveTimerRef.current = setTimeout(execute, 700)
+    }
+  }
+
   const handleSelectTemplate = (tpl: StudyTemplateItem) => {
     setSelectedTemplateId(tpl.id)
     if (tpl.settings) {
-      setSettings((prev) => ({
-        ...prev,
+      const nextSettings: StudySettings = {
+        ...settings,
         ...tpl.settings,
-        quiz_learning_mode: tpl.settings.quiz_learning_mode || tpl.settings.learning_mode || prev.quiz_learning_mode,
-      }))
+        quiz_learning_mode: tpl.settings.quiz_learning_mode || tpl.settings.learning_mode || settings.quiz_learning_mode,
+      }
+      setSettings(nextSettings)
+      triggerSavePersonalSettings(nextSettings, true)
     }
   }
 
   const updateSetting = (key: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    setIsSaving(true)
-    setMessage(null)
-
-    const studyOverrides = {
-      ...settings,
-      learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
-      quiz_learning_mode: settings.quiz_learning_mode || settings.learning_mode || 'fsrs',
-      random_enabled: Boolean(settings.random_enabled),
-      auto_next_delay: settings.auto_next_delay !== undefined && settings.auto_next_delay !== null ? Number(settings.auto_next_delay) : 0,
-      quick_learn_enabled: Boolean(settings.quick_learn_enabled),
-    }
-
-    try {
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: false,
-        settings: {
-          ...studyOverrides,
-          study_settings: studyOverrides,
-        },
-      })
-
-      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      setMessage({ type: 'success', text: 'Personal study preferences saved successfully!' })
-      if (onSaved) onSaved()
-      setTimeout(() => setMessage(null), 3500)
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to save personal preferences' })
-    } finally {
-      setIsSaving(false)
-    }
+    const nextSettings: StudySettings = { ...settings, [key]: value }
+    setSettings(nextSettings)
+    triggerSavePersonalSettings(nextSettings, false)
   }
 
   const handleResetDefaults = async () => {
@@ -222,7 +237,7 @@ export function DeckPersonalSettings({
   }
 
   return (
-    <form id="deck-personal-settings-form" onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
+    <div id="deck-personal-settings-form" className="space-y-4 text-left animate-in fade-in duration-200">
       {/* HEADER & MODE SWITCHER */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -308,8 +323,8 @@ export function DeckPersonalSettings({
             />
 
             {/* Simple Mode Footer Actions */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-              {isCustomized ? (
+            {isCustomized && (
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   disabled={isResetting}
@@ -319,17 +334,8 @@ export function DeckPersonalSettings({
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reset to Deck Default</span>
                 </button>
-              ) : <div />}
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-5 h-10 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-black shadow-xs shadow-orange-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? 'SAVING...' : 'SAVE PREFERENCES'}</span>
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -342,8 +348,8 @@ export function DeckPersonalSettings({
             />
 
             {/* Advanced Mode Footer Actions */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-              {isCustomized ? (
+            {isCustomized && (
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   disabled={isResetting}
@@ -353,21 +359,12 @@ export function DeckPersonalSettings({
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reset to Deck Default</span>
                 </button>
-              ) : <div />}
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? 'SAVING...' : 'SAVE CUSTOM SETTINGS'}</span>
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
-    </form>
+    </div>
   )
 }
 

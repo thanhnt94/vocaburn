@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Sliders,
-  Save,
   Check,
   Trophy,
   Keyboard,
@@ -20,6 +19,7 @@ import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export type PracticeModeKey = 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
 export type LearnModeKey = 'fsrs' | 'skim' | 'memrise'
@@ -119,8 +119,9 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
 
   const [listeningTypingPairs, setListeningTypingPairs] = useState<QuestionAnswerPair[]>([])
 
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
+  const { notifySaving, notifySaved, notifyError } = useAutoSaveStore()
+  const isLoadedRef = useRef(false)
+  const debounceTimerRef = useRef<any>(null)
 
   // Fetch available columns and full practice settings from backend
   const { data: practiceSettingsData } = useQuery({
@@ -217,11 +218,99 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       setListeningMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
       setListeningTypingPairs([{ q: 'front', a: 'front', prompt_col: 'front', answer_col: 'front' }])
     }
+    setTimeout(() => {
+      isLoadedRef.current = true
+    }, 150)
   }, [practiceSettingsData, initialSettings])
+
+  const savePracticeConfig = (overrides?: any, immediate = false) => {
+    if (!isLoadedRef.current) return
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    const run = async () => {
+      notifySaving('Saving modes...')
+      const effDisabled = overrides?.disabledModes !== undefined ? overrides.disabledModes : disabledModes
+      const effDefault = overrides?.defaultLearnMode !== undefined ? overrides.defaultLearnMode : defaultLearnMode
+      const effMcqPairs = overrides?.mcqPairs || mcqPairs
+      const effTypingPairs = overrides?.typingPairs || typingPairs
+      const effListeningMcqPairs = overrides?.listeningMcqPairs || listeningMcqPairs
+      const effListeningTypingPairs = overrides?.listeningTypingPairs || listeningTypingPairs
+      const effMcqNum = overrides?.mcqNumChoices !== undefined ? overrides.mcqNumChoices : mcqNumChoices
+      const effListeningNum = overrides?.listeningMcqNumChoices !== undefined ? overrides.listeningMcqNumChoices : listeningMcqNumChoices
+
+      const baseSettings = practiceSettingsData?.creator_settings || initialSettings || {}
+
+      const formattedMcqPairs = effMcqPairs.map((p: any) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
+      const formattedTypingPairs = effTypingPairs.map((p: any) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
+      const formattedListeningMcqPairs = effListeningMcqPairs.map((p: any) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
+      const formattedListeningTypingPairs = effListeningTypingPairs.map((p: any) => ({
+        q: p.q,
+        a: Array.isArray(p.a) ? p.a : [p.a],
+        prompt_col: p.q,
+        answer_col: Array.isArray(p.a) ? p.a : [p.a],
+      }))
+
+      try {
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          is_creator: true,
+          disabled_modes: effDisabled,
+          settings: {
+            ...baseSettings,
+            disabled_modes: effDisabled,
+            study_defaults: {
+              ...(baseSettings.study_defaults || {}),
+              learning_mode: effDefault,
+              quiz_learning_mode: effDefault,
+            },
+            mcq: { num_choices: effMcqNum, active_pairs: formattedMcqPairs },
+            typing: { active_pairs: formattedTypingPairs },
+            listening_mcq: { num_choices: effListeningNum, active_pairs: formattedListeningMcqPairs },
+            listening_typing: { active_pairs: formattedListeningTypingPairs },
+            listening: { num_choices: effListeningNum, active_pairs: formattedListeningMcqPairs },
+          },
+        })
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+        notifySaved('Modes auto-saved')
+        if (onSaved) onSaved()
+      } catch (e: any) {
+        notifyError(e?.response?.data?.error || 'Failed to save modes configuration')
+      }
+    }
+
+    if (immediate) {
+      run()
+    } else {
+      debounceTimerRef.current = setTimeout(run, 600)
+    }
+  }
 
   // Toggle mode enabled / disabled
   const toggleModeDisabled = (modeKey: string) => {
     const isCurrentlyDisabled = disabledModes.includes(modeKey)
+    let nextDisabled = [...disabledModes]
+    let nextDefault = defaultLearnMode
     if (!isCurrentlyDisabled) {
       // If disabling a learn mode, check that at least one remains active
       const learnIds = ['fsrs', 'skim', 'memrise']
@@ -232,13 +321,21 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
           return
         }
         if (defaultLearnMode === modeKey) {
-          setDefaultLearnMode(remaining[0] as LearnModeKey)
+          nextDefault = remaining[0] as LearnModeKey
+          setDefaultLearnMode(nextDefault)
         }
       }
-      setDisabledModes(prev => [...prev, modeKey])
+      nextDisabled = [...disabledModes, modeKey]
     } else {
-      setDisabledModes(prev => prev.filter(m => m !== modeKey))
+      nextDisabled = disabledModes.filter(m => m !== modeKey)
     }
+    setDisabledModes(nextDisabled)
+    savePracticeConfig({ disabledModes: nextDisabled, defaultLearnMode: nextDefault }, true)
+  }
+
+  const handleSetDefaultLearnMode = (modeKey: LearnModeKey) => {
+    setDefaultLearnMode(modeKey)
+    savePracticeConfig({ defaultLearnMode: modeKey }, true)
   }
 
   const isModeEnabled = (modeKey: string) => !disabledModes.includes(modeKey)
@@ -253,10 +350,31 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
   }
 
   const setCurrentPairs = (updater: (prev: QuestionAnswerPair[]) => QuestionAnswerPair[]) => {
-    if (activePracticeTab === 'mcq') setMcqPairs(updater)
-    else if (activePracticeTab === 'typing') setTypingPairs(updater)
-    else if (activePracticeTab === 'listening_mcq') setListeningMcqPairs(updater)
-    else if (activePracticeTab === 'listening_typing') setListeningTypingPairs(updater)
+    if (activePracticeTab === 'mcq') {
+      setMcqPairs((prev) => {
+        const updated = updater(prev)
+        savePracticeConfig({ mcqPairs: updated }, false)
+        return updated
+      })
+    } else if (activePracticeTab === 'typing') {
+      setTypingPairs((prev) => {
+        const updated = updater(prev)
+        savePracticeConfig({ typingPairs: updated }, false)
+        return updated
+      })
+    } else if (activePracticeTab === 'listening_mcq') {
+      setListeningMcqPairs((prev) => {
+        const updated = updater(prev)
+        savePracticeConfig({ listeningMcqPairs: updated }, false)
+        return updated
+      })
+    } else if (activePracticeTab === 'listening_typing') {
+      setListeningTypingPairs((prev) => {
+        const updated = updater(prev)
+        savePracticeConfig({ listeningTypingPairs: updated }, false)
+        return updated
+      })
+    }
   }
 
   const handleAddPair = () => {
@@ -287,84 +405,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     )
   }
 
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    setIsSaving(true)
-    try {
-      const baseSettings = practiceSettingsData?.creator_settings || initialSettings || {}
+  const handleUpdateMcqNumChoices = (num: number) => {
+    setMcqNumChoices(num)
+    savePracticeConfig({ mcqNumChoices: num }, true)
+  }
 
-      const formattedMcqPairs = mcqPairs.map((p) => ({
-        q: p.q,
-        a: Array.isArray(p.a) ? p.a : [p.a],
-        prompt_col: p.q,
-        answer_col: Array.isArray(p.a) ? p.a : [p.a],
-      }))
-
-      const formattedTypingPairs = typingPairs.map((p) => ({
-        q: p.q,
-        a: Array.isArray(p.a) ? p.a : [p.a],
-        prompt_col: p.q,
-        answer_col: Array.isArray(p.a) ? p.a : [p.a],
-      }))
-
-      const formattedListeningMcqPairs = listeningMcqPairs.map((p) => ({
-        q: p.q,
-        a: Array.isArray(p.a) ? p.a : [p.a],
-        prompt_col: p.q,
-        answer_col: Array.isArray(p.a) ? p.a : [p.a],
-      }))
-
-      const formattedListeningTypingPairs = listeningTypingPairs.map((p) => ({
-        q: p.q,
-        a: Array.isArray(p.a) ? p.a : [p.a],
-        prompt_col: p.q,
-        answer_col: Array.isArray(p.a) ? p.a : [p.a],
-      }))
-
-      const mcqSettings = {
-        num_choices: mcqNumChoices,
-        active_pairs: formattedMcqPairs,
-      }
-      const typingSettings = {
-        active_pairs: formattedTypingPairs,
-      }
-      const listeningMcqSettings = {
-        num_choices: listeningMcqNumChoices,
-        active_pairs: formattedListeningMcqPairs,
-      }
-      const listeningTypingSettings = {
-        active_pairs: formattedListeningTypingPairs,
-      }
-
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: true,
-        disabled_modes: disabledModes,
-        settings: {
-          ...baseSettings,
-          disabled_modes: disabledModes,
-          study_defaults: {
-            ...(baseSettings.study_defaults || {}),
-            learning_mode: defaultLearnMode,
-            quiz_learning_mode: defaultLearnMode,
-          },
-          mcq: mcqSettings,
-          typing: typingSettings,
-          listening_mcq: listeningMcqSettings,
-          listening_typing: listeningTypingSettings,
-          listening: listeningMcqSettings,
-        },
-      })
-
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
-      if (onSaved) onSaved()
-    } catch (e: any) {
-      alert(e?.response?.data?.error || 'Failed to save modes configuration')
-    } finally {
-      setIsSaving(false)
-    }
+  const handleUpdateListeningMcqNumChoices = (num: number) => {
+    setListeningMcqNumChoices(num)
+    savePracticeConfig({ listeningMcqNumChoices: num }, true)
   }
 
   const practiceModesConfig = [
@@ -419,14 +467,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
   const currentPairs = getCurrentPairs()
 
   return (
-    <form id="deck-practice-config-form" onSubmit={handleSave} className="space-y-6 text-left animate-in fade-in duration-200">
-      {saveSuccess && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-2xl font-bold flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>All learning & practice mode configurations saved successfully!</span>
-        </div>
-      )}
-
+    <div id="deck-practice-config-form" className="space-y-6 text-left animate-in fade-in duration-200">
       {/* ═══════════ SECTION 1: FLASHCARD LEARNING MODES ═══════════ */}
       {(!section || section === 'modes') && (
       <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
@@ -510,7 +551,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                   {enabled ? (
                     <button
                       type="button"
-                      onClick={() => setDefaultLearnMode(mode.id)}
+                      onClick={() => handleSetDefaultLearnMode(mode.id)}
                       className={cn(
                         "w-full py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                         isDefault
@@ -666,7 +707,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                   <button
                     key={num}
                     type="button"
-                    onClick={() => setMcqNumChoices(num)}
+                    onClick={() => handleUpdateMcqNumChoices(num)}
                     className={cn(
                       "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
                       mcqNumChoices === num
@@ -693,7 +734,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                   <button
                     key={num}
                     type="button"
-                    onClick={() => setListeningMcqNumChoices(num)}
+                    onClick={() => handleUpdateListeningMcqNumChoices(num)}
                     className={cn(
                       "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
                       listeningMcqNumChoices === num
@@ -864,18 +905,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       </div>
       )}
 
-      {/* Footer Save Button */}
-      <div className="pt-2 flex justify-end">
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          <span>{isSaving ? 'SAVING CONFIGURATION...' : 'SAVE MODES CONFIGURATION'}</span>
-        </button>
-      </div>
-    </form>
+    </div>
   )
 }
 

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { Sparkles, Save, Wand2, RefreshCw, CheckCircle2, Plus, Trash2, HelpCircle, Code2, Server } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Sparkles, Wand2, RefreshCw, CheckCircle2, Plus, Trash2, HelpCircle, Code2, Server } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { DeckFuriganaSettings } from './DeckFuriganaSettings'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface AIPromptItem {
   id?: string
@@ -114,6 +115,43 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
     staleTime: 10 * 1000,
   })
 
+  const autoSaveTimerRef = useRef<any>(null)
+
+  const triggerSaveAIPrompts = (nextPrompts = prompts, immediate = false) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+
+    const execute = async () => {
+      if (!deckId) return
+      setIsSaving(true)
+      useAutoSaveStore.getState().notifySaving()
+
+      try {
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          settings: {
+            ...initialSettings,
+            ai_prompts: nextPrompts,
+          },
+          is_creator: true,
+        })
+
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+        useAutoSaveStore.getState().notifySaved()
+        if (onSaved) onSaved()
+      } catch (e: any) {
+        useAutoSaveStore.getState().notifyError(e?.response?.data?.error || 'Failed to save AI prompts')
+      } finally {
+        setIsSaving(false)
+      }
+    }
+
+    if (immediate) {
+      execute()
+    } else {
+      autoSaveTimerRef.current = setTimeout(execute, 700)
+    }
+  }
+
   const handleAddPrompt = (preset?: typeof DEFAULT_PRESETS[0]) => {
     const newItem: AIPromptItem = preset ? {
       id: `prompt_${Date.now()}`,
@@ -128,44 +166,26 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
       name: '',
       prompt: 'Hãy phân tích và bổ sung thông tin chi tiết cho: {front}'
     }
-    setPrompts(prev => [...prev, newItem])
+    const next = [...prompts, newItem]
+    setPrompts(next)
+    triggerSaveAIPrompts(next, true)
   }
 
   const handleRemovePrompt = (index: number) => {
-    setPrompts(prev => prev.filter((_, idx) => idx !== index))
+    const next = prompts.filter((_, idx) => idx !== index)
+    setPrompts(next)
+    triggerSaveAIPrompts(next, true)
   }
 
   const handleUpdatePrompt = (index: number, field: keyof AIPromptItem, value: string) => {
-    setPrompts(prev => prev.map((item, idx) => {
+    const next = prompts.map((item, idx) => {
       if (idx === index) {
         return { ...item, [field]: value }
       }
       return item
-    }))
-  }
-
-  const handleSave = async () => {
-    setIsSaving(true)
-    setSaveSuccess(false)
-    try {
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        settings: {
-          ...initialSettings,
-          ai_prompts: prompts,
-        },
-        is_creator: true,
-      })
-
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
-      if (onSaved) onSaved()
-    } catch (e) {
-      alert('Không thể lưu cấu hình Prompt AI')
-    } finally {
-      setIsSaving(false)
-    }
+    })
+    setPrompts(next)
+    triggerSaveAIPrompts(next, field === 'column' || field === 'target_column')
   }
 
   const handleTriggerBulkAI = async () => {
@@ -195,7 +215,9 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
     const promptItem = prompts[index]
     if (!promptItem) return
     const newPrompt = (promptItem.prompt || '') + ` {${variableName}}`
-    handleUpdatePrompt(index, 'prompt', newPrompt)
+    const next = prompts.map((item, idx) => idx === index ? { ...item, prompt: newPrompt } : item)
+    setPrompts(next)
+    triggerSaveAIPrompts(next, false)
   }
 
   // Selected prompt title for dynamic button text
@@ -343,19 +365,6 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
               </div>
             ))
           )}
-        </div>
-
-        <div className="pt-2 flex justify-end">
-          <button
-            id="btn-save-ai-settings"
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-5 h-10 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black shadow-xs shadow-purple-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'ĐANG LƯU...' : 'LƯU CẤU HÌNH AI PROMPTS'}</span>
-          </button>
         </div>
       </div>
 

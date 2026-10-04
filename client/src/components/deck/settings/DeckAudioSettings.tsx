@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
-import { Volume2, Save, RefreshCw, CheckCircle2, Headphones, Server, Layers, Sliders, Plus, Trash2, Info, Sparkles } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Volume2, RefreshCw, CheckCircle2, Headphones, Server, Layers, Sliders, Plus, Trash2, Info, Sparkles } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface AudioConfigItem {
   id: string
@@ -200,6 +201,79 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved, section }:
     staleTime: 10 * 1000,
   })
 
+  const autoSaveTimerRef = useRef<any>(null)
+
+  const triggerSaveAudioConfig = (
+    nextConfigs = audioConfigs,
+    nextVoiceMap = voiceMapping,
+    nextSpeechRate = speechRate,
+    immediate = false
+  ) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+
+    const execute = async () => {
+      if (!deckId) return
+      setIsSaving(true)
+      useAutoSaveStore.getState().notifySaving()
+
+      try {
+        const frontItem = nextConfigs.find(c => c.data_col === 'front' || c.url_col === 'front_audio_url' || c.id === 'cfg_front') || nextConfigs[0]
+        const backItem = nextConfigs.find(c => c.data_col === 'back' || c.url_col === 'back_audio_url' || c.id === 'cfg_back') || nextConfigs[1]
+
+        const updatedSettings = {
+          ...initialSettings,
+          audio_configs: nextConfigs,
+          front_audio_config: frontItem ? {
+            audio_content_col: frontItem.source_col,
+            audio_url_col: frontItem.url_col,
+            data_col: frontItem.data_col,
+            lang: frontItem.lang,
+            enabled: frontItem.lang !== 'none'
+          } : undefined,
+          back_audio_config: backItem ? {
+            audio_content_col: backItem.source_col,
+            audio_url_col: backItem.url_col,
+            data_col: backItem.data_col,
+            lang: backItem.lang,
+            enabled: backItem.lang !== 'none'
+          } : undefined,
+          audio_pairs: nextConfigs.map(c => ({
+            text_col: c.data_col || c.source_col,
+            data_col: c.data_col,
+            audio_content_col: c.source_col,
+            audio_url_col: c.url_col,
+            lang: c.lang
+          })),
+          voice_mapping: nextVoiceMap,
+          audio_speech_rate: nextSpeechRate,
+          audio_source_field: frontItem?.source_col || 'front_audio_content',
+          audio_target_field: frontItem?.url_col || 'front_audio_url',
+          audio_voice_lang: nextVoiceMap.ja || 'ja-JP-NanamiNeural'
+        }
+
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          settings: updatedSettings,
+          is_creator: true,
+        })
+
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+        useAutoSaveStore.getState().notifySaved()
+        if (onSaved) onSaved()
+      } catch (e: any) {
+        useAutoSaveStore.getState().notifyError(e?.response?.data?.error || 'Failed to save audio settings')
+      } finally {
+        setIsSaving(false)
+      }
+    }
+
+    if (immediate) {
+      execute()
+    } else {
+      autoSaveTimerRef.current = setTimeout(execute, 700)
+    }
+  }
+
   // Handlers for Audio Configs List
   const handleAddAudioConfig = () => {
     const nextIdx = audioConfigs.length + 1
@@ -212,16 +286,20 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved, section }:
       lang: 'multi',
       enabled: true,
     }
-    setAudioConfigs(prev => [...prev, newConfig])
+    const nextConfigs = [...audioConfigs, newConfig]
+    setAudioConfigs(nextConfigs)
+    triggerSaveAudioConfig(nextConfigs, voiceMapping, speechRate, true)
   }
 
   const handleUpdateConfig = (id: string, field: keyof AudioConfigItem, value: any) => {
-    setAudioConfigs(prev => prev.map(item => {
+    const nextConfigs = audioConfigs.map(item => {
       if (item.id === id) {
         return { ...item, [field]: value }
       }
       return item
-    }))
+    })
+    setAudioConfigs(nextConfigs)
+    triggerSaveAudioConfig(nextConfigs, voiceMapping, speechRate, field !== 'name')
   }
 
   const handleRemoveConfig = (id: string) => {
@@ -229,73 +307,26 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved, section }:
       alert('Cần giữ lại ít nhất 1 cấu hình âm thanh.')
       return
     }
-    setAudioConfigs(prev => prev.filter(item => item.id !== id))
+    const nextConfigs = audioConfigs.filter(item => item.id !== id)
+    setAudioConfigs(nextConfigs)
     if (selectedBulkTarget === id) {
-      const remaining = audioConfigs.filter(item => item.id !== id)
-      setSelectedBulkTarget(remaining[0]?.id || 'all')
+      setSelectedBulkTarget(nextConfigs[0]?.id || 'all')
     }
+    triggerSaveAudioConfig(nextConfigs, voiceMapping, speechRate, true)
   }
 
   const handleUpdateVoice = (langKey: string, voiceValue: string) => {
-    setVoiceMapping(prev => ({
-      ...prev,
+    const nextMap = {
+      ...voiceMapping,
       [langKey]: voiceValue
-    }))
+    }
+    setVoiceMapping(nextMap)
+    triggerSaveAudioConfig(audioConfigs, nextMap, speechRate, true)
   }
 
-  const handleSaveAudioConfig = async () => {
-    setIsSaving(true)
-    setSaveSuccess(false)
-    try {
-      const frontItem = audioConfigs.find(c => c.data_col === 'front' || c.url_col === 'front_audio_url' || c.id === 'cfg_front') || audioConfigs[0]
-      const backItem = audioConfigs.find(c => c.data_col === 'back' || c.url_col === 'back_audio_url' || c.id === 'cfg_back') || audioConfigs[1]
-
-      const updatedSettings = {
-        ...initialSettings,
-        audio_configs: audioConfigs,
-        front_audio_config: frontItem ? {
-          audio_content_col: frontItem.source_col,
-          audio_url_col: frontItem.url_col,
-          data_col: frontItem.data_col,
-          lang: frontItem.lang,
-          enabled: frontItem.lang !== 'none'
-        } : undefined,
-        back_audio_config: backItem ? {
-          audio_content_col: backItem.source_col,
-          audio_url_col: backItem.url_col,
-          data_col: backItem.data_col,
-          lang: backItem.lang,
-          enabled: backItem.lang !== 'none'
-        } : undefined,
-        audio_pairs: audioConfigs.map(c => ({
-          text_col: c.data_col || c.source_col,
-          data_col: c.data_col,
-          audio_content_col: c.source_col,
-          audio_url_col: c.url_col,
-          lang: c.lang
-        })),
-        voice_mapping: voiceMapping,
-        audio_speech_rate: speechRate,
-        audio_source_field: frontItem?.source_col || 'front_audio_content',
-        audio_target_field: frontItem?.url_col || 'front_audio_url',
-        audio_voice_lang: voiceMapping.ja || 'ja-JP-NanamiNeural'
-      }
-
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        settings: updatedSettings,
-        is_creator: true,
-      })
-
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
-      if (onSaved) onSaved()
-    } catch (e: any) {
-      alert(e?.response?.data?.error || 'Lỗi lưu cấu hình âm thanh')
-    } finally {
-      setIsSaving(false)
-    }
+  const handleUpdateSpeechRate = (rate: string) => {
+    setSpeechRate(rate)
+    triggerSaveAudioConfig(audioConfigs, voiceMapping, rate, true)
   }
 
   const handleTriggerBulkAudio = async () => {
@@ -537,7 +568,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved, section }:
             <label className="text-xs font-bold text-slate-700">Tốc độ đọc chung:</label>
             <select
               value={speechRate}
-              onChange={(e) => setSpeechRate(e.target.value)}
+              onChange={(e) => handleUpdateSpeechRate(e.target.value)}
               className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs"
             >
               <option value="0.75">0.75x (Chậm)</option>
@@ -550,26 +581,6 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved, section }:
         </div>
       </div>
       </>
-      )}
-
-      {/* ═══════════════ SAVE CONFIGURATION BUTTON ═══════════════ */}
-      {section !== 'studio' && (
-      <div className="flex items-center justify-end gap-3 pt-2">
-        <button
-          id="btn-save-audio-settings"
-          type="button"
-          onClick={handleSaveAudioConfig}
-          disabled={isSaving}
-          className="h-11 px-6 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black shadow-md shadow-sky-500/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-        >
-          {isSaving ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          <span>{isSaving ? 'ĐANG LƯU CẤU HÌNH...' : 'LƯU TOÀN BỘ CẤU HÌNH AUDIO'}</span>
-        </button>
-      </div>
       )}
 
       {/* ═══════════════ SECTION 4: BATCH TTS GENERATOR STUDIO ═══════════════ */}

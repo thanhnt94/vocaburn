@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
-  Save,
   Globe,
   Lock,
   Tag,
@@ -10,6 +9,7 @@ import {
 import axios from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { MediaUrlInput } from '../../common/MediaUrlInput'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface DeckGeneralFormProps {
   deckId: string | number
@@ -19,15 +19,17 @@ export interface DeckGeneralFormProps {
 
 export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFormProps) {
   const queryClient = useQueryClient()
+  const { notifySaving, notifySaved, notifyError } = useAutoSaveStore()
+
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [coverImage, setCoverImage] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [tagsInput, setTagsInput] = useState('')
-
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isLoadedRef = useRef(false)
+  const debounceTimerRef = useRef<any>(null)
 
   useEffect(() => {
     if (initialData) {
@@ -36,48 +38,101 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
       setCoverImage(initialData.cover_image || '')
       setIsPublic(initialData.is_public !== false)
       setTagsInput(Array.isArray(initialData.tags) ? initialData.tags.join(', ') : '')
+      setTimeout(() => {
+        isLoadedRef.current = true
+      }, 150)
     }
   }, [initialData])
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim()) {
-      setError('Please enter a deck name')
-      return
+  const triggerAutoSave = (
+    fields: {
+      title?: string
+      description?: string
+      coverImage?: string
+      isPublic?: boolean
+      tagsInput?: string
+    },
+    immediate = false
+  ) => {
+    if (!isLoadedRef.current) return
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
     }
 
-    setIsSaving(true)
-    setError(null)
-    setSaveSuccess(false)
+    const runSave = async () => {
+      const curTitle = fields.title !== undefined ? fields.title : title
+      const curDesc = fields.description !== undefined ? fields.description : description
+      const curCover = fields.coverImage !== undefined ? fields.coverImage : coverImage
+      const curPublic = fields.isPublic !== undefined ? fields.isPublic : isPublic
+      const curTags = fields.tagsInput !== undefined ? fields.tagsInput : tagsInput
 
-    const parsedTags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean)
+      if (!curTitle.trim()) {
+        setError('Please enter a deck name')
+        return
+      }
+      setError(null)
+      notifySaving('Saving deck details...')
 
-    try {
-      await axios.patch(`/api/v1/deck/${deckId}`, {
-        title: title.trim(),
-        description: description.trim(),
-        cover_image: coverImage.trim() || null,
-        is_public: isPublic,
-        tags: parsedTags,
-      })
+      const parsedTags = curTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
 
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
-      if (onSaved) onSaved()
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to save deck metadata')
-    } finally {
-      setIsSaving(false)
+      try {
+        await axios.patch(`/api/v1/deck/${deckId}`, {
+          title: curTitle.trim(),
+          description: curDesc.trim(),
+          cover_image: curCover.trim() || null,
+          is_public: curPublic,
+          tags: parsedTags,
+        })
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        notifySaved('Deck details auto-saved')
+        if (onSaved) onSaved()
+      } catch (err: any) {
+        const errMsg = err?.response?.data?.error || 'Failed to save deck metadata'
+        setError(errMsg)
+        notifyError(errMsg)
+      }
+    }
+
+    if (immediate) {
+      runSave()
+    } else {
+      debounceTimerRef.current = setTimeout(runSave, 700)
     }
   }
 
+  const handleTitleChange = (val: string) => {
+    setTitle(val)
+    triggerAutoSave({ title: val })
+  }
+
+  const handleDescChange = (val: string) => {
+    setDescription(val)
+    triggerAutoSave({ description: val })
+  }
+
+  const handleTagsChange = (val: string) => {
+    setTagsInput(val)
+    triggerAutoSave({ tagsInput: val })
+  }
+
+  const handleCoverChange = (val: string) => {
+    setCoverImage(val)
+    triggerAutoSave({ coverImage: val }, true)
+  }
+
+  const handleTogglePublic = () => {
+    const nextPublic = !isPublic
+    setIsPublic(nextPublic)
+    triggerAutoSave({ isPublic: nextPublic }, true)
+  }
+
   return (
-    <form id="deck-general-form" onSubmit={handleSave} className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm text-left space-y-4">
+    <div id="deck-general-form" className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm text-left space-y-4">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
           <span className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
@@ -94,12 +149,6 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
         </div>
       </div>
 
-      {saveSuccess && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2 animate-in fade-in">
-          <Check className="w-4 h-4 shrink-0" /> Deck details updated successfully!
-        </div>
-      )}
-
       {error && (
         <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-bold animate-in fade-in">
           {error}
@@ -114,7 +163,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Enter deck name..."
             className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all"
           />
@@ -128,7 +177,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
             type="text"
             placeholder="JLPT, N2, Vocabulary, Business..."
             value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
+            onChange={(e) => handleTagsChange(e.target.value)}
             className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3.5 text-xs font-bold text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all"
           />
         </div>
@@ -141,7 +190,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
         <textarea
           rows={3}
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => handleDescChange(e.target.value)}
           placeholder="Describe deck objectives, study recommendations, or source materials..."
           className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-800 focus:border-indigo-500 focus:bg-white outline-none transition-all resize-none"
         />
@@ -153,7 +202,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
           label="Cover Image URL"
           placeholder="Paste URL or press Ctrl+V to upload image to CentralAuth..."
           value={coverImage}
-          onChange={(val) => setCoverImage(val)}
+          onChange={handleCoverChange}
         />
       </div>
 
@@ -174,7 +223,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
         </div>
         <button
           type="button"
-          onClick={() => setIsPublic(!isPublic)}
+          onClick={handleTogglePublic}
           className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
             isPublic ? 'bg-emerald-500' : 'bg-slate-300'
           }`}
@@ -186,18 +235,7 @@ export function DeckGeneralForm({ deckId, initialData, onSaved }: DeckGeneralFor
           />
         </button>
       </div>
-
-      <div className="pt-2 flex justify-end">
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-        >
-          <Save className="w-3.5 h-3.5" />
-          <span>{isSaving ? 'SAVING...' : 'SAVE CHANGES'}</span>
-        </button>
-      </div>
-    </form>
+    </div>
   )
 }
 

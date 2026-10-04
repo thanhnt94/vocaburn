@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Sparkles,
-  Save,
   RotateCcw,
   Check,
   ShieldAlert,
@@ -14,6 +13,7 @@ import {
   StudySettingsEditor,
   type StudySettings,
 } from '@/components/common/study'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface DeckStudyDefaultsProps {
   deckId: string | number
@@ -40,6 +40,9 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
 
   const creatorDefs = settingsData?.creator_study_defaults || settingsData?.study_defaults || {}
 
+  const isLoadedRef = useRef(false)
+  const debounceTimerRef = useRef<any>(null)
+
   // Synchronize state when data loads
   useEffect(() => {
     if (settingsData) {
@@ -48,43 +51,56 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
         ...creatorDefs,
       }
       setSettings(merged)
+      setTimeout(() => {
+        isLoadedRef.current = true
+      }, 150)
     }
   }, [settingsData])
 
-  const updateSetting = (key: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
+  const autoSaveSettings = (newSettings: StudySettings, immediate = false) => {
+    if (!isLoadedRef.current) return
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    const run = async () => {
+      useAutoSaveStore.getState().notifySaving('Saving study defaults...')
+      const studyDefaults = {
+        ...newSettings,
+        random_enabled: Boolean(newSettings.random_enabled),
+        auto_next_delay: newSettings.auto_next_delay !== undefined && newSettings.auto_next_delay !== null ? Number(newSettings.auto_next_delay) : 0,
+        quick_learn_enabled: Boolean(newSettings.quick_learn_enabled),
+      }
+      try {
+        await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+          is_creator: true,
+          settings: {
+            study_defaults: studyDefaults,
+          },
+        })
+        queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+        queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        useAutoSaveStore.getState().notifySaved('Study defaults auto-saved')
+        if (onSaved) onSaved()
+      } catch (err: any) {
+        useAutoSaveStore.getState().notifyError(err?.response?.data?.error || 'Failed to save study defaults')
+      }
+    }
+
+    if (immediate) {
+      run()
+    } else {
+      debounceTimerRef.current = setTimeout(run, 600)
+    }
   }
 
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    setIsSaving(true)
-    setMessage(null)
-
-    const studyDefaults = {
-      ...settings,
-      random_enabled: Boolean(settings.random_enabled),
-      auto_next_delay: settings.auto_next_delay !== undefined && settings.auto_next_delay !== null ? Number(settings.auto_next_delay) : 0,
-      quick_learn_enabled: Boolean(settings.quick_learn_enabled),
-    }
-
-    try {
-      await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
-        is_creator: true,
-        settings: {
-          study_defaults: studyDefaults,
-        },
-      })
-
-      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
-      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-      setMessage({ type: 'success', text: 'Creator study defaults saved successfully! All learners will study with these inside-card defaults.' })
-      if (onSaved) onSaved()
-      setTimeout(() => setMessage(null), 3500)
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to save study defaults' })
-    } finally {
-      setIsSaving(false)
-    }
+  const updateSetting = (key: string, value: any) => {
+    setSettings((prev) => {
+      const updated = { ...prev, [key]: value }
+      autoSaveSettings(updated, false)
+      return updated
+    })
   }
 
   const handleResetToStandard = async () => {
@@ -137,7 +153,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
   }
 
   return (
-    <form id="deck-study-defaults-form" onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
+    <div id="deck-study-defaults-form" className="space-y-4 text-left animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-5">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -186,19 +202,10 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset to Standard</span>
             </button>
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? 'SAVING...' : 'SAVE STUDY DEFAULTS'}</span>
-            </button>
           </div>
         </div>
       </div>
-    </form>
+    </div>
   )
 }
 

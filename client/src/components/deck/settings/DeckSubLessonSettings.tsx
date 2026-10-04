@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import {
   Layers,
   Sparkles,
-  Save,
   Check,
   AlertCircle,
   FolderTree,
@@ -14,6 +13,7 @@ import {
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface DeckSubLessonSettingsProps {
   deckId: string | number
@@ -83,40 +83,51 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
     }
   }, [subLessonsData])
 
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
+  const saveSubLessonsConfig = async (override?: { enabled?: boolean; column?: string }) => {
     if (!deckId) return
+    const newEnabled = override?.enabled !== undefined ? override.enabled : enabled
+    const newColumn = override?.column !== undefined ? override.column : selectedColumn
     setIsSaving(true)
-    setMessage(null)
+    useAutoSaveStore.getState().notifySaving()
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
         sub_lesson_grouping: {
-          enabled,
-          column: selectedColumn || null
+          enabled: newEnabled,
+          column: newColumn || null
         },
         settings: {
           sub_lesson_grouping: {
-            enabled,
-            column: selectedColumn || null
+            enabled: newEnabled,
+            column: newColumn || null
           }
         }
       })
 
-      setMessage({ type: 'success', text: 'Sub-lesson configuration saved successfully.' })
       queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      useAutoSaveStore.getState().notifySaved()
       if (onSaved) onSaved()
-      setTimeout(() => setMessage(null), 3500)
     } catch (err: any) {
       const errMsg = err.response?.data?.error || err.message || 'Failed to save settings'
-      setMessage({ type: 'error', text: errMsg })
+      useAutoSaveStore.getState().notifyError(errMsg)
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleToggleEnabled = () => {
+    const next = !enabled
+    setEnabled(next)
+    saveSubLessonsConfig({ enabled: next })
+  }
+
+  const handleSelectColumn = (col: string) => {
+    setSelectedColumn(col)
+    saveSubLessonsConfig({ column: col })
   }
 
   const availableCols = subLessonsData?.available_columns || []
@@ -193,7 +204,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
               type="button"
               role="switch"
               aria-checked={enabled}
-              onClick={() => setEnabled(!enabled)}
+              onClick={handleToggleEnabled}
               className={cn(
                 "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
                 enabled ? "bg-indigo-600" : "bg-slate-300"
@@ -229,7 +240,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
                 <div className="relative">
                   <select
                     value={selectedColumn}
-                    onChange={(e) => setSelectedColumn(e.target.value)}
+                    onChange={(e) => handleSelectColumn(e.target.value)}
                     className="w-full appearance-none bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 pr-10 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
                   >
                     {availableCols.map((c) => (
@@ -250,7 +261,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
                       <button
                         key={c.column}
                         type="button"
-                        onClick={() => setSelectedColumn(c.column)}
+                        onClick={() => handleSelectColumn(c.column)}
                         className={cn(
                           "px-2.5 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer",
                           isSelected
@@ -352,22 +363,6 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
         </div>
       </div>
 
-      {/* CARD FOOTER SAVE ACTION */}
-      <div className="pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-        <p className="text-[11px] text-slate-400 font-medium">
-          Make sure to click Save to apply sub-lesson grouping settings.
-        </p>
-        <button
-          id="btn-save-columns"
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="px-5 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
-        >
-          <Save className="w-3.5 h-3.5" />
-          <span>{isSaving ? 'SAVING...' : 'SAVE SUB-LESSONS'}</span>
-        </button>
-      </div>
     </div>
   )
 }
