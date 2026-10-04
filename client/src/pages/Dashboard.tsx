@@ -1378,6 +1378,7 @@ export default function Dashboard() {
       setGamify(res.data.gamify)
       return res.data
     },
+    staleTime: 60 * 1000,
     retry: false
   })
 
@@ -1492,7 +1493,8 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await axios.get('/api/v1/deck/stats/weekly-report')
       return res.data
-    }
+    },
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: heatmapData } = useQuery<HeatmapDay[]>({
@@ -1500,7 +1502,8 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await axios.get('/api/v1/deck/stats/heatmap')
       return res.data
-    }
+    },
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: leaderboardData } = useQuery({
@@ -1509,7 +1512,7 @@ export default function Dashboard() {
       const res = await axios.get('/api/v1/stats/leaderboard', { params: { time_filter: timeFilter } })
       return res.data
     },
-    staleTime: 30 * 1000,
+    staleTime: 60 * 1000,
   })
 
   const { data: badgesProgress } = useQuery<BadgeProgress[]>({
@@ -1517,7 +1520,8 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await axios.get('/api/v1/gamification/badges/progress')
       return res.data
-    }
+    },
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: forecastData } = useQuery<ForecastResponse>({
@@ -1525,7 +1529,8 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await axios.get('/api/v1/deck/stats/review-forecast')
       return res.data
-    }
+    },
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: dailyComparisonRaw, isLoading: isDailyComparisonLoading } = useQuery<any>({
@@ -1533,7 +1538,8 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await axios.get('/api/v1/stats/daily-comparison')
       return res.data
-    }
+    },
+    staleTime: 2 * 60 * 1000,
   })
   const dailyComparisonData = dailyComparisonRaw?.days
   const dailyComparisonAvg = dailyComparisonRaw?.all_time_avg

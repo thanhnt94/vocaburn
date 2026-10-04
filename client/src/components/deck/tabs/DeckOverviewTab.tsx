@@ -46,17 +46,7 @@ export function DeckOverviewTab({
     staleTime: 30 * 1000,
   })
 
-  // 3. Fetch Roadmap status
-  const { data: roadmapStatus } = useQuery({
-    queryKey: ['deck-roadmap-status', id],
-    queryFn: async () => {
-      if (!id) return null
-      const res = await axios.get(`/api/v1/deck/${id}/roadmap-status`)
-      return res.data
-    },
-    enabled: !!id,
-    staleTime: 30 * 1000,
-  })
+
 
   const totalCards = deckData?.questions_count ?? 0
   const dueCount = masteryData?.due_count ?? 0
