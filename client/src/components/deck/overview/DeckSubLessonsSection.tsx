@@ -129,7 +129,7 @@ export function DeckSubLessonsSection({
 
           <button
             type="button"
-            onClick={() => onNavigateTab ? onNavigateTab('settings', { subtab: 'sublessons' }) : navigate(`?tab=settings&subtab=sublessons`)}
+            onClick={() => onNavigateTab ? onNavigateTab('settings', { subtab: 'columns' }) : navigate(`?tab=settings&subtab=columns`)}
             className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs shrink-0 cursor-pointer transition-all flex items-center gap-1.5 self-start sm:self-auto"
           >
             <span>Configure Sub-Lessons</span>
@@ -213,7 +213,7 @@ export function DeckSubLessonsSection({
           {isOwner && (
             <button
               type="button"
-              onClick={() => onNavigateTab ? onNavigateTab('settings', { subtab: 'sublessons' }) : navigate(`?tab=settings&subtab=sublessons`)}
+              onClick={() => onNavigateTab ? onNavigateTab('settings', { subtab: 'columns' }) : navigate(`?tab=settings&subtab=columns`)}
               className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               title="Configure Sub-Lessons"
             >

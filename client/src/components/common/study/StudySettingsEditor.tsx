@@ -3,7 +3,6 @@ import {
   Move,
   Layers,
   Headphones,
-  Brain,
   Volume2,
   Zap,
   Shuffle,
@@ -13,23 +12,17 @@ import {
   Timer,
   Clock,
   Sparkles,
-  AlignLeft,
-  AlignCenter,
-  Sliders,
-  Check,
-  Sprout,
-  Target
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SegmentedControl } from './SegmentedControl'
 import { ToggleRow } from './ToggleRow'
-import { type StudySettings, getFrontFontSizeStyle, CORE_LEARN_MODES, CORE_PRACTICE_MODES } from './StudyConstants'
+import { type StudySettings, getFrontFontSizeStyle } from './StudyConstants'
 
 interface StudySettingsEditorProps {
   settings: Partial<StudySettings>
   onChange: (key: string, value: any) => void
   compact?: boolean
-  /** Hide the Queue & Algorithm section (e.g. in PlaySettingsModal where mode is already shown) */
+  /** Hide the Queue & Algorithm section (deprecated/no-op) */
   hideQueue?: boolean
 }
 
@@ -37,12 +30,9 @@ export function StudySettingsEditor({
   settings,
   onChange,
   compact = false,
-  hideQueue = false,
 }: StudySettingsEditorProps) {
   const gap = compact ? "gap-3" : "gap-5"
   const sectionPadding = compact ? "p-3" : "p-4 sm:p-5"
-
-  const [modeTab, setModeTab] = React.useState<'learn' | 'practice'>('learn')
 
   // Font size helpers
   const rawFontSize = settings.front_font_size || '100%'
@@ -533,248 +523,6 @@ export function StudySettingsEditor({
           </p>
         </div>
       </div>
-
-      {/* ═══════════ GROUP 5: STUDY & PRACTICE MODES DECK ACCESS ═══════════ */}
-      {!hideQueue && (() => {
-        const disabledModes = settings.disabled_modes || []
-        const isModeEnabled = (mId: string) => !disabledModes.includes(mId)
-
-        const handleToggleLearnMode = (modeId: string, currentEnabled: boolean) => {
-          if (currentEnabled) {
-            // Check how many learn modes are currently active
-            const remaining = CORE_LEARN_MODES.filter(m => m.id !== modeId && isModeEnabled(m.id))
-            if (remaining.length === 0) {
-              alert("At least one learning mode (FSRS, Skim, or Memrise) must remain active for this deck!")
-              return
-            }
-            const nextDisabled = Array.from(new Set([...disabledModes, modeId]))
-            onChange('disabled_modes', nextDisabled)
-
-            // If current default mode is being disabled, switch default to a remaining active mode
-            const curDefault = settings.quiz_learning_mode || settings.learning_mode || 'fsrs'
-            if (curDefault === modeId || (curDefault === 'speed_skim' && modeId === 'skim')) {
-              onChange('quiz_learning_mode', remaining[0].id)
-              onChange('learning_mode', remaining[0].id)
-            }
-          } else {
-            const nextDisabled = disabledModes.filter(m => m !== modeId)
-            onChange('disabled_modes', nextDisabled)
-          }
-        }
-
-        const handleTogglePracticeMode = (modeId: string, currentEnabled: boolean) => {
-          if (currentEnabled) {
-            const nextDisabled = Array.from(new Set([...disabledModes, modeId]))
-            onChange('disabled_modes', nextDisabled)
-          } else {
-            const nextDisabled = disabledModes.filter(m => m !== modeId)
-            onChange('disabled_modes', nextDisabled)
-          }
-        }
-
-        const activeLearnModes = CORE_LEARN_MODES.filter(m => isModeEnabled(m.id))
-        const activePracticeModes = CORE_PRACTICE_MODES.filter(m => isModeEnabled(m.id))
-
-        const rawDefault = settings.quiz_learning_mode || settings.learning_mode || 'fsrs'
-        const currentDefault = rawDefault === 'speed_skim' ? 'skim' : rawDefault
-        const safeDefault = activeLearnModes.some(m => m.id === currentDefault)
-          ? currentDefault
-          : (activeLearnModes[0]?.id || 'fsrs')
-
-        return (
-          <div className={`space-y-3.5 ${sectionPadding} rounded-2xl bg-slate-50/70 border border-slate-200/70`}>
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Sliders className="w-4 h-4" />
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                  Modes & Deck Access Control
-                </h4>
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                <span>{activeLearnModes.length}/3 Learn</span>
-                <span>•</span>
-                <span>{activePracticeModes.length}/4 Practice</span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-500 font-medium">
-              Enable or disable learning and practice modes for this deck. Deactivated modes will be hidden from learners in the bottom dock, overview launcher, and modal sheets.
-            </p>
-
-            {/* Sub-tab Switcher: Learn vs Practice */}
-            <div className="flex items-center p-1 bg-slate-200/80 rounded-2xl gap-1">
-              <button
-                type="button"
-                onClick={() => setModeTab('learn')}
-                className={cn(
-                  "flex-1 py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none",
-                  modeTab === 'learn'
-                    ? "bg-white text-indigo-700 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                <Brain className="w-3.5 h-3.5" />
-                <span>Learn Modes ({activeLearnModes.length}/3)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setModeTab('practice')}
-                className={cn(
-                  "flex-1 py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none",
-                  modeTab === 'practice'
-                    ? "bg-white text-emerald-700 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                <Target className="w-3.5 h-3.5" />
-                <span>Practice Modes ({activePracticeModes.length}/4)</span>
-              </button>
-            </div>
-
-            {/* TAB 1: LEARN MODES */}
-            {modeTab === 'learn' && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  {CORE_LEARN_MODES.map((mode) => {
-                    const enabled = isModeEnabled(mode.id)
-                    const isDefault = safeDefault === mode.id
-
-                    return (
-                      <div
-                        key={mode.id}
-                        onClick={() => handleToggleLearnMode(mode.id, enabled)}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs group select-none",
-                          enabled
-                            ? "bg-white border-slate-200/80 hover:border-indigo-300"
-                            : "bg-slate-100/60 border-slate-200/50 opacity-60 hover:opacity-80"
-                        )}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 pr-2">
-                          <span className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 transition-transform group-hover:scale-105",
-                            enabled ? "bg-indigo-50 border border-indigo-100/80" : "bg-slate-200/60"
-                          )}>
-                            {mode.emoji}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={cn("text-xs font-black truncate", enabled ? "text-slate-800" : "text-slate-500 line-through")}>
-                                {mode.name}
-                              </span>
-                              <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500">
-                                {mode.badge}
-                              </span>
-                              {isDefault && enabled && (
-                                <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md bg-indigo-100 text-indigo-700 border border-indigo-200">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate">
-                              {mode.desc}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className={cn(
-                          "w-10 h-6 rounded-full transition-colors flex items-center px-1 shrink-0",
-                          enabled ? "bg-indigo-600" : "bg-slate-300"
-                        )}>
-                          <div className={cn(
-                            "w-4 h-4 rounded-full bg-white transition-transform shadow-xs",
-                            enabled ? "translate-x-4" : "translate-x-0"
-                          )} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Default Learn Mode Selector */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="text-xs font-bold text-slate-700 block">
-                    Default Launch Mode (When tapping "Learn")
-                  </label>
-                  <SegmentedControl
-                    value={safeDefault}
-                    onChange={(val) => {
-                      onChange('quiz_learning_mode', val)
-                      onChange('learning_mode', val)
-                    }}
-                    options={activeLearnModes.map(m => ({
-                      id: m.id,
-                      label: `${m.emoji} ${m.shortName}`
-                    }))}
-                    compact={compact}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: PRACTICE MODES */}
-            {modeTab === 'practice' && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  {CORE_PRACTICE_MODES.map((mode) => {
-                    const enabled = isModeEnabled(mode.id)
-
-                    return (
-                      <div
-                        key={mode.id}
-                        onClick={() => handleTogglePracticeMode(mode.id, enabled)}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs group select-none",
-                          enabled
-                            ? "bg-white border-slate-200/80 hover:border-emerald-300"
-                            : "bg-slate-100/60 border-slate-200/50 opacity-60 hover:opacity-80"
-                        )}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 pr-2">
-                          <span className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 transition-transform group-hover:scale-105",
-                            enabled ? "bg-emerald-50 border border-emerald-100/80" : "bg-slate-200/60"
-                          )}>
-                            {mode.emoji}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={cn("text-xs font-black truncate", enabled ? "text-slate-800" : "text-slate-500 line-through")}>
-                                {mode.name}
-                              </span>
-                              <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500">
-                                {mode.badge}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate">
-                              {mode.desc}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className={cn(
-                          "w-10 h-6 rounded-full transition-colors flex items-center px-1 shrink-0",
-                          enabled ? "bg-emerald-600" : "bg-slate-300"
-                        )}>
-                          <div className={cn(
-                            "w-4 h-4 rounded-full bg-white transition-transform shadow-xs",
-                            enabled ? "translate-x-4" : "translate-x-0"
-                          )} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <p className="text-[11px] text-slate-400 font-medium pt-0.5">
-                  💡 Turn off listening exercises if your deck lacks audio, or turn off typing test if spelling drills are not needed.
-                </p>
-              </div>
-            )}
-          </div>
-        )
-      })()}
     </div>
   )
 }

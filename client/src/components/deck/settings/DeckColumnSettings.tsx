@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { DeckSubLessonSettings } from './DeckSubLessonSettings'
 
 interface DeckColumnSettingsProps {
   deckId: string | number
@@ -639,6 +640,16 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
           </div>
         </div>
       </div>
+
+      {/* ── SECTION 3: SUB-LESSON GROUPING (PHÂN NHÓM BÀI HỌC CON) ── */}
+      <DeckSubLessonSettings
+        deckId={deckId}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
+          queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
+          queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+        }}
+      />
 
       {/* ═══════════ MODAL THÊM CỘT MỚI ═══════════ */}
       <AnimatePresence>

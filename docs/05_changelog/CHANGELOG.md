@@ -3,6 +3,35 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
+#### Tái Quy Hoạch Cài Đặt Bộ Thẻ (Deck Settings): Tối Giản Study Defaults, Thống Nhất Modes & Sáp Nhập Sub-Lessons Vào Columns
+- **Quy hoạch lại tab Study Defaults (`DeckStudyDefaults.tsx` & `StudySettingsEditor.tsx`)**:
+  - **Loại bỏ hoàn toàn Simple Mode**:
+    - Gỡ bỏ thanh gạt chuyển đổi `Simple Mode` / `Advanced Mode` và danh sách radio chọn mẫu template cơ bản.
+    - Tab `Study Defaults` hiển thị trực tiếp giao diện tinh chỉnh chi tiết (Advanced Mode) với thiết kế trực quan, rõ ràng.
+  - **Giới hạn phạm vi chỉ gồm các tùy chọn bên trong Flashcard**:
+    - Loại bỏ hoàn toàn Group 5 (*Modes & Deck Access Control*) ra khỏi `StudySettingsEditor.tsx`. Tab này không còn chứa bộ chọn chế độ học/ôn (FSRS vs Skim vs Memrise vs Review) hay bật/tắt quyền truy cập chế độ.
+    - Tập trung 100% vào các thông số hiển thị và thao tác bên trong thẻ:
+      1. *Thao tác & Phím bấm (Gestures & Controls)*: Chạm thân thẻ để lật, thanh công cụ dưới đáy, vuốt 4 chiều để đánh giá (Swipe to Rate), âm thanh SFX, rung phản hồi Haptic.
+      2. *Thứ tự & Tự động chuyển thẻ (Card Order & Auto-Advance)*: Thứ tự tuần tự theo danh sách vs Xáo trộn ngẫu nhiên (Shuffle), thời gian chờ Auto Next với các nút gán nhanh 0.5s/1s/2s/3s/5s và thanh trượt tinh chỉnh, chế độ Quick Learn.
+      3. *Căn chỉnh & Hiển thị thẻ (Display & Card Alignment)*: Căn trên/giữa theo chiều dọc (V-Align), căn trái/giữa theo chiều ngang (H-Align) cho cả mặt trước và mặt sau, hiển thị ảnh minh họa, thu phóng cỡ chữ mặt trước với thanh trượt và khung xem trước thời gian thực (Live Preview "Aa Vocabulary"), chỉ số trí nhớ FSRS v6.
+      4. *Phát âm & Giọng đọc TTS (Audio & Pronunciation)*: Tự động phát âm (Always, Mặt sau, Mặt trước, Tắt).
+- **Thống nhất chế độ học & luyện tập thành tab "Learning & Practice Modes" (`DeckPracticeConfig.tsx`)**:
+  - **Đổi tên tab**: Đổi từ `Practice Modes` thành `Learning & Practice Modes` (nhãn ngắn trên mobile: `Modes`), biểu tượng `Sliders`, màu sắc chủ đạo Indigo.
+  - **Chuyển phần cấu hình chế độ học về tab này**:
+    - **Mục 1: Chế độ học Flashcard (Flashcard Learning Modes)**: Quản lý 3 công cụ học chính gồm `🧠 FSRS Spaced Repetition` (FSRS v6), `⚡ Speed Skim` (Lướt nhanh 1-chạm), và `🌱 Memrise Mode` (Trồng và tưới từ vựng nhiều giai đoạn).
+      - Hỗ trợ bật/tắt (Active/Disabled) từng chế độ học cho bộ thẻ (bắt buộc duy trì tối thiểu 1 chế độ học).
+      - Lựa chọn chế độ khởi động mặc định (*Default Launch Mode*) khi người học nhấn nút "Learn" từ trang tổng quan bộ thẻ.
+    - **Mục 2: Luyện tập tương tác (Interactive Practice Drills)**:
+      - Quản lý 4 bài tập thực hành gồm `🎯 Multiple Choice (MCQ)`, `⌨️ Typing Drill` (Gõ từ vựng), `🎧 Listening MCQ` (Nghe chọn đáp án), và `🎙️ Listening Typing` (Nghe chép chính tả).
+      - Cho phép bật/tắt từng bài tập, điều chỉnh số lượng đáp án trắc nghiệm (3, 4, 5, 6), và cấu hình chi tiết các cặp cột hỏi - đáp (Q ➜ A column pairings).
+      - Loại bỏ tab thừa kế cũ `flip` khỏi danh sách practice drills vì flashcard đã được quy hoạch riêng biệt ở Mục 1.
+    - Lưu trữ đồng bộ tất cả cấu hình (`disabled_modes`, `study_defaults.learning_mode`, `mcq`, `typing`, `listening_mcq`, `listening_typing`) qua một nút lưu duy nhất.
+- **Sáp nhập Sub-Lessons vào tab Columns & Sub-Lessons (`DeckColumnSettings.tsx` & `DeckSettingsTab.tsx`)**:
+  - Loại bỏ sub-tab riêng biệt `Sub-Lessons` trên thanh điều hướng top của Deck Settings để giảm tải số lượng tab.
+  - Đổi tên tab `Columns` thành `Columns & Sub-Lessons` (nhãn ngắn: `Columns`).
+  - Tích hợp trực tiếp component phân nhóm bài học con (`DeckSubLessonSettings`) vào ngay bên dưới danh sách cột dữ liệu trong `DeckColumnSettings.tsx`. Tác giả có thể vừa quản lý cột mở rộng vừa chọn cột phân nhóm bài học ngay tại một nơi duy nhất.
+  - Điều hướng thông minh: Bất kỳ liên kết nào trỏ đến `?subtab=sublessons` (từ trang tổng quan bộ bài hoặc mục bài học con) được tự động map về `subtab=columns`.
+
 #### Đồng Bộ Hóa Toàn Diện Chế Độ Học Trên Bản Đồ Thẻ (Card Map) & Khắc Phục Triệt Để Lỗi Phân Nhóm Cột (Sub-Lesson Grouping)
 - **Đồng bộ hóa nhãn chế độ học (Mode Taxonomy Harmonization)**:
   - **Khắc phục lỗi "lúc ghi FLIP, lúc ghi SKIM"**:

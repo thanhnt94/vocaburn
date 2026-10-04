@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from 'react'
-import { Sliders, Save, Check, Trophy, Keyboard, Headphones, Brain, Plus, Trash2, RotateCcw, HelpCircle } from 'lucide-react'
+import {
+  Sliders,
+  Save,
+  Check,
+  Trophy,
+  Keyboard,
+  Headphones,
+  Brain,
+  Plus,
+  Trash2,
+  Sparkles,
+  Zap,
+  Sprout,
+  CheckCircle2,
+  HelpCircle,
+  Target,
+} from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-export type PracticeModeKey = 'mcq' | 'typing' | 'listening' | 'listening_mcq' | 'listening_typing' | 'flip'
+export type PracticeModeKey = 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
+export type LearnModeKey = 'fsrs' | 'skim' | 'memrise'
 
 export interface QuestionAnswerPair {
   q: string
@@ -17,7 +34,7 @@ export interface QuestionAnswerPair {
 
 export interface DeckPracticeConfigProps {
   deckId: string | number
-  initialSettings: any
+  initialSettings?: any
   onSaved?: () => void
 }
 
@@ -48,11 +65,49 @@ function normalizePair(p: any): QuestionAnswerPair {
   }
 }
 
+const FLASHCARD_LEARN_MODES = [
+  {
+    id: 'fsrs' as LearnModeKey,
+    name: 'FSRS Spaced Repetition',
+    shortName: 'FSRS v6',
+    emoji: '🧠',
+    desc: 'Adaptive spaced repetition based on memory retention with 4 rating buttons (Again, Hard, Good, Easy)',
+    badge: 'Recommended',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50',
+    borderColor: 'border-indigo-200',
+  },
+  {
+    id: 'skim' as LearnModeKey,
+    name: 'Speed Skim (Quick Scan)',
+    shortName: 'Speed Skim',
+    emoji: '⚡',
+    desc: 'Rapid 1-tap/Space card scanning without rating friction (+3 XP per card). Ideal for quick review',
+    badge: '1-Tap Rapid',
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+  },
+  {
+    id: 'memrise' as LearnModeKey,
+    name: 'Memrise Mode',
+    shortName: 'Memrise',
+    emoji: '🌱',
+    desc: 'Deep multi-stage word mastery: Plant new words, grow, and water them step-by-step',
+    badge: 'Deep Study',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-200',
+  },
+]
+
 export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPracticeConfigProps) {
   const queryClient = useQueryClient()
-  const [activeModeTab, setActiveModeTab] = useState<PracticeModeKey>('mcq')
   const [disabledModes, setDisabledModes] = useState<string[]>([])
+  const [defaultLearnMode, setDefaultLearnMode] = useState<LearnModeKey>('fsrs')
 
+  // Interactive practice modes
+  const [activePracticeTab, setActivePracticeTab] = useState<PracticeModeKey>('mcq')
   const [mcqPairs, setMcqPairs] = useState<QuestionAnswerPair[]>([])
   const [mcqNumChoices, setMcqNumChoices] = useState<number>(4)
 
@@ -82,7 +137,6 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     'front', 'back', 'explanation', 'furigana', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url'
   ]
 
-  // Collect all unique columns mentioned in pairs + available columns
   const allPairCols: string[] = []
   const addCols = (val: string | string[] | undefined) => {
     if (!val) return
@@ -110,14 +164,19 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
 
   useEffect(() => {
     const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
+    const studyDefs = practiceSettingsData?.creator_study_defaults || practiceSettingsData?.study_defaults || effectiveSettings?.study_defaults || {}
 
-    if (effectiveSettings) {
-      setDisabledModes(effectiveSettings.disabled_modes || [])
-      
+    if (effectiveSettings || studyDefs) {
+      setDisabledModes(practiceSettingsData?.disabled_modes || effectiveSettings?.disabled_modes || [])
+
+      const rawDefault = studyDefs.quiz_learning_mode || studyDefs.learning_mode || effectiveSettings?.learning_mode || 'fsrs'
+      const sanitized = rawDefault === 'speed_skim' ? 'skim' : (rawDefault as LearnModeKey)
+      setDefaultLearnMode(sanitized === 'skim' || sanitized === 'memrise' ? sanitized : 'fsrs')
+
       // MCQ
-      const mcqConfig = effectiveSettings.mcq || {}
-      setMcqNumChoices(mcqConfig.num_choices || effectiveSettings.num_choices || 4)
-      const rawMcqPairs = mcqConfig.active_pairs || effectiveSettings.active_pairs || []
+      const mcqConfig = effectiveSettings?.mcq || {}
+      setMcqNumChoices(mcqConfig.num_choices || effectiveSettings?.num_choices || 4)
+      const rawMcqPairs = mcqConfig.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawMcqPairs) && rawMcqPairs.length > 0) {
         setMcqPairs(rawMcqPairs.map(normalizePair))
       } else {
@@ -125,8 +184,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       }
 
       // Typing
-      const typingConfig = effectiveSettings.typing || {}
-      const rawTypingPairs = typingConfig.active_pairs || effectiveSettings.active_pairs || []
+      const typingConfig = effectiveSettings?.typing || {}
+      const rawTypingPairs = typingConfig.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawTypingPairs) && rawTypingPairs.length > 0) {
         setTypingPairs(rawTypingPairs.map(normalizePair))
       } else {
@@ -134,9 +193,9 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       }
 
       // Listening MCQ
-      const listeningMcqConfig = effectiveSettings.listening_mcq || effectiveSettings.listening || {}
+      const listeningMcqConfig = effectiveSettings?.listening_mcq || effectiveSettings?.listening || {}
       setListeningMcqNumChoices(listeningMcqConfig.num_choices || 4)
-      const rawListeningMcqPairs = listeningMcqConfig.active_pairs || effectiveSettings.listening?.active_pairs || effectiveSettings.active_pairs || []
+      const rawListeningMcqPairs = listeningMcqConfig.active_pairs || effectiveSettings?.listening?.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawListeningMcqPairs) && rawListeningMcqPairs.length > 0) {
         setListeningMcqPairs(rawListeningMcqPairs.map(normalizePair))
       } else {
@@ -144,8 +203,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       }
 
       // Listening Typing
-      const listeningTypingConfig = effectiveSettings.listening_typing || effectiveSettings.listening || {}
-      const rawListeningTypingPairs = listeningTypingConfig.active_pairs || effectiveSettings.listening?.active_pairs || effectiveSettings.active_pairs || []
+      const listeningTypingConfig = effectiveSettings?.listening_typing || effectiveSettings?.listening || {}
+      const rawListeningTypingPairs = listeningTypingConfig.active_pairs || effectiveSettings?.listening?.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawListeningTypingPairs) && rawListeningTypingPairs.length > 0) {
         setListeningTypingPairs(rawListeningTypingPairs.map(normalizePair))
       } else {
@@ -159,26 +218,44 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     }
   }, [practiceSettingsData, initialSettings])
 
+  // Toggle mode enabled / disabled
   const toggleModeDisabled = (modeKey: string) => {
-    setDisabledModes((prev) =>
-      prev.includes(modeKey) ? prev.filter((m) => m !== modeKey) : [...prev, modeKey]
-    )
+    const isCurrentlyDisabled = disabledModes.includes(modeKey)
+    if (!isCurrentlyDisabled) {
+      // If disabling a learn mode, check that at least one remains active
+      const learnIds = ['fsrs', 'skim', 'memrise']
+      if (learnIds.includes(modeKey)) {
+        const remaining = learnIds.filter(id => id !== modeKey && !disabledModes.includes(id))
+        if (remaining.length === 0) {
+          alert('At least one flashcard learning mode (FSRS, Speed Skim, or Memrise) must remain active for this deck!')
+          return
+        }
+        if (defaultLearnMode === modeKey) {
+          setDefaultLearnMode(remaining[0] as LearnModeKey)
+        }
+      }
+      setDisabledModes(prev => [...prev, modeKey])
+    } else {
+      setDisabledModes(prev => prev.filter(m => m !== modeKey))
+    }
   }
 
-  // Pair helpers for currently active mode
+  const isModeEnabled = (modeKey: string) => !disabledModes.includes(modeKey)
+
+  // Pair helpers for currently active practice mode
   const getCurrentPairs = (): QuestionAnswerPair[] => {
-    if (activeModeTab === 'mcq') return mcqPairs
-    if (activeModeTab === 'typing') return typingPairs
-    if (activeModeTab === 'listening_mcq' || activeModeTab === 'listening') return listeningMcqPairs
-    if (activeModeTab === 'listening_typing') return listeningTypingPairs
+    if (activePracticeTab === 'mcq') return mcqPairs
+    if (activePracticeTab === 'typing') return typingPairs
+    if (activePracticeTab === 'listening_mcq') return listeningMcqPairs
+    if (activePracticeTab === 'listening_typing') return listeningTypingPairs
     return []
   }
 
   const setCurrentPairs = (updater: (prev: QuestionAnswerPair[]) => QuestionAnswerPair[]) => {
-    if (activeModeTab === 'mcq') setMcqPairs(updater)
-    else if (activeModeTab === 'typing') setTypingPairs(updater)
-    else if (activeModeTab === 'listening_mcq' || activeModeTab === 'listening') setListeningMcqPairs(updater)
-    else if (activeModeTab === 'listening_typing') setListeningTypingPairs(updater)
+    if (activePracticeTab === 'mcq') setMcqPairs(updater)
+    else if (activePracticeTab === 'typing') setTypingPairs(updater)
+    else if (activePracticeTab === 'listening_mcq') setListeningMcqPairs(updater)
+    else if (activePracticeTab === 'listening_typing') setListeningTypingPairs(updater)
   }
 
   const handleAddPair = () => {
@@ -187,7 +264,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       {
         q: availableColumns[0] || 'front',
         a: availableColumns[1] || 'back',
-        name: `Cặp #${prev.length + 1}`,
+        name: `Pair #${prev.length + 1}`,
       },
     ])
   }
@@ -259,16 +336,22 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       }
 
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        disabled_modes: disabledModes,
         settings: {
           ...baseSettings,
           disabled_modes: disabledModes,
+          study_defaults: {
+            ...(baseSettings.study_defaults || {}),
+            learning_mode: defaultLearnMode,
+            quiz_learning_mode: defaultLearnMode,
+          },
           mcq: mcqSettings,
           typing: typingSettings,
           listening_mcq: listeningMcqSettings,
           listening_typing: listeningTypingSettings,
-          listening: listeningMcqSettings, // Backward compatibility
+          listening: listeningMcqSettings,
         },
-        is_creator: true,
       })
 
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
@@ -276,14 +359,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
       if (onSaved) onSaved()
-    } catch (e) {
-      alert('Không thể lưu cấu hình luyện tập')
+    } catch (e: any) {
+      alert(e?.response?.data?.error || 'Failed to save modes configuration')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const modesConfig = [
+  const practiceModesConfig = [
     {
       key: 'mcq' as const,
       label: 'Multiple Choice',
@@ -309,7 +392,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     {
       key: 'listening_mcq' as const,
       label: 'Listening MCQ',
-      sublabel: 'Nghe chọn',
+      sublabel: 'Audio Choice',
       icon: Headphones,
       color: 'text-sky-600',
       activeBorder: 'border-sky-500',
@@ -320,7 +403,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
     {
       key: 'listening_typing' as const,
       label: 'Listening Typing',
-      sublabel: 'Nghe gõ',
+      sublabel: 'Audio Dictation',
       icon: Keyboard,
       color: 'text-cyan-600',
       activeBorder: 'border-cyan-500',
@@ -328,57 +411,165 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       activeText: 'text-cyan-700',
       desc: 'Play TTS audio pronunciation and type the exact vocabulary (supports | delimiter)'
     },
-    {
-      key: 'flip' as const,
-      label: 'Quick Flip',
-      sublabel: 'Flip Card',
-      icon: RotateCcw,
-      color: 'text-emerald-600',
-      activeBorder: 'border-emerald-500',
-      activeBg: 'bg-emerald-50',
-      activeText: 'text-emerald-700',
-      desc: 'Traditional 2-sided flashcard flip for rapid recall'
-    },
   ]
 
-  const activeModeConfig = modesConfig.find(m => m.key === activeModeTab) || modesConfig[0]
-  const isCurrentModeEnabled = !disabledModes.includes(activeModeTab)
+  const activeModeConfig = practiceModesConfig.find(m => m.key === activePracticeTab) || practiceModesConfig[0]
+  const isCurrentPracticeEnabled = isModeEnabled(activePracticeTab)
   const currentPairs = getCurrentPairs()
 
   return (
-    <form onSubmit={handleSave} className="space-y-4 text-left">
-      {/* ═══════════ PRACTICE MODES SEGMENTED SELECTOR ═══════════ */}
-      <div className="bg-white rounded-3xl p-3 sm:p-4 border border-slate-100 shadow-sm space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-indigo-600" />
-              <span>Per-Mode Practice Configurations</span>
-            </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Configure active question-answer columns and options for each practice mode
-            </p>
+    <form onSubmit={handleSave} className="space-y-6 text-left animate-in fade-in duration-200">
+      {saveSuccess && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-2xl font-bold flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>All learning & practice mode configurations saved successfully!</span>
+        </div>
+      )}
+
+      {/* ═══════════ SECTION 1: FLASHCARD LEARNING MODES ═══════════ */}
+      <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+              <Brain className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <span>Flashcard Learning Modes</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+                  {FLASHCARD_LEARN_MODES.filter(m => isModeEnabled(m.id)).length}/3 Active
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Enable or disable flashcard review engines and choose which mode opens by default when learners tap "Learn"
+              </p>
+            </div>
           </div>
         </div>
 
-        {saveSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <Check className="w-4 h-4" /> Practice configurations saved successfully for all modes!
-          </div>
-        )}
+        {/* 3 Flashcard Mode Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {FLASHCARD_LEARN_MODES.map((mode) => {
+            const enabled = isModeEnabled(mode.id)
+            const isDefault = defaultLearnMode === mode.id
 
-        {/* 5 Mode Pills Switcher */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {modesConfig.map((m) => {
+            return (
+              <div
+                key={mode.id}
+                className={cn(
+                  "p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 relative",
+                  enabled
+                    ? isDefault
+                      ? "bg-indigo-50/40 border-indigo-300 shadow-xs ring-1 ring-indigo-200"
+                      : "bg-white border-slate-200/90 hover:border-slate-300 shadow-2xs"
+                    : "bg-slate-50/70 border-slate-200/60 opacity-60"
+                )}
+              >
+                {/* Header: Emoji, Title, Badges */}
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{mode.emoji}</span>
+                      <div>
+                        <h4 className={cn("text-xs font-black", enabled ? "text-slate-900" : "text-slate-500 line-through")}>
+                          {mode.name}
+                        </h4>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                          {mode.badge}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Active Toggle Switch */}
+                    <div
+                      onClick={() => toggleModeDisabled(mode.id)}
+                      className={cn(
+                        "w-10 h-5.5 rounded-full transition-colors relative p-0.5 shrink-0 cursor-pointer",
+                        enabled ? "bg-indigo-600" : "bg-slate-300"
+                      )}
+                      title={enabled ? 'Click to disable for this deck' : 'Click to enable for this deck'}
+                    >
+                      <div
+                        className={cn(
+                          "w-4.5 h-4.5 rounded-full bg-white shadow-xs transition-transform",
+                          enabled ? "translate-x-4.5" : "translate-x-0"
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                    {mode.desc}
+                  </p>
+                </div>
+
+                {/* Default Mode Selector Button */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  {enabled ? (
+                    <button
+                      type="button"
+                      onClick={() => setDefaultLearnMode(mode.id)}
+                      className={cn(
+                        "w-full py-1.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                        isDefault
+                          ? "bg-indigo-600 text-white shadow-2xs"
+                          : "bg-slate-100 hover:bg-slate-200/80 text-slate-700"
+                      )}
+                    >
+                      {isDefault ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Default Launch Mode</span>
+                        </>
+                      ) : (
+                        <span>Set as Default</span>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-400 italic py-1">
+                      Mode is disabled for this deck
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ═══════════ SECTION 2: INTERACTIVE PRACTICE DRILLS ═══════════ */}
+      <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-2xs shrink-0">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <span>Interactive Practice Drills</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                  {practiceModesConfig.filter(m => isModeEnabled(m.key)).length}/4 Active
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Configure question-answer column pairings, multiple choice counts, and spelling dictation
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Practice Mode Pills Switcher */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {practiceModesConfig.map((m) => {
             const Icon = m.icon
-            const isSelected = activeModeTab === m.key
-            const isEnabled = !disabledModes.includes(m.key)
+            const isSelected = activePracticeTab === m.key
+            const isEnabled = isModeEnabled(m.key)
 
             return (
               <button
                 key={m.key}
                 type="button"
-                onClick={() => setActiveModeTab(m.key)}
+                onClick={() => setActivePracticeTab(m.key)}
                 className={cn(
                   "p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 cursor-pointer",
                   isSelected
@@ -417,105 +608,103 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             )
           })}
         </div>
-      </div>
 
-      {/* ═══════════ DETAILED CONFIG FOR SELECTED MODE ═══════════ */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-        {/* Header: Mode Name & Enable/Disable Toggle */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 flex-wrap gap-2">
-          <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-              <activeModeConfig.icon className={cn("w-4.5 h-4.5", activeModeConfig.color)} />
-            </span>
-            <div>
-              <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">
-                Mode Settings: {activeModeConfig.label} ({activeModeConfig.sublabel})
-              </h4>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                {activeModeConfig.desc}
-              </p>
+        {/* Detailed Config for Selected Practice Drill */}
+        <div className="bg-slate-50/50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 space-y-4">
+          {/* Header & Enable Toggle */}
+          <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-white border border-slate-200/70 flex items-center justify-center shadow-2xs">
+                <activeModeConfig.icon className={cn("w-4 h-4", activeModeConfig.color)} />
+              </span>
+              <div>
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                  {activeModeConfig.label} ({activeModeConfig.sublabel})
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  {activeModeConfig.desc}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Toggle Switch */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600">
-              {isCurrentModeEnabled ? 'Active' : 'Disabled'}
-            </span>
-            <div
-              onClick={() => toggleModeDisabled(activeModeTab)}
-              className={cn(
-                "w-11 h-6 rounded-full transition-colors relative p-0.5 shrink-0 cursor-pointer",
-                isCurrentModeEnabled ? "bg-indigo-600" : "bg-slate-300"
-              )}
-            >
+            {/* Toggle Switch */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600">
+                {isCurrentPracticeEnabled ? 'Active' : 'Disabled'}
+              </span>
               <div
+                onClick={() => toggleModeDisabled(activePracticeTab)}
                 className={cn(
-                  "w-5 h-5 rounded-full bg-white shadow-xs transition-transform",
-                  isCurrentModeEnabled ? "translate-x-5" : "translate-x-0"
+                  "w-11 h-6 rounded-full transition-colors relative p-0.5 shrink-0 cursor-pointer",
+                  isCurrentPracticeEnabled ? "bg-indigo-600" : "bg-slate-300"
                 )}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Mode-Specific Settings */}
-        {activeModeTab === 'mcq' && (
-          <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <span className="text-xs font-black text-slate-800 block">Multiple Choice Options Count:</span>
-              <span className="text-[10px] text-slate-400 font-medium">Number of answer choices presented to the learner</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {[3, 4, 5, 6].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setMcqNumChoices(num)}
+              >
+                <div
                   className={cn(
-                    "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
-                    mcqNumChoices === num
-                      ? "bg-amber-600 text-white border-amber-600 shadow-amber-200"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    "w-5 h-5 rounded-full bg-white shadow-xs transition-transform",
+                    isCurrentPracticeEnabled ? "translate-x-5" : "translate-x-0"
                   )}
-                >
-                  {num}
-                </button>
-              ))}
+                />
+              </div>
             </div>
           </div>
-        )}
 
-        {(activeModeTab === 'listening_mcq' || activeModeTab === 'listening') && (
-          <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <span className="text-xs font-black text-slate-800 block">Listening MCQ Options Count:</span>
-              <span className="text-[10px] text-slate-400 font-medium">Number of answer choices displayed after audio plays</span>
+          {/* Mode-Specific Settings: MCQ choice counts */}
+          {activePracticeTab === 'mcq' && (
+            <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <span className="text-xs font-black text-slate-800 block">Multiple Choice Options Count:</span>
+                <span className="text-[10px] text-slate-400 font-medium">Number of answer choices presented to the learner</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {[3, 4, 5, 6].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setMcqNumChoices(num)}
+                    className={cn(
+                      "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
+                      mcqNumChoices === num
+                        ? "bg-amber-600 text-white border-amber-600 shadow-amber-200"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-2">
-              {[3, 4, 5, 6].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setListeningMcqNumChoices(num)}
-                  className={cn(
-                    "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
-                    listeningMcqNumChoices === num
-                      ? "bg-sky-600 text-white border-sky-600 shadow-sky-200"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                  )}
-                >
-                  {num}
-                </button>
-              ))}
+          {activePracticeTab === 'listening_mcq' && (
+            <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <span className="text-xs font-black text-slate-800 block">Listening MCQ Options Count:</span>
+                <span className="text-[10px] text-slate-400 font-medium">Number of answer choices displayed after audio plays</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {[3, 4, 5, 6].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setListeningMcqNumChoices(num)}
+                    className={cn(
+                      "w-9 h-8 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs border",
+                      listeningMcqNumChoices === num
+                        ? "bg-sky-600 text-white border-sky-600 shadow-sky-200"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Pairs Configuration for MCQ, Typing, Listening */}
-        {activeModeTab !== 'flip' && (
+          {/* Pairs Configuration */}
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between">
               <div>
@@ -523,9 +712,9 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                   Active Column Pairs for {activeModeConfig.sublabel}:
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {activeModeTab === 'typing' || activeModeTab === 'listening_typing'
+                  {activePracticeTab === 'typing' || activePracticeTab === 'listening_typing'
                     ? 'Designate prompt question/audio column and target vocabulary column to type (supports | for multiple accepted answers)'
-                    : activeModeTab === 'listening_mcq' || activeModeTab === 'listening'
+                    : activePracticeTab === 'listening_mcq'
                     ? 'Designate audio script/voice column and target correct answer choice column'
                     : 'Designate question display column and correct answer column'}
                 </span>
@@ -534,7 +723,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
               <button
                 type="button"
                 onClick={handleAddPair}
-                className="h-8 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
+                className="h-8 px-3 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add New Pair</span>
@@ -544,17 +733,17 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
             {/* Pairs Items */}
             <div className="space-y-2.5">
               {currentPairs.length === 0 ? (
-                <div className="py-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
+                <div className="py-6 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
                   No column pairs configured. Click "+ Add New Pair" to create one.
                 </div>
               ) : (
                 currentPairs.map((pair, idx) => {
                   const currentSelectedAnswerCols = Array.isArray(pair.a)
                     ? pair.a
-                    : (typeof pair.a === 'string' ? pair.a.split(',').map(s => s.trim()).filter(Boolean) : ['front']);
+                    : (typeof pair.a === 'string' ? pair.a.split(',').map(s => s.trim()).filter(Boolean) : ['front'])
 
                   return (
-                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-2.5">
+                    <div key={idx} className="p-3.5 rounded-2xl bg-white border border-slate-200/80 space-y-2.5 shadow-2xs">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="w-5 h-5 rounded-md bg-slate-800 text-white font-bold text-[10px] flex items-center justify-center">
@@ -569,7 +758,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                           <button
                             type="button"
                             onClick={() => handleRemovePair(idx)}
-                            className="w-6.5 h-6.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                            className="w-6.5 h-6.5 rounded-lg bg-slate-50 hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
                             title="Delete pair"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -577,20 +766,20 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         )}
                       </div>
 
-                      <div className={cn("grid gap-3 items-start", (activeModeTab === 'typing' || activeModeTab === 'listening') ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
+                      <div className={cn("grid gap-3 items-start", (activePracticeTab === 'typing' || activePracticeTab === 'listening_typing') ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
                         {/* Question / Prompt Column */}
                         <div>
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 block">
-                            {activeModeTab === 'typing'
+                            {activePracticeTab === 'typing'
                               ? '1. Prompt Column (Question):'
-                              : activeModeTab === 'listening'
+                              : activePracticeTab === 'listening_mcq' || activePracticeTab === 'listening_typing'
                               ? '1. Audio TTS Column:'
                               : '1. Question Column (Prompt):'}
                           </label>
                           <select
                             value={pair.q}
                             onChange={(e) => handleUpdatePair(idx, 'q', e.target.value)}
-                            className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                            className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
                           >
                             {availableColumns.map((col) => (
                               <option key={col} value={col}>
@@ -601,44 +790,44 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         </div>
 
                         {/* Answer Column(s) */}
-                        {(activeModeTab === 'typing' || activeModeTab === 'listening') ? (
+                        {(activePracticeTab === 'typing' || activePracticeTab === 'listening_typing') ? (
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
                                 2. Accepted Answer Columns (Select 1 or more):
                               </label>
-                              <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded border", activeModeTab === 'listening' ? "text-sky-600 bg-sky-50 border-sky-200/60" : "text-amber-600 bg-amber-50 border-amber-200/60")}>
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded border text-amber-600 bg-amber-50 border-amber-200/60">
                                 Any column matches as correct
                               </span>
                             </div>
-                            <div className="flex flex-wrap gap-1.5 p-2 bg-white rounded-xl border border-slate-200">
+                            <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200">
                               {availableColumns.map((col) => {
-                                const isSelected = currentSelectedAnswerCols.includes(col);
+                                const isSelected = currentSelectedAnswerCols.includes(col)
                                 return (
                                   <button
                                     key={col}
                                     type="button"
                                     onClick={() => {
-                                      let nextCols: string[];
+                                      let nextCols: string[]
                                       if (isSelected) {
-                                        if (currentSelectedAnswerCols.length === 1) return;
-                                        nextCols = currentSelectedAnswerCols.filter(c => c !== col);
+                                        if (currentSelectedAnswerCols.length === 1) return
+                                        nextCols = currentSelectedAnswerCols.filter(c => c !== col)
                                       } else {
-                                        nextCols = [...currentSelectedAnswerCols, col];
+                                        nextCols = [...currentSelectedAnswerCols, col]
                                       }
-                                      handleUpdatePair(idx, 'a', nextCols.length === 1 ? nextCols[0] : nextCols);
+                                      handleUpdatePair(idx, 'a', nextCols.length === 1 ? nextCols[0] : nextCols)
                                     }}
                                     className={cn(
                                       "px-2.5 py-1 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 cursor-pointer",
                                       isSelected
-                                        ? (activeModeTab === 'listening' ? "bg-sky-600 border-sky-600 text-white shadow-2xs" : "bg-amber-500 border-amber-500 text-white shadow-2xs")
-                                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 opacity-80"
+                                        ? "bg-amber-500 border-amber-500 text-white shadow-2xs"
+                                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100 opacity-80"
                                     )}
                                   >
                                     <span>{isSelected ? "✓" : "+"}</span>
                                     <span>{col.toUpperCase()}</span>
                                   </button>
-                                );
+                                )
                               })}
                             </div>
                           </div>
@@ -650,7 +839,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                             <select
                               value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}
                               onChange={(e) => handleUpdatePair(idx, 'a', e.target.value)}
-                              className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                              className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
                             >
                               {availableColumns.map((col) => (
                                 <option key={col} value={col}>
@@ -662,32 +851,24 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
                         )}
                       </div>
                     </div>
-                  );
+                  )
                 })
               )}
             </div>
           </div>
-        )}
-
-        {activeModeTab === 'flip' && (
-          <div className="py-6 px-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-center space-y-1">
-            <span className="text-xs font-black text-slate-800 block">Quick Flip Mode</span>
-            <p className="text-[11px] text-slate-500 font-medium max-w-md mx-auto">
-              Automatically uses Front column for initial prompt and Back column for revelation with audio pronunciation.
-            </p>
-          </div>
-        )}
-
-        <div className="pt-3 border-t border-slate-100 flex justify-end">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="px-6 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'SAVING...' : 'SAVE PRACTICE CONFIG'}</span>
-          </button>
         </div>
+      </div>
+
+      {/* Footer Save Button */}
+      <div className="pt-2 flex justify-end">
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-indigo-200 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" />
+          <span>{isSaving ? 'SAVING CONFIGURATION...' : 'SAVE MODES CONFIGURATION'}</span>
+        </button>
       </div>
     </form>
   )
