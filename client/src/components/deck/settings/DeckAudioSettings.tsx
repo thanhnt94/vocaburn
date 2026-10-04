@@ -548,6 +548,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
       {/* ═══════════════ SAVE CONFIGURATION BUTTON ═══════════════ */}
       <div className="flex items-center justify-end gap-3 pt-2">
         <button
+          id="btn-save-audio-settings"
           type="button"
           onClick={handleSaveAudioConfig}
           disabled={isSaving}

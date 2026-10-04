@@ -418,7 +418,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
   const currentPairs = getCurrentPairs()
 
   return (
-    <form onSubmit={handleSave} className="space-y-6 text-left animate-in fade-in duration-200">
+    <form id="deck-practice-config-form" onSubmit={handleSave} className="space-y-6 text-left animate-in fade-in duration-200">
       {saveSuccess && (
         <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-2xl font-bold flex items-center gap-2">
           <Check className="w-4 h-4 text-emerald-600 shrink-0" />

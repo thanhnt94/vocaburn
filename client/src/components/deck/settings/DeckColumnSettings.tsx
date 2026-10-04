@@ -295,6 +295,7 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
 
           {isOwner && (
             <button
+              id="btn-add-deck-column"
               onClick={() => {
                 setNewColumnName('')
                 setNewColIsInsight(true)

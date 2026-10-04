@@ -20,7 +20,8 @@ import {
   User,
   Check,
   ArrowRight,
-  Target
+  Target,
+  Save
 } from 'lucide-react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -663,8 +664,8 @@ export function DeckDetailPage() {
         )
       })()}
 
-      {/* ═══════════ DOCKED BOTTOM STUDY BAR (TWO STUDY BUTTONS: FLASHCARD & PRACTICE) ═══════════ */}
-      {activeTab !== 'cards' && (
+      {/* ═══════════ DOCKED BOTTOM STUDY BAR (ONLY VISIBLE ON OVERVIEW TAB) ═══════════ */}
+      {activeTab === 'overview' && (
         <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 px-3.5 sm:px-6 lg:px-8 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2.5">
             {/* 1. Learn Button (1-Tap Launch Default Mode | ▾ Open Sheet) */}
@@ -722,6 +723,175 @@ export function DeckDetailPage() {
                   </button>
                 </div>
               )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ DOCKED BOTTOM SETTINGS ACTION BAR (CONTEXTUAL ACTIONS PER SUBTAB) ═══════════ */}
+      {activeTab === 'settings' && (
+        <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 px-3.5 sm:px-6 lg:px-8 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center justify-between gap-3">
+            {(() => {
+              if (settingsScope === 'personal') {
+                return (
+                  <>
+                    <div className="text-xs font-bold text-slate-500 hidden sm:block">
+                      Your personal study preferences override deck defaults
+                    </div>
+                    <button
+                      type="submit"
+                      form="deck-personal-settings-form"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save Personal Preferences</span>
+                    </button>
+                  </>
+                )
+              }
+
+              const rawSubTab = searchParams.get('subtab')
+              const subTab = (
+                rawSubTab === 'sublessons' ? 'columns' :
+                (rawSubTab === 'excel' || rawSubTab === 'collab' || rawSubTab === 'danger') ? 'general' :
+                rawSubTab
+              ) || 'general'
+
+              if (subTab === 'columns') {
+                return (
+                  <>
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="hidden sm:inline">Columns & Sub-Lessons:</span>
+                      <span className="text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                        Auto-saved ✓
+                      </span>
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const addBtn = document.getElementById('btn-add-deck-column')
+                          if (addBtn) addBtn.click()
+                        }}
+                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                      >
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                        <span>Add New Column</span>
+                      </button>
+                    )}
+                  </>
+                )
+              }
+
+              if (subTab === 'general') {
+                return (
+                  <>
+                    <div className="text-xs font-bold text-slate-500 hidden sm:block">
+                      General deck information, collaborators & storage
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="submit"
+                        form="deck-general-form"
+                        className="w-full sm:w-auto px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save General Details</span>
+                      </button>
+                    )}
+                  </>
+                )
+              }
+
+              if (subTab === 'study') {
+                return (
+                  <>
+                    <div className="text-xs font-bold text-slate-500 hidden sm:block">
+                      Inside-card gestures, autoplay audio & layout defaults
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="submit"
+                        form="deck-study-defaults-form"
+                        className="w-full sm:w-auto px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save Study Defaults</span>
+                      </button>
+                    )}
+                  </>
+                )
+              }
+
+              if (subTab === 'practice') {
+                return (
+                  <>
+                    <div className="text-xs font-bold text-slate-500 hidden sm:block">
+                      Flashcard & interactive practice mode configuration
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="submit"
+                        form="deck-practice-config-form"
+                        className="w-full sm:w-auto px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save Modes Configuration</span>
+                      </button>
+                    )}
+                  </>
+                )
+              }
+
+              if (subTab === 'ai') {
+                return (
+                  <>
+                    <div className="text-xs font-bold text-slate-500 hidden sm:block">
+                      AI prompt templates & column automation
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const btn = document.getElementById('btn-save-ai-settings')
+                          if (btn) btn.click()
+                        }}
+                        className="w-full sm:w-auto px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save AI Configuration</span>
+                      </button>
+                    )}
+                  </>
+                )
+              }
+
+              if (subTab === 'audio') {
+                return (
+                  <>
+                    <div className="text-xs font-bold text-slate-500 hidden sm:block">
+                      TTS voices, speech rate & column channels
+                    </div>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const btn = document.getElementById('btn-save-audio-settings')
+                          if (btn) btn.click()
+                        }}
+                        className="w-full sm:w-auto px-6 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-sky-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ml-auto"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save Audio Configuration</span>
+                      </button>
+                    )}
+                  </>
+                )
+              }
+
+              return null
             })()}
           </div>
         </div>

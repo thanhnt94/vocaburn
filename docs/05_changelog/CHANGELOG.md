@@ -3,6 +3,27 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
+#### Chuẩn Hóa Cơ Chế Lưu Trữ Cài Đặt (Unified Saving UX) & Thiết Kế Docked Action Bar Cho Deck Settings
+- **Quy hoạch & Chuẩn hóa cơ chế lưu dữ liệu rõ ràng, minh bạch (Eliminate Saving Confusion)**:
+  - **Auto-Save tức thì cho Sub-Lessons & Grouping (`DeckSubLessonSettings.tsx`)**:
+    - Khắc phục tình trạng "chỗ tự lưu, chỗ bắt bấm nút gây khó hiểu": Toàn bộ tab `Columns & Sub-Lessons` giờ đây đồng bộ cơ chế **100% Phản Ứng Tự Động (Auto-Save on Change)**.
+    - Khi tác giả gạt công tắc *Enable Sub-Lessons on Dashboard* hoặc chọn cột phân nhóm từ dropdown/danh sách gợi ý (Pills), hệ thống tự động lưu vào cơ sở dữ liệu ngay lập tức.
+    - Loại bỏ hoàn toàn nút thủ công `[💾 Save Changes]` trôi nổi bất hợp lý ở đầu thẻ.
+    - Thay thế bằng huy hiệu trạng thái phản hồi mượt mà: `Saving...` khi đang ghi nhận dữ liệu và `Auto-saved ✓` màu xanh lục khi hoàn tất.
+- **Khắc phục lỗi nút Learn hiển thị sai chỗ & Bổ sung Docked Action Bar theo chuẩn Mobile-First (`DeckDetailPage.tsx`)**:
+  - **Giới hạn nút Learn & Practice DUY NHẤT ở tab Overview**:
+    - Sửa điều kiện hiển thị thanh Docked Study Bar từ `activeTab !== 'cards'` thành `activeTab === 'overview'`.
+    - Nút lớn `⚡ Learn (40 due)` và `🎯 Practice` giờ đây chỉ xuất hiện khi người dùng xem Tổng quan bộ thẻ (`Overview`), hoàn toàn biến mất khỏi `Cards`, `Roadmap` và `Deck Settings`.
+  - **Docked Bottom Settings Action Bar (Thanh hành động cố định dưới đáy trong tầm ngón tay cái)**:
+    - Khi vào `Deck Settings`, thay vì hiển thị nút Learn không liên quan, thanh đáy chuyển thành thanh tác vụ chuyên dụng cho cài đặt:
+      - **Tab Columns & Sub-Lessons**: Hiển thị trạng thái `Columns & Sub-Lessons • Auto-saved ✓` và nút hành động nhanh `+ Add New Column` ở góc phải, giúp người dùng thêm cột ngay lập tức mà không cần cuộn lên đầu trang.
+      - **Tab General & Management**: Nút `Save General Details` liên kết trực tiếp với form ID `deck-general-form`.
+      - **Tab Study Defaults**: Nút `Save Study Defaults` liên kết với form ID `deck-study-defaults-form`.
+      - **Tab Learning & Practice Modes**: Nút `Save Modes Configuration` liên kết với form ID `deck-practice-config-form`.
+      - **Tab AI & Furigana**: Nút `Save AI Configuration` kích hoạt lưu kịch bản AI Prompts.
+      - **Tab Audio TTS**: Nút `Save Audio Configuration` kích hoạt lưu ma trận giọng đọc TTS.
+      - **Cài đặt cá nhân (My Settings)**: Nút `Save Personal Preferences` lưu cấu hình cá nhân của người học.
+
 #### Tái Quy Hoạch Cài Đặt Bộ Thẻ (Deck Settings): Tối Giản Study Defaults, Thống Nhất Modes & Sáp Nhập Sub-Lessons Vào Columns
 - **Quy hoạch lại tab Study Defaults (`DeckStudyDefaults.tsx` & `StudySettingsEditor.tsx`)**:
   - **Loại bỏ hoàn toàn Simple Mode**:

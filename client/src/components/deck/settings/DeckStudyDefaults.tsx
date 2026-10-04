@@ -137,7 +137,7 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
+    <form id="deck-study-defaults-form" onSubmit={handleSave} className="space-y-4 text-left animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-5">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">

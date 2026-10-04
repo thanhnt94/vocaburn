@@ -344,6 +344,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
 
         <div className="pt-2 flex justify-end">
           <button
+            id="btn-save-ai-settings"
             type="button"
             onClick={handleSave}
             disabled={isSaving}

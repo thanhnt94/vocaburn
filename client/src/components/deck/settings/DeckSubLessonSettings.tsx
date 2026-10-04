@@ -83,7 +83,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
     }
   }, [subLessonsData])
 
-  const handleSave = async () => {
+  const handlePersist = async (newEnabled: boolean, newColumn: string) => {
     if (!deckId) return
     setIsSaving(true)
     setMessage(null)
@@ -92,30 +92,40 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
         sub_lesson_grouping: {
-          enabled,
-          column: selectedColumn || null
+          enabled: newEnabled,
+          column: newColumn || null
         },
         settings: {
           sub_lesson_grouping: {
-            enabled,
-            column: selectedColumn || null
+            enabled: newEnabled,
+            column: newColumn || null
           }
         }
       })
 
-      setMessage({ type: 'success', text: 'Sub-lesson configuration saved successfully.' })
+      setMessage({ type: 'success', text: 'Sub-lesson configuration auto-saved.' })
       queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
       if (onSaved) onSaved()
-      refetch()
+      setTimeout(() => setMessage(null), 3500)
     } catch (err: any) {
       const errMsg = err.response?.data?.error || err.message || 'Failed to save settings'
       setMessage({ type: 'error', text: errMsg })
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleToggleEnabled = (val: boolean) => {
+    setEnabled(val)
+    handlePersist(val, selectedColumn)
+  }
+
+  const handleSelectColumn = (col: string) => {
+    setSelectedColumn(col)
+    handlePersist(enabled, col)
   }
 
   const availableCols = subLessonsData?.available_columns || []
@@ -153,30 +163,25 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
           </div>
         </div>
 
-        {/* SAVE BUTTON */}
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className={cn(
-            "inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer",
-            isSaving
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95 shadow-indigo-200/50"
-          )}
-        >
+        {/* REACTIVE STATUS BADGE (AUTO-SAVING) */}
+        <div className="flex items-center gap-2 shrink-0">
           {isSaving ? (
-            <>
-              <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-black shadow-2xs">
+              <div className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
               <span>Saving...</span>
-            </>
+            </div>
+          ) : message?.type === 'success' ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black shadow-2xs animate-in fade-in">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Auto-saved ✓</span>
+            </div>
           ) : (
-            <>
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Changes</span>
-            </>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-500 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Auto-saves on change</span>
+            </div>
           )}
-        </button>
+        </div>
       </div>
 
       {/* FEEDBACK BANNER */}
@@ -217,7 +222,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
               type="button"
               role="switch"
               aria-checked={enabled}
-              onClick={() => setEnabled(!enabled)}
+              onClick={() => handleToggleEnabled(!enabled)}
               className={cn(
                 "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
                 enabled ? "bg-indigo-600" : "bg-slate-300"
@@ -253,7 +258,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
                 <div className="relative">
                   <select
                     value={selectedColumn}
-                    onChange={(e) => setSelectedColumn(e.target.value)}
+                    onChange={(e) => handleSelectColumn(e.target.value)}
                     className="w-full appearance-none bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 pr-10 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
                   >
                     {availableCols.map((c) => (
@@ -274,7 +279,7 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
                       <button
                         key={c.column}
                         type="button"
-                        onClick={() => setSelectedColumn(c.column)}
+                        onClick={() => handleSelectColumn(c.column)}
                         className={cn(
                           "px-2.5 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer",
                           isSelected
