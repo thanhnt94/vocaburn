@@ -37,7 +37,7 @@ import {
   Check,
   ClipboardCopy
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export interface FlashcardFlyToolbarProps {
@@ -375,6 +375,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
+  const dragControls = useDragControls()
 
   const handleCopyCurrentFace = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -434,26 +435,37 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             drag="y"
+            dragListener={false}
+            dragControls={dragControls}
             dragConstraints={{ top: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
             onDragEnd={(_e, info) => {
-              if (info.offset.y > 75 || info.velocity.y > 300) {
+              if (info.offset.y > 60 || info.velocity.y > 250) {
                 onClose()
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2.2rem] border-t border-slate-200/90 shadow-2xl p-4 sm:p-5 pb-6 sm:pb-8 flex flex-col gap-3.5 select-none z-10 max-h-[85vh] overflow-y-auto touch-pan-y"
+            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-5 sm:pb-6 flex flex-col gap-2.5 select-none z-10 max-h-[88vh] overflow-y-auto touch-pan-y"
           >
             {/* Drag Handle Bar & Pull-down Dismiss Area */}
             <div 
-              className="w-full flex items-center justify-center pt-0.5 pb-2 -mt-2 cursor-grab active:cursor-grabbing touch-none select-none"
+              onPointerDown={(e) => dragControls.start(e)}
+              className="w-full flex items-center justify-center pt-0 pb-1.5 -mt-1 cursor-grab active:cursor-grabbing touch-none select-none"
               title="Swipe down to close"
             >
               <div className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-colors shadow-2xs" />
             </div>
 
             {/* Header Bar */}
-            <div className="flex items-center justify-between px-1">
+            <div 
+              onPointerDown={(e) => {
+                const target = e.target as HTMLElement
+                if (!target.closest('button')) {
+                  dragControls.start(e)
+                }
+              }}
+              className="flex items-center justify-between px-1 cursor-grab active:cursor-grabbing select-none"
+            >
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                   <Sliders className="w-3.5 h-3.5" />
@@ -920,9 +932,9 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               }
 
               return (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   {/* ══════ SECTION 1: AUDIO & FLOW ══════ */}
-                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                  <div className="flex flex-col gap-1 text-left px-0.5">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                         Audio & Flow
@@ -932,22 +944,22 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {/* 1. Autoplay */}
                       <button
                         type="button"
                         onClick={handleCycleAutoplay}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                           autoplayMeta.container
                         )}
                         title={autoplayMeta.title}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", autoplayMeta.iconBox)}>
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", autoplayMeta.iconBox)}>
                           {autoplayMeta.icon}
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Autoplay</span>
+                          <span className="text-[9.5px] font-bold tracking-tight">Autoplay</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
                             {autoplayMeta.label}
                           </span>
@@ -963,18 +975,18 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           showLocalToast?.(`SFX Sounds: ${nextVal ? 'ON' : 'OFF'}`, 'info')
                         }}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                           sfxEnabled
                             ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
                             : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                         )}
                         title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Sparkles className="w-4 h-4" />
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Sparkles className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">SFX Audio</span>
+                          <span className="text-[9.5px] font-bold tracking-tight">SFX Audio</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", sfxEnabled ? "text-purple-600" : "text-slate-400")}>
                             {sfxEnabled ? "ON" : "OFF"}
                           </span>
@@ -991,18 +1003,18 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           showLocalToast?.(`Haptic Feedback: ${nextVal ? 'ON' : 'OFF'}`, 'info')
                         }}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                           hapticEnabled
                             ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
                             : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                         )}
                         title={`Haptic Vibration: ${hapticEnabled ? 'ON' : 'OFF'}`}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", hapticEnabled ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          {hapticEnabled ? <Vibrate className="w-4 h-4" /> : <VibrateOff className="w-4 h-4" />}
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", hapticEnabled ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          {hapticEnabled ? <Vibrate className="w-3.5 h-3.5" /> : <VibrateOff className="w-3.5 h-3.5" />}
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Haptic</span>
+                          <span className="text-[9.5px] font-bold tracking-tight">Haptic</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", hapticEnabled ? "text-emerald-600" : "text-slate-400")}>
                             {hapticEnabled ? "ON" : "OFF"}
                           </span>
@@ -1039,7 +1051,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             type="button"
                             onClick={handleClick}
                             className={cn(
-                              "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                               isAutoOn
                                 ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
                                 : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
@@ -1047,15 +1059,15 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             title={`Auto Next: ${autoBadgeText}`}
                           >
                             <div className={cn(
-                              "w-8 h-8 rounded-xl flex items-center justify-center",
+                              "w-7 h-7 rounded-lg flex items-center justify-center",
                               isAutoOn
                                 ? "bg-amber-500 text-white shadow-2xs"
                                 : "bg-white text-slate-400 border border-slate-200/60"
                             )}>
-                              <Zap className="w-4 h-4" />
+                              <Zap className="w-3.5 h-3.5" />
                             </div>
                             <div className="flex flex-col items-center leading-none gap-0.5">
-                              <span className="text-[10px] font-bold tracking-tight">Auto Next</span>
+                              <span className="text-[9.5px] font-bold tracking-tight">Auto Next</span>
                               <span className={cn(
                                 "text-[8px] font-black uppercase tracking-wider",
                                 isAutoOn ? "text-amber-600" : "text-slate-400"
@@ -1069,8 +1081,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     </div>
                   </div>
 
-                  {/* ══════ SECTION 2: DISPLAY & GESTURES ══════ */}
-                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                  {/* ══════ SECTION 2: DISPLAY & GESTURES (Compact 3x2 Grid) ══════ */}
+                  <div className="flex flex-col gap-1 text-left px-0.5">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                         Display & Gestures
@@ -1080,36 +1092,36 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {/* 1. Rating Mode */}
                       {onCycleRatingMode !== undefined ? (
                         <button
                           type="button"
                           onClick={handleCycleRating}
                           className={cn(
-                            "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                            "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                             ratingModeMeta.container
                           )}
                           title={ratingModeMeta.title}
                         >
-                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", ratingModeMeta.iconBox)}>
+                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", ratingModeMeta.iconBox)}>
                             {ratingModeMeta.icon}
                           </div>
                           <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[10px] font-bold tracking-tight">Rate Mode</span>
+                            <span className="text-[9.5px] font-bold tracking-tight">Rate Mode</span>
                             <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
                               {ratingModeMeta.label}
                             </span>
                           </div>
                         </button>
                       ) : (
-                        <button type="button" className="flex flex-col items-center justify-center p-2 rounded-2xl border transition-all text-center min-h-[72px] gap-1.5 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
-                            <Sparkles className="w-4 h-4" />
+                        <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
+                            <Sparkles className="w-3.5 h-3.5" />
                           </div>
                           <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[10px] font-bold tracking-tight text-slate-500">Rate Mode</span>
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">UNAVAILABLE</span>
+                            <span className="text-[9.5px] font-bold tracking-tight text-slate-500">Rate Mode</span>
+                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
                           </div>
                         </button>
                       )}
@@ -1119,16 +1131,16 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         type="button"
                         onClick={handleCycleImages}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                           imagesMeta.container
                         )}
                         title={imagesMeta.title}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", imagesMeta.iconBox)}>
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", imagesMeta.iconBox)}>
                           {imagesMeta.icon}
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Images</span>
+                          <span className="text-[9.5px] font-bold tracking-tight">Images</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", imagesMeta.color)}>
                             {imagesMeta.label}
                           </span>
@@ -1140,16 +1152,16 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         type="button"
                         onClick={handleCycleFontSize}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                           fontSizeMeta.container
                         )}
                         title={fontSizeMeta.title}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", fontSizeMeta.iconBox)}>
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", fontSizeMeta.iconBox)}>
                           {fontSizeMeta.icon}
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Font Size</span>
+                          <span className="text-[9.5px] font-bold tracking-tight">Font Size</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", fontSizeMeta.color)}>
                             {fontSizeMeta.label}
                           </span>
@@ -1162,16 +1174,16 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           type="button"
                           onClick={handleCycleTextAlign}
                           className={cn(
-                            "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                            "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                             textAlignMeta.container
                           )}
                           title={textAlignMeta.title}
                         >
-                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", textAlignMeta.iconBox)}>
+                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", textAlignMeta.iconBox)}>
                             {textAlignMeta.icon}
                           </div>
                           <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[10px] font-bold tracking-tight">Alignment</span>
+                            <span className="text-[9.5px] font-bold tracking-tight">Alignment</span>
                             <span className={cn("text-[8px] font-black uppercase tracking-wider", textAlignMeta.color)}>
                               {textAlignMeta.label}
                             </span>
@@ -1192,117 +1204,25 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info')
                         }}
                         className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                           randomEnabled
                             ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs"
                             : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                         )}
                         title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
                       >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", randomEnabled ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Shuffle className="w-4 h-4" />
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", randomEnabled ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                          <Shuffle className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Shuffle</span>
+                          <span className="text-[9.5px] font-bold tracking-tight">Shuffle</span>
                           <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-600" : "text-slate-400")}>
                             {randomEnabled ? "ON" : "OFF"}
                           </span>
                         </div>
                       </button>
-                    </div>
-                  </div>
 
-                  {/* ══════ SECTION 3: STUDY HELPERS & TOGGLES (4 Columns, Standard Toggle Style) ══════ */}
-                  <div className="flex flex-col gap-1.5 text-left px-0.5">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                        Study Shortcuts
-                      </span>
-                      <span className="text-[9px] font-bold text-slate-400">
-                        Card State & Badges
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-                      {/* 1. Star Card */}
-                      <button
-                        type="button"
-                        onClick={handleStarQuestion}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          currentQuestion?.is_starred
-                            ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={currentQuestion?.is_starred ? "Card is Starred (Click to Unstar)" : "Star this Card"}
-                      >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", currentQuestion?.is_starred ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Star className={cn("w-4 h-4", currentQuestion?.is_starred && "fill-white")} />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Star</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", currentQuestion?.is_starred ? "text-amber-600" : "text-slate-400")}>
-                            {currentQuestion?.is_starred ? "STARRED" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 2. AI Hint (Toggle) */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleToggleHint?.()
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          showingHint
-                            ? "bg-amber-100 border-amber-400 text-amber-900 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={showingHint ? "Hide AI Hint" : "Reveal / Ask AI Hint"}
-                      >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showingHint ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Lightbulb className={cn("w-4 h-4", showingHint && "fill-white")} />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">AI Hint</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", showingHint ? "text-amber-700" : "text-slate-400")}>
-                            {showingHint ? "ACTIVE" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 3. Select Text Mode (Toggle) */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsSelectMode(prev => {
-                            const next = !prev
-                            showLocalToast?.(next ? "Select Text Mode: ON (Card gestures paused)" : "Select Text Mode: OFF (Card gestures resumed)", "info")
-                            return next
-                          })
-                          onClose()
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
-                          isSelectMode
-                            ? "bg-rose-50 border-rose-300 text-rose-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={isSelectMode ? "Select Text: ACTIVE" : "Select Text: OFF"}
-                      >
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", isSelectMode ? "bg-rose-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <MousePointer className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[10px] font-bold tracking-tight">Select Text</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", isSelectMode ? "text-rose-600" : "text-slate-400")}>
-                            {isSelectMode ? "ACTIVE" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 4. FSRS Stats Badges (Toggle) */}
+                      {/* 6. FSRS Badges (Moved here from Study Shortcuts) */}
                       {setShowFsrs !== undefined ? (
                         <button
                           type="button"
@@ -1312,49 +1232,49 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
                           }}
                           className={cn(
-                            "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center min-h-[72px] gap-1.5 cursor-pointer select-none",
+                            "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                             showFsrs
                               ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
                               : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                           )}
                           title={`FSRS Badges: ${showFsrs ? 'SHOWN' : 'HIDDEN'}`}
                         >
-                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                            <Layers className="w-4 h-4" />
+                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                            <Layers className="w-3.5 h-3.5" />
                           </div>
                           <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[10px] font-bold tracking-tight">FSRS Badges</span>
+                            <span className="text-[9.5px] font-bold tracking-tight">FSRS Badges</span>
                             <span className={cn("text-[8px] font-black uppercase tracking-wider", showFsrs ? "text-emerald-600" : "text-slate-400")}>
                               {showFsrs ? "SHOWN" : "OFF"}
                             </span>
                           </div>
                         </button>
                       ) : (
-                        <button type="button" className="flex flex-col items-center justify-center p-2 rounded-2xl border transition-all text-center min-h-[72px] gap-1.5 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
-                            <Layers className="w-4 h-4" />
+                        <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
+                            <Layers className="w-3.5 h-3.5" />
                           </div>
                           <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[10px] font-bold tracking-tight text-slate-500">FSRS Badges</span>
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">UNAVAILABLE</span>
+                            <span className="text-[9.5px] font-bold tracking-tight text-slate-500">FSRS Badges</span>
+                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
                           </div>
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* ══════ SECTION 4: CARD ACTIONS & DRAWERS (Kiểu Mới: 2 Columns Action Cards) ══════ */}
-                  <div className="flex flex-col gap-1.5 text-left px-0.5">
+                  {/* ══════ SECTION 3: CARD ACTIONS & DRAWERS (Compact 3x2 Grid) ══════ */}
+                  <div className="flex flex-col gap-1 text-left px-0.5">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                         Card Actions & Drawers
                       </span>
                       <span className="text-[9px] font-bold text-slate-400">
-                        Open Modals & Panels
+                        Actions & Hub
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {/* 1. Edit Card */}
                       <button
                         type="button"
@@ -1364,38 +1284,22 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           onOpenEditModal?.()
                         }}
                         className={cn(
-                          "flex items-center justify-between p-2.5 rounded-2xl border transition-all active:scale-98 text-left select-none group shadow-2xs",
+                          "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs min-h-[38px]",
                           canEdit
                             ? "bg-slate-50 hover:bg-blue-50/70 border-slate-200/80 hover:border-blue-300 cursor-pointer"
                             : "bg-slate-50/60 border-slate-200/50 opacity-60 cursor-not-allowed"
                         )}
                         title={canEdit ? "Open Card Editor Modal" : "Card editing locked"}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105",
-                            canEdit ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
-                          )}>
-                            <Pencil className="w-4 h-4" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
-                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">Edit Card</span>
-                            <span className="text-[9px] text-slate-400 font-medium truncate">
-                              {canEdit ? "Card Editor" : "Locked"}
-                            </span>
-                          </div>
-                        </div>
                         <div className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ml-1",
-                          canEdit
-                            ? "bg-slate-200/60 group-hover:bg-blue-100 text-slate-400 group-hover:text-blue-600"
-                            : "text-slate-300"
+                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
+                          canEdit ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
                         )}>
-                          {canEdit ? (
-                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                          ) : (
-                            <Lock className="w-3 h-3 text-slate-400" />
-                          )}
+                          <Pencil className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex flex-col min-w-0 leading-tight">
+                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Edit Card</span>
+                          <span className="text-[8px] text-slate-400 font-medium truncate">{canEdit ? "Editor" : "Locked"}</span>
                         </div>
                       </button>
 
@@ -1406,20 +1310,15 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           onClose()
                           onOpenCardHub?.('note')
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-300 transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer"
+                        className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]"
                         title="Open Personal Notes Drawer"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105">
-                            <FileText className="w-4 h-4" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
-                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">Card Note</span>
-                            <span className="text-[9px] text-slate-400 font-medium truncate">Personal Notes</span>
-                          </div>
+                        <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <FileText className="w-3.5 h-3.5" />
                         </div>
-                        <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-amber-100 flex items-center justify-center text-slate-400 group-hover:text-amber-600 shrink-0 transition-colors ml-1">
-                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        <div className="flex flex-col min-w-0 leading-tight">
+                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Note</span>
+                          <span className="text-[8px] text-slate-400 font-medium truncate">Notes</span>
                         </div>
                       </button>
 
@@ -1430,20 +1329,15 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           onClose()
                           onOpenCardHub?.('insight')
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer"
+                        className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]"
                         title="Open AI Explanations Drawer"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105">
-                            <Brain className="w-4 h-4" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
-                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">AI Explain</span>
-                            <span className="text-[9px] text-slate-400 font-medium truncate">Deep Insights</span>
-                          </div>
+                        <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <Brain className="w-3.5 h-3.5" />
                         </div>
-                        <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-purple-100 flex items-center justify-center text-slate-400 group-hover:text-purple-600 shrink-0 transition-colors ml-1">
-                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        <div className="flex flex-col min-w-0 leading-tight">
+                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">AI Explain</span>
+                          <span className="text-[8px] text-slate-400 font-medium truncate">Insights</span>
                         </div>
                       </button>
 
@@ -1454,20 +1348,15 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           onClose()
                           onOpenCardHub?.('stats')
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer"
+                        className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]"
                         title="Open Detailed Card Stats & History"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
-                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">Card Stats</span>
-                            <span className="text-[9px] text-slate-400 font-medium truncate">FSRS & History</span>
-                          </div>
+                        <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <TrendingUp className="w-3.5 h-3.5" />
                         </div>
-                        <div className="w-5 h-5 rounded-full bg-slate-200/60 group-hover:bg-teal-100 flex items-center justify-center text-slate-400 group-hover:text-teal-600 shrink-0 transition-colors ml-1">
-                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        <div className="flex flex-col min-w-0 leading-tight">
+                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Stats</span>
+                          <span className="text-[8px] text-slate-400 font-medium truncate">FSRS</span>
                         </div>
                       </button>
 
@@ -1476,42 +1365,28 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         type="button"
                         onClick={handleCopyCurrentFace}
                         className={cn(
-                          "flex items-center justify-between p-2.5 rounded-2xl border transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer",
+                          "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]",
                           copiedFace
                             ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
                             : "bg-slate-50 hover:bg-emerald-50/70 border-slate-200/80 hover:border-emerald-300"
                         )}
                         title={isFlipped ? "Copy Back Face to clipboard (for AI Prompt)" : "Copy Front Face to clipboard (for AI Prompt)"}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-all",
-                            copiedFace
-                              ? "bg-emerald-600 text-white scale-105"
-                              : "bg-emerald-500 text-white group-hover:scale-105"
-                          )}>
-                            {copiedFace ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
-                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">
-                              {copiedFace ? "Copied!" : isFlipped ? "Copy Back" : "Copy Front"}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-medium truncate">
-                              {copiedFace ? "Ready for AI" : isFlipped ? "Back Face (AI)" : "Front Face (AI)"}
-                            </span>
-                          </div>
-                        </div>
                         <div className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ml-1",
+                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
                           copiedFace
-                            ? "bg-emerald-100 text-emerald-600"
-                            : "bg-slate-200/60 group-hover:bg-emerald-100 text-slate-400 group-hover:text-emerald-600"
+                            ? "bg-emerald-600 text-white scale-105"
+                            : "bg-emerald-500 text-white"
                         )}>
-                          {copiedFace ? (
-                            <Check className="w-3 h-3 text-emerald-600" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                          )}
+                          {copiedFace ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="flex flex-col min-w-0 leading-tight">
+                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
+                            {copiedFace ? "Copied!" : isFlipped ? "Copy Back" : "Copy Front"}
+                          </span>
+                          <span className="text-[8px] text-slate-400 font-medium truncate">
+                            {copiedFace ? "Ready" : isFlipped ? "Back Face" : "Front Face"}
+                          </span>
                         </div>
                       </button>
 
@@ -1520,42 +1395,28 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         type="button"
                         onClick={handleCopyFullCard}
                         className={cn(
-                          "flex items-center justify-between p-2.5 rounded-2xl border transition-all active:scale-98 text-left select-none group shadow-2xs cursor-pointer",
+                          "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]",
                           copiedFull
                             ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300"
                             : "bg-slate-50 hover:bg-indigo-50/70 border-slate-200/80 hover:border-indigo-300"
                         )}
                         title="Copy both Front and Back content to clipboard (for AI Prompt)"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-all",
-                            copiedFull
-                              ? "bg-indigo-600 text-white scale-105"
-                              : "bg-indigo-500 text-white group-hover:scale-105"
-                          )}>
-                            {copiedFull ? <Check className="w-4 h-4" /> : <ClipboardCopy className="w-4 h-4" />}
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-none gap-0.5">
-                            <span className="text-[11px] font-bold text-slate-800 tracking-tight truncate">
-                              {copiedFull ? "Copied!" : "Copy Full"}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-medium truncate">
-                              {copiedFull ? "Ready for AI" : "Front & Back (AI)"}
-                            </span>
-                          </div>
-                        </div>
                         <div className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ml-1",
+                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
                           copiedFull
-                            ? "bg-indigo-100 text-indigo-600"
-                            : "bg-slate-200/60 group-hover:bg-indigo-100 text-slate-400 group-hover:text-indigo-600"
+                            ? "bg-indigo-600 text-white scale-105"
+                            : "bg-indigo-500 text-white"
                         )}>
-                          {copiedFull ? (
-                            <Check className="w-3 h-3 text-indigo-600" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                          )}
+                          {copiedFull ? <Check className="w-3.5 h-3.5" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="flex flex-col min-w-0 leading-tight">
+                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
+                            {copiedFull ? "Copied!" : "Copy Full"}
+                          </span>
+                          <span className="text-[8px] text-slate-400 font-medium truncate">
+                            {copiedFull ? "Ready" : "Front & Back"}
+                          </span>
                         </div>
                       </button>
                     </div>

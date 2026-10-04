@@ -3,6 +3,22 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
+#### Tinh Gọn Quick Controls Flashcard: Hợp Nhất FSRS Badges vào Display, Xóa Bỏ Study Shortcuts, Thu Gọn Card Actions & Tách Biệt Cử Chỉ Kéo Cuộn (useDragControls)
+- **Hợp nhất FSRS Badges vào mục `Display & Gestures`**:
+  - Di chuyển công tắc bật/tắt `FSRS Badges` từ Study Shortcuts vào trực tiếp khối `Display & Gestures` do tính chất trực quan của nó (quản lý hiển thị thông số FSRS trên mặt thẻ).
+  - Tái cấu trúc mục `Display & Gestures` thành ma trận lưới 3x2 cân đối hoàn hảo gồm 6 tùy chọn: `Rate Mode`, `Images`, `Font Size`, `Alignment`, `Shuffle`, `FSRS Badges`.
+- **Loại bỏ hoàn toàn khối `Study Shortcuts`**:
+  - Gỡ bỏ hoàn toàn Section 3 cũ để tiết kiệm hơn 110px chiều cao giao diện, giải phóng không gian màn hình tối đa.
+- **Thiết kế lại khối `Card Actions & Drawers` siêu tinh gọn (Compact 3x2 Grid)**:
+  - Thay thế danh sách card 2 cột cồng kềnh cũ bằng lưới 3 cột x 2 hàng nhỏ gọn (chiều cao nút chỉ ~38px):
+    - Hàng 1: `Edit Card` (Pencil), `Card Note` (FileText), `AI Explain` (Brain).
+    - Hàng 2: `Card Stats` (TrendingUp), `Copy Face` (Copy/Check), `Copy Full` (ClipboardCopy/Check).
+  - Tiết kiệm hơn 100px chiều cao, đưa tổng chiều cao Quick Controls xuống chỉ còn ~400px, hiển thị trọn vẹn "above-the-fold" trên mọi thiết bị di động mà không bắt buộc người dùng phải cuộn.
+- **Khắc phục triệt để xung đột Cử chỉ Vuốt Xuống Đóng vs Cuộn Nội Dung (Scroll vs Swipe-down Conflict)**:
+  - Sử dụng `useDragControls()` của Framer Motion kết hợp với thuộc tính `dragListener={false}` trên thẻ `<motion.div>` ngăn chặn việc Framer Motion chiếm quyền cảm ứng (touch events) của toàn bộ nội dung.
+  - Cử chỉ kéo vuốt xuống để đóng (`pull-down to dismiss`) chỉ kích hoạt khi người dùng chạm/kéo thanh **Drag Handle Bar** hoặc thanh **Header Bar** ở trên cùng.
+  - Toàn bộ vùng nội dung bên dưới được giải phóng hoàn toàn để cuộn tự nhiên (`overflow-y-auto touch-pan-y`) khi cần trên các màn hình nhỏ.
+
 #### Nâng Cấp Chế Độ Skim & AutoPlay: Lọc Phạm Vi Thẻ (All / Rev / New) & Tùy Chỉnh Độ Trễ Tự Động Front Delay / Back Delay
 - **Bộ lọc phạm vi thẻ (Card Scope Filter) cho Skim & AutoPlay**:
   - Khi người dùng chọn chế độ `⚡ SKIM` (Speed Skim) hoặc `🎧 AUTO` (AutoPlay rảnh tay), một thanh phân đoạn phạm vi thẻ thông minh sẽ tự động xuất hiện ngay dưới hàng 5 chế độ:
