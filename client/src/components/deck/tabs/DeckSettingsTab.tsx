@@ -126,8 +126,8 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
       ) : (
         /* ═══════════ VIEW B: DECK CREATOR SETTINGS (OWNER SCOPE) ═══════════ */
         <div className="space-y-4">
-          {/* STICKY TOP SUB-TAB NAVIGATION BAR */}
-          <div className="sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-2">
+          {/* STICKY TOP SUB-TAB NAVIGATION BAR (DESKTOP ONLY - MOBILE USES DOCKED BOTTOM SUBTAB BAR) */}
+          <div className="hidden sm:block sticky top-0 z-30 bg-[#F8FAFC]/95 backdrop-blur-md pt-1 pb-2">
             <div className="bg-white/95 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
               <div className="grid grid-cols-3 sm:flex sm:items-center sm:gap-1">
                 {subTabs.map((tab) => {
