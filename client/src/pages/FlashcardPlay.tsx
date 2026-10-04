@@ -2413,9 +2413,9 @@ export default function FlashcardPlay() {
     if ((activeMode === 'flip' || isSpeedSkimMode) && currentQuestion) {
       const alreadyRated = sessionAnswers[currentIndex] !== undefined;
       if (!alreadyRated) {
+        const isSkim = isSpeedSkimMode;
         // Record the view on backend
         try {
-          const isSkim = isSpeedSkimMode;
           const res = await axios.post('/api/v1/deck/record_answer', {
             question_id: currentQuestion.id,
             is_correct: true,
@@ -2458,19 +2458,27 @@ export default function FlashcardPlay() {
               good_count: 0,
               easy_count: 0
             }
-            const newTotal = currentStats.total + 1
-            const newCorrect = currentStats.correct + 1
-            const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
-            const newAvgTime = Math.round((oldTotalTime + timeLeftRef.current) / newTotal)
-            q.stats = {
-              total: newTotal,
-              correct: newCorrect,
-              wrong: newTotal - newCorrect,
-              avg_time: newAvgTime,
-              again_count: currentStats.again_count || 0,
-              hard_count: currentStats.hard_count || 0,
-              good_count: (currentStats.good_count || 0) + 1,
-              easy_count: currentStats.easy_count || 0
+            if (isSkim) {
+              q.stats = {
+                ...currentStats,
+                last_answered: new Date().toISOString()
+              }
+            } else {
+              const newTotal = currentStats.total + 1
+              const newCorrect = currentStats.correct + 1
+              const oldTotalTime = (currentStats.avg_time || 0) * currentStats.total
+              const newAvgTime = Math.round((oldTotalTime + timeLeftRef.current) / newTotal)
+              q.stats = {
+                total: newTotal,
+                correct: newCorrect,
+                wrong: newTotal - newCorrect,
+                avg_time: newAvgTime,
+                again_count: currentStats.again_count || 0,
+                hard_count: currentStats.hard_count || 0,
+                good_count: (currentStats.good_count || 0) + 1,
+                easy_count: currentStats.easy_count || 0,
+                last_answered: new Date().toISOString()
+              }
             }
             newQs[currentIndex] = q
           }
@@ -3596,6 +3604,8 @@ export default function FlashcardPlay() {
                 fsrsClass = "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100/60"
               }
             }
+          } else if (q.stats?.last_answered || q.fsrs?.first_learned) {
+            fsrsClass = "border-amber-200 bg-amber-50/70 text-amber-700 hover:bg-amber-100/60"
           }
 
           return (
@@ -3620,14 +3630,15 @@ export default function FlashcardPlay() {
                   "text-[6px] font-black tracking-tighter opacity-90 mt-0.5 uppercase z-10 relative",
                   isPractice
                     ? (selectedOptIdx === q.practice?.correct_index ? "text-emerald-600" : "text-rose-600")
-                    : (selectedOptIdx === 0 ? "text-rose-600" :
+                    : (selectedOptIdx === -2 ? "text-amber-600" :
+                       selectedOptIdx === 0 ? "text-rose-600" :
                        selectedOptIdx === 1 ? "text-amber-600" :
                        selectedOptIdx === 2 ? "text-indigo-600" :
                        "text-emerald-600")
                 )}>
                   {isPractice
                     ? (selectedOptIdx === q.practice?.correct_index ? "CORRECT" : "WRONG")
-                    : (selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
+                    : (selectedOptIdx === -2 ? "SKIM" : selectedOptIdx === 0 ? "AGAIN" : selectedOptIdx === 1 ? "HARD" : selectedOptIdx === 2 ? "GOOD" : "EASY")}
                 </span>
               )}
             </button>

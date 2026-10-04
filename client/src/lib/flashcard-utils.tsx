@@ -133,6 +133,11 @@ export const getMapTitleInfo = (mode: string) => {
         title: "Unseen",
         subtitle: "Brand new cards not yet studied"
       }
+    case 'skimmed':
+      return {
+        title: "Skimmed",
+        subtitle: "Cards previewed or browsed without active grading"
+      }
     case 'learning':
       return {
         title: "Learning",
@@ -187,8 +192,10 @@ export const getCardBoxId = (item: any): CardBoxId => {
   if (isHard) return 'hard'
   if (item.box_level === 5 && total >= 4) return 'mastered'
   const hasLearned = Boolean(item.fsrs?.last_review || (item.fsrs?.state !== undefined && item.fsrs?.state > 0) || total > 0);
-  if (!hasLearned) return 'unseen'
-  return 'learning'
+  if (hasLearned) return 'learning'
+  const isSkimmed = Boolean(item.stats?.last_answered || item.fsrs?.first_learned);
+  if (isSkimmed) return 'skimmed'
+  return 'unseen'
 }
 
 export const getMasteryPill = (q: any): React.ReactElement => {
@@ -220,8 +227,14 @@ export const getMasteryPill = (q: any): React.ReactElement => {
       )
     case 'learning':
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-2xs animate-fadeIn">
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 shadow-2xs animate-fadeIn">
           🌱 LEARNING
+        </span>
+      )
+    case 'skimmed':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-2xs animate-fadeIn">
+          ⚡ SKIMMED
         </span>
       )
     default:

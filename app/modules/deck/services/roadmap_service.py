@@ -120,7 +120,7 @@ class RoadmapService:
         ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
          .where(
              DeckAttempt.user_id == user_id,
-             DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review", "speed_skim"])
+             DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
          )\
          .group_by(UserAnswer.card_id).subquery()
 
@@ -131,6 +131,27 @@ class RoadmapService:
                 Flashcard.deck_id == deck_id,
                 min_answer_sub.c.min_created >= day_start,
                 min_answer_sub.c.min_created < day_end
+            )
+        ) or 0
+
+        # Separate query for Speed Skim progress (independent from FSRS learning)
+        min_skim_sub = select(
+            UserAnswer.card_id,
+            func.min(UserAnswer.created_at).label("min_created")
+        ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+         .where(
+             DeckAttempt.user_id == user_id,
+             DeckAttempt.mode.in_(["speed_skim", "skim", "flip"])
+         )\
+         .group_by(UserAnswer.card_id).subquery()
+
+        skimmed_today = await db.scalar(
+            select(func.count(min_skim_sub.c.card_id))
+            .join(Flashcard, min_skim_sub.c.card_id == Flashcard.id)
+            .where(
+                Flashcard.deck_id == deck_id,
+                min_skim_sub.c.min_created >= day_start,
+                min_skim_sub.c.min_created < day_end
             )
         ) or 0
 
@@ -321,13 +342,12 @@ class RoadmapService:
             elif stype == "speed_skim":
                 daily_count = int(st.get("daily_count", 20))
                 daily_new_target = daily_count
-                available_new_today = unlearned_cards + new_learned_today
-                effective_target = min(daily_count, available_new_today)
-                is_all_learned = (unlearned_cards == 0)
+                available_to_skim = total_cards
+                effective_target = min(daily_count, total_cards)
+                is_all_learned = (skimmed_today >= total_cards)
                 is_done = (
-                    (new_learned_today >= daily_count) or
-                    is_all_learned or
-                    (available_new_today > 0 and new_learned_today >= available_new_today)
+                    (skimmed_today >= daily_count) or
+                    is_all_learned
                 )
                 step_data.update({
                     "daily_count": daily_count,
@@ -335,9 +355,9 @@ class RoadmapService:
                     "all_learned": is_all_learned,
                     "done": is_done,
                     "progress": {
-                        "learned": new_learned_today,
+                        "learned": skimmed_today,
                         "target": effective_target,
-                        "unlearned_cards": unlearned_cards,
+                        "unlearned_cards": max(0, total_cards - skimmed_today),
                         "all_learned": is_all_learned
                     },
                     "url": f"/flashcard/{deck_id}/play?mode=speed_skim&step=speed_skim",

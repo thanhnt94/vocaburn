@@ -24,6 +24,7 @@ export interface Question {
     hard_count?: number
     good_count?: number
     easy_count?: number
+    last_answered?: string | null
   }
   box_level?: number
   image?: string | null
@@ -58,5 +59,5 @@ export interface Question {
 }
 
 export type LearningMode = 'fsrs' | 'skim' | 'review' | 'speed_skim' | 'new' | 'flip' | 'roadmap'
-export type CardBoxId = 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
+export type CardBoxId = 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed'
 export type FilterMapMode = 'all' | CardBoxId

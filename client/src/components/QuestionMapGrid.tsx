@@ -17,7 +17,9 @@ import {
   ChevronDown,
   ArrowRight,
   X,
+  Zap,
 } from 'lucide-react'
+import type { FilterMapMode } from '@/types/flashcard'
 
 interface Question {
   id?: number
@@ -31,6 +33,7 @@ interface Question {
     hard_count?: number
     good_count?: number
     easy_count?: number
+    last_answered?: string | null
   }
   box_level?: number
   fsrs?: {
@@ -38,6 +41,8 @@ interface Question {
     stability?: number | null
     difficulty?: number | null
     due?: string | null
+    first_learned?: string | null
+    last_review?: string | null
   }
   practice?: {
     correct_index?: number
@@ -55,8 +60,8 @@ interface QuestionMapGridProps {
   currentIndex: number
   navigateToQuestion: (index: number) => void
   setIsMapOpen: (open: boolean) => void
-  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'
-  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored') => void
+  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed'
+  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed') => void
   showFiltersInline?: boolean
   subLessonGrouping?: { enabled?: boolean; column?: string; hide_uncategorized?: boolean }
   onSwitchGroup?: (col: string | null, val: string | null) => void
@@ -82,7 +87,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   const activeSessionSubCol = searchParams.get('sub_col')
   const activeSessionSubVal = searchParams.get('sub_val')
 
-  const [internalFilterMode, setInternalFilterMode] = useState<'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored'>('all')
+  const [internalFilterMode, setInternalFilterMode] = useState<FilterMapMode>('all')
   const [jumpInput, setJumpInput] = useState('')
   const activeCardRef = useRef<HTMLButtonElement | null>(null)
 
@@ -263,7 +268,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     return () => clearTimeout(timer)
   }, [currentIndex, activeFilterMode, selectedGroupVal])
 
-  const getBaseLearningStatus = (item: Question): 'hard' | 'mastered' | 'unseen' | 'learning' => {
+  const getBaseLearningStatus = (item: Question): 'hard' | 'mastered' | 'unseen' | 'learning' | 'skimmed' => {
     const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
     const total = stats.total || 0
     const again = stats.again_count || 0
@@ -279,11 +284,14 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
 
     if (isHard) return 'hard'
     if ((item.box_level === 5 && total >= 4) || item.fsrs?.state === 2) return 'mastered'
-    if (total === 0 && (!item.fsrs?.state || item.fsrs.state === 0)) return 'unseen'
-    return 'learning'
+    const hasLearned = Boolean(item.fsrs?.last_review || (item.fsrs?.state !== undefined && item.fsrs?.state > 0) || total > 0)
+    if (hasLearned) return 'learning'
+    const isSkimmed = Boolean(item.stats?.last_answered || item.fsrs?.first_learned)
+    if (isSkimmed) return 'skimmed'
+    return 'unseen'
   }
 
-  const getCardStatus = (item: Question): 'ignored' | 'starred' | 'hard' | 'mastered' | 'unseen' | 'learning' => {
+  const getCardStatus = (item: Question): 'ignored' | 'starred' | 'hard' | 'mastered' | 'unseen' | 'learning' | 'skimmed' => {
     if (item.is_ignored) return 'ignored'
     if (item.is_starred) return 'starred'
     return getBaseLearningStatus(item)
@@ -293,6 +301,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   const statusCounts = useMemo(() => {
     let mastered = 0
     let learning = 0
+    let skimmed = 0
     let unseen = 0
     let hard = 0
     let starred = 0
@@ -304,14 +313,16 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       const st = getBaseLearningStatus(q)
       if (st === 'mastered') mastered++
       else if (st === 'hard') hard++
-      else if (st === 'unseen') unseen++
-      else learning++
+      else if (st === 'learning') learning++
+      else if (st === 'skimmed') skimmed++
+      else unseen++
     })
 
     return {
       all: categoryFilteredQuestions.length,
       mastered,
       learning,
+      skimmed,
       unseen,
       hard,
       starred,
@@ -322,7 +333,8 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   const totalCards = categoryFilteredQuestions.length
   const masteredPct = totalCards > 0 ? Math.round((statusCounts.mastered / totalCards) * 100) : 0
   const learningPct = totalCards > 0 ? Math.round((statusCounts.learning / totalCards) * 100) : 0
-  const unseenPct = Math.max(0, 100 - masteredPct - learningPct)
+  const skimmedPct = totalCards > 0 ? Math.round((statusCounts.skimmed / totalCards) * 100) : 0
+  const unseenPct = Math.max(0, 100 - masteredPct - learningPct - skimmedPct)
 
   // Filtered list with active status mode applied
   const filteredQuestions = useMemo(() => {
@@ -352,6 +364,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     { id: 'starred' as const, label: 'Starred', icon: Star, count: statusCounts.starred, activeColor: 'bg-amber-500 text-white shadow-xs' },
     { id: 'mastered' as const, label: 'Mastered', icon: Trophy, count: statusCounts.mastered, activeColor: 'bg-emerald-600 text-white shadow-xs' },
     { id: 'learning' as const, label: 'Learning', icon: Brain, count: statusCounts.learning, activeColor: 'bg-indigo-600 text-white shadow-xs' },
+    { id: 'skimmed' as const, label: 'Skimmed', icon: Zap, count: statusCounts.skimmed, activeColor: 'bg-amber-600 text-white shadow-xs' },
     { id: 'unseen' as const, label: 'Unseen', icon: BookOpen, count: statusCounts.unseen, activeColor: 'bg-slate-600 text-white shadow-xs' },
     { id: 'hard' as const, label: 'Hard', icon: Flame, count: statusCounts.hard, activeColor: 'bg-rose-600 text-white shadow-xs' },
     ...(statusCounts.ignored > 0 ? [{ id: 'ignored' as const, label: 'Ignored', icon: EyeOff, count: statusCounts.ignored, activeColor: 'bg-slate-500 text-white shadow-xs' }] : []),
@@ -527,6 +540,12 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
             <span className="font-extrabold text-slate-800">{statusCounts.learning}</span>
             <span className="text-slate-400 font-medium">({learningPct}%)</span>
           </span>
+          <span className="flex items-center gap-1.5 text-amber-700">
+            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/40" />
+            <span>Skimmed</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.skimmed}</span>
+            <span className="text-slate-400 font-medium">({skimmedPct}%)</span>
+          </span>
           <span className="flex items-center gap-1.5 text-slate-600">
             <span className="w-2 h-2 rounded-full bg-slate-300" />
             <span>Unseen</span>
@@ -570,6 +589,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
             style={{ width: `${learningPct}%` }}
             className="bg-indigo-500 rounded-full transition-all duration-500 min-w-[3px]"
             title={`Learning: ${statusCounts.learning} cards`}
+          />
+          <div
+            style={{ width: `${skimmedPct}%` }}
+            className="bg-amber-500 rounded-full transition-all duration-500 min-w-[3px]"
+            title={`Skimmed: ${statusCounts.skimmed} cards`}
           />
           <div
             style={{ width: `${unseenPct}%` }}
@@ -741,6 +765,8 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                 tileClass = "bg-emerald-50/70 border-emerald-200/90 text-emerald-950 hover:bg-emerald-100/70 hover:border-emerald-300 shadow-2xs"
               } else if (st === 'learning') {
                 tileClass = "bg-indigo-50/60 border-indigo-200/80 text-indigo-950 hover:bg-indigo-100/60 hover:border-indigo-300 shadow-2xs"
+              } else if (st === 'skimmed') {
+                tileClass = "bg-amber-50/70 border-amber-200/90 text-amber-950 hover:bg-amber-100/70 hover:border-amber-300 shadow-2xs"
               } else if (st === 'hard') {
                 tileClass = "bg-rose-50/60 border-rose-200/80 text-rose-950 hover:bg-rose-100/60 hover:border-rose-300 shadow-2xs"
               }
@@ -805,6 +831,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                     <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-indigo-600 mt-1 leading-none">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
                       Learn
+                    </span>
+                  ) : st === 'skimmed' ? (
+                    <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-amber-600 mt-1 leading-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      Skim
                     </span>
                   ) : st === 'hard' ? (
                     <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-rose-600 mt-1 leading-none">

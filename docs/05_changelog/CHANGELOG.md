@@ -2,6 +2,24 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-04]
+#### Phân Lập Triệt Để 3 Chế Độ Học Tập Cốt Lõi (FSRS v6, Memrise, Speed Skim) & Ghi Nhận Trạng Thái Tiếp Cận Thẻ ("Seen / Skimmed")
+- **Phân tách hoàn toàn và bảo vệ độc lập 3 chế độ học tập**:
+  - **FSRS v6**: Duy trì lưu trữ trong `UserCardMastery`, chỉ đánh giá và cập nhật độ bền/độ khó/ngày ôn (`stability`, `difficulty`, `due`, `state`) khi người dùng thực sự thực hiện đánh giá với 4 nút FSRS (`Again`, `Hard`, `Good`, `Easy`). Thẻ mới trong FSRS được nhận diện nghiêm ngặt qua điều kiện `m.state == 0 and m.last_review is None`.
+  - **Memrise**: Độc lập 100% trong bảng cơ sở dữ liệu riêng biệt `MemriseCardProgress` và `MemriseSession`. Các thao tác trồng cây và tưới hoa không đọc hay ghi đè vào dữ liệu của FSRS.
+  - **Speed Skim**:
+    - Khi người dùng lướt nhanh qua thẻ từ vựng (`mode in ('speed_skim', 'skim')`), hệ thống ghi nhận lượt tiếp cận bằng cách cập nhật `UserCardMastery.last_answered = datetime.utcnow()`.
+    - **Tuyệt đối giữ nguyên**: `state = 0`, `stability = None`, `difficulty = None`, `last_review = None`, và không ghi vào `UserPracticeStats` (tránh làm sai lệch dữ liệu thống kê luyện tập MCQ/Typing).
+    - Nhờ đó, khi người dùng chuyển sang chế độ FSRS hoặc bước "Học từ mới (New Cards)", FSRS vẫn nhận diện đầy đủ các thẻ đã skim là thẻ mới để học bài bản, không bao giờ bị hiện tượng bỏ qua thẻ mới (Skipped New Cards Trap).
+- **Tách biệt chỉ tiêu Roadmap (`roadmap_service.py`)**:
+  - Loại bỏ `speed_skim` khỏi truy vấn `new_learned_today`, đảm bảo bước "Học từ mới (New Cards)" trong Roadmap chỉ đếm số thẻ thực sự bắt đầu học qua FSRS.
+  - Bổ sung truy vấn đếm riêng `skimmed_today` cho bước `speed_skim` trong Roadmap, ngăn chặn tình trạng lướt thẻ làm hoàn thành sớm bước học từ mới FSRS.
+- **Bổ sung trạng thái trực quan "Skimmed" trên Bản đồ thẻ (Card Map & `QuestionMapGrid.tsx`)**:
+  - Thêm trạng thái `skimmed` vào `CardBoxId` và `QuestionMapGrid.tsx`.
+  - Hiển thị chip lọc mới `⚡ Skimmed` (màu hổ phách) cùng badge đếm số lượng thẻ đã được lướt qua.
+  - Thanh tỷ lệ Retention Bar và thanh chia đoạn đa sắc hiển thị tỷ lệ phần trăm thẻ đã Skim (`skimmedPct`) bên cạnh `Mastered`, `Learning` và `Unseen`.
+  - Mỗi ô thẻ squircle trên bản đồ hiển thị viền/nền vàng hổ phách và nhãn `Skim` giúp người học theo dõi trực quan số từ vựng mình đã tiếp cận.
+
 ### [2026-10-01]
 #### Hiện Đại Hóa & Chuẩn Hóa File Mẫu Excel `Vocaburn_Template.xlsx` & Tài Liệu Hướng Dẫn Kỹ Thuật (`EXCEL_TEMPLATE_GUIDE.md`)
 - **Khắc phục triệt để lỗi file mẫu tải về từ web bị lỗi thời (Stale Static Cache)**:

@@ -314,6 +314,40 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
                 "intervals": next_intervals
             }
+        elif is_speed_skim:
+            # Safe exposure tracking for Speed Skim mode:
+            # Records that card has been seen/browsed, but strictly preserves FSRS state
+            mastery_res = await db.execute(
+                select(UserCardMastery).where(
+                    UserCardMastery.user_id == user_id,
+                    UserCardMastery.card_id == card_id
+                )
+            )
+            mastery = mastery_res.scalar_one_or_none()
+            if not mastery:
+                mastery = UserCardMastery(
+                    user_id=user_id,
+                    card_id=card_id,
+                    box_level=1,
+                    consecutive_correct=0,
+                    state=0,
+                    stability=None,
+                    difficulty=None,
+                    step=0,
+                    due=datetime.utcnow(),
+                    last_answered=datetime.utcnow()
+                )
+                db.add(mastery)
+            else:
+                mastery.last_answered = datetime.utcnow()
+            await db.flush()
+
+            mastery_update_info = {
+                "is_skimmed": True,
+                "state": mastery.state,
+                "box_level": mastery.box_level,
+                "last_answered": mastery.last_answered.isoformat() if mastery.last_answered else None
+            }
         else:
             from app.modules.deck.models import UserPracticeStats
             p_stats_res = await db.execute(
@@ -1070,9 +1104,12 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
         if m:
             if m.is_ignored:
                 continue
-            m_due = m.due.replace(tzinfo=timezone.utc) if m.due else now_utc
-            if m_due <= now_utc:
-                due_cards.append((c, m))
+            if m.state == 0 and m.last_review is None:
+                new_cards.append(c)
+            else:
+                m_due = m.due.replace(tzinfo=timezone.utc) if m.due else now_utc
+                if m_due <= now_utc:
+                    due_cards.append((c, m))
         else:
             new_cards.append(c)
             
@@ -1466,7 +1503,8 @@ async def get_deck_play_data(
                 "back_img": c.back_img,
                 "stats": {
                     "total": m.consecutive_correct if m else 0,
-                    "correct": m.consecutive_correct if m else 0
+                    "correct": m.consecutive_correct if m else 0,
+                    "last_answered": m.last_answered.isoformat() if (m and m.last_answered) else None
                 } if m else None,
                 "box_level": m_box_level,
                 "is_ignored": m.is_ignored if m else False,
@@ -1477,7 +1515,7 @@ async def get_deck_play_data(
                     "difficulty": m_difficulty,
                     "due": m_due.isoformat() if m_due else None,
                     "last_review": m_last_review.isoformat() if m_last_review else None,
-                    "first_learned": m.last_answered.isoformat() if (m and m.last_answered) else None,
+                    "first_learned": m.last_answered.isoformat() if (m and m.state > 0 and m.last_answered) else None,
                     "last_reviewed": m_last_review.isoformat() if m_last_review else None,
                     "intervals": intervals
                 },
@@ -1823,7 +1861,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
                 .where(
                     DeckAttempt.user_id == user_id,
-                    DeckAttempt.deck_id == deck_id
+                    DeckAttempt.deck_id == deck_id,
+                    DeckAttempt.mode.in_(["sequential", "roadmap", "play", "fsrs", "new", "review"])
                 )
                 .group_by(UserAnswer.card_id)
                 .having(func.min(UserAnswer.created_at) >= today_start)
