@@ -3,6 +3,29 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
+#### Đồng Bộ Hóa Toàn Diện Chế Độ Học Trên Bản Đồ Thẻ (Card Map) & Khắc Phục Triệt Để Lỗi Phân Nhóm Cột (Sub-Lesson Grouping)
+- **Đồng bộ hóa nhãn chế độ học (Mode Taxonomy Harmonization)**:
+  - **Khắc phục lỗi "lúc ghi FLIP, lúc ghi SKIM"**:
+    - Trong `QuestionMapGrid.tsx`, nhãn ô thẻ sau khi học lướt (`selectedOptIdx === -2`) trước đây bị gán cứng là `"FLIP"`, trong khi thanh lọc là `"Skimmed"` và ô thẻ chưa lướt là `"Skim"`. Đã chuẩn hóa nhãn ô thẻ sang `"SKIM"` đồng bộ 100%.
+    - Trong `PlaySettingsModal.tsx`, đổi tùy chọn `"Quick Flip"` (id `'flip'`) sang chuẩn `"Speed Skim"` (id `'skim'`) với biểu tượng sấm sét `Zap` (⚡) và mô tả `"Rapid 1-tap card review (+3 XP)"`.
+    - Chuẩn hóa bộ quy ước danh xưng trên toàn bộ ứng dụng: `FSRS Spaced Repetition` (🧠 `AGAIN`/`HARD`/`GOOD`/`EASY`), `Speed Skim` (⚡ `SKIM`), `Learn New Cards` (✨ `NEW`), `Continuous Review` (📚 `REVIEW`), `Auto Play` (🎧 `AUTO`).
+- **Khắc phục triệt để lỗi Grouping tự động bật sai khi người dùng không kích hoạt**:
+  - **Nguyên nhân**:
+    - Trong `QuestionMapGrid.tsx`, thanh `Grouping Bar` trước đây hiển thị vô điều kiện khi `availableColumns.length > 0`, hoàn toàn không kiểm tra cờ `sub_lesson_grouping.enabled`.
+    - Khi không bật grouping, hệ thống tự động bốc cột đầu tiên theo thứ tự bảng chữ cái A-Z (`availableColumns[0]`), dẫn đến việc tự chọn nhầm cột không liên quan (như `antonym`, `câu ví dụ`...).
+  - **Giải pháp**:
+    - Trong `QuestionMapGrid.tsx`, cờ `isGroupingConfigured` chỉ kích hoạt khi người dùng đang học session phân nhóm (`sub_col` trên URL) hoặc tác giả bộ thẻ chủ động bật `sub_lesson_grouping.enabled = true` trong Deck Settings.
+    - Bổ sung tùy chọn `None (All Cards)` trong dropdown chọn cột của Card Map. Khi không bật group, hệ thống giữ nguyên danh sách phẳng (Flat List) tự nhiên từ 1 đến N.
+    - Nếu người học muốn gom nhóm linh hoạt trên Card Map, chỉ cần chọn một cột bất kỳ từ dropdown $\rightarrow$ Map sẽ mở thanh lọc nhóm tức thì.
+- **Hỗ trợ phân nhóm theo MỌI LOẠI CỘT (Full Dynamic Column Discovery & Intelligent Ordering)**:
+  - **Backend (`features.py`)**:
+    - Thu thập toàn diện tất cả các cột dữ liệu trong `Flashcard.others`, danh sách `custom_columns` từ cấu hình bộ thẻ/Excel, và `question_type`.
+    - Thu hẹp danh sách loại trừ: Chỉ loại bỏ các trường kỹ thuật nội bộ (`id`, `_formulas`, các URL âm thanh/ảnh thô).
+    - Gỡ bỏ hạn mức cứng `val_count <= 300`, cho phép gom nhóm theo mọi cột dữ liệu tùy ý.
+    - Sắp xếp thứ tự ưu tiên thông minh (`column_priority_key`): Các cột bài học kinh điển (`unit`, `lesson`, `chapter`, `bai`, `nhom`, `chuong`, `topic`, `category`, `part_of_speech`, `level`, `type`...) luôn được đưa lên đầu danh sách gợi ý.
+  - **Frontend (`QuestionMapGrid.tsx`)**:
+    - Bộ phát hiện cột cục bộ (Local Discovery) đồng bộ thuật toán ưu tiên bài học và hỗ trợ mọi cột dữ liệu của bộ thẻ.
+
 #### Khắc Phục Triệt Để Lỗi Tự Động Chuyển Thẻ 2s & Lỗi Thẻ Đầu Tiên Bị Random Thứ Tự (Deck Study Defaults Audit)
 - **Khắc phục lỗi "Vào luôn bị auto next 2s"**:
   - **Nguyên nhân**:
