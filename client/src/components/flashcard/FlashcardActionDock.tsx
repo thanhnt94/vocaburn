@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles, Play, Pause, SkipBack, SkipForward, RotateCw, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -33,6 +33,7 @@ export interface FlashcardActionDockProps {
   onOpenMap: () => void
   onOpenFlashcard: () => void
   onOpenStats: () => void
+  onOpenQuickSettings?: () => void
   getFSRSIntervals: (fsrs?: any) => Record<number, string>
 }
 
@@ -65,9 +66,34 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   onOpenMap,
   onOpenFlashcard,
   onOpenStats,
+  onOpenQuickSettings,
   getFSRSIntervals,
   showActionDock = true
 }) => {
+  const touchStartYRef = useRef<number | null>(null)
+  const touchStartXRef = useRef<number | null>(null)
+
+  const handleBarTouchStart = (e: React.TouchEvent | React.PointerEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.PointerEvent).clientY
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.PointerEvent).clientX
+    touchStartYRef.current = clientY
+    touchStartXRef.current = clientX
+  }
+
+  const handleBarTouchEnd = (e: React.TouchEvent | React.PointerEvent) => {
+    if (touchStartYRef.current === null) return
+    const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as React.PointerEvent).clientY
+    const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.PointerEvent).clientX
+    const deltaY = touchStartYRef.current - clientY
+    const deltaX = Math.abs(clientX - (touchStartXRef.current || 0))
+    touchStartYRef.current = null
+    touchStartXRef.current = null
+
+    // Upward swipe threshold: pulled up > 35px, primarily vertical
+    if (deltaY > 35 && deltaY > deltaX * 0.8) {
+      onOpenQuickSettings?.()
+    }
+  }
   if (shouldShowRoadmapStepCompleteScreen || shouldShowFsrsCompleteScreen) return null
   if (mainTab === 'practice' && practiceNeedsSetup) return null
 
@@ -368,8 +394,17 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
           </>
         )}
 
-        {/* Interactive Navigation Tabs (Always Accessible on Mobile) */}
-        <div className="w-full h-12 grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden">
+        {/* Interactive Navigation Tabs (Always Accessible on Mobile) - Swipe up to open Quick Settings */}
+        <div 
+          onTouchStart={handleBarTouchStart}
+          onTouchEnd={handleBarTouchEnd}
+          onPointerDown={handleBarTouchStart}
+          onPointerUp={handleBarTouchEnd}
+          className="w-full h-12 grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden select-none touch-pan-x"
+          title="Swipe up for Quick Settings"
+        >
+          {/* Subtle Pull-up Indicator Pill */}
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300/80 pointer-events-none" />
           {/* 1. Card Map Tab */}
           <button
             onClick={(e) => {

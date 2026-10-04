@@ -4406,6 +4406,9 @@ export default function FlashcardPlay() {
         onOpenStats={() => {
           handleOpenCardHub('stats');
         }}
+        onOpenQuickSettings={() => {
+          setIsFlyToolbarOpen(true);
+        }}
         getFSRSIntervals={getFSRSIntervals}
       />
 
