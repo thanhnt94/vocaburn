@@ -679,7 +679,6 @@ export default function FlashcardPlay() {
     setDragOffset({ x: 0, y: 0 })
     setActiveDragGrade(null)
     setIsFlyingOut(false)
-    setIsFlyToolbarOpen(false)
     cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
   }, [currentIndex, isFlipped])
 

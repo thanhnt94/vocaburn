@@ -427,17 +427,30 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
             }}
           />
 
-          {/* Bottom Drawer Container */}
+          {/* Bottom Drawer Container with Swipe-Down Gesture */}
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_e, info) => {
+              if (info.offset.y > 75 || info.velocity.y > 300) {
+                onClose()
+              }
+            }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2.2rem] border-t border-slate-200/90 shadow-2xl p-4 sm:p-5 pb-6 sm:pb-8 flex flex-col gap-3.5 select-none z-10 max-h-[85vh] overflow-y-auto"
+            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2.2rem] border-t border-slate-200/90 shadow-2xl p-4 sm:p-5 pb-6 sm:pb-8 flex flex-col gap-3.5 select-none z-10 max-h-[85vh] overflow-y-auto touch-pan-y"
           >
-            {/* Drag Handle Bar */}
-            <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto -mt-1 mb-0.5" />
+            {/* Drag Handle Bar & Pull-down Dismiss Area */}
+            <div 
+              className="w-full flex items-center justify-center pt-0.5 pb-2 -mt-2 cursor-grab active:cursor-grabbing touch-none select-none"
+              title="Swipe down to close"
+            >
+              <div className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-colors shadow-2xs" />
+            </div>
 
             {/* Header Bar */}
             <div className="flex items-center justify-between px-1">
