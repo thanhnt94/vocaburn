@@ -3,18 +3,21 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-04]
-#### Tối Ưu Mobile UX Cho Deck Settings: Dải Sub-Tabs Dưới Đáy, Nút Lưu Cố Định Bên Phải & Chuyển Hoàn Toàn Sang Cơ Chế Bấm Nút Lưu
-- **Dải Sub-Tabs Dưới Đáy Trong Tầm Ngón Tay Cái & Ẩn Khối 2 Hàng Trên Mobile (`DeckSettingsTab.tsx` & `DeckDetailPage.tsx`)**:
-  - **Khắc phục lỗi "tab 6 mục 2 dòng rất to và bự trên mobile"**:
-    - Ẩn hoàn toàn khối 6 subtab dạng lưới 3x2 ở đầu trang trên thiết bị di động (`hidden sm:block`). Không gian màn hình mobile được giải phóng hoàn toàn cho nội dung form cài đặt.
-  - **Tích hợp dải chuyển subtab vào thanh cố định dưới đáy (Docked Bottom Subtab Track)**:
-    - **Bên trái**: Dải trượt các tab con mềm mại (`General`, `Columns`, `Study`, `Modes`, `AI & Ruby`, `Audio`) với icon và nhãn ngắn gọn, cuộn mượt mà theo ngón tay cái. Tab đang chọn được làm nổi bật với màu nền đậm (`bg-slate-900 text-white`).
-    - **Bên phải**: Nút bấm **`[💾 Save]`** chuyên dụng cố định, có màu gradient Indigo/Purple nổi bật.
-- **Chuyển hoàn toàn sang cơ chế Bấm Nút Lưu Rõ Ràng (Explicit Save Button Only)**:
-  - Loại bỏ hoàn toàn cơ chế auto-save ngầm theo yêu cầu người dùng, thiết lập tính nhất quán 100% trên toàn bộ các phần:
-    - Trong tab `Columns & Sub-Lessons` ([`DeckSubLessonSettings.tsx`](file:///c:/Users/thanh/OneDrive/CodeHub/Ecosystem/Vocaburn/client/src/components/deck/settings/DeckSubLessonSettings.tsx)): Các thao tác bật/tắt hoặc chọn cột chỉ cập nhật state cục bộ; dữ liệu chỉ được gửi lên máy chủ khi người dùng nhấn nút `Save Sub-Lessons` ở cuối thẻ hoặc nhấn nút `Save` cố định ở góc phải thanh đáy.
-    - Nút `Save` ở góc phải thanh đáy tự động kích hoạt hàm submit chính xác tương ứng cho từng subtab (`deck-general-form`, `btn-save-columns`, `deck-study-defaults-form`, `deck-practice-config-form`, `btn-save-ai-settings`, `btn-save-audio-settings`, `deck-personal-settings-form`).
-  - Giao diện đạt độ trong sáng, tin cậy tuyệt đối: Người dùng luôn biết chắc chắn khi nào cài đặt đã được lưu.
+#### Tối Ưu Kiến Trúc Điều Hướng Deck Settings 2 Tầng: 6 Tab Lĩnh Vực Tinh Gọn Trên Cùng & Dải Mục Con Dưới Đáy Trong Tầm Tay
+- **Khắc phục triệt để tình trạng ôm đồm nhiều chức năng & tối ưu hóa giao diện di động (`DeckDetailPage.tsx`, `DeckSettingsTab.tsx`)**:
+  - **Tầng 1 - Trên Cùng (Top Domain Tabs)**:
+    - 6 tab lĩnh vực chính (`General`, `Columns`, `Study`, `Modes`, `AI & Ruby`, `Audio`) được thiết kế nhỏ gọn, tinh giản, co giãn trên 1 hàng ngang duy nhất (`py-1 px-2.5 text-xs`), loại bỏ hoàn toàn khối 2 hàng cồng kềnh.
+  - **Tầng 2 - Dưới Đáy Trong Tầm Ngón Cái (Docked Bottom Sub-Section Switcher)**:
+    - Thay vì lặp lại 6 tab chính ở dưới đáy, thanh docked bottom giờ đây hiển thị **các mục con (sub-sections) của chính tab đang chọn**:
+      - **Khi ở tab `General`**: Bên trái là dải chuyển mục `[ ⚙️ Basic Info ] [ 👥 Collaborators ] [ 📊 Excel Data ] [ ⚠️ Danger Zone ]`. Người dùng chỉ xem đúng 1 chức năng cần thao tác thay vì phải cuộn màn hình qua 4 khối ôm đồm.
+      - **Khi ở tab `Columns`**: Bên trái là `[ 🗂️ Data Columns ] [ 📑 Sub-Lessons ]`.
+      - **Khi ở tab `Modes`**: Bên trái là `[ 🧠 Flashcard Modes ] [ 🎯 Practice Drills ]`.
+      - **Khi ở tab `AI & Ruby`**: Bên trái là `[ 🪄 AI Prompts ] [ 🈳 Furigana Ruby ]`.
+      - **Khi ở tab `Audio`**: Bên trái là `[ 🔊 Channels ] [ 🎙️ Voice Matrix ] [ ⚡ TTS Studio ]`.
+      - **Khi ở tab `Study`**: Bên trái là `[ 🔖 Card Defaults ]`.
+    - **Bên phải thanh đáy**: Nút **`[ 💾 Save Changes ]`** cố định, đồng bộ lưu dữ liệu chính xác cho mục đang thao tác.
+- **Xóa bỏ hoàn toàn cơ chế tự lưu ngầm (Zero Unannounced Auto-Save)**:
+  - Tất cả các form, cấu hình sub-lessons, AI, audio đều yêu cầu nhấn nút Lưu rõ ràng, mang lại sự tin cậy và minh bạch 100% cho người dùng.
 
 #### Tái Quy Hoạch Cài Đặt Bộ Thẻ (Deck Settings): Tối Giản Study Defaults, Thống Nhất Modes & Sáp Nhập Sub-Lessons Vào Columns
 - **Quy hoạch lại tab Study Defaults (`DeckStudyDefaults.tsx` & `StudySettingsEditor.tsx`)**:

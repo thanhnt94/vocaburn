@@ -25,7 +25,10 @@ import {
   Columns3,
   BookmarkCheck,
   Sliders,
-  Volume2
+  Volume2,
+  Users,
+  FileSpreadsheet,
+  ShieldAlert
 } from 'lucide-react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -143,6 +146,41 @@ export const SETTINGS_SUB_TABS = [
   { id: 'ai', label: 'AI & Ruby', icon: Sparkles },
   { id: 'audio', label: 'Audio', icon: Volume2 },
 ]
+
+export interface InnerSection {
+  id: string
+  label: string
+  icon: any
+}
+
+export const SUBTAB_INNER_SECTIONS: Record<string, InnerSection[]> = {
+  general: [
+    { id: 'info', label: 'Basic Info', icon: SettingsIcon },
+    { id: 'collab', label: 'Collaborators', icon: Users },
+    { id: 'excel', label: 'Excel Data', icon: FileSpreadsheet },
+    { id: 'danger', label: 'Danger Zone', icon: ShieldAlert },
+  ],
+  columns: [
+    { id: 'cols', label: 'Data Columns', icon: Columns3 },
+    { id: 'sublessons', label: 'Sub-Lessons', icon: Layers },
+  ],
+  study: [
+    { id: 'flashcard', label: 'Card Defaults', icon: BookmarkCheck },
+  ],
+  practice: [
+    { id: 'modes', label: 'Flashcard Modes', icon: Sparkles },
+    { id: 'drills', label: 'Practice Drills', icon: Sliders },
+  ],
+  ai: [
+    { id: 'prompts', label: 'AI Prompts', icon: Sparkles },
+    { id: 'ruby', label: 'Furigana Ruby', icon: Sparkles },
+  ],
+  audio: [
+    { id: 'channels', label: 'Channels', icon: Volume2 },
+    { id: 'voices', label: 'Voice Matrix', icon: Volume2 },
+    { id: 'studio', label: 'TTS Studio', icon: Sparkles },
+  ],
+}
 
 export function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -262,11 +300,28 @@ export function DeckDetailPage() {
       const updated = new URLSearchParams(prev)
       updated.set('tab', 'settings')
       updated.delete('scope')
+      updated.delete('section')
       if (newSubTab === 'general') {
         updated.delete('subtab')
       } else {
         updated.set('subtab', newSubTab)
       }
+      return updated
+    }, { replace: true })
+  }
+
+  const handleSelectSection = (newSection: string) => {
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev)
+      updated.set('tab', 'settings')
+      updated.delete('scope')
+      const currentSubTab = updated.get('subtab')
+      if (['excel', 'collab', 'danger'].includes(currentSubTab || '')) {
+        updated.delete('subtab')
+      } else if (currentSubTab === 'sublessons') {
+        updated.set('subtab', 'columns')
+      }
+      updated.set('section', newSection)
       return updated
     }, { replace: true })
   }
@@ -825,18 +880,28 @@ export function DeckDetailPage() {
                 rawSubTab
               ) || 'general'
 
+              const innerSections = SUBTAB_INNER_SECTIONS[activeSubTab] || []
+              const sectionParam = searchParams.get('section')
+              const activeSection = sectionParam || (
+                rawSubTab === 'excel' ? 'excel' :
+                rawSubTab === 'collab' ? 'collab' :
+                rawSubTab === 'danger' ? 'danger' :
+                rawSubTab === 'sublessons' ? 'sublessons' :
+                innerSections[0]?.id || ''
+              )
+
               return (
                 <>
-                  {/* LEFT: SUBTAB SWITCHER (Smooth scrollable pill track in natural thumb reach) */}
+                  {/* LEFT: INNER SUB-SECTION SWITCHER (Smooth scrollable pill track in natural thumb reach) */}
                   <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0">
-                    {SETTINGS_SUB_TABS.map((tab) => {
-                      const Icon = tab.icon
-                      const isActive = activeSubTab === tab.id
+                    {innerSections.map((sec) => {
+                      const Icon = sec.icon
+                      const isActive = activeSection === sec.id
                       return (
                         <button
-                          key={tab.id}
+                          key={sec.id}
                           type="button"
-                          onClick={() => handleSelectSubTab(tab.id)}
+                          onClick={() => handleSelectSection(sec.id)}
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap select-none",
                             isActive
@@ -845,22 +910,22 @@ export function DeckDetailPage() {
                           )}
                         >
                           <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-orange-400" : "text-slate-400")} />
-                          <span>{tab.label}</span>
+                          <span>{sec.label}</span>
                         </button>
                       )
                     })}
                   </div>
 
                   {/* RIGHT: PERSISTENT SAVE BUTTON */}
-                  {isOwner && (
+                  {isOwner && activeSection !== 'danger' && (
                     <button
                       type="button"
                       onClick={handleSaveActiveSubTab}
-                      className="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-500/25 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ml-1"
+                      className="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ml-1"
                       title="Save changes for active settings section"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      <span>Save</span>
+                      <span>Save Changes</span>
                     </button>
                   )}
                 </>

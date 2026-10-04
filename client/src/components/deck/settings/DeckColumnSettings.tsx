@@ -22,6 +22,7 @@ import { DeckSubLessonSettings } from './DeckSubLessonSettings'
 interface DeckColumnSettingsProps {
   deckId: string | number
   isOwner?: boolean
+  hideSubLessons?: boolean
 }
 
 interface ColumnOverviewResponse {
@@ -55,7 +56,7 @@ const POPULAR_COLUMN_SUGGESTIONS = [
   { name: 'notes', label: 'Ghi chú thêm' },
 ]
 
-export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSettingsProps) {
+export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = false }: DeckColumnSettingsProps) {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -643,14 +644,16 @@ export function DeckColumnSettings({ deckId, isOwner = true }: DeckColumnSetting
       </div>
 
       {/* ── SECTION 3: SUB-LESSON GROUPING (PHÂN NHÓM BÀI HỌC CON) ── */}
-      <DeckSubLessonSettings
-        deckId={deckId}
-        onSaved={() => {
-          queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
-          queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
-          queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
-        }}
-      />
+      {!hideSubLessons && (
+        <DeckSubLessonSettings
+          deckId={deckId}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
+            queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
+            queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+          }}
+        />
+      )}
 
       {/* ═══════════ MODAL THÊM CỘT MỚI ═══════════ */}
       <AnimatePresence>

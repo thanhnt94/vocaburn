@@ -17,6 +17,7 @@ export interface DeckAISettingsProps {
   deckId: string | number
   initialSettings: any
   onSaved?: () => void
+  section?: 'prompts' | 'ruby'
 }
 
 const DEFAULT_PRESETS = [
@@ -49,7 +50,7 @@ Bao gồm:
   }
 ]
 
-export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISettingsProps) {
+export function DeckAISettings({ deckId, initialSettings, onSaved, section }: DeckAISettingsProps) {
   const queryClient = useQueryClient()
   const [prompts, setPrompts] = useState<AIPromptItem[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -208,6 +209,8 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
 
   return (
     <div className="space-y-5 text-left">
+      {(!section || section === 'prompts') && (
+      <>
       {/* SECTION 1: PROMPT TEMPLATES & MAPPING */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -475,9 +478,13 @@ export function DeckAISettings({ deckId, initialSettings, onSaved }: DeckAISetti
           </button>
         </div>
       </div>
+      </>
+      )}
 
       {/* ═══════════════ SECTION 3: BULK FURIGANA RUBY GENERATOR ═══════════════ */}
-      <DeckFuriganaSettings deckId={deckId} />
+      {(!section || section === 'ruby') && (
+        <DeckFuriganaSettings deckId={deckId} />
+      )}
     </div>
   )
 }

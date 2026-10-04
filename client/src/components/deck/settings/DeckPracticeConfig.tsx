@@ -36,6 +36,7 @@ export interface DeckPracticeConfigProps {
   deckId: string | number
   initialSettings?: any
   onSaved?: () => void
+  section?: 'modes' | 'drills'
 }
 
 function normalizePair(p: any): QuestionAnswerPair {
@@ -101,7 +102,7 @@ const FLASHCARD_LEARN_MODES = [
   },
 ]
 
-export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPracticeConfigProps) {
+export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }: DeckPracticeConfigProps) {
   const queryClient = useQueryClient()
   const [disabledModes, setDisabledModes] = useState<string[]>([])
   const [defaultLearnMode, setDefaultLearnMode] = useState<LearnModeKey>('fsrs')
@@ -427,6 +428,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
       )}
 
       {/* ═══════════ SECTION 1: FLASHCARD LEARNING MODES ═══════════ */}
+      {(!section || section === 'modes') && (
       <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -536,8 +538,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           })}
         </div>
       </div>
+      )}
 
       {/* ═══════════ SECTION 2: INTERACTIVE PRACTICE DRILLS ═══════════ */}
+      {(!section || section === 'drills') && (
       <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -858,6 +862,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved }: DeckPra
           </div>
         </div>
       </div>
+      )}
 
       {/* Footer Save Button */}
       <div className="pt-2 flex justify-end">

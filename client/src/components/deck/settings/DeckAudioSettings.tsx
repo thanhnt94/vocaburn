@@ -18,6 +18,7 @@ export interface DeckAudioSettingsProps {
   deckId: string | number
   initialSettings: any
   onSaved?: () => void
+  section?: 'channels' | 'voices' | 'studio'
 }
 
 export const LANGUAGE_VOICE_OPTIONS: Record<string, { label: string; voices: { value: string; label: string }[] }> = {
@@ -63,7 +64,7 @@ export const LANGUAGE_VOICE_OPTIONS: Record<string, { label: string; voices: { v
   }
 }
 
-export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudioSettingsProps) {
+export function DeckAudioSettings({ deckId, initialSettings, onSaved, section }: DeckAudioSettingsProps) {
   const queryClient = useQueryClient()
   
   // Dynamic Audio Configs List
@@ -335,6 +336,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
   return (
     <div className="space-y-5 text-left animate-in fade-in duration-200">
       {/* ═══════════════ SECTION 1: AUDIO CONFIGURATIONS LIST ═══════════════ */}
+      {(!section || section === 'channels') && (
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
           <div>
@@ -480,8 +482,11 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           ))}
         </div>
       </div>
+      )}
 
       {/* ═══════════════ SECTION 2: MULTI-LANGUAGE VOICE MATRIX ═══════════════ */}
+      {(!section || section === 'voices') && (
+      <>
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
         <div className="border-b border-slate-100 pb-3">
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
@@ -544,8 +549,11 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* ═══════════════ SAVE CONFIGURATION BUTTON ═══════════════ */}
+      {section !== 'studio' && (
       <div className="flex items-center justify-end gap-3 pt-2">
         <button
           id="btn-save-audio-settings"
@@ -562,8 +570,10 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           <span>{isSaving ? 'ĐANG LƯU CẤU HÌNH...' : 'LƯU TOÀN BỘ CẤU HÌNH AUDIO'}</span>
         </button>
       </div>
+      )}
 
       {/* ═══════════════ SECTION 4: BATCH TTS GENERATOR STUDIO ═══════════════ */}
+      {(!section || section === 'studio') && (
       <div className="bg-gradient-to-br from-sky-50/70 via-indigo-50/40 to-slate-50 rounded-3xl p-5 sm:p-6 border border-sky-100 shadow-xs space-y-4">
         <div className="border-b border-sky-100/80 pb-3 flex items-center justify-between flex-wrap gap-2">
           <div>
@@ -667,6 +677,7 @@ export function DeckAudioSettings({ deckId, initialSettings, onSaved }: DeckAudi
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }
