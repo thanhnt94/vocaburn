@@ -76,7 +76,8 @@ class RoadmapService:
         settings: dict,
         target_date_str: Optional[str] = None
     ) -> dict:
-        deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
+        deck_obj = await db.get(FlashcardDeck, deck_id)
+        deck_practice_settings = (deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}) or (settings.get("practice_settings") if isinstance(settings.get("practice_settings"), dict) else {})
         disabled_modes = deck_practice_settings.get("disabled_modes") or []
         if not isinstance(disabled_modes, list):
             disabled_modes = []
