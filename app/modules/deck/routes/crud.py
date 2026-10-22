@@ -475,6 +475,11 @@ async def archive_deck(request: Request, deck_id: int, db: AsyncSession = Depend
         for attempt in attempts:
             attempt.is_archived = new_status
         await db.commit()
+    else:
+        # Create an attempt record to mark it as archived
+        att = DeckAttempt(user_id=user_id, deck_id=deck_id, is_archived=True, mode="sequential")
+        db.add(att)
+        await db.commit()
     return {"status": "ok"}
 
 @router.delete("/{deck_id}")

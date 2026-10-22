@@ -63,7 +63,17 @@ function CompactRoadmapCard({
   const s2 = st.stage_2_done
   const nUrl = st.next_action_url
   const deckStreak = st.streak || deck.streak || 0
+  const disabledModes = (st.disabled_modes || deck.practice_settings?.disabled_modes || deck.disabled_modes || []) as string[]
+  const isPracticeDisabled = Boolean(
+    st.is_practice_disabled ||
+    deck.is_practice_disabled ||
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice') ||
+    ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m)) ||
+    (['mcq', 'typing'].every(m => disabledModes.includes(m)))
+  )
   const mcqStep = st.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing')
+  const hasMcqStep = !isPracticeDisabled && Boolean(mcqStep)
   const mcqTarget = mcqStep?.question_count || st.roadmap_daily_new || (nT > 0 ? nT : 20)
   const mcqDone = s2 
     ? mcqTarget 
@@ -118,8 +128,8 @@ function CompactRoadmapCard({
         <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
 
-      {/* 3 Step Badges */}
-      <div className="grid grid-cols-3 gap-1.5">
+      {/* Step Badges (2 or 3 columns depending on practice) */}
+      <div className={cn("grid gap-1.5", hasMcqStep ? "grid-cols-3" : "grid-cols-2")}>
         <button
           type="button"
           onClick={() => {
@@ -135,42 +145,44 @@ function CompactRoadmapCard({
           <span className="text-[9px] opacity-80">({nL}/{nT})</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (!s1) return
-            const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
-            navigate(testUrl)
-          }}
-          className={cn(
-            "px-2 py-1 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition-all",
-            s2 
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer" 
-              : s1 
-              ? "bg-amber-50/70 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer" 
-              : "bg-slate-50 text-slate-400 border-slate-200/60 cursor-not-allowed opacity-60"
-          )}
-        >
-          <span>{s2 ? '✓' : '2.'} Quiz</span>
-          <span className="text-[9px] opacity-80">({mcqDone}/{mcqTarget})</span>
-        </button>
+        {hasMcqStep && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!s1) return
+              const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
+              navigate(testUrl)
+            }}
+            className={cn(
+              "px-2 py-1 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition-all",
+              s2 
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer" 
+                : s1 
+                ? "bg-amber-50/70 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer" 
+                : "bg-slate-50 text-slate-400 border-slate-200/60 cursor-not-allowed opacity-60"
+            )}
+          >
+            <span>{s2 ? '✓' : '2.'} Quiz</span>
+            <span className="text-[9px] opacity-80">({mcqDone}/{mcqTarget})</span>
+          </button>
+        )}
 
         <button
           type="button"
           onClick={() => {
-            if (!s1 || !s2) return
+            if (!s1 || (hasMcqStep && !s2)) return
             navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)
           }}
           className={cn(
             "px-2 py-1 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition-all",
             st.all_done 
               ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer" 
-              : s2 
+              : (hasMcqStep ? s2 : s1) 
               ? "bg-purple-50/70 text-purple-700 border-purple-200 hover:bg-purple-100 cursor-pointer" 
               : "bg-slate-50 text-slate-400 border-slate-200/60 cursor-not-allowed opacity-60"
           )}
         >
-          <span>{st.all_done ? '✓' : '3.'} FSRS</span>
+          <span>{st.all_done ? '✓' : (hasMcqStep ? '3.' : '2.')} FSRS</span>
           <span className="text-[9px] opacity-80">({rDn}/{rD})</span>
         </button>
       </div>
@@ -260,9 +272,24 @@ function DetailedRoadmapCard({
   const s2 = st.stage_2_done
   const nUrl = st.next_action_url
 
+  const disabledModes = (st.disabled_modes || deck.practice_settings?.disabled_modes || deck.disabled_modes || []) as string[]
+  const isPracticeDisabled = Boolean(
+    st.is_practice_disabled ||
+    deck.is_practice_disabled ||
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice') ||
+    ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m)) ||
+    (['mcq', 'typing'].every(m => disabledModes.includes(m)))
+  )
+
   const newPct = nT > 0 ? Math.min(100, Math.round((nL / nT) * 100)) : 100
   const revPct = rD > 0 ? Math.min(100, Math.round((rDn / rD) * 100)) : 100
   const mcqStep = st.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing')
+  const hasMcqStep = !isPracticeDisabled && Boolean(mcqStep)
+  const hasReviewStep = Boolean(st.pipeline?.some((p: any) => p.type === 'fsrs_review')) || (rD > 0)
+  const totalStepsCount = 1 + (hasMcqStep ? 1 : 0) + (hasReviewStep ? 1 : 0)
+  const stepsCompletedCount = (s1 ? 1 : 0) + (hasMcqStep && s2 ? 1 : 0) + (st.all_done ? 1 : 0)
+
   const mcqTarget = mcqStep?.question_count || st.roadmap_daily_new || (nT > 0 ? nT : 20)
   const mcqDone = s2 
     ? mcqTarget 
@@ -321,8 +348,6 @@ function DetailedRoadmapCard({
       estimatedDateText = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     }
   }
-
-  const stepsCompletedCount = (s1 ? 1 : 0) + (s2 ? 1 : 0) + (st.all_done ? 1 : 0)
 
   return (
     <div className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full">
@@ -449,22 +474,24 @@ function DetailedRoadmapCard({
               <Brain className="w-4.5 h-4.5 text-white" />
             </button>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onOpenStudyModal({
-                  id: deck.deck_id,
-                  title: deck.title,
-                  questions_count: st.total_cards || deck.questions_count || 0,
-                  practice_settings: deck.practice_settings
-                }, 'practice')
-              }}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
-              title="Practice Quiz"
-            >
-              <Trophy className="w-4.5 h-4.5 text-white" />
-            </button>
+            {!isPracticeDisabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onOpenStudyModal({
+                    id: deck.deck_id,
+                    title: deck.title,
+                    questions_count: st.total_cards || deck.questions_count || 0,
+                    practice_settings: deck.practice_settings || st.practice_settings
+                  }, 'practice')
+                }}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-white/50 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+                title="Practice Quiz"
+              >
+                <Trophy className="w-4.5 h-4.5 text-white" />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -479,11 +506,11 @@ function DetailedRoadmapCard({
         </div>
 
         <div className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 text-[10px] sm:text-[11px] font-bold">
-          <span>{stepsCompletedCount}/3 completed</span>
+          <span>{stepsCompletedCount}/{totalStepsCount} completed</span>
         </div>
       </div>
 
-      {/* 3 Steps Timeline Connectors */}
+      {/* Steps Timeline Connectors */}
       <div className="flex flex-col gap-2 relative pt-0.5 shrink-0">
         {/* Step 1 */}
         <div className="flex items-center gap-3.5 relative">
@@ -538,103 +565,130 @@ function DetailedRoadmapCard({
           </div>
         </div>
 
-        {/* Step 2 */}
-        <div className="flex items-center gap-3.5 relative">
-          <div className={cn(
-            "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
-            s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500 scale-105 ring-2 ring-amber-200" : "bg-slate-200 text-slate-400"
-          )}>
-            {s2 ? '✓' : '2'}
-          </div>
-
-          <div 
-            onClick={() => {
-              if (!s1) return
-              if (window.navigator?.vibrate) window.navigator.vibrate(8)
-              const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
-              navigate(testUrl)
-            }}
-            title={!s1 ? "Complete Step 1 (Learn New Words) first" : s2 ? "Target achieved! Tap to review or retake test" : "Start MCQ test"}
-            className={cn(
-              "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
-              !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
-              s2 ? "border-emerald-200/90 bg-emerald-50/20" : s1 ? "border-amber-300/90 bg-amber-50/20 hover:border-amber-400" : ""
-            )}
-          >
+        {/* Step 2 (MCQ Quiz) - Only rendered if practice mode is enabled */}
+        {hasMcqStep && (
+          <div className="flex items-center gap-3.5 relative">
             <div className={cn(
-              "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-              s2 ? "border-r-emerald-100" : s1 ? "border-r-amber-200" : "border-r-slate-200/60"
-            )} />
-
-            <div className={cn(
-              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
-              s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
+              "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
+              s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500 scale-105 ring-2 ring-amber-200" : "bg-slate-200 text-slate-400"
             )}>
-              {mcqStep?.type === 'typing' ? (
-                <Keyboard className="w-4.5 h-4.5" />
-              ) : (
-                <FileText className="w-4.5 h-4.5" />
-              )}
+              {s2 ? '✓' : '2'}
             </div>
 
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                  {mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz'}
-                </span>
-                {s2 && (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+            <div 
+              onClick={() => {
+                if (!s1) return
+                if (window.navigator?.vibrate) window.navigator.vibrate(8)
+                const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
+                navigate(testUrl)
+              }}
+              title={!s1 ? "Complete Step 1 (Learn New Words) first" : s2 ? "Target achieved! Tap to review or retake test" : "Start MCQ test"}
+              className={cn(
+                "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
+                !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
+                s2 ? "border-emerald-200/90 bg-emerald-50/20" : s1 ? "border-amber-300/90 bg-amber-50/20 hover:border-amber-400" : ""
+              )}
+            >
+              <div className={cn(
+                "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
+                s2 ? "border-r-emerald-100" : s1 ? "border-r-amber-200" : "border-r-slate-200/60"
+              )} />
+
+              <div className={cn(
+                "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+                s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
+              )}>
+                {mcqStep?.type === 'typing' ? (
+                  <Keyboard className="w-4.5 h-4.5" />
+                ) : (
+                  <FileText className="w-4.5 h-4.5" />
                 )}
               </div>
 
-              <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                <span className={cn("text-xs sm:text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
-                <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} questions</span>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                    {mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz'}
+                  </span>
+                  {s2 && (
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+                  )}
+                </div>
+
+                <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
+                  <span className={cn("text-xs sm:text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
+                  <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} questions</span>
+                </div>
+
+                {s1 && (
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+                    <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
+                  </div>
+                )}
               </div>
 
-              {s1 && (
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                  <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
-                </div>
-              )}
-            </div>
-
-            <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
-              <ChevronRight className="w-4 h-4" />
+              <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+                <ChevronRight className="w-4 h-4" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Step 3 */}
+        {/* FSRS Review Step */}
         <div className="flex items-center gap-3.5 relative">
           <div className={cn(
             "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
-            st.all_done ? "bg-emerald-500" : s2 ? "bg-gradient-to-tr from-purple-500 to-indigo-600 scale-105 ring-2 ring-purple-200" : "bg-slate-200 text-slate-400"
+            st.all_done 
+              ? "bg-emerald-500" 
+              : (hasMcqStep ? s2 : s1) 
+              ? "bg-gradient-to-tr from-purple-500 to-indigo-600 scale-105 ring-2 ring-purple-200" 
+              : "bg-slate-200 text-slate-400"
           )}>
-            {st.all_done ? '✓' : '3'}
+            {st.all_done ? '✓' : (hasMcqStep ? '3' : '2')}
           </div>
 
           <div 
             onClick={() => {
-              if (!s1 || !s2) return
+              const isLocked = !s1 || (hasMcqStep && !s2)
+              if (isLocked) return
               if (window.navigator?.vibrate) window.navigator.vibrate(8)
               navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)
             }}
-            title={!s1 || !s2 ? "Complete Steps 1 & 2 first" : st.all_done ? "All steps finished! Tap to review again" : "Start FSRS review"}
+            title={
+              (!s1 || (hasMcqStep && !s2)) 
+                ? (hasMcqStep ? "Complete Steps 1 & 2 first" : "Complete Step 1 (Learn New Words) first") 
+                : st.all_done 
+                ? "All steps finished! Tap to review again" 
+                : "Start FSRS review"
+            }
             className={cn(
               "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
-              !s1 || !s2 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
-              st.all_done ? "border-emerald-200/90 bg-emerald-50/20" : s2 ? "border-purple-300/90 bg-purple-50/20 hover:border-purple-400" : ""
+              (!s1 || (hasMcqStep && !s2)) 
+                ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" 
+                : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
+              st.all_done 
+                ? "border-emerald-200/90 bg-emerald-50/20" 
+                : (hasMcqStep ? s2 : s1) 
+                ? "border-purple-300/90 bg-purple-50/20 hover:border-purple-400" 
+                : ""
             )}
           >
             <div className={cn(
               "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-              st.all_done ? "border-r-emerald-100" : s2 ? "border-r-purple-200" : "border-r-slate-200/60"
+              st.all_done 
+                ? "border-r-emerald-100" 
+                : (hasMcqStep ? s2 : s1) 
+                ? "border-r-purple-200" 
+                : "border-r-slate-200/60"
             )} />
 
             <div className={cn(
               "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
-              st.all_done ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s2 ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
+              st.all_done 
+                ? "bg-emerald-50 border-emerald-100 text-emerald-600" 
+                : (hasMcqStep ? s2 : s1) 
+                ? "bg-purple-50 border-purple-200 text-purple-600" 
+                : "bg-slate-100 border-slate-200/60 text-slate-400"
             )}>
               <RotateCcw className="w-4.5 h-4.5" />
             </div>
@@ -648,11 +702,11 @@ function DetailedRoadmapCard({
               </div>
 
               <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                <span className={cn("text-xs sm:text-sm font-black", s2 ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
+                <span className={cn("text-xs sm:text-sm font-black", (hasMcqStep ? s2 : s1) ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
                 <span className="text-slate-400 font-medium text-xs">/ {rD} cards</span>
               </div>
 
-              {s2 && (
+              {(hasMcqStep ? s2 : s1) && (
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
                   <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all" style={{ width: `${revPct}%` }} />
                 </div>
@@ -669,7 +723,7 @@ function DetailedRoadmapCard({
       {/* Bottom CTA Action Button */}
       <div className="pt-0.5 shrink-0">
         {st.all_done ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
             <button
               type="button"
               onClick={() => {
@@ -678,7 +732,7 @@ function DetailedRoadmapCard({
                   id: deck.deck_id,
                   title: deck.title,
                   questions_count: st.total_cards || deck.questions_count || 0,
-                  practice_settings: deck.practice_settings
+                  practice_settings: deck.practice_settings || st.practice_settings
                 }, 'flashcard')
               }}
               className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
@@ -696,31 +750,33 @@ function DetailedRoadmapCard({
               </div>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (window.navigator?.vibrate) window.navigator.vibrate(12)
-                onOpenStudyModal({
-                  id: deck.deck_id,
-                  title: deck.title,
-                  questions_count: st.total_cards || deck.questions_count || 0,
-                  practice_settings: deck.practice_settings
-                }, 'practice')
-              }}
-              className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
-            >
-              <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                <Trophy className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
-                  Practice Quiz
-                </span>
-                <span className="text-[10px] text-emerald-100 font-medium block truncate">
-                  MCQ / Typing
-                </span>
-              </div>
-            </button>
+            {!isPracticeDisabled && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.navigator?.vibrate) window.navigator.vibrate(12)
+                  onOpenStudyModal({
+                    id: deck.deck_id,
+                    title: deck.title,
+                    questions_count: st.total_cards || deck.questions_count || 0,
+                    practice_settings: deck.practice_settings || st.practice_settings
+                  }, 'practice')
+                }}
+                className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
+              >
+                <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                  <Trophy className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
+                    Practice Quiz
+                  </span>
+                  <span className="text-[10px] text-emerald-100 font-medium block truncate">
+                    MCQ / Typing
+                  </span>
+                </div>
+              </button>
+            )}
           </div>
         ) : (
           <button
@@ -739,16 +795,16 @@ function DetailedRoadmapCard({
               <span className="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-white leading-tight">
                 {!s1
                   ? 'LEARN NEW WORDS'
-                  : !s2
+                  : (!s2 && hasMcqStep)
                   ? 'TAKE MCQ QUIZ'
                   : 'FSRS REVIEW'}
               </span>
               <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium">
                 {!s1
                   ? `Step 1: ${nT - nL} new cards remaining`
-                  : !s2
+                  : (!s2 && hasMcqStep)
                   ? 'Step 2: Score >= 80% to pass'
-                  : `Step 3: ${dueRemaining} cards due for review`}
+                  : `Step ${hasMcqStep ? 3 : 2}: ${dueRemaining} cards due for review`}
               </span>
             </div>
 
@@ -948,15 +1004,17 @@ export function DashboardRoadmapSection({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            <button
-              type="button"
-              onClick={() => navigate('/roadmap')}
-              className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-              title="Open Roadmap Hub & Freeze/Unfreeze Decks"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Roadmap Hub</span>
-            </button>
+            {isDesktop && (
+              <button
+                type="button"
+                onClick={() => navigate('/roadmap')}
+                className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                title="Open Roadmap Hub & Freeze/Unfreeze Decks"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Roadmap Hub</span>
+              </button>
+            )}
             {onOpenCustomize && isDesktop && (
               <button
                 type="button"
@@ -1008,15 +1066,17 @@ export function DashboardRoadmapSection({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            <button
-              type="button"
-              onClick={() => navigate('/roadmap')}
-              className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-              title="Open Roadmap Hub & Freeze/Unfreeze Decks"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Roadmap Hub</span>
-            </button>
+            {isDesktop && (
+              <button
+                type="button"
+                onClick={() => navigate('/roadmap')}
+                className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                title="Open Roadmap Hub & Freeze/Unfreeze Decks"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Roadmap Hub</span>
+              </button>
+            )}
             {onOpenCustomize && isDesktop && (
               <button
                 type="button"
@@ -1111,14 +1171,16 @@ export function DashboardRoadmapSection({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
-          <Link
-            to="/roadmap"
-            className="text-xs font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
-            title="Open Roadmap Hub & Freeze/Unfreeze Decks"
-          >
-            <Compass className="w-3 h-3" />
-            <span>Roadmap Hub</span>
-          </Link>
+          {isDesktop && (
+            <Link
+              to="/roadmap"
+              className="text-xs font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
+              title="Open Roadmap Hub & Freeze/Unfreeze Decks"
+            >
+              <Compass className="w-3 h-3" />
+              <span>Roadmap Hub</span>
+            </Link>
+          )}
 
           {onOpenCustomize && isDesktop && (
             <button

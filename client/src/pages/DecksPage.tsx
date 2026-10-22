@@ -243,7 +243,7 @@ export default function DecksPage() {
     if (!data) return []
     if (activeTab === 'folders') return []
     const quizzes = (data[`${activeTab}_quizzes` as keyof DashboardData] || []) as Quiz[]
-    return quizzes.filter(q => {
+    const list = quizzes.filter(q => {
       const matchesSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             (q.creator_name && q.creator_name.toLowerCase().includes(searchQuery.toLowerCase()))
       const matchesTag = !activeTag || q.tags?.includes(activeTag)
@@ -272,6 +272,21 @@ export default function DecksPage() {
       }
 
       return matchesSearch && matchesTag && matchesStatus && matchesFolder
+    })
+
+    // Sort by most recently studied first, fallback to created_at desc, fallback to id desc
+    return list.sort((a, b) => {
+      const timeA = a.last_studied_at ? new Date(a.last_studied_at).getTime() : 0
+      const timeB = b.last_studied_at ? new Date(b.last_studied_at).getTime() : 0
+      if (timeA !== timeB) {
+        return timeB - timeA
+      }
+      const createdA = a.created_at ? new Date(a.created_at).getTime() : 0
+      const createdB = b.created_at ? new Date(b.created_at).getTime() : 0
+      if (createdA !== createdB) {
+        return createdB - createdA
+      }
+      return b.id - a.id
     })
   }, [data, activeTab, searchQuery, activeTag, statusFilter, activeFolderId, folders])
 
@@ -313,6 +328,18 @@ export default function DecksPage() {
   const roadmapStepText = selectedRoadmapStatus?.pipeline?.length
     ? `Step ${(selectedRoadmapStatus.current_step_index ?? 0) + 1}/${selectedRoadmapStatus.pipeline.length}`
     : 'Step 1/3'
+
+  const isSelectedDeckPracticeDisabled = useMemo(() => {
+    if (!selectedDeck) return false
+    const ps = selectedDeck.practice_settings || {}
+    const disabled = (ps.disabled_modes || []) as string[]
+    return (
+      disabled.includes('practice') ||
+      disabled.includes('all_practice') ||
+      ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every((m: string) => disabled.includes(m)) ||
+      (['mcq', 'typing'].every((m: string) => disabled.includes(m)))
+    )
+  }, [selectedDeck])
 
   const tabsConfig: { id: DecksTab; label: string; count: number; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'my', label: 'My Decks', count: data?.my_quizzes?.length || 0, icon: Layers },
@@ -1132,7 +1159,7 @@ export default function DecksPage() {
                     const learned = quiz.learned_count || 0
                     const total = quiz.questions_count || 1
                     const progressPct = quiz.progress_percent ?? Math.min(100, Math.round((learned / total) * 100))
-                    const formattedDate = formatDate(quiz.created_at)
+                    const formattedDate = formatDate(quiz.last_studied_at || quiz.created_at)
                     const deckTheme = getDeckTheme(quiz)
                     const ThemeIcon = deckTheme.icon
                     const hasCover = Boolean(quiz.cover_image)
@@ -1199,14 +1226,48 @@ export default function DecksPage() {
                               )}
                             </div>
 
-                            {/* Right Indicator: Checkmark if selected, subtle Chevron if not */}
-                            {isSelected ? (
-                              <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              </div>
-                            ) : (
-                              <ChevronRight className="w-4.5 h-4.5 text-slate-300 stroke-[2.5] shrink-0" />
-                            )}
+                            {/* Right Indicator: Quick Archive + Checkmark if selected, subtle Chevron if not */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {activeTab === 'my' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (navigator.vibrate) navigator.vibrate(8)
+                                    archiveMutation.mutate(quiz.id)
+                                  }}
+                                  disabled={archiveMutation.isPending}
+                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-amber-200"
+                                  title="Archive deck"
+                                >
+                                  <Archive className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {activeTab === 'archived' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (navigator.vibrate) navigator.vibrate(8)
+                                    archiveMutation.mutate(quiz.id)
+                                  }}
+                                  disabled={archiveMutation.isPending}
+                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-emerald-200"
+                                  title="Restore deck"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {isSelected ? (
+                                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                </div>
+                              ) : (
+                                <ChevronRight className="w-4.5 h-4.5 text-slate-300 stroke-[2.5] shrink-0" />
+                              )}
+                            </div>
                           </div>
 
                           {/* Meta Badges: Cards count, creator, compact date */}
@@ -1322,14 +1383,16 @@ export default function DecksPage() {
                       <Play className="w-4 h-4 fill-current" />
                     </button>
 
-                    {/* Icon Button: Practice */}
-                    <button
-                      onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
-                      className="w-11 h-11 rounded-2xl bg-white hover:bg-orange-50/50 text-slate-700 hover:text-orange-600 border-2 border-orange-100 hover:border-orange-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs border-b-[3px] border-orange-200"
-                      title="Practice Quiz (MCQ)"
-                    >
-                      <Trophy className="w-4 h-4 text-orange-500" />
-                    </button>
+                    {/* Icon Button: Practice (only when practice is enabled) */}
+                    {!isSelectedDeckPracticeDisabled && (
+                      <button
+                        onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
+                        className="w-11 h-11 rounded-2xl bg-white hover:bg-orange-50/50 text-slate-700 hover:text-orange-600 border-2 border-orange-100 hover:border-orange-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs border-b-[3px] border-orange-200"
+                        title="Practice Quiz (MCQ)"
+                      >
+                        <Trophy className="w-4 h-4 text-orange-500" />
+                      </button>
+                    )}
                   </div>
                 ) : (
                   /* Standard Decks OR Completed Roadmap Decks: Study & Practice (Full Width Split Buttons) */
@@ -1354,25 +1417,27 @@ export default function DecksPage() {
                       </button>
                     </div>
 
-                    {/* Practice with Dropdown */}
-                    <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
-                      <button
-                        onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
-                        className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
-                        title="Launch default Practice (MCQ)"
-                      >
-                        <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                        <span className="text-xs font-black truncate">Practice</span>
-                      </button>
-                      <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
-                      <button
-                        onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                        className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                        title="Choose practice mode (MCQ, Typing, Listening)"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                      </button>
-                    </div>
+                    {/* Practice with Dropdown (only when practice is enabled) */}
+                    {!isSelectedDeckPracticeDisabled && (
+                      <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
+                        <button
+                          onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
+                          className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                          title="Launch default Practice (MCQ)"
+                        >
+                          <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                          <span className="text-xs font-black truncate">Practice</span>
+                        </button>
+                        <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
+                        <button
+                          onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                          className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                          title="Choose practice mode (MCQ, Typing, Listening)"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

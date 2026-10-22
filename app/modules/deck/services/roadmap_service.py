@@ -76,14 +76,33 @@ class RoadmapService:
         settings: dict,
         target_date_str: Optional[str] = None
     ) -> dict:
-        deck_obj = await db.get(FlashcardDeck, deck_id)
         deck_practice_settings = deck_obj.practice_settings if (deck_obj and isinstance(deck_obj.practice_settings, dict)) else {}
+        disabled_modes = deck_practice_settings.get("disabled_modes") or []
+        if not isinstance(disabled_modes, list):
+            disabled_modes = []
+        if isinstance(settings.get("disabled_modes"), list):
+            disabled_modes = list(set(disabled_modes + settings.get("disabled_modes")))
+
+        practice_modes_set = {"mcq", "typing", "listening_mcq", "listening_typing"}
+        is_practice_disabled = (
+            "practice" in disabled_modes or
+            "all_practice" in disabled_modes or
+            practice_modes_set.issubset(set(disabled_modes)) or
+            ({"mcq", "typing"}.issubset(set(disabled_modes)))
+        )
 
         raw_pipeline = settings.get("pipeline")
         is_frozen = bool(settings.get("is_frozen", False))
         frozen_at = settings.get("frozen_at")
+        raw_pipeline_list = raw_pipeline if isinstance(raw_pipeline, list) else []
+        pipeline_input = []
+        for st in raw_pipeline_list:
+            stype = st.get("type")
+            if stype in ("mcq", "typing") and (is_practice_disabled or stype in disabled_modes or "practice" in disabled_modes):
+                continue
+            pipeline_input.append(st)
+
         roadmap_active = settings.get("roadmap_active", False) and isinstance(raw_pipeline, list) and len(raw_pipeline) > 0
-        pipeline_input = raw_pipeline if isinstance(raw_pipeline, list) else []
 
         total_cards = await db.scalar(
             select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id)
@@ -590,7 +609,7 @@ class RoadmapService:
         roadmap_daily_new = new_cards_step.get("daily_count", 10) if new_cards_step else 10
 
         test_step = next((st for st in pipeline_processed if st.get("type") in ("mcq", "typing")), None)
-        stage_2_done = test_step["done"] if test_step else False
+        stage_2_done = test_step["done"] if test_step else True
         roadmap_pass_threshold = test_step.get("pass_threshold", 80) if test_step else 80
 
         return {
@@ -605,6 +624,9 @@ class RoadmapService:
             "next_action_label": next_action_label,
             "stage_1_done": stage_1_done,
             "stage_2_done": stage_2_done,
+            "disabled_modes": disabled_modes,
+            "is_practice_disabled": is_practice_disabled,
+            "practice_settings": deck_practice_settings,
             "new_learned_today": new_learned_today,
             "new_target_today": roadmap_daily_new,
             "review_completed_today": review_completed_today,

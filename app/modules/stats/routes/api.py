@@ -153,6 +153,18 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "created_quizzes": created_decks_data
         }
 
+    # Subquery for flashcard study timestamp from mastery
+    subq_mastery = select(
+        Flashcard.deck_id,
+        func.max(func.coalesce(UserCardMastery.last_review, UserCardMastery.last_answered)).label("last_mastery_review")
+    ).join(
+        Flashcard, UserCardMastery.card_id == Flashcard.id
+    ).where(
+        UserCardMastery.user_id == user_id_int
+    ).group_by(
+        Flashcard.deck_id
+    ).subquery()
+
     # Query A: My & Archived Decks
     subq = select(
         DeckAttempt.deck_id,
@@ -172,20 +184,21 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         FlashcardDeck,
         select(func.count(Flashcard.id)).where(Flashcard.deck_id == FlashcardDeck.id).scalar_subquery().label("c_count"),
         subq.c.is_archived,
-        subq.c.last_studied_at
+        subq.c.last_studied_at,
+        subq_mastery.c.last_mastery_review
     ).outerjoin(
         subq, FlashcardDeck.id == subq.c.deck_id
+    ).outerjoin(
+        subq_mastery, FlashcardDeck.id == subq_mastery.c.deck_id
     ).options(
         selectinload(FlashcardDeck.tags)
     ).where(
         or_(
             subq.c.deck_id.is_not(None),
+            subq_mastery.c.deck_id.is_not(None),
             FlashcardDeck.creator_id == user_id_int,
             FlashcardDeck.id.in_(collab_sub)
         )
-    ).order_by(
-        subq.c.last_studied_at.desc().nulls_last(),
-        FlashcardDeck.created_at.desc()
     )
 
     # Query C: Discover Decks
@@ -264,12 +277,23 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
 
     # Map Query A results
     for row in res_a.all():
-        q, count, is_archived, last_studied_at = row
-        deck_dict = format_deck_item(q, count, last_studied_at)
+        q, count, is_archived, last_studied_at, last_mastery_review = row
+        actual_last_studied = last_studied_at
+        if last_mastery_review:
+            if not actual_last_studied or last_mastery_review > actual_last_studied:
+                actual_last_studied = last_mastery_review
+        deck_dict = format_deck_item(q, count, actual_last_studied)
         if is_archived:
             archived_decks_data.append(deck_dict)
         else:
             my_decks_data.append(deck_dict)
+
+    # Sort decks by most recently studied first, fallback to created_at desc
+    def deck_recency_key(d):
+        return (d.get("last_studied_at") or "", d.get("created_at") or "", d.get("id") or 0)
+
+    my_decks_data.sort(key=deck_recency_key, reverse=True)
+    archived_decks_data.sort(key=deck_recency_key, reverse=True)
 
     # Map Query B results
     for row in res_b.all():

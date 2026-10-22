@@ -74,6 +74,9 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                 "description": deck.description,
                 "cover_image": cover_image,
                 "is_frozen": status.get("is_frozen", False),
+                "practice_settings": deck.practice_settings or {},
+                "disabled_modes": status.get("disabled_modes", []),
+                "is_practice_disabled": status.get("is_practice_disabled", False),
                 "status": status
             })
 
