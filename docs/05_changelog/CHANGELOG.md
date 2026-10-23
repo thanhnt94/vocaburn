@@ -2,6 +2,21 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-23]
+#### Tinh Gọn Hệ Thống Toàn Diện: Chuẩn Hóa Thuần FSRS v6, Xóa Bỏ Memrise & Phòng Đấu Multiplayer, Phân Rã God-Files Backend
+- **Chuẩn hóa 100% thuật toán FSRS v6**:
+  - Gỡ bỏ hoàn toàn hệ thống Memrise Gardening (module `memrise`, bảng `memrise_sessions`, `memrise_card_progress`, và các component React liên quan).
+  - Gỡ bỏ thống kê Hộp trí nhớ Leitner 5-Box cũ (`/stats/leitner`). Toàn bộ tỷ lệ phân bổ thẻ bài và độ vững chắc được tính toán thuần túy theo thông số FSRS v6 (`stability >= 21d` cho thẻ Mastered).
+- **Loại bỏ hoàn toàn tính năng Multiplayer / Room**:
+  - Xóa bỏ model và router phòng đấu (`deck_rooms`, `deck_room_participants`, `deck_room_chats`), dọn dẹp các modal và trang kết nối phòng đấu ở frontend.
+- **Phân rã kiến trúc God-Files Backend**:
+  - Bóc tách file khổng lồ `features.py` (~3.051 dòng) thành 5 router/service chuyên biệt (`deck_practice_settings.py`, `card_actions.py`, `deck_excel.py`, `deck_schema.py`, `deck_automation.py`).
+  - Bóc tách file `play.py` (~2.414 dòng) thành 3 router chuyên biệt (`play_grading.py`, `play_data.py`, `play_session.py`) và module trợ giúp `play_utils.py`.
+  - Giữ nguyên Router Aggregator cho `features.py` và `play.py` để bảo đảm 100% tương thích ngược cho mọi endpoint hiện hành.
+- **Tự động hóa Migration & Triển khai VPS**:
+  - Tạo migration Alembic `e3f4a5b6c7d8_cleanup_memrise_and_room_tables.py` tự động dọn dẹp các bảng SQLite cũ.
+  - Triển khai thành công lên máy chủ VPS qua Gunicorn HTTP port 5090 với thời gian khởi động lại dưới 1 giây.
+
 ### [2026-10-04]
 #### Tinh Gọn Quick Controls Flashcard: Hợp Nhất FSRS Badges vào Display, Xóa Bỏ Study Shortcuts, Thu Gọn Card Actions & Tách Biệt Cử Chỉ Kéo Cuộn (useDragControls)
 - **Hợp nhất FSRS Badges vào mục `Display & Gestures`**:
