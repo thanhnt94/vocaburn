@@ -44,45 +44,14 @@ import { cn } from '@/lib/utils'
 
 export interface FlashcardFlyToolbarProps {
   isCardSlot?: boolean
-  isFlyToolbarOpen?: boolean
   setIsFlyToolbarOpen: React.Dispatch<React.SetStateAction<boolean>>
   triggerPlayAudio: (e: React.MouseEvent) => void
   isLoadingAudio?: boolean
   isPlayingAudio?: boolean
-  autoPlayAudio?: string
-  setAutoPlayAudio?: (val: any) => void
-  sfxEnabled?: boolean
-  setSfxEnabled?: (val: boolean) => void
-  effectiveAutoAdvance?: boolean
-  autoNextSec?: number
-  onCycleAutoNext?: (nextSec: number) => void
-  setIsAutoAdvance?: (val: boolean) => void
-  setQuickLearnEnabled?: (val: boolean) => void
-  showImages?: any
-  setShowImages?: (val: any) => void
-  randomEnabled?: boolean
-  setRandomEnabled?: (val: boolean) => void
-  onToggleRandom?: (nextVal: boolean) => void
-  isSpeedSkimMode?: boolean
-  showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning') => void
-  isSelectMode?: boolean
-  setIsSelectMode?: React.Dispatch<React.SetStateAction<boolean>>
   currentQuestion?: any
-  handleStarQuestion?: () => void
-  showHintBtn?: boolean
-  showingHint?: boolean
-  setShowingHint?: React.Dispatch<React.SetStateAction<boolean>>
-  showExplainBtn?: boolean
-  justAnswered?: boolean
-  mainTab?: string
-  setShowFeedback?: (val: boolean) => void
-  setIsFeedbackOpen?: (val: boolean) => void
-  showFlipBackBtn?: boolean
   isFlipped?: boolean
-  setIsFlipped?: (val: boolean) => void
   flipSides?: boolean
-  setIsSettingsModalOpen?: (val: boolean) => void
-  onOpenCardHub?: (subTab?: 'stats' | 'insight' | 'note' | 'community') => void
+  showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning') => void
 }
 
 /**
@@ -263,19 +232,13 @@ export interface FlashcardQuickControlsSheetProps {
   autoNextSec?: number
   onCycleAutoNext?: (nextSec: number) => void
   setIsAutoAdvance: (val: boolean) => void
-  setQuickLearnEnabled?: (val: boolean) => void
   showImages: any
   setShowImages: (val: any) => void
   randomEnabled: boolean
   setRandomEnabled: (val: boolean) => void
   onToggleRandom?: (nextVal: boolean) => void
-  isSpeedSkimMode?: boolean
   showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning') => void
-  isSelectMode: boolean
-  setIsSelectMode: React.Dispatch<React.SetStateAction<boolean>>
   currentQuestion: any
-  handleStarQuestion: () => void
-  showFlipBackBtn?: boolean
   isFlipped?: boolean
   setIsFlipped?: (val: boolean) => void
   setIsSettingsModalOpen: (val: boolean) => void
@@ -283,10 +246,6 @@ export interface FlashcardQuickControlsSheetProps {
   onSelectMode?: (mode: string) => void
   ratingMode?: 'both' | 'swipe_4way' | 'buttons'
   onCycleRatingMode?: () => void
-  swipeToRate?: boolean
-  onToggleSwipeToRate?: () => void
-  showActionDock?: boolean
-  onToggleActionDock?: () => void
   hapticEnabled?: boolean
   setHapticEnabled?: (val: boolean) => void
   triggerHaptic?: (type?: any) => void
@@ -297,8 +256,6 @@ export interface FlashcardQuickControlsSheetProps {
   canEdit?: boolean
   onOpenEditModal?: () => void
   onOpenCardHub?: (subTab: 'stats' | 'insight' | 'note' | 'community') => void
-  handleToggleHint?: (e?: React.MouseEvent) => void
-  showingHint?: boolean
   showFsrs?: boolean
   setShowFsrs?: (val: boolean) => void
   cardScope?: 'all' | 'review' | 'new'
@@ -337,19 +294,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   autoNextSec,
   onCycleAutoNext,
   setIsAutoAdvance,
-  setQuickLearnEnabled,
   showImages,
   setShowImages,
   randomEnabled,
   setRandomEnabled,
   onToggleRandom,
-  isSpeedSkimMode,
   showLocalToast,
-  isSelectMode,
-  setIsSelectMode,
   currentQuestion,
-  handleStarQuestion,
-  showFlipBackBtn,
   isFlipped = false,
   setIsFlipped,
   setIsSettingsModalOpen,
@@ -357,10 +308,6 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   onSelectMode,
   ratingMode,
   onCycleRatingMode,
-  swipeToRate = true,
-  onToggleSwipeToRate,
-  showActionDock = true,
-  onToggleActionDock,
   hapticEnabled = true,
   setHapticEnabled,
   triggerHaptic,
@@ -371,8 +318,6 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   canEdit = false,
   onOpenEditModal,
   onOpenCardHub,
-  handleToggleHint,
-  showingHint = false,
   showFsrs = true,
   setShowFsrs,
   cardScope = 'all',
@@ -898,13 +843,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               }
 
               // 2. Rating mode cycle & meta
-              const currentRatingMode: 'both' | 'swipe_4way' | 'buttons' = ratingMode || (
-                showActionDock && swipeToRate
-                  ? 'both'
-                  : showActionDock
-                  ? 'buttons'
-                  : 'swipe_4way'
-              )
+              const currentRatingMode: 'both' | 'swipe_4way' | 'buttons' = ratingMode || 'both'
 
               const ratingModeMeta = (() => {
                 switch (currentRatingMode) {
@@ -939,18 +878,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               })()
 
               const handleCycleRating = () => {
-                if (onCycleRatingMode) {
-                  onCycleRatingMode()
-                  return
-                }
-                if (currentRatingMode === 'both') {
-                  onToggleActionDock?.()
-                } else if (currentRatingMode === 'swipe_4way') {
-                  onToggleSwipeToRate?.()
-                  onToggleActionDock?.()
-                } else {
-                  onToggleSwipeToRate?.()
-                }
+                onCycleRatingMode?.()
               }
 
               // 3. Card Images cycle & meta (Both -> Front -> Back -> Off)
@@ -1295,7 +1223,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               {autoplayMeta.icon}
                             </div>
                             <div className="flex flex-col items-center leading-none gap-0.5">
-                              <span className="text-[9.5px] font-bold tracking-tight">Autoplay</span>
+                              <span className="text-[9.5px] font-bold tracking-tight">Voice Play</span>
                               <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
                                 {autoplayMeta.label}
                               </span>
@@ -1462,8 +1390,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               } else {
                                 const nextVal = !effectiveAutoAdvance
                                 setIsAutoAdvance(nextVal)
-                                if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
-                                showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                                showLocalToast?.(`Next Delay: ${nextVal ? 'ON' : 'OFF'}`, 'info')
                               }
                             }
 
@@ -1477,7 +1404,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                                     ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
                                     : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                                 )}
-                                title={`Auto Next: ${autoBadgeText}`}
+                                title={`Next Delay: ${autoBadgeText}`}
                               >
                                 <div className={cn(
                                   "w-7 h-7 rounded-lg flex items-center justify-center",
@@ -1488,7 +1415,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                                   <Zap className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="flex flex-col items-center leading-none gap-0.5">
-                                  <span className="text-[9.5px] font-bold tracking-tight">Auto Next</span>
+                                  <span className="text-[9.5px] font-bold tracking-tight">Next Delay</span>
                                   <span className={cn(
                                     "text-[8px] font-black uppercase tracking-wider",
                                     isAutoOn ? "text-amber-600" : "text-slate-400"
@@ -1598,30 +1525,26 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </button>
                           ) : null}
 
-                          {/* 6. Rating Buttons Dock Toggle */}
-                          {onToggleActionDock !== undefined ? (
-                            <button
-                              type="button"
-                              onClick={onToggleActionDock}
-                              className={cn(
-                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                                showActionDock
-                                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
-                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                              )}
-                              title={`Rating Buttons Dock: ${showActionDock ? 'SHOWN' : 'HIDDEN'}`}
-                            >
-                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showActionDock ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                                <Layers className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="flex flex-col items-center leading-none gap-0.5">
-                                <span className="text-[9.5px] font-bold tracking-tight">Rating Dock</span>
-                                <span className={cn("text-[8px] font-black uppercase tracking-wider", showActionDock ? "text-indigo-600" : "text-slate-400")}>
-                                  {showActionDock ? "SHOW" : "HIDE"}
-                                </span>
-                              </div>
-                            </button>
-                          ) : null}
+                          {/* 6. All Settings (Deep Deck Configuration Modal) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              setIsSettingsModalOpen(true);
+                            }}
+                            className="flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-indigo-50/70 hover:border-indigo-300 text-slate-700 transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none shadow-2xs group"
+                            title="Open Full Deck Settings (FSRS, Parameters, Audio)"
+                          >
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-slate-200/80 group-hover:bg-indigo-600 text-slate-600 group-hover:text-white transition-colors shadow-2xs">
+                              <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Full Setup</span>
+                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 group-hover:text-indigo-600">
+                                Open
+                              </span>
+                            </div>
+                          </button>
 
                           {/* 7. FSRS Badges */}
                           {setShowFsrs !== undefined ? (

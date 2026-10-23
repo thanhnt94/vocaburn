@@ -3955,52 +3955,17 @@ export default function FlashcardPlay() {
       }
     };
 
-    const showHintBtn = !isFlipped && !!currentQuestion?.hint;
-    const showExplainBtn = isFlipped || mainTab === 'practice' || showFeedback;
-    const showFlipBackBtn = isFlipped && mainTab !== 'practice';
-
     return (
       <FlashcardFlyToolbar
         isCardSlot={isEmbedded}
-        isFlyToolbarOpen={isFlyToolbarOpen}
         setIsFlyToolbarOpen={setIsFlyToolbarOpen}
         triggerPlayAudio={triggerPlayAudio}
         isLoadingAudio={isLoadingAudio}
         isPlayingAudio={isPlayingAudio}
-        autoPlayAudio={autoPlayAudio}
-        setAutoPlayAudio={setAutoPlayAudio}
-        flipSides={flipSides}
-        sfxEnabled={sfxEnabled}
-        setSfxEnabled={setSfxEnabled}
-        effectiveAutoAdvance={effectiveAutoAdvance}
-        autoNextSec={effectiveAutoNextSec}
-        onCycleAutoNext={handleCycleAutoNext}
-        setIsAutoAdvance={setIsAutoAdvance}
-        setQuickLearnEnabled={setQuickLearnEnabled}
-        showImages={showImages}
-        setShowImages={setShowImages}
-        randomEnabled={randomEnabled}
-        setRandomEnabled={setRandomEnabled}
-        onToggleRandom={handleToggleRandom}
-        isSpeedSkimMode={isSpeedSkimMode}
-        showLocalToast={showLocalToast}
-        isSelectMode={isSelectMode}
-        setIsSelectMode={setIsSelectMode}
         currentQuestion={currentQuestion}
-        handleStarQuestion={handleStarQuestion}
-        showHintBtn={showHintBtn}
-        showingHint={showingHint}
-        setShowingHint={setShowingHint}
-        showExplainBtn={showExplainBtn}
-        justAnswered={justAnswered}
-        mainTab={mainTab}
-        setShowFeedback={setShowFeedback}
-        setIsFeedbackOpen={setIsFeedbackOpen}
-        showFlipBackBtn={showFlipBackBtn}
         isFlipped={isFlipped}
-        setIsFlipped={setIsFlipped}
-        setIsSettingsModalOpen={setIsSettingsModalOpen}
-        onOpenCardHub={handleOpenCardHub}
+        flipSides={flipSides}
+        showLocalToast={showLocalToast}
       />
     );
   };
@@ -4678,19 +4643,13 @@ export default function FlashcardPlay() {
         setIsAutoAdvance={(val) => {
           handleCycleAutoNext(val ? (effectiveAutoNextSec > 0 ? effectiveAutoNextSec : 2) : 0);
         }}
-        setQuickLearnEnabled={setQuickLearnEnabled}
         showImages={showImages}
         setShowImages={setShowImages}
         randomEnabled={randomEnabled}
         setRandomEnabled={setRandomEnabled}
         onToggleRandom={handleToggleRandom}
-        isSpeedSkimMode={isSpeedSkimMode}
         showLocalToast={showLocalToast}
-        isSelectMode={isSelectMode}
-        setIsSelectMode={setIsSelectMode}
         currentQuestion={currentQuestion}
-        handleStarQuestion={handleStarQuestion}
-        showFlipBackBtn={isFlipped && mainTab !== 'practice'}
         isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
         setIsSettingsModalOpen={setIsSettingsModalOpen}
@@ -4701,10 +4660,6 @@ export default function FlashcardPlay() {
         }}
         ratingMode={effectiveCardRatingMode}
         onCycleRatingMode={handleCycleRatingMode}
-        swipeToRate={swipeToRate}
-        onToggleSwipeToRate={handleToggleSwipeToRate}
-        showActionDock={showActionDock}
-        onToggleActionDock={handleToggleActionDock}
         hapticEnabled={hapticEnabled}
         setHapticEnabled={setHapticEnabled}
         triggerHaptic={triggerHaptic}
@@ -4715,8 +4670,6 @@ export default function FlashcardPlay() {
         canEdit={canEdit}
         onOpenEditModal={openEditModal}
         onOpenCardHub={handleOpenCardHub}
-        handleToggleHint={handleToggleHint}
-        showingHint={showingHint}
         showFsrs={effectiveShowFsrs}
         setShowFsrs={setShowFsrs}
         cardScope={cardScope}
