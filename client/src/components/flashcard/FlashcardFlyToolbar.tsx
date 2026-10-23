@@ -373,7 +373,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
-  const [quickTab, setQuickTab] = useState<'actions' | 'preferences'>('actions')
+  const [quickTab, setQuickTab] = useState<'actions' | 'preferences'>('preferences')
   const dragControls = useDragControls()
 
   const handleCopyCurrentFace = (e: React.MouseEvent) => {
