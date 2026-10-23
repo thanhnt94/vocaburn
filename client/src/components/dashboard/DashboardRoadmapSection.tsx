@@ -9,7 +9,9 @@ import {
   Brain, 
   Trophy, 
   Sparkles,
-  SlidersHorizontal
+  SlidersHorizontal,
+  User,
+  Calendar
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -150,6 +152,17 @@ export function DashboardRoadmapSection({
   const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
   const isMastered = totalCards > 0 && learnedCards >= totalCards
 
+  // Author & Creation Info
+  const authorName = deck.author || deck.creator_name || deck.creator?.username || (deck.title?.includes('Thảo Lê') ? 'Thảo Lê' : 'Vocaburn Official')
+  const createdAtStr = deck.created_at 
+    ? new Date(deck.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+    : 'Oct 2026'
+  const deckDescription = deck.description || (
+    deck.title?.includes('Danh Động Từ') 
+      ? 'Tổng hợp danh động từ N2 thường gặp trong đề thi JLPT kèm ví dụ và câu hỏi luyện tập FSRS.' 
+      : 'Bộ thẻ từ vựng & ngữ pháp tối ưu hóa theo chu kỳ ngắt quãng FSRS v6 giúp ghi nhớ sâu.'
+  )
+
   // Check if practice quiz disabled
   const disabledModes = (st.disabled_modes || deck.practice_settings?.disabled_modes || deck.disabled_modes || []) as string[]
   const isPracticeDisabled = Boolean(
@@ -168,11 +181,11 @@ export function DashboardRoadmapSection({
   if (isMastered) {
     mascotImg = '/mascot/celebrating.png'
     mascotHeadline = 'All Mastered! 🎉'
-    mascotSubline = 'Outstanding! You have mastered this entire deck.'
+    mascotSubline = 'Outstanding achievement!'
   } else if (dueRemaining === 0 && learnedCards > 0) {
     mascotImg = '/mascot/celebrating.png'
     mascotHeadline = 'All caught up! ✨'
-    mascotSubline = 'Zero reviews due. Ready to learn new words.'
+    mascotSubline = 'Zero reviews pending today.'
   } else if (dueRemaining > 0) {
     mascotImg = '/mascot/excited.png'
     mascotHeadline = `${dueRemaining} cards due for review!`
@@ -259,90 +272,114 @@ export function DashboardRoadmapSection({
           transition={{ duration: 0.2 }}
           className="flex-1 flex flex-col justify-between gap-2.5 min-h-0"
         >
-          {/* ── 2A. HERO MASCOT CARD (LARGE, PROMINENT, GAMIFIED) ── */}
-          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between items-center text-center">
+          {/* ── 2A. HERO STAGE (MASCOT LARGE & ANCHORED RIGHT + RICH LEFT CONTENT) ── */}
+          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-row items-center justify-between min-h-0">
             
-            {/* Ambient Warm Sunburst Glow */}
-            <div className="absolute inset-x-12 top-10 h-44 bg-gradient-to-t from-orange-400/20 via-amber-300/30 to-transparent rounded-full filter blur-2xl pointer-events-none" />
-
-            {/* Top Deck Tag & Streak Strip */}
-            <div className="w-full flex items-center justify-between gap-2 z-10 shrink-0">
-              <Link 
-                to={`/decks/${deck.deck_id ?? deck.id}`}
-                className="flex items-center gap-1.5 min-w-0 max-w-[70%] hover:opacity-85 transition-opacity text-left group/deck"
-              >
-                <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-300/70 text-orange-600 flex items-center justify-center shrink-0 group-hover/deck:scale-105 transition-transform shadow-2xs">
-                  <BookOpen className="w-4 h-4 stroke-[2.4]" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm sm:text-base font-black text-slate-900 truncate group-hover/deck:text-orange-600 transition-colors">
-                      {deck.title}
-                    </h3>
-                    {deck.level && (
-                      <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
-                        {deck.level}
-                      </span>
-                    )}
+            {/* Left Side (~60% width): Title, Author/Date, Description, Streak & Progress */}
+            <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[64%] min-w-0 flex flex-col justify-between h-full py-0.5 text-left">
+              
+              {/* Title & Level Tag */}
+              <div>
+                <Link
+                  to={`/decks/${deck.deck_id ?? deck.id}`}
+                  className="inline-flex items-center gap-1.5 max-w-full group cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-300/70 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+                    <BookOpen className="w-4 h-4 stroke-[2.4]" />
                   </div>
-                </div>
-              </Link>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+                    {deck.title}
+                  </h3>
+                  {deck.level && (
+                    <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
+                      {deck.level}
+                    </span>
+                  )}
+                </Link>
 
-              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Creator & Creation Date Info */}
+                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold mt-1">
+                  <span className="flex items-center gap-1">
+                    <User className="w-3 h-3 text-slate-400" />
+                    <span>By <strong className="text-slate-700 font-black">{authorName}</strong></span>
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-slate-400" />
+                    <span>{createdAtStr}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Deck Description Box */}
+              <div className="bg-white/70 backdrop-blur-xs border border-orange-200/70 rounded-2xl p-2.5 shadow-2xs my-1">
+                <p className="text-[11px] text-slate-600 font-medium leading-relaxed line-clamp-2">
+                  {deckDescription}
+                </p>
+              </div>
+
+              {/* Badges Row: Streak & Total Words */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {streak > 0 && (
-                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs">
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs shrink-0">
                     <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
                     <span>{streak}d Streak</span>
                   </div>
                 )}
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-orange-200/80 text-[10px] font-bold text-slate-600 shadow-2xs">
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-orange-200/80 text-[10px] font-bold text-slate-600 shadow-2xs shrink-0">
                   {totalCards.toLocaleString()} words
                 </span>
               </div>
+
+              {/* Motivation & Mastery Progress Bar */}
+              <div className="space-y-1.5 pt-0.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                  <span className="truncate font-extrabold text-slate-800">{mascotHeadline}</span>
+                  <span className="text-emerald-600 font-black tabular-nums shrink-0">{pct}%</span>
+                </div>
+                
+                <div className="h-2 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/70 shadow-2xs">
+                  <div 
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Centerpiece: Big, Lovable Mascot + Companion Speech Bubble */}
+            {/* Right Side (~40% width): Large 3D Mascot anchored to right & bottom */}
             <div 
               onClick={handleMascotTap}
-              title="Tap the mascot for extra motivation! 🔥"
-              className="relative my-auto flex flex-col items-center justify-center cursor-pointer group py-1.5 z-10"
+              title="Tap Vocaburn mascot for extra motivation! 🔥"
+              className="w-[40%] max-w-[280px] absolute right-0 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
             >
-              {/* Interactive Speech Bubble */}
-              <div className="relative mb-2">
-                <motion.div 
-                  key={mascotCheer || mascotHeadline}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-white/95 backdrop-blur-md border border-orange-200/90 text-slate-800 text-[11px] sm:text-xs font-black py-1.5 px-3.5 rounded-2xl shadow-sm text-center max-w-[240px] flex items-center gap-1.5"
-                >
-                  <span>{mascotCheer || mascotHeadline}</span>
-                  <span className="text-orange-500 text-xs">✨</span>
-                </motion.div>
-                <div className="w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-white mx-auto" />
-              </div>
+              {/* Tap Speech Bubble */}
+              <AnimatePresence>
+                {mascotCheer && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                    className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
+                  >
+                    <div className="relative">
+                      {mascotCheer}
+                      <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Large, Crisp Mascot Illustration */}
+              {/* Large, Beautiful Mascot anchored right as originally designed */}
               <motion.img 
-                src={`${mascotImg}?v=clean_v18`} 
+                key={mascotImg}
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                src={`${mascotImg}?v=clean_v20`} 
                 alt="Vocaburn Mascot" 
-                className="h-[175px] sm:h-[215px] w-auto max-w-full object-contain drop-shadow-2xl select-none transition-transform group-hover:scale-105 active:scale-95"
+                className="h-[105%] max-h-[260px] sm:max-h-[290px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
               />
-            </div>
-
-            {/* Bottom Motivation Headline & Mastery Progress Bar */}
-            <div className="w-full z-10 shrink-0 space-y-2 pt-1 max-w-md mx-auto">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-0.5">
-                <span className="truncate">{mascotSubline}</span>
-                <span className="text-emerald-600 font-black tabular-nums shrink-0">{pct}% Mastered</span>
-              </div>
-
-              {/* Mastery Progress Bar */}
-              <div className="h-2 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/70 shadow-2xs">
-                <div 
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 transition-all duration-500"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
             </div>
           </div>
 
