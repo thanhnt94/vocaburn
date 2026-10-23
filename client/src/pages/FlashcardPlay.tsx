@@ -4660,6 +4660,8 @@ export default function FlashcardPlay() {
         }}
         ratingMode={effectiveCardRatingMode}
         onCycleRatingMode={handleCycleRatingMode}
+        showActionDock={showActionDock}
+        onToggleActionDock={handleToggleActionDock}
         hapticEnabled={hapticEnabled}
         setHapticEnabled={setHapticEnabled}
         triggerHaptic={triggerHaptic}

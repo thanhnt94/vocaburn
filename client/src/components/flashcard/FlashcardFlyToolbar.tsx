@@ -246,6 +246,8 @@ export interface FlashcardQuickControlsSheetProps {
   onSelectMode?: (mode: string) => void
   ratingMode?: 'both' | 'swipe_4way' | 'buttons'
   onCycleRatingMode?: () => void
+  showActionDock?: boolean
+  onToggleActionDock?: () => void
   hapticEnabled?: boolean
   setHapticEnabled?: (val: boolean) => void
   triggerHaptic?: (type?: any) => void
@@ -308,6 +310,8 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   onSelectMode,
   ratingMode,
   onCycleRatingMode,
+  showActionDock = true,
+  onToggleActionDock,
   hapticEnabled = true,
   setHapticEnabled,
   triggerHaptic,
@@ -1525,26 +1529,30 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </button>
                           ) : null}
 
-                          {/* 6. All Settings (Deep Deck Configuration Modal) */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onClose();
-                              setIsSettingsModalOpen(true);
-                            }}
-                            className="flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-indigo-50/70 hover:border-indigo-300 text-slate-700 transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none shadow-2xs group"
-                            title="Open Full Deck Settings (FSRS, Parameters, Audio)"
-                          >
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-slate-200/80 group-hover:bg-indigo-600 text-slate-600 group-hover:text-white transition-colors shadow-2xs">
-                              <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
-                            </div>
-                            <div className="flex flex-col items-center leading-none gap-0.5">
-                              <span className="text-[9.5px] font-bold tracking-tight">Full Setup</span>
-                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 group-hover:text-indigo-600">
-                                Open
-                              </span>
-                            </div>
-                          </button>
+                          {/* 6. Rating Buttons Dock Toggle */}
+                          {onToggleActionDock !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={onToggleActionDock}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                showActionDock
+                                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
+                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                              )}
+                              title={`Rating Buttons Dock: ${showActionDock ? 'SHOWN' : 'HIDDEN'}`}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showActionDock ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                                <Layers className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Rating Dock</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", showActionDock ? "text-indigo-600" : "text-slate-400")}>
+                                  {showActionDock ? "SHOW" : "HIDE"}
+                                </span>
+                              </div>
+                            </button>
+                          ) : null}
 
                           {/* 7. FSRS Badges */}
                           {setShowFsrs !== undefined ? (
