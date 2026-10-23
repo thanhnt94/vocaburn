@@ -22,7 +22,6 @@ import {
   type FolderData
 } from '@/components/deck'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
-import { useRoadmapStatus } from '@/hooks/useRoadmapStatus'
 
 export interface Quiz {
   id: number
@@ -57,7 +56,7 @@ interface DashboardData {
 }
 
 export type DecksTab = 'my' | 'folders' | 'discover' | 'archived'
-export type StatusFilter = 'all' | 'roadmap' | 'learning' | 'unlearned' | 'mastered'
+export type StatusFilter = 'all' | 'learning' | 'unlearned' | 'mastered'
 
 export interface DeckTheme {
   icon: React.ComponentType<{ className?: string }>
@@ -102,7 +101,6 @@ export default function DecksPage() {
   
   // Selection State (Master-Detail matching Home Learning)
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null)
-  const [roadmapMode, setRoadmapMode] = useState<'roadmap' | 'classic'>('roadmap')
 
   // Folder states
   const [activeFolderId, setActiveFolderId] = useState<number | null>(null)
@@ -251,9 +249,7 @@ export default function DecksPage() {
       const pct = q.progress_percent ?? Math.round((learned / total) * 100)
 
       let matchesStatus = true
-      if (statusFilter === 'roadmap') {
-        matchesStatus = Boolean(q.has_roadmap)
-      } else if (statusFilter === 'learning') {
+      if (statusFilter === 'learning') {
         matchesStatus = learned > 0 && pct < 100
       } else if (statusFilter === 'unlearned') {
         matchesStatus = learned === 0
@@ -303,7 +299,6 @@ export default function DecksPage() {
       if (!selectedDeckId || !paginatedData.some(q => q.id === selectedDeckId)) {
         const first = paginatedData[0]
         setSelectedDeckId(first.id)
-        if (first.has_roadmap) setRoadmapMode('roadmap')
       }
     } else {
       setSelectedDeckId(null)
@@ -313,19 +308,6 @@ export default function DecksPage() {
   const selectedDeck = useMemo(() => {
     return paginatedData.find(q => q.id === selectedDeckId) || paginatedData[0] || null
   }, [paginatedData, selectedDeckId])
-
-  const {
-    status: selectedRoadmapStatus,
-    isAllDone: isSelectedRoadmapAllDone,
-    nextActionUrl: selectedRoadmapNextUrl
-  } = useRoadmapStatus(selectedDeck?.has_roadmap ? selectedDeck.id : undefined)
-
-  const isDeckFullyLearned = (selectedDeck?.progress_percent ?? 0) >= 100
-  const isRoadmapCompleted = Boolean(isSelectedRoadmapAllDone || isDeckFullyLearned)
-  const isRoadmapActive = Boolean(selectedDeck?.has_roadmap && !isRoadmapCompleted)
-  const roadmapStepText = selectedRoadmapStatus?.pipeline?.length
-    ? `Step ${(selectedRoadmapStatus.current_step_index ?? 0) + 1}/${selectedRoadmapStatus.pipeline.length}`
-    : 'Step 1/3'
 
   const isSelectedDeckPracticeDisabled = useMemo(() => {
     if (!selectedDeck) return false
@@ -677,7 +659,6 @@ export default function DecksPage() {
                   {/* Status Chips */}
                   {[
                     { id: 'all' as StatusFilter, label: 'All' },
-                    { id: 'roadmap' as StatusFilter, label: '🧭 Roadmap' },
                     { id: 'learning' as StatusFilter, label: '⚡ In Progress' },
                     { id: 'unlearned' as StatusFilter, label: '✨ New' },
                     { id: 'mastered' as StatusFilter, label: '🌟 Mastered' },
@@ -690,9 +671,7 @@ export default function DecksPage() {
                         className={cn(
                           "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none",
                           isSelected
-                            ? st.id === 'roadmap'
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs font-black"
-                              : "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20 font-black"
+                            ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20 font-black"
                             : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
                         )}
                       >
@@ -1176,7 +1155,6 @@ export default function DecksPage() {
                             navigate(`/decks/${quiz.id}`)
                           } else {
                             setSelectedDeckId(quiz.id)
-                            if (quiz.has_roadmap) setRoadmapMode('roadmap')
                           }
                         }}
                         className={cn(
@@ -1214,14 +1192,6 @@ export default function DecksPage() {
                               <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight truncate">
                                 {quiz.title}
                               </h4>
-                              {quiz.has_roadmap && (
-                                <span 
-                                  className="inline-flex items-center justify-center w-5 h-5 rounded-lg bg-teal-50 border border-teal-200/80 text-teal-600 shrink-0 shadow-2xs"
-                                  title="Smart daily roadmap enabled"
-                                >
-                                  <Compass className="w-3 h-3 text-teal-600" />
-                                </span>
-                              )}
                             </div>
 
                             {/* Right Indicator: Quick Archive + Checkmark if selected, subtle Chevron if not */}
@@ -1353,92 +1323,49 @@ export default function DecksPage() {
         <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2">
             {activeTab === 'my' && (
-              <>
-                {/* Single Row Actions: If roadmap is active and has steps today, show long Roadmap Hero CTA with Step info + 2 compact icon buttons (Study & Practice) */}
-                {isRoadmapActive ? (
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
-                    {/* Main Long Roadmap Hero Button with Step */}
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                {/* Study */}
+                <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
+                  <button
+                    onClick={() => handleLaunchDefaultStudy(selectedDeck)}
+                    className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                    title="Launch default study mode"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                    <span className="text-xs font-black truncate">Study</span>
+                  </button>
+                  <div className="w-[1px] h-5 bg-white/25 shrink-0" />
+                  <button
+                    onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
+                    className="h-11 px-2.5 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                    title="Choose study mode (FSRS, Flip, Review, New)"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                </div>
+
+                {/* Practice with Dropdown (only when practice is enabled) */}
+                {!isSelectedDeckPracticeDisabled && (
+                  <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
                     <button
-                      onClick={() => navigate(selectedRoadmapNextUrl || `/decks/${selectedDeck.id}?tab=roadmap`)}
-                      className="flex-1 min-w-0 h-11 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-between gap-1.5 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
-                      title="Continue daily roadmap"
+                      onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
+                      className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
+                      title="Launch default Practice (MCQ)"
                     >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Compass className="w-4 h-4 sm:w-4.5 sm:h-4.5 animate-spin-slow shrink-0" />
-                        <span className="truncate">Continue Roadmap</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-lg bg-black/20 backdrop-blur-xs text-[10px] sm:text-[11px] font-mono font-black shrink-0 tracking-wide border border-white/15">
-                        {roadmapStepText}
-                      </span>
+                      <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                      <span className="text-xs font-black truncate">Practice</span>
                     </button>
-
-                    {/* Icon Button: Study */}
+                    <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
                     <button
-                      onClick={() => handleLaunchDefaultStudy(selectedDeck)}
-                      className="w-11 h-11 rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-xs border-b-[3px] border-[#c44e00]"
-                      title="Study Flashcards (FSRS)"
+                      onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
+                      className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                      title="Choose practice mode (MCQ, Typing, Listening)"
                     >
-                      <Play className="w-4 h-4 fill-current" />
+                      <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
-
-                    {/* Icon Button: Practice (only when practice is enabled) */}
-                    {!isSelectedDeckPracticeDisabled && (
-                      <button
-                        onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
-                        className="w-11 h-11 rounded-2xl bg-white hover:bg-orange-50/50 text-slate-700 hover:text-orange-600 border-2 border-orange-100 hover:border-orange-300 flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs border-b-[3px] border-orange-200"
-                        title="Practice Quiz (MCQ)"
-                      >
-                        <Trophy className="w-4 h-4 text-orange-500" />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  /* Standard Decks OR Completed Roadmap Decks: Study & Practice (Full Width Split Buttons) */
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
-                    {/* Study */}
-                    <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
-                      <button
-                        onClick={() => handleLaunchDefaultStudy(selectedDeck)}
-                        className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
-                        title="Launch default study mode"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-                        <span className="text-xs font-black truncate">Study</span>
-                      </button>
-                      <div className="w-[1px] h-5 bg-white/25 shrink-0" />
-                      <button
-                        onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
-                        className="h-11 px-2.5 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                        title="Choose study mode (FSRS, Flip, Review, New)"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                      </button>
-                    </div>
-
-                    {/* Practice with Dropdown (only when practice is enabled) */}
-                    {!isSelectedDeckPracticeDisabled && (
-                      <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
-                        <button
-                          onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
-                          className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
-                          title="Launch default Practice (MCQ)"
-                        >
-                          <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                          <span className="text-xs font-black truncate">Practice</span>
-                        </button>
-                        <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
-                        <button
-                          onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                          className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
-                          title="Choose practice mode (MCQ, Typing, Listening)"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {activeTab === 'discover' && (
