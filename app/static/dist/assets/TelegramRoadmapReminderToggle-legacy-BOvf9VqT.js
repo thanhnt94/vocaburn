@@ -1,0 +1,1 @@
+System.register(["./rolldown-runtime-legacy-Djb2rrqm.js","./animations-vendor-legacy-BPPHCDwL.js"],function(n,e){var t,r;return{setters:[function(n){n.a},function(n){t=n.c,r=n.s}],execute:function(){t(),r()}}});

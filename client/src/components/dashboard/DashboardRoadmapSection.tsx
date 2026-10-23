@@ -128,63 +128,40 @@ function CompactRoadmapCard({
         <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
 
-      {/* Step Badges (2 or 3 columns depending on practice) */}
-      <div className={cn("grid gap-1.5", hasMcqStep ? "grid-cols-3" : "grid-cols-2")}>
+      {/* Clean Unblocked Action Badges */}
+      <div className={cn("grid gap-1.5", hasMcqStep ? "grid-cols-2" : "grid-cols-1")}>
         <button
           type="button"
-          onClick={() => {
-            if (nUrl) navigate(nUrl)
-            else navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)
-          }}
+          onClick={() => navigate(`/flashcard/${deck.deck_id}/play`)}
           className={cn(
-            "px-2 py-1 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 cursor-pointer transition-all",
-            s1 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-orange-50/70 text-orange-700 border-orange-200 hover:bg-orange-100"
+            "px-2 py-1.5 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 cursor-pointer transition-all",
+            (s1 && st.all_done) ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-orange-50/70 text-orange-700 border-orange-200 hover:bg-orange-100"
           )}
         >
-          <span>{s1 ? '✓' : '1.'} New</span>
-          <span className="text-[9px] opacity-80">({nL}/{nT})</span>
+          <BookOpen className="w-3 h-3 text-orange-500" />
+          <span>Flashcards</span>
+          <span className="text-[9px] opacity-80">({nL + rDn}/{nT + rD})</span>
         </button>
 
         {hasMcqStep && (
           <button
             type="button"
             onClick={() => {
-              if (!s1) return
-              const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
+              const testUrl = mcqStep?.url || `/practice/${deck.deck_id}`
               navigate(testUrl)
             }}
             className={cn(
-              "px-2 py-1 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition-all",
+              "px-2 py-1.5 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 cursor-pointer transition-all",
               s2 
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer" 
-                : s1 
-                ? "bg-amber-50/70 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer" 
-                : "bg-slate-50 text-slate-400 border-slate-200/60 cursor-not-allowed opacity-60"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                : "bg-teal-50/70 text-teal-700 border-teal-200 hover:bg-teal-100"
             )}
           >
-            <span>{s2 ? '✓' : '2.'} Quiz</span>
+            <Trophy className="w-3 h-3 text-teal-600" />
+            <span>Practice</span>
             <span className="text-[9px] opacity-80">({mcqDone}/{mcqTarget})</span>
           </button>
         )}
-
-        <button
-          type="button"
-          onClick={() => {
-            if (!s1 || (hasMcqStep && !s2)) return
-            navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)
-          }}
-          className={cn(
-            "px-2 py-1 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition-all",
-            st.all_done 
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer" 
-              : (hasMcqStep ? s2 : s1) 
-              ? "bg-purple-50/70 text-purple-700 border-purple-200 hover:bg-purple-100 cursor-pointer" 
-              : "bg-slate-50 text-slate-400 border-slate-200/60 cursor-not-allowed opacity-60"
-          )}
-        >
-          <span>{st.all_done ? '✓' : (hasMcqStep ? '3.' : '2.')} FSRS</span>
-          <span className="text-[9px] opacity-80">({rDn}/{rD})</span>
-        </button>
       </div>
 
       {/* Action Row */}
@@ -193,19 +170,13 @@ function CompactRoadmapCard({
           type="button"
           onClick={() => {
             if (nUrl) navigate(nUrl)
-            else navigate(`/decks/${deck.deck_id}`)
+            else navigate(`/flashcard/${deck.deck_id}/play`)
           }}
           className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white text-xs font-black uppercase tracking-wider shadow-xs hover:from-orange-600 hover:to-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span className="truncate">
-            {st.all_done 
-              ? "Completed Today 🎉" 
-              : !s1 
-              ? "Learn New Words" 
-              : !s2 
-              ? "Take MCQ Quiz" 
-              : "FSRS Review"}
+            {st.all_done ? "Completed Today 🎉" : "Study Flashcards"}
           </span>
         </button>
 
@@ -496,66 +467,99 @@ function DetailedRoadmapCard({
         )}
       </div>
 
-      {/* Section Title: Today's Steps */}
+      {/* Section Title: Today's Focus */}
       <div className="px-1 shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
           <h3 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
-            Today's Steps
+            Today's Focus
           </h3>
         </div>
 
         <div className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 text-[10px] sm:text-[11px] font-bold">
-          <span>{stepsCompletedCount}/{totalStepsCount} completed</span>
+          <span>{st.all_done ? 'All Complete 🎉' : `${tD}/${tT} cards completed`}</span>
         </div>
       </div>
 
-      {/* Steps Timeline Connectors */}
+      {/* Unblocked Study Hub Cards */}
       <div className="flex flex-col gap-2 relative pt-0.5 shrink-0">
-        {/* Step 1 */}
-        <div className="flex items-center gap-3.5 relative">
-          <div className={cn(
-            "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
-            s1 ? "bg-emerald-500" : "bg-gradient-to-tr from-orange-500 to-amber-500 scale-105 ring-2 ring-orange-200"
-          )}>
-            {s1 ? '✓' : '1'}
+        {/* Flashcard Card */}
+        <div 
+          onClick={() => {
+            if (window.navigator?.vibrate) window.navigator.vibrate(8)
+            navigate(`/flashcard/${deck.deck_id}/play`)
+          }}
+          title="Study flashcards & spaced repetition"
+          className={cn(
+            "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm active:scale-[0.99]",
+            (s1 && st.all_done) ? "border-emerald-200/90 bg-emerald-50/20" : "border-orange-300/90 bg-orange-50/20 hover:border-orange-400"
+          )}
+        >
+          <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center shrink-0 text-orange-500">
+            <BookOpen className="w-4.5 h-4.5" />
           </div>
 
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Flashcards</span>
+              {(s1 && st.all_done) ? (
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+              ) : (
+                <span className="text-[10px] font-bold text-orange-600 shrink-0">Study →</span>
+              )}
+            </div>
+
+            <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1.5 flex-wrap">
+              <span><span className="text-orange-600 font-black">{nL}</span>/{nT} new</span>
+              <span>•</span>
+              <span><span className="text-purple-600 font-black">{rDn}</span>/{rD} review</span>
+            </div>
+
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
+              <div className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+
+          <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Practice Quiz Card */}
+        {!isPracticeDisabled ? (
           <div 
             onClick={() => {
               if (window.navigator?.vibrate) window.navigator.vibrate(8)
-              navigate(st.pipeline?.[0]?.url || nUrl || `/flashcard/${deck.deck_id}/play?mode=roadmap`)
+              const testUrl = mcqStep?.url || `/practice/${deck.deck_id}`
+              navigate(testUrl)
             }}
-            title={s1 ? "Goal completed. Tap to review or learn more words!" : "Start learning new words today"}
+            title="Practice quizzes & tests"
             className={cn(
               "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all cursor-pointer hover:shadow-sm active:scale-[0.99]",
-              s1 ? "border-emerald-200/90 bg-emerald-50/20" : "border-orange-300/90 bg-orange-50/20 hover:border-orange-400"
+              s2 ? "border-emerald-200/90 bg-emerald-50/20" : "border-teal-300/90 bg-teal-50/20 hover:border-teal-400"
             )}
           >
-            <div className={cn(
-              "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-              s1 ? "border-r-emerald-100" : "border-r-orange-200"
-            )} />
-
-            <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100/80 flex items-center justify-center shrink-0 text-orange-500">
-              <BookOpen className="w-4.5 h-4.5" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100/80 flex items-center justify-center shrink-0 text-teal-600">
+              <Trophy className="w-4.5 h-4.5" />
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col gap-0.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Learn New Words</span>
-                {s1 && (
+                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">Practice & Quiz</span>
+                {s2 ? (
                   <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
+                ) : (
+                  <span className="text-[10px] font-bold text-teal-600 shrink-0">Practice →</span>
                 )}
               </div>
 
               <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                <span className={cn("text-xs sm:text-sm font-black", !s1 ? "text-orange-600" : "text-slate-500")}>{nL}</span>
-                <span className="text-slate-400 font-medium text-xs">/ {nT} new words</span>
+                <span className="text-xs sm:text-sm font-black text-teal-600">{mcqDone}</span>
+                <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} questions</span>
               </div>
 
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                <div className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 rounded-full transition-all" style={{ width: `${newPct}%` }} />
+                <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
               </div>
             </div>
 
@@ -563,256 +567,67 @@ function DetailedRoadmapCard({
               <ChevronRight className="w-4 h-4" />
             </div>
           </div>
-        </div>
-
-        {/* Step 2 (MCQ Quiz) - Only rendered if practice mode is enabled */}
-        {hasMcqStep && (
-          <div className="flex items-center gap-3.5 relative">
-            <div className={cn(
-              "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
-              s2 ? "bg-emerald-500" : s1 ? "bg-gradient-to-tr from-amber-500 to-orange-500 scale-105 ring-2 ring-amber-200" : "bg-slate-200 text-slate-400"
-            )}>
-              {s2 ? '✓' : '2'}
+        ) : (
+          <div className="flex-1 bg-slate-50 border border-slate-200/70 rounded-2xl p-2.5 sm:p-3 flex items-center gap-3 opacity-70">
+            <div className="w-9 h-9 rounded-xl bg-slate-200/70 flex items-center justify-center shrink-0 text-slate-400">
+              <Trophy className="w-4.5 h-4.5" />
             </div>
-
-            <div 
-              onClick={() => {
-                if (!s1) return
-                if (window.navigator?.vibrate) window.navigator.vibrate(8)
-                const testUrl = mcqStep?.url || `/practice/${deck.deck_id}/roadmap_mcq`
-                navigate(testUrl)
-              }}
-              title={!s1 ? "Complete Step 1 (Learn New Words) first" : s2 ? "Target achieved! Tap to review or retake test" : "Start MCQ test"}
-              className={cn(
-                "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
-                !s1 ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
-                s2 ? "border-emerald-200/90 bg-emerald-50/20" : s1 ? "border-amber-300/90 bg-amber-50/20 hover:border-amber-400" : ""
-              )}
-            >
-              <div className={cn(
-                "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-                s2 ? "border-r-emerald-100" : s1 ? "border-r-amber-200" : "border-r-slate-200/60"
-              )} />
-
-              <div className={cn(
-                "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
-                s2 ? "bg-emerald-50 border-emerald-100 text-emerald-600" : s1 ? "bg-amber-50 border-amber-200 text-amber-600" : "bg-slate-100 border-slate-200/60 text-slate-400"
-              )}>
-                {mcqStep?.type === 'typing' ? (
-                  <Keyboard className="w-4.5 h-4.5" />
-                ) : (
-                  <FileText className="w-4.5 h-4.5" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                    {mcqStep?.type === 'typing' ? 'Typing Test' : 'MCQ Quiz'}
-                  </span>
-                  {s2 && (
-                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
-                  )}
-                </div>
-
-                <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                  <span className={cn("text-xs sm:text-sm font-black", s1 ? "text-amber-600" : "text-slate-400")}>{mcqDone}</span>
-                  <span className="text-slate-400 font-medium text-xs">/ {mcqTarget} questions</span>
-                </div>
-
-                {s1 && (
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                    <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all" style={{ width: `${mcqPct}%` }} />
-                  </div>
-                )}
-              </div>
-
-              <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
-                <ChevronRight className="w-4 h-4" />
-              </div>
+            <div className="flex-1 min-w-0">
+              <span className="font-bold text-xs sm:text-sm text-slate-600 block">Practice Quiz</span>
+              <span className="text-[11px] text-slate-400">Disabled for this deck</span>
             </div>
           </div>
         )}
-
-        {/* FSRS Review Step */}
-        <div className="flex items-center gap-3.5 relative">
-          <div className={cn(
-            "w-8.5 h-8.5 rounded-full font-black text-xs flex items-center justify-center shrink-0 shadow-2xs text-white z-10 transition-all",
-            st.all_done 
-              ? "bg-emerald-500" 
-              : (hasMcqStep ? s2 : s1) 
-              ? "bg-gradient-to-tr from-purple-500 to-indigo-600 scale-105 ring-2 ring-purple-200" 
-              : "bg-slate-200 text-slate-400"
-          )}>
-            {st.all_done ? '✓' : (hasMcqStep ? '3' : '2')}
-          </div>
-
-          <div 
-            onClick={() => {
-              const isLocked = !s1 || (hasMcqStep && !s2)
-              if (isLocked) return
-              if (window.navigator?.vibrate) window.navigator.vibrate(8)
-              navigate(`/flashcard/${deck.deck_id}/play?mode=roadmap`)
-            }}
-            title={
-              (!s1 || (hasMcqStep && !s2)) 
-                ? (hasMcqStep ? "Complete Steps 1 & 2 first" : "Complete Step 1 (Learn New Words) first") 
-                : st.all_done 
-                ? "All steps finished! Tap to review again" 
-                : "Start FSRS review"
-            }
-            className={cn(
-              "flex-1 bg-white border rounded-2xl p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 relative transition-all",
-              (!s1 || (hasMcqStep && !s2)) 
-                ? "cursor-not-allowed opacity-60 bg-slate-50/60 border-slate-200/60" 
-                : "cursor-pointer hover:shadow-sm active:scale-[0.99]",
-              st.all_done 
-                ? "border-emerald-200/90 bg-emerald-50/20" 
-                : (hasMcqStep ? s2 : s1) 
-                ? "border-purple-300/90 bg-purple-50/20 hover:border-purple-400" 
-                : ""
-            )}
-          >
-            <div className={cn(
-              "absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] z-20",
-              st.all_done 
-                ? "border-r-emerald-100" 
-                : (hasMcqStep ? s2 : s1) 
-                ? "border-r-purple-200" 
-                : "border-r-slate-200/60"
-            )} />
-
-            <div className={cn(
-              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
-              st.all_done 
-                ? "bg-emerald-50 border-emerald-100 text-emerald-600" 
-                : (hasMcqStep ? s2 : s1) 
-                ? "bg-purple-50 border-purple-200 text-purple-600" 
-                : "bg-slate-100 border-slate-200/60 text-slate-400"
-            )}>
-              <RotateCcw className="w-4.5 h-4.5" />
-            </div>
-
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">FSRS Review</span>
-                {st.all_done && (
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold rounded-full shrink-0">✓ Done</span>
-                )}
-              </div>
-
-              <div className="text-xs font-bold text-slate-500 flex items-baseline gap-1">
-                <span className={cn("text-xs sm:text-sm font-black", (hasMcqStep ? s2 : s1) ? "text-purple-600" : "text-slate-400")}>{rDn}</span>
-                <span className="text-slate-400 font-medium text-xs">/ {rD} cards</span>
-              </div>
-
-              {(hasMcqStep ? s2 : s1) && (
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden w-full my-0.5">
-                  <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all" style={{ width: `${revPct}%` }} />
-                </div>
-              )}
-            </div>
-
-            <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400">
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Bottom CTA Action Button */}
+      {/* Bottom CTA Action Buttons */}
       <div className="pt-0.5 shrink-0">
-        {st.all_done ? (
-          <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
+        <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.navigator?.vibrate) window.navigator.vibrate(12)
+              navigate(`/flashcard/${deck.deck_id}/play`)
+            }}
+            className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+              <Brain className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
+                {st.all_done ? "Review Cards" : "Study Flashcards"}
+              </span>
+              <span className="text-[10px] text-orange-100 font-medium block truncate">
+                FSRS Spaced Repetition
+              </span>
+            </div>
+          </button>
+
+          {!isPracticeDisabled && (
             <button
               type="button"
               onClick={() => {
                 if (window.navigator?.vibrate) window.navigator.vibrate(12)
-                onOpenStudyModal({
-                  id: deck.deck_id,
-                  title: deck.title,
-                  questions_count: st.total_cards || deck.questions_count || 0,
-                  practice_settings: deck.practice_settings || st.practice_settings
-                }, 'flashcard')
+                const testUrl = mcqStep?.url || `/practice/${deck.deck_id}`
+                navigate(testUrl)
               }}
-              className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
+              className="relative overflow-hidden bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-teal-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
             >
               <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                <Brain className="w-4 h-4 text-white" />
+                <Trophy className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
-                  Continue FSRS
+                  Practice Quiz
                 </span>
-                <span className="text-[10px] text-orange-100 font-medium block truncate">
-                  Review cards
+                <span className="text-[10px] text-teal-100 font-medium block truncate">
+                  Interactive Quizzes
                 </span>
               </div>
             </button>
-
-            {!isPracticeDisabled && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.navigator?.vibrate) window.navigator.vibrate(12)
-                  onOpenStudyModal({
-                    id: deck.deck_id,
-                    title: deck.title,
-                    questions_count: st.total_cards || deck.questions_count || 0,
-                    practice_settings: deck.practice_settings || st.practice_settings
-                  }, 'practice')
-                }}
-                className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
-              >
-                <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                  <Trophy className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-black tracking-wide uppercase text-white block truncate">
-                    Practice Quiz
-                  </span>
-                  <span className="text-[10px] text-emerald-100 font-medium block truncate">
-                    MCQ / Typing
-                  </span>
-                </div>
-              </button>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={() => { 
-              if (window.navigator?.vibrate) window.navigator.vibrate(12)
-              if (nUrl) navigate(nUrl)
-              else navigate(`/decks/${deck.deck_id}`)
-            }}
-            className="w-full relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all duration-200 cursor-pointer group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-white">
-              <Play className="w-4 h-4 fill-white ml-0.5" />
-            </div>
-
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
-              <span className="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-white leading-tight">
-                {!s1
-                  ? 'LEARN NEW WORDS'
-                  : (!s2 && hasMcqStep)
-                  ? 'TAKE MCQ QUIZ'
-                  : 'FSRS REVIEW'}
-              </span>
-              <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium">
-                {!s1
-                  ? `Step 1: ${nT - nL} new cards remaining`
-                  : (!s2 && hasMcqStep)
-                  ? 'Step 2: Score >= 80% to pass'
-                  : `Step ${hasMcqStep ? 3 : 2}: ${dueRemaining} cards due for review`}
-              </span>
-            </div>
-
-            <div className="text-xs font-black uppercase tracking-wider text-orange-100 group-hover:translate-x-0.5 transition-transform flex items-center gap-1 shrink-0">
-              <ChevronRight className="w-4 h-4 stroke-[3]" />
-            </div>
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

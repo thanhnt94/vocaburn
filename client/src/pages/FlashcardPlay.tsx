@@ -3862,25 +3862,8 @@ export default function FlashcardPlay() {
     activeMode: effectiveCardMode
   });
 
-  const shouldShowRoadmapStepCompleteScreen = useMemo(() => {
-    if (activeMode !== 'roadmap' || !roadmapStatus?.pipeline) return false;
-    
-    // If all steps in roadmap are completed
-    if (roadmapStatus.all_done) return true;
-
-    const isStage1Done = Boolean(roadmapStatus.stage_1_done);
-    const isStage2Done = Boolean(roadmapStatus.stage_2_done);
-
-    // If step 1 (new cards) is completed and step 2 test is pending:
-    if (isStage1Done && !isStage2Done) {
-      const testStep = roadmapStatus.pipeline.find((s: any) => s.type === 'mcq' || s.type === 'typing' || s.type === 'listening');
-      if (testStep) {
-        return true;
-      }
-    }
-
-    return false;
-  }, [activeMode, roadmapStatus]);
+  // Roadmap step blocking screen disabled: flashcard sessions flow smoothly without pipeline roadblocks
+  const shouldShowRoadmapStepCompleteScreen = false;
 
   useEffect(() => {
     if (shouldShowRoadmapStepCompleteScreen) {

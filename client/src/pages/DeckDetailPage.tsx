@@ -41,9 +41,8 @@ import { AutoSaveIndicator } from '@/components/deck/settings'
 const DeckOverviewTab = lazy(() => import('@/components/deck/tabs/DeckOverviewTab'))
 const DeckCardsTab = lazy(() => import('@/components/deck/tabs/DeckCardsTab'))
 const DeckSettingsTab = lazy(() => import('@/components/deck/tabs/DeckSettingsTab'))
-const DeckRoadmapTab = lazy(() => import('@/components/deck/tabs/DeckRoadmapTab'))
 
-export type DeckDetailTab = 'overview' | 'cards' | 'roadmap' | 'settings'
+export type DeckDetailTab = 'overview' | 'cards' | 'settings'
 
 export interface StudyModeOption {
   id: string
@@ -186,7 +185,7 @@ export function DeckDetailPage() {
 
   // Active Tab from URL
   const tabParam = searchParams.get('tab') as DeckDetailTab
-  const activeTab: DeckDetailTab = (tabParam && ['overview', 'cards', 'roadmap', 'settings'].includes(tabParam)) 
+  const activeTab: DeckDetailTab = (tabParam && ['overview', 'cards', 'settings'].includes(tabParam)) 
     ? tabParam 
     : 'overview'
 
@@ -368,8 +367,8 @@ export function DeckDetailPage() {
     // Swipe left/right with minimum distance and horizontal dominance
     if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
       const tabOrder: DeckDetailTab[] = isOwner 
-        ? ['overview', 'cards', 'roadmap', 'settings'] 
-        : ['overview', 'cards', 'roadmap']
+        ? ['overview', 'cards', 'settings'] 
+        : ['overview', 'cards']
       const currentIndex = tabOrder.indexOf(activeTab)
       if (diffX > 0 && currentIndex < tabOrder.length - 1) {
         // Swiped left -> Next tab
@@ -412,7 +411,6 @@ export function DeckDetailPage() {
   const allTabs: { id: DeckDetailTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'overview', label: 'Overview', icon: BookOpen },
     { id: 'cards', label: 'Cards', icon: Layers },
-    { id: 'roadmap', label: 'Roadmap', icon: Compass },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ]
 
@@ -643,9 +641,6 @@ export function DeckDetailPage() {
               )}
               {activeTab === 'settings' && (
                 <DeckSettingsTab embedded deckId={id} />
-              )}
-              {activeTab === 'roadmap' && (
-                <DeckRoadmapTab embedded deckId={id} />
               )}
             </motion.div>
           </AnimatePresence>

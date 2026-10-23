@@ -109,9 +109,9 @@ export function RoadmapCardStack({
                 />
               </div>
 
-              {/* Today 2-Step Badges */}
+              {/* Today Focus Badges */}
               <div className="grid grid-cols-2 gap-2 mb-4">
-                {/* Step 1: New Cards */}
+                {/* New Cards */}
                 <div className={cn(
                   "p-2 rounded-2xl border flex flex-col justify-between transition-colors",
                   isNewComplete
@@ -121,7 +121,7 @@ export function RoadmapCardStack({
                   <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <Target className="w-3 h-3 text-orange-500" />
-                      Step 1: New
+                      New Words
                     </span>
                     {isNewComplete && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                   </div>
@@ -133,7 +133,7 @@ export function RoadmapCardStack({
                   </div>
                 </div>
 
-                {/* Step 2: Review Cards */}
+                {/* Review Cards */}
                 <div className={cn(
                   "p-2 rounded-2xl border flex flex-col justify-between transition-colors",
                   isReviewComplete
@@ -143,7 +143,7 @@ export function RoadmapCardStack({
                   <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-indigo-500" />
-                      Step 2: Review
+                      FSRS Review
                     </span>
                     {isReviewComplete && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                   </div>
