@@ -521,131 +521,238 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             </div>
 
-            {/* Unified Session Setup Console (Ultra Compact 2-Row Layout) */}
-            <div className="flex flex-col gap-1.5 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/90 shadow-2xs">
-              {/* Row 1: Study Modes (Segmented 3-tab pill, inline icon + text) */}
-              {onSelectMode && (
-                <div className="grid grid-cols-3 gap-1 p-0.5 rounded-xl bg-slate-200/70 border border-slate-200/60 shadow-2xs">
-                  {FLASHCARD_MODES.map((m) => {
-                    const isActive = activeMode === m.id || (m.id === 'skim' && (activeMode === 'speed_skim' || activeMode === 'flip'));
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => onSelectMode(m.id)}
-                        className={cn(
-                          "flex items-center justify-center gap-1.5 py-1 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer select-none",
-                          isActive
-                            ? cn(m.activeClass, "scale-[1.01]")
-                            : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
-                        )}
-                        title={m.name}
-                      >
-                        <span className="text-xs leading-none">{m.icon}</span>
-                        <span className="text-[11px] font-black uppercase tracking-tight">{m.short}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+            {/* Top 4-Button Quick Setup Deck (Mode, Scope Filter, Order, Sides) */}
+            {(() => {
+              // 1. Study Mode Cycle (FSRS -> SKIM -> AUTO)
+              const currentMode = activeMode === 'skim' || activeMode === 'speed_skim' || activeMode === 'flip' ? 'skim' : (activeMode === 'autoplay' ? 'autoplay' : 'fsrs')
+              const handleCycleMode = () => {
+                if (!onSelectMode) return
+                if (currentMode === 'fsrs') {
+                  onSelectMode('skim')
+                  showLocalToast?.('Study Mode: Speed Skim ⚡', 'info')
+                } else if (currentMode === 'skim') {
+                  onSelectMode('autoplay')
+                  showLocalToast?.('Study Mode: Auto Play 🎧', 'info')
+                } else {
+                  onSelectMode('fsrs')
+                  showLocalToast?.('Study Mode: FSRS Repetition 🧠', 'info')
+                }
+              }
+              const modeMeta = (() => {
+                if (currentMode === 'skim') {
+                  return {
+                    label: 'SKIM',
+                    color: 'text-amber-600',
+                    container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs',
+                    iconBox: 'bg-amber-500 text-white shadow-2xs',
+                    icon: <span className="text-sm leading-none">⚡</span>,
+                    title: 'Study Mode: Speed Skim (Click to cycle)'
+                  }
+                }
+                if (currentMode === 'autoplay') {
+                  return {
+                    label: 'AUTO',
+                    color: 'text-cyan-600',
+                    container: 'bg-cyan-50 border-cyan-300 text-cyan-700 shadow-2xs',
+                    iconBox: 'bg-cyan-600 text-white shadow-2xs',
+                    icon: <span className="text-sm leading-none">🎧</span>,
+                    title: 'Study Mode: Auto Play Hands-Free (Click to cycle)'
+                  }
+                }
+                return {
+                  label: 'FSRS',
+                  color: 'text-indigo-600',
+                  container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                  iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                  icon: <span className="text-sm leading-none">🧠</span>,
+                  title: 'Study Mode: FSRS Spaced Repetition (Click to cycle)'
+                }
+              })()
 
-              {/* Row 2: Target Scope & Queue Controls (Inline & Balanced) */}
-              <div className="flex items-center gap-1.5">
-                {/* 2A: Scope (All | Due | New) */}
-                <div className="flex-1 grid grid-cols-3 gap-0.5 p-0.5 rounded-xl bg-white border border-slate-200/70 shadow-2xs">
+              // 2. Card Scope / Filter Cycle (ALL -> DUE -> NEW)
+              const currentScope = cardScope ?? 'all'
+              const handleCycleScope = () => {
+                if (!onSelectCardScope) return
+                if (currentScope === 'all') {
+                  onSelectCardScope('review')
+                  showLocalToast?.(`Filter: Due Only (${scopeCounts?.review ?? 0} cards)`, 'info')
+                } else if (currentScope === 'review') {
+                  onSelectCardScope('new')
+                  showLocalToast?.(`Filter: New Only (${scopeCounts?.new ?? 0} cards)`, 'info')
+                } else {
+                  onSelectCardScope('all')
+                  showLocalToast?.(`Filter: All Cards (${scopeCounts?.all ?? 0} cards)`, 'info')
+                }
+              }
+              const scopeMeta = (() => {
+                if (currentScope === 'review') {
+                  const count = scopeCounts?.review ?? 0
+                  return {
+                    label: `DUE • ${count}`,
+                    color: 'text-rose-600',
+                    container: 'bg-rose-50 border-rose-300 text-rose-700 shadow-2xs',
+                    iconBox: 'bg-rose-600 text-white shadow-2xs',
+                    icon: <Clock className="w-3.5 h-3.5" />,
+                    title: `Filter: Due Cards Only (${count})`
+                  }
+                }
+                if (currentScope === 'new') {
+                  const count = scopeCounts?.new ?? 0
+                  return {
+                    label: `NEW • ${count}`,
+                    color: 'text-emerald-600',
+                    container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs',
+                    iconBox: 'bg-emerald-600 text-white shadow-2xs',
+                    icon: <Sparkles className="w-3.5 h-3.5" />,
+                    title: `Filter: New Cards Only (${count})`
+                  }
+                }
+                const count = scopeCounts?.all ?? 0
+                return {
+                  label: `ALL • ${count}`,
+                  color: 'text-indigo-600',
+                  container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                  iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                  icon: <Layers className="w-3.5 h-3.5" />,
+                  title: `Filter: All Cards (${count})`
+                }
+              })()
+
+              // 3. Queue Order (RAND vs SEQ)
+              const handleToggleOrder = () => {
+                const nextVal = !randomEnabled
+                if (onToggleRandom) onToggleRandom(nextVal)
+                else setRandomEnabled(nextVal)
+                showLocalToast?.(`Order: ${nextVal ? 'Random' : 'Sequential'}`, 'info')
+              }
+              const orderMeta = randomEnabled
+                ? {
+                    label: 'RAND',
+                    color: 'text-violet-600',
+                    container: 'bg-violet-50 border-violet-300 text-violet-700 shadow-2xs',
+                    iconBox: 'bg-violet-600 text-white shadow-2xs',
+                    title: 'Queue Order: Random Shuffle'
+                  }
+                : {
+                    label: 'SEQ',
+                    color: 'text-slate-500',
+                    container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500',
+                    iconBox: 'bg-white text-slate-400 border border-slate-200/60',
+                    title: 'Queue Order: Sequential Order'
+                  }
+
+              // 4. Card Sides / Face (FRONT vs BACK)
+              const handleToggleSides = () => {
+                if (!onToggleFlipSides) return
+                onToggleFlipSides()
+                showLocalToast?.(flipSides ? 'Card Sides: Front First (Normal)' : 'Card Sides: Back First (Invert)', 'info')
+              }
+              const sidesMeta = flipSides
+                ? {
+                    label: 'BACK',
+                    color: 'text-indigo-600',
+                    container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                    iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                    title: 'Card Sides: Back First (Invert)'
+                  }
+                : {
+                    label: 'FRONT',
+                    color: 'text-slate-500',
+                    container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500',
+                    iconBox: 'bg-white text-slate-400 border border-slate-200/60',
+                    title: 'Card Sides: Front First (Normal)'
+                  }
+
+              return (
+                <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-slate-100/80 border border-slate-200/80 shadow-2xs">
+                  {/* Button 1: Mode */}
                   <button
                     type="button"
-                    onClick={() => onSelectCardScope?.('all')}
+                    onClick={handleCycleMode}
                     className={cn(
-                      "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
-                      cardScope === 'all'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
+                      "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                      modeMeta.container
                     )}
-                    title="All Cards"
+                    title={modeMeta.title}
                   >
-                    <span>All</span>
-                    <span className={cn("text-[9px] px-1 py-0.2 rounded-full font-black", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.all ?? 0}
-                    </span>
+                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", modeMeta.iconBox)}>
+                      {modeMeta.icon}
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[9.5px] font-bold tracking-tight">Mode</span>
+                      <span className={cn("text-[8.5px] font-black uppercase tracking-wider", modeMeta.color)}>
+                        {modeMeta.label}
+                      </span>
+                    </div>
                   </button>
 
+                  {/* Button 2: Filter Scope */}
                   <button
                     type="button"
-                    onClick={() => onSelectCardScope?.('review')}
+                    onClick={handleCycleScope}
                     className={cn(
-                      "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
-                      cardScope === 'review'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
+                      "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                      scopeMeta.container
                     )}
-                    title="Due Cards"
+                    title={scopeMeta.title}
                   >
-                    <span>Due</span>
-                    <span className={cn("text-[9px] px-1 py-0.2 rounded-full font-black", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.review ?? 0}
-                    </span>
+                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", scopeMeta.iconBox)}>
+                      {scopeMeta.icon}
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[9.5px] font-bold tracking-tight">Filter</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-tight", scopeMeta.color)}>
+                        {scopeMeta.label}
+                      </span>
+                    </div>
                   </button>
 
+                  {/* Button 3: Queue Order */}
                   <button
                     type="button"
-                    onClick={() => onSelectCardScope?.('new')}
+                    onClick={handleToggleOrder}
                     className={cn(
-                      "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
-                      cardScope === 'new'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
+                      "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                      orderMeta.container
                     )}
-                    title="New Cards"
+                    title={orderMeta.title}
                   >
-                    <span>New</span>
-                    <span className={cn("text-[9px] px-1 py-0.2 rounded-full font-black", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.new ?? 0}
-                    </span>
-                  </button>
-                </div>
-
-                {/* 2B: Queue Controls (Rand & Invert) */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !randomEnabled;
-                      if (onToggleRandom) onToggleRandom(nextVal);
-                      else setRandomEnabled(nextVal);
-                      showLocalToast?.(`Order: ${nextVal ? 'Random' : 'Sequential'}`, 'info');
-                    }}
-                    className={cn(
-                      "flex items-center gap-1 py-1 px-2 rounded-xl border text-[10.5px] transition-all cursor-pointer shadow-2xs select-none",
-                      randomEnabled
-                        ? "bg-violet-600 border-violet-700 text-white shadow-xs font-black"
-                        : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-50 font-bold"
-                    )}
-                    title={`Queue Order: ${randomEnabled ? 'Random' : 'Sequential'}`}
-                  >
-                    <Shuffle className="w-3 h-3" />
-                    <span>{randomEnabled ? 'Rand' : 'Seq'}</span>
+                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", orderMeta.iconBox)}>
+                      <Shuffle className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[9.5px] font-bold tracking-tight">Order</span>
+                      <span className={cn("text-[8.5px] font-black uppercase tracking-wider", orderMeta.color)}>
+                        {orderMeta.label}
+                      </span>
+                    </div>
                   </button>
 
-                  {onToggleFlipSides !== undefined && (
+                  {/* Button 4: Card Sides */}
+                  {onToggleFlipSides !== undefined ? (
                     <button
                       type="button"
-                      onClick={onToggleFlipSides}
+                      onClick={handleToggleSides}
                       className={cn(
-                        "flex items-center gap-1 py-1 px-2 rounded-xl border text-[10.5px] transition-all cursor-pointer shadow-2xs select-none",
-                        flipSides
-                          ? "bg-indigo-600 border-indigo-700 text-white shadow-xs font-black"
-                          : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-50 font-bold"
+                        "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                        sidesMeta.container
                       )}
-                      title={`Card Sides: ${flipSides ? 'Invert (Meaning First)' : 'Front First'}`}
+                      title={sidesMeta.title}
                     >
-                      <ArrowLeftRight className="w-3 h-3" />
-                      <span>{flipSides ? 'Invert' : 'Front'}</span>
+                      <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", sidesMeta.iconBox)}>
+                        <ArrowLeftRight className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex flex-col items-center leading-none gap-0.5">
+                        <span className="text-[9.5px] font-bold tracking-tight">Sides</span>
+                        <span className={cn("text-[8.5px] font-black uppercase tracking-wider", sidesMeta.color)}>
+                          {sidesMeta.label}
+                        </span>
+                      </div>
                     </button>
-                  )}
+                  ) : null}
                 </div>
-              </div>
-            </div>
+              )
+            })()}
 
             {/* AutoPlay Pacing Controls — ONLY VISIBLE WHEN activeMode === 'autoplay' */}
             {activeMode === 'autoplay' && (
