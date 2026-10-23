@@ -17,7 +17,7 @@ import {
   DeckStudyDefaults,
   DeckSubLessonSettings,
 } from '../settings'
-import { Settings, Sparkles, Volume2, Sliders, Columns3, BookmarkCheck } from 'lucide-react'
+import { Settings, Sparkles, Volume2, Sliders, Columns3, BookmarkCheck, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DeckSettingsTabProps {
@@ -116,6 +116,72 @@ export function DeckSettingsTab({ embedded = false, deckId }: DeckSettingsTabPro
 
   return (
     <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-4 space-y-4 text-left animate-in fade-in duration-200">
+      {/* ═══════════ OWNER SCOPE TOGGLE SWITCH ═══════════ */}
+      {isOwner && (
+        <div className="bg-white/95 dark:bg-slate-900/90 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={cn(
+              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+              settingsScope === 'deck' 
+                ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/80 dark:text-indigo-400" 
+                : "bg-orange-100 text-orange-600 dark:bg-orange-950/80 dark:text-orange-400"
+            )}>
+              {settingsScope === 'deck' ? <Settings className="w-4 h-4" /> : <User className="w-4 h-4" />}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                  {settingsScope === 'deck' ? 'Deck Settings (Global)' : 'Personal Overrides (Only You)'}
+                </span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                  settingsScope === 'deck'
+                    ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                    : "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                )}>
+                  {settingsScope === 'deck' ? 'All Learners' : 'My Account'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                {settingsScope === 'deck'
+                  ? 'Configuring default rules, display, audio, and modes for everyone'
+                  : 'Customizing study preferences and overrides for your personal study sessions'}
+              </p>
+            </div>
+          </div>
+
+          {/* 2-Way Segmented Switch */}
+          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center shrink-0 self-start sm:self-auto border border-slate-200/70 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => handleSelectScope('deck')}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer select-none",
+                settingsScope === 'deck'
+                  ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+              )}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Deck Settings</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectScope('personal')}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer select-none",
+                settingsScope === 'personal'
+                  ? "bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+              )}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Personal Overrides</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════ VIEW A: PERSONAL SETTINGS ═══════════ */}
       {settingsScope === 'personal' ? (
         <DeckPersonalSettings

@@ -199,9 +199,6 @@ export function DeckDetailPage() {
   const [isBatchPasteOpen, setIsBatchPasteOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-  // Settings Pull Dropdown Menu State
-  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false)
-
   // Study Mode Selector & Sheet State
   const [selectedStudyMode, setSelectedStudyMode] = useState<string>('fsrs')
   const [flashcardScope, setFlashcardScope] = useState<'all' | 'due' | 'new'>('all')
@@ -298,7 +295,6 @@ export function DeckDetailPage() {
       }
       return updated
     }, { replace: true })
-    setIsSettingsMenuOpen(false)
   }
 
   const handleSelectSubTab = (newSubTab: string) => {
@@ -335,11 +331,6 @@ export function DeckDetailPage() {
 
 
   const handleTabChange = (tab: DeckDetailTab, additionalParams?: Record<string, string>) => {
-    if (tab === 'settings' && isOwner && !additionalParams) {
-      setIsSettingsMenuOpen((prev) => !prev)
-      return
-    }
-    setIsSettingsMenuOpen(false)
     setSearchParams((prev) => {
       const updated = new URLSearchParams(prev)
       updated.set('tab', tab)
@@ -374,7 +365,6 @@ export function DeckDetailPage() {
         // Swiped left -> Next tab
         if (navigator.vibrate) navigator.vibrate(8)
         const nextTab = tabOrder[currentIndex + 1]
-        setIsSettingsMenuOpen(false)
         setSearchParams((prev) => {
           const updated = new URLSearchParams(prev)
           updated.set('tab', nextTab)
@@ -384,7 +374,6 @@ export function DeckDetailPage() {
         // Swiped right -> Previous tab
         if (navigator.vibrate) navigator.vibrate(8)
         const prevTab = tabOrder[currentIndex - 1]
-        setIsSettingsMenuOpen(false)
         setSearchParams((prev) => {
           const updated = new URLSearchParams(prev)
           updated.set('tab', prevTab)
@@ -394,18 +383,6 @@ export function DeckDetailPage() {
     }
     touchStartX.current = null
     touchStartY.current = null
-  }
-
-  const getSettingsTabLabel = () => {
-    if (activeTab !== 'settings') return 'Settings'
-    if (!isOwner) return 'Settings'
-    return settingsScope === 'personal' ? 'My Settings' : 'Deck Settings'
-  }
-
-  const getSettingsTabIcon = () => {
-    if (activeTab !== 'settings') return SettingsIcon
-    if (!isOwner) return SettingsIcon
-    return settingsScope === 'personal' ? User : SettingsIcon
   }
 
   const allTabs: { id: DeckDetailTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -475,100 +452,9 @@ export function DeckDetailPage() {
             {/* Center: Desktop Segmented Tab Switcher */}
             <div className="hidden md:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] gap-1">
               {visibleTabs.map((tab) => {
-                const isSettingsTab = tab.id === 'settings'
-                const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
-                const label = isSettingsTab ? getSettingsTabLabel() : tab.label
+                const Icon = tab.icon
+                const label = tab.label
                 const isActive = activeTab === tab.id
-
-                if (isSettingsTab && isOwner) {
-                  return (
-                    <div key={tab.id} className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
-                        className={cn(
-                          "relative flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs lg:text-sm font-bold transition-all select-none cursor-pointer",
-                          isActive ? "text-orange-600 font-extrabold" : "text-slate-600 hover:text-slate-900 hover:bg-white/50 font-semibold"
-                        )}
-                      >
-                        {isActive && (
-                          <motion.div
-                            layoutId="desktopDeckDetailTabPill"
-                            className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                            transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                          />
-                        )}
-                        <Icon className={cn("w-4 h-4 relative z-10 shrink-0", isActive ? "text-orange-500 stroke-[2.2]" : "text-slate-400 stroke-[1.8]")} />
-                        <span className="relative z-10">{label}</span>
-                        <ChevronDown className={cn("w-3 h-3 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
-                      </button>
-
-                      {/* Pull Dropdown Menu */}
-                      <AnimatePresence>
-                        {isSettingsMenuOpen && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
-                            <motion.div
-                              initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 6, scale: 0.95 }}
-                              transition={{ duration: 0.12 }}
-                              className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-2xl border border-slate-200/90 shadow-xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleSelectScope('deck')}
-                                className={cn(
-                                  "w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                                  isActive && settingsScope === 'deck'
-                                    ? "bg-indigo-50 text-indigo-900 font-black"
-                                    : "hover:bg-slate-50 text-slate-700"
-                                )}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
-                                    <SettingsIcon className="w-3.5 h-3.5" />
-                                  </span>
-                                  <div>
-                                    <span className="block text-xs font-black">Deck Settings</span>
-                                    <span className="block text-[10px] text-slate-400 font-medium">Deck configuration & visibility</span>
-                                  </div>
-                                </div>
-                                {isActive && settingsScope === 'deck' && (
-                                  <Check className="w-4 h-4 text-indigo-600" />
-                                )}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleSelectScope('personal')}
-                                className={cn(
-                                  "w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                                  isActive && settingsScope === 'personal'
-                                    ? "bg-orange-50 text-orange-950 font-black"
-                                    : "hover:bg-slate-50 text-slate-700"
-                                )}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
-                                    <User className="w-3.5 h-3.5" />
-                                  </span>
-                                  <div>
-                                    <span className="block text-xs font-black">My Settings</span>
-                                    <span className="block text-[10px] text-slate-400 font-medium">Your personal study preferences</span>
-                                  </div>
-                                </div>
-                                {isActive && settingsScope === 'personal' && (
-                                  <Check className="w-4 h-4 text-orange-600" />
-                                )}
-                              </button>
-                            </motion.div>
-                          </>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )
-                }
 
                 return (
                   <button
@@ -886,100 +772,9 @@ export function DeckDetailPage() {
       <div className="md:hidden shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/70 dark:border-slate-800 px-2 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))] shadow-2xs">
         <div className="max-w-md mx-auto flex items-center w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xs gap-0.5">
           {visibleTabs.map((tab) => {
-            const isSettingsTab = tab.id === 'settings'
-            const Icon = isSettingsTab ? getSettingsTabIcon() : tab.icon
-            const label = isSettingsTab ? getSettingsTabLabel() : tab.label
+            const Icon = tab.icon
+            const label = tab.label
             const isActive = activeTab === tab.id
-
-            if (isSettingsTab && isOwner) {
-              return (
-                <div key={tab.id} className="relative flex-1 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsMenuOpen((prev) => !prev)}
-                    className={cn(
-                      "relative w-full flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                      isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeDeckDetailMobileBottomTabPill"
-                        className="absolute inset-0 bg-white dark:bg-slate-700 rounded-xl shadow-xs border border-slate-200/80 dark:border-slate-600"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                      />
-                    )}
-                    <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500")} />
-                    <span className="relative z-10 text-[10.5px] font-black tracking-tight whitespace-nowrap">{label}</span>
-                    <ChevronDown className={cn("w-2.5 h-2.5 shrink-0 relative z-10 text-slate-400 transition-transform duration-200", isSettingsMenuOpen && "rotate-180")} />
-                  </button>
-
-                  {/* Dropdown Menu (Pops UPWARDS because it's docked at the bottom!) */}
-                  <AnimatePresence>
-                    {isSettingsMenuOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsSettingsMenuOpen(false)} />
-                        <motion.div
-                          initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 6, scale: 0.95 }}
-                          transition={{ duration: 0.12 }}
-                          className="absolute bottom-full mb-2 right-0 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-1.5 min-w-[210px] z-50 space-y-1 text-left"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleSelectScope('deck')}
-                            className={cn(
-                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                              isActive && settingsScope === 'deck'
-                                ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 font-black"
-                                : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-7 h-7 rounded-lg bg-indigo-100/70 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                                <SettingsIcon className="w-3.5 h-3.5" />
-                              </span>
-                              <div>
-                                <span className="block text-xs font-black">Deck Settings</span>
-                                <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-medium">Deck configuration & visibility</span>
-                              </div>
-                            </div>
-                            {isActive && settingsScope === 'deck' && (
-                              <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSelectScope('personal')}
-                            className={cn(
-                              "w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                              isActive && settingsScope === 'personal'
-                                ? "bg-orange-50 dark:bg-orange-950/60 text-orange-950 dark:text-orange-200 font-black"
-                                : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-7 h-7 rounded-lg bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
-                                <User className="w-3.5 h-3.5" />
-                              </span>
-                              <div>
-                                <span className="block text-xs font-black">My Settings</span>
-                                <span className="block text-[10px] text-slate-400 font-medium">Your personal study preferences</span>
-                              </div>
-                            </div>
-                            {isActive && settingsScope === 'personal' && (
-                              <Check className="w-4 h-4 text-orange-600" />
-                            )}
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )
-            }
 
             return (
               <button
@@ -988,17 +783,17 @@ export function DeckDetailPage() {
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
                   "relative flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-xs font-black transition-all select-none cursor-pointer",
-                  isActive ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"
+                  isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="activeDeckDetailMobileBottomTabPill"
-                    className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
+                    className="absolute inset-0 bg-white dark:bg-slate-700 rounded-xl shadow-xs border border-slate-200/80 dark:border-slate-600"
                     transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                   />
                 )}
-                <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600" : "text-slate-400")} />
+                <Icon className={cn("w-3.5 h-3.5 shrink-0 relative z-10", isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500")} />
                 <span className="relative z-10 text-[10.5px] font-black tracking-tight whitespace-nowrap">{label}</span>
               </button>
             )
