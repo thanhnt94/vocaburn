@@ -274,14 +274,13 @@ export function DashboardRoadmapSection({
           transition={{ duration: 0.2 }}
           className="flex-1 flex flex-col justify-between gap-2.5 min-h-0"
         >
-          {/* ── 2A. HERO STAGE (MASCOT LARGE & ANCHORED RIGHT + RICH LEFT CONTENT) ── */}
-          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-row items-center justify-between min-h-0">
+          {/* ── 2A. HERO STAGE (FULL-WIDTH TOP PROGRESS + RICH LEFT METRICS + ANCHORED MASCOT) ── */}
+          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between min-h-0">
             
-            {/* Left Side (~62% width): Title, Creator, Description Box, 4-Metric Grid, and Progress Bar */}
-            <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[65%] min-w-0 flex flex-col justify-between h-full py-0.5 text-left gap-1.5">
-              
-              {/* 1. Header: Title, Level & Creator */}
-              <div className="shrink-0">
+            {/* 1. TOP HEADER & FULL-WIDTH PROGRESS (Chiếm trọn bề ngang màn hình theo yêu cầu) */}
+            <div className="relative z-20 w-full shrink-0 space-y-2">
+              {/* Deck Title, Level & Creator */}
+              <div>
                 <Link
                   to={`/decks/${deck.deck_id ?? deck.id}`}
                   className="inline-flex items-center gap-1.5 max-w-full group cursor-pointer"
@@ -313,108 +312,121 @@ export function DashboardRoadmapSection({
                 </div>
               </div>
 
-              {/* 2. Deck Description Box */}
-              <div className="bg-white/85 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2.5 shadow-2xs">
-                <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block mb-0.5">
-                  About this deck
-                </span>
-                <p className="text-[11px] text-slate-700 font-medium leading-relaxed line-clamp-2">
-                  {deckDescription}
-                </p>
-              </div>
-
-              {/* 3. Rich 4-Metric Grid (Lấp đầy đoạn giữa bằng thông tin học tập trực quan!) */}
-              <div className="grid grid-cols-2 gap-1.5 shrink-0">
-                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                  <div className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                    📚
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Total Vocab</span>
-                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{totalCards.toLocaleString()} words</span>
-                  </div>
-                </div>
-
-                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                  <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                    ⚡
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Algorithm</span>
-                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">FSRS v6</span>
-                  </div>
-                </div>
-
-                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                  <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                    🔥
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Streak</span>
-                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{streak > 0 ? `${streak} Days` : 'Active'}</span>
-                  </div>
-                </div>
-
-                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                  <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                    🎯
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Remaining</span>
-                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{unlearnedCards} new</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Motivation & Mastery Progress Bar */}
-              <div className="space-y-1 shrink-0 pt-0.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
-                  <span className="truncate font-extrabold text-slate-800">{mascotHeadline}</span>
-                  <span className="text-emerald-600 font-black tabular-nums shrink-0">{pct}% Mastered</span>
+              {/* FULL-WIDTH MASTERY & REVIEW PROGRESS BAR (To ra và chiếm hết bề ngang màn hình) */}
+              <div className="bg-white/90 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs">
+                <div className="flex items-center justify-between text-xs sm:text-[13px] font-bold text-slate-700 mb-1.5">
+                  <span className="truncate font-black text-slate-900 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
+                    {mascotHeadline}
+                  </span>
+                  <span className="text-emerald-600 font-black tabular-nums shrink-0">
+                    {pct}% Mastered
+                  </span>
                 </div>
                 
-                <div className="h-2 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/70 shadow-2xs">
+                <div className="h-2.5 w-full bg-slate-100/90 rounded-full overflow-hidden p-0.5 border border-orange-200/60 shadow-inner">
                   <div 
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 transition-all duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 transition-all duration-500 shadow-xs"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Right Side (~40% width): Large 3D Mascot anchored to right & bottom */}
-            <div 
-              onClick={handleMascotTap}
-              title="Tap Vocaburn mascot for extra motivation! 🔥"
-              className="w-[40%] max-w-[280px] absolute right-0 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
-            >
-              {/* Tap Speech Bubble */}
-              <AnimatePresence>
-                {mascotCheer && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.85 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                    className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
-                  >
-                    <div className="relative">
-                      {mascotCheer}
-                      <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            {/* 2. LOWER BODY (LEFT: Description & 4-Metric Grid | RIGHT: Mascot Anchored Bottom-Right) */}
+            <div className="relative z-10 flex-1 flex flex-row items-end justify-between min-h-0 pt-2 gap-2">
+              
+              {/* Left Column (~58% - 62% width): Description Box & 4-Metric Grid */}
+              <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-between h-full py-0.5 text-left gap-1.5">
+                
+                {/* Deck Description Box */}
+                <div className="bg-white/85 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block mb-0.5">
+                    About this deck
+                  </span>
+                  <p className="text-[10.5px] sm:text-[11px] text-slate-700 font-medium leading-relaxed line-clamp-2">
+                    {deckDescription}
+                  </p>
+                </div>
 
-              {/* Large, Beautiful Mascot anchored right as originally designed */}
-              <motion.img 
-                key={mascotImg}
-                initial={{ scale: 0.92, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.25 }}
-                src={`${mascotImg}?v=clean_v20`} 
-                alt="Vocaburn Mascot" 
-                className="h-[105%] max-h-[260px] sm:max-h-[290px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
-              />
+                {/* Rich 4-Metric Grid */}
+                <div className="grid grid-cols-2 gap-1.5 shrink-0">
+                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                    <div className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      📚
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Total Vocab</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{totalCards.toLocaleString()} words</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                    <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      ⚡
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Algorithm</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">FSRS v6</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                    <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      🔥
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Streak</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{streak > 0 ? `${streak} Days` : 'Active'}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                    <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      🎯
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Remaining</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{unlearnedCards} new</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: Large 3D Mascot anchored to bottom right */}
+              <div 
+                onClick={handleMascotTap}
+                title="Tap Vocaburn mascot for extra motivation! 🔥"
+                className="w-[42%] max-w-[280px] absolute right-0 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group pointer-events-auto"
+              >
+                {/* Tap Speech Bubble */}
+                <AnimatePresence>
+                  {mascotCheer && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                      className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
+                    >
+                      <div className="relative">
+                        {mascotCheer}
+                        <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Large, Beautiful Mascot anchored right as originally designed */}
+                <motion.img 
+                  key={mascotImg}
+                  initial={{ scale: 0.92, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.25 }}
+                  src={`${mascotImg}?v=clean_v21`} 
+                  alt="Vocaburn Mascot" 
+                  className="h-[105%] max-h-[220px] sm:max-h-[250px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
+                />
+              </div>
             </div>
           </div>
 
