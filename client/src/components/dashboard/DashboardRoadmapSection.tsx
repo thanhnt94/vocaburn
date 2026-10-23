@@ -1,15 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ChevronRight, 
+  ChevronLeft,
   BookOpen, 
   Flame, 
   Brain, 
   Trophy, 
-  Sparkles, 
-  SlidersHorizontal,
-  Plus
+  Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -36,13 +35,64 @@ const CHEER_QUOTES = [
 
 export function DashboardRoadmapSection({
   roadmapDecks,
+  selectedRoadmapIdx,
+  onSelectRoadmapIdx,
   navigate,
   onOpenCustomize
 }: DashboardRoadmapSectionProps) {
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
+  const [internalIdx, setInternalIdx] = useState(0)
+
+  // Touch swipe handling for 1-deck-per-page swiping
+  const touchStartX = useRef<number | null>(null)
+  const touchEndX = useRef<number | null>(null)
 
   const safeDecks = roadmapDecks || []
   const totalDecks = safeDecks.length
+  const currentIdx = selectedRoadmapIdx !== undefined ? selectedRoadmapIdx : internalIdx
+  const safeIdx = totalDecks > 0 ? Math.min(Math.max(0, currentIdx), totalDecks - 1) : 0
+  const deck = safeDecks[safeIdx] || null
+
+  const setIndex = (idx: number) => {
+    setInternalIdx(idx)
+    if (onSelectRoadmapIdx) onSelectRoadmapIdx(idx)
+  }
+
+  const prevDeck = () => {
+    if (safeIdx > 0) {
+      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+      setIndex(safeIdx - 1)
+    }
+  }
+
+  const nextDeck = () => {
+    if (safeIdx < totalDecks - 1) {
+      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+      setIndex(safeIdx + 1)
+    }
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current !== null && touchEndX.current !== null) {
+      const diff = touchStartX.current - touchEndX.current
+      const threshold = 45 // min swipe distance
+      if (diff > threshold && safeIdx < totalDecks - 1) {
+        nextDeck()
+      } else if (diff < -threshold && safeIdx > 0) {
+        prevDeck()
+      }
+    }
+    touchStartX.current = null
+    touchEndX.current = null
+  }
 
   const handleMascotTap = () => {
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
@@ -55,14 +105,8 @@ export function DashboardRoadmapSection({
     }, 4000)
   }
 
-  // Calculate total due across all learning decks
-  const totalDueAllDecks = safeDecks.reduce((sum, d) => {
-    const due = Number(d.status?.review_due_today ?? d.review_remaining ?? 0)
-    return sum + due
-  }, 0)
-
   // Empty state if no decks are active on Home
-  if (totalDecks === 0) {
+  if (totalDecks === 0 || !deck) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-sm mx-auto my-auto select-none">
         <div className="w-18 h-18 rounded-3xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-500 mb-4 shadow-2xs">
@@ -94,226 +138,308 @@ export function DashboardRoadmapSection({
     )
   }
 
+  // ══════════════ STATS CALCULATION FOR CURRENT DECK ══════════════
+  const st = deck.status || {}
+  const totalCards = Number(st.total_cards || deck.total_cards || deck.questions_count || 0)
+  const learnedCards = Number(st.learned_cards || deck.learned_cards || 0)
+  const unlearnedCards = Math.max(0, totalCards - learnedCards)
+  const dueRemaining = Number(st.review_due_today ?? deck.review_remaining ?? 0)
+  const streak = Number(st.streak || deck.streak || 0)
+  const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
+  const isMastered = totalCards > 0 && learnedCards >= totalCards
+
+  // Check if practice quiz disabled
+  const disabledModes = (st.disabled_modes || deck.practice_settings?.disabled_modes || deck.disabled_modes || []) as string[]
+  const isPracticeDisabled = Boolean(
+    st.is_practice_disabled ||
+    deck.is_practice_disabled ||
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice') ||
+    ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m))
+  )
+
+  // Mascot expression & speech
+  let mascotImg = '/mascot/sleepy.png'
+  let mascotHeadline = 'Ready to study!'
+  let mascotSubline = "Let's learn new words today."
+
+  if (isMastered) {
+    mascotImg = '/mascot/celebrating.png'
+    mascotHeadline = 'All Mastered! 🎉'
+    mascotSubline = 'Outstanding! You have mastered this entire deck.'
+  } else if (dueRemaining === 0 && learnedCards > 0) {
+    mascotImg = '/mascot/celebrating.png'
+    mascotHeadline = 'All caught up! ✨'
+    mascotSubline = 'Zero reviews due. Ready to learn new words.'
+  } else if (dueRemaining > 0) {
+    mascotImg = '/mascot/excited.png'
+    mascotHeadline = `${dueRemaining} cards due for review!`
+    mascotSubline = 'Keep your memory strong with FSRS.'
+  }
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 w-full overflow-hidden text-left select-none p-2.5 sm:p-3 space-y-3">
-      
-      {/* ── ═══════════ TOP HERO MASCOT GREETING BANNER (~120px) ═══════════ ── */}
-      <div className="bg-gradient-to-r from-amber-100/95 via-orange-50/90 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3 sm:p-4 shadow-2xs flex items-center justify-between shrink-0 relative overflow-hidden">
-        
-        {/* Left Side: Dynamic Motivation & Tap Quote */}
-        <div className="flex-1 max-w-[62%] sm:max-w-[68%] min-w-0 z-10 flex flex-col justify-center gap-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-[11px] font-black uppercase tracking-wider text-orange-700">
-              {totalDueAllDecks > 0 ? 'Daily Study Pulse' : 'All Caught Up'}
+    <div 
+      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* ── 1. TOP CAROUSEL NAVIGATOR (SWIPE INDICATOR) ── */}
+      <div className="flex items-center justify-between shrink-0 px-0.5 pb-1">
+        {/* Left: Previous / Next & Page Count */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-white px-2 py-0.5 rounded-full border border-slate-200/90 shadow-2xs">
+            <button
+              type="button"
+              onClick={prevDeck}
+              disabled={safeIdx === 0}
+              className={cn(
+                "w-5 h-5 rounded-full flex items-center justify-center transition-all",
+                safeIdx === 0 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-orange-50 cursor-pointer active:scale-90"
+              )}
+              title="Previous deck"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
+            <span className="text-[11px] font-black text-slate-800 px-1.5 tabular-nums">
+              {safeIdx + 1} / {totalDecks}
             </span>
+            <button
+              type="button"
+              onClick={nextDeck}
+              disabled={safeIdx === totalDecks - 1}
+              className={cn(
+                "w-5 h-5 rounded-full flex items-center justify-center transition-all",
+                safeIdx === totalDecks - 1 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-orange-50 cursor-pointer active:scale-90"
+              )}
+              title="Next deck"
+            >
+              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
           </div>
 
-          <div>
-            <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
-              {totalDueAllDecks > 0 
-                ? `${totalDueAllDecks} reviews waiting today! 🔥` 
-                : 'Zero reviews due right now! 🎉'}
-            </h2>
-            <p className="text-[11px] font-bold text-slate-600 leading-snug mt-0.5 line-clamp-1">
-              {totalDueAllDecks > 0 
-                ? 'Keep your memory strong with spaced repetition.' 
-                : 'Great work! Pick a deck below to learn new words.'}
-            </p>
-          </div>
-
-          {/* Quick Stats Pill */}
-          <div className="flex items-center gap-2 pt-0.5">
-            <span className="text-[10px] font-extrabold text-orange-800/80 bg-orange-500/15 px-2 py-0.5 rounded-md border border-orange-200/80">
-              {totalDecks} active {totalDecks === 1 ? 'deck' : 'decks'}
-            </span>
-            {onOpenCustomize && (
-              <button
-                type="button"
-                onClick={onOpenCustomize}
-                className="text-[10px] font-black text-orange-600 hover:text-orange-700 flex items-center gap-0.5 hover:underline cursor-pointer"
-              >
-                <span>Edit Home</span>
-                <ChevronRight className="w-2.5 h-2.5 stroke-[3]" />
-              </button>
-            )}
-          </div>
+          {/* Dot Indicators */}
+          {totalDecks > 1 && (
+            <div className="flex items-center gap-1">
+              {safeDecks.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all cursor-pointer",
+                    i === safeIdx ? "w-4 bg-orange-500" : "w-1.5 bg-slate-200 hover:bg-slate-300"
+                  )}
+                  title={`Go to deck ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Right Side: Animated 3D Mascot with Cheer Speech Bubble */}
-        <div 
-          onClick={handleMascotTap}
-          title="Tap Vocaburn mascot for daily motivation! 🔥"
-          className="w-[38%] sm:w-[32%] h-full flex items-end justify-center relative cursor-pointer group shrink-0"
+        {/* Right: Deck Details Link */}
+        <Link 
+          to={`/decks/${deck.deck_id ?? deck.id}`}
+          className="text-[11px] font-black text-orange-600 hover:text-orange-700 bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-200 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-2xs active:scale-95 transition-all shrink-0"
         >
-          <AnimatePresence>
-            {mascotCheer && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.85 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                className="absolute -top-1 right-0 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10px] font-black p-2 rounded-2xl shadow-xl z-30 max-w-[155px] pointer-events-none text-center"
-              >
-                <div className="relative">
-                  {mascotCheer}
-                  <div className="absolute -bottom-3 right-5 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px] border-t-white" />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <img 
-            src="/mascot/excited.png?v=clean_v14" 
-            alt="Vocaburn Mascot" 
-            className="h-[105px] sm:h-[115px] w-auto object-contain object-bottom drop-shadow-md select-none transition-transform group-hover:scale-105 active:scale-95"
-          />
-        </div>
+          <span>Deck Details</span>
+          <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+        </Link>
       </div>
 
-      {/* ── ═══════════ ACTIVE LEARNING DECKS SCROLLABLE FEED ═══════════ ── */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
-        {safeDecks.map((deck: any, idx: number) => {
-          const deckId = deck.deck_id ?? deck.id
-          const st = deck.status || {}
-          const totalCards = Number(st.total_cards || deck.total_cards || deck.questions_count || 0)
-          const learnedCards = Number(st.learned_cards || deck.learned_cards || 0)
-          const unlearnedCards = Math.max(0, totalCards - learnedCards)
-          const dueRemaining = Number(st.review_due_today ?? deck.review_remaining ?? 0)
-          const streak = Number(st.streak || deck.streak || 0)
-          const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
-
-          // Check if practice quiz disabled
-          const disabledModes = (st.disabled_modes || deck.practice_settings?.disabled_modes || deck.disabled_modes || []) as string[]
-          const isPracticeDisabled = Boolean(
-            st.is_practice_disabled ||
-            deck.is_practice_disabled ||
-            disabledModes.includes('practice') ||
-            disabledModes.includes('all_practice') ||
-            ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m))
-          )
-
-          return (
-            <div 
-              key={deckId || idx}
-              className="bg-white border border-slate-200/90 hover:border-orange-300 rounded-3xl p-3.5 sm:p-4 shadow-2xs transition-all flex flex-col gap-3 group"
-            >
-              {/* Deck Header: Title, Level, Streak, Link */}
-              <div className="flex items-center justify-between gap-2">
-                <Link 
-                  to={`/decks/${deckId}`}
-                  className="flex items-center gap-2 min-w-0 flex-1 group/title"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center shrink-0 group-hover/title:scale-105 transition-transform">
-                    <BookOpen className="w-4 h-4 stroke-[2.4]" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="text-sm font-black text-slate-900 truncate group-hover/title:text-orange-600 transition-colors">
-                        {deck.title}
-                      </h4>
-                      {deck.level && (
-                        <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
-                          {deck.level}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">
-                      {learnedCards.toLocaleString()} / {totalCards.toLocaleString()} words learned ({pct}%)
-                    </div>
-                  </div>
-                </Link>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {streak > 0 && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs">
-                      <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                      <span>{streak}d</span>
-                    </div>
-                  )}
-                  <Link 
-                    to={`/decks/${deckId}`}
-                    className="text-slate-400 hover:text-orange-600 p-1 transition-colors"
-                    title="View deck details"
-                  >
-                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                  </Link>
+      {/* ── 2. ANIMATED DECK SLIDE (HERO STAGE + STATS + ACTIONS) ── */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={deck.deck_id ?? deck.id ?? safeIdx}
+          initial={{ opacity: 0, x: 18 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -18 }}
+          transition={{ duration: 0.2 }}
+          className="flex-1 flex flex-col justify-between gap-2.5 min-h-0"
+        >
+          {/* ── 2A. HERO MASCOT CARD (BALANCED, CENTERED, ZERO EMPTY VOID) ── */}
+          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/80 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between items-center text-center">
+            
+            {/* Top Deck Tag & Streak */}
+            <div className="w-full flex items-center justify-between gap-2 z-10 shrink-0">
+              <Link 
+                to={`/decks/${deck.deck_id ?? deck.id}`}
+                className="flex items-center gap-1.5 min-w-0 max-w-[75%] hover:opacity-80 transition-opacity text-left"
+              >
+                <div className="w-6 h-6 rounded-lg bg-orange-500/15 text-orange-600 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-3.5 h-3.5 stroke-[2.4]" />
                 </div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900 truncate">
+                  {deck.title}
+                </h3>
+                {deck.level && (
+                  <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
+                    {deck.level}
+                  </span>
+                )}
+              </Link>
+
+              {streak > 0 && (
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs shrink-0">
+                  <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
+                  <span>{streak}d Streak</span>
+                </div>
+              )}
+            </div>
+
+            {/* Mascot Centerpiece (Large, Lively, Speech Bubble on Tap) */}
+            <div 
+              onClick={handleMascotTap}
+              title="Tap the mascot for extra motivation! 🔥"
+              className="relative my-auto flex flex-col items-center justify-center cursor-pointer group py-1"
+            >
+              <AnimatePresence>
+                {mascotCheer && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                    className="absolute -top-7 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black py-1.5 px-3 rounded-2xl shadow-xl z-30 max-w-[210px] pointer-events-none text-center"
+                  >
+                    <div className="relative">
+                      {mascotCheer}
+                      <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <img 
+                src={`${mascotImg}?v=clean_v16`} 
+                alt="Vocaburn Mascot" 
+                className="h-[145px] sm:h-[180px] w-auto max-w-full object-contain drop-shadow-xl select-none transition-transform group-hover:scale-105 active:scale-95"
+              />
+            </div>
+
+            {/* Bottom Motivation Headline & Mastery Progress Bar */}
+            <div className="w-full z-10 shrink-0 space-y-2 pt-1">
+              <div>
+                <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
+                  {mascotHeadline}
+                </h4>
+                <p className="text-[11px] font-bold text-slate-600 mt-0.5 line-clamp-1">
+                  {mascotSubline}
+                </p>
               </div>
 
-              {/* Progress Bar with Mastery % */}
-              <div className="space-y-1">
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
+              {/* Mastery Progress Bar */}
+              <div className="space-y-1 max-w-sm mx-auto w-full">
+                <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-500">
+                  <span>{learnedCards.toLocaleString()} / {totalCards.toLocaleString()} words</span>
+                  <span className="text-emerald-600 font-black tabular-nums">{pct}% Mastered</span>
+                </div>
+                <div className="h-2 w-full bg-white/80 rounded-full overflow-hidden p-0.5 border border-orange-200/60 shadow-2xs">
                   <div 
                     className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* 3 Truth Stats (FSRS) */}
-              <div className="grid grid-cols-3 gap-1.5">
-                <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-1.5 text-center">
-                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Due</span>
-                  <span className={cn(
-                    "text-xs sm:text-sm font-black tabular-nums block mt-0.5",
-                    dueRemaining > 0 ? "text-purple-600" : "text-emerald-600"
-                  )}>
-                    {dueRemaining}
-                  </span>
-                </div>
-
-                <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-1.5 text-center">
-                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">New</span>
-                  <span className="text-xs sm:text-sm font-black text-orange-600 tabular-nums block mt-0.5">
-                    {unlearnedCards}
-                  </span>
-                </div>
-
-                <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-1.5 text-center">
-                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Mastered</span>
-                  <span className="text-xs sm:text-sm font-black text-emerald-600 tabular-nums block mt-0.5">
-                    {learnedCards}
-                  </span>
-                </div>
+          {/* ── 2B. 3 TRUTH STAT BOXES (DUE, NEW, MASTERED) ── */}
+          <div className="grid grid-cols-3 gap-2 shrink-0">
+            {/* Due for Review */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                Due for Review
+              </span>
+              <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                <span className={cn(
+                  "text-base sm:text-lg font-black tabular-nums",
+                  dueRemaining > 0 ? "text-purple-600" : "text-emerald-600"
+                )}>
+                  {dueRemaining}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">cards</span>
               </div>
+            </div>
 
-              {/* 2 Direct 1-Click Action Buttons */}
-              <div className={cn("grid gap-2 pt-0.5", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
+            {/* Unlearned / New Cards */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                Unlearned
+              </span>
+              <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                <span className="text-base sm:text-lg font-black text-orange-600 tabular-nums">
+                  {unlearnedCards}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">cards</span>
+              </div>
+            </div>
+
+            {/* Mastered Cards */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                Mastered
+              </span>
+              <div className="flex items-baseline justify-center gap-1 mt-0.5">
+                <span className="text-base sm:text-lg font-black text-emerald-600 tabular-nums">
+                  {learnedCards}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">cards</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 2C. DIRECT 1-CLICK STUDY ACTIONS ── */}
+          <div className="shrink-0">
+            <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
+              {/* Study Flashcards */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
+                  navigate(`/flashcard/${deck.deck_id ?? deck.id}/play`)
+                }}
+                className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 flex items-center justify-center gap-2.5 shadow-xs active:scale-[0.98] transition-all cursor-pointer group"
+              >
+                <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                  <Brain className="w-4.5 h-4.5 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block leading-tight truncate">
+                    Study Flashcards
+                  </span>
+                  <span className="text-[10px] text-orange-100 font-bold block leading-tight truncate">
+                    {dueRemaining > 0 ? `${dueRemaining} reviews waiting` : 'Review & Learn'}
+                  </span>
+                </div>
+              </button>
+
+              {/* Practice Quiz */}
+              {!isPracticeDisabled && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
-                    navigate(`/flashcard/${deckId}/play`)
+                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
+                    navigate(`/practice/${deck.deck_id ?? deck.id}`)
                   }}
-                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
+                  className="relative overflow-hidden bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-600 text-white rounded-2xl p-3 flex items-center justify-center gap-2.5 shadow-xs active:scale-[0.98] transition-all cursor-pointer group"
                 >
-                  <Brain className="w-3.5 h-3.5" />
-                  <span>Study Flashcards</span>
-                  {dueRemaining > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-md bg-white/25 text-[10px] font-extrabold tabular-nums">
-                      {dueRemaining}
+                  <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                    <Trophy className="w-4.5 h-4.5 text-white" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block leading-tight truncate">
+                      Practice Quiz
                     </span>
-                  )}
+                    <span className="text-[10px] text-teal-100 font-bold block leading-tight truncate">
+                      MCQ, Typing & Tests
+                    </span>
+                  </div>
                 </button>
-
-                {!isPracticeDisabled && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
-                      navigate(`/practice/${deckId}`)
-                    }}
-                    className="py-2.5 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200/80 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Trophy className="w-3.5 h-3.5" />
-                    <span>Practice</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
-          )
-        })}
-      </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }
