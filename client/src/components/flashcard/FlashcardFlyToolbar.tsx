@@ -559,68 +559,71 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             )}
 
-            {/* Target Scope & Card Order (Queue Engine) */}
+            {/* Target Scope & Queue Setup (Queue Engine) */}
             <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  🎯 Target Scope & Order
+                  🎯 Target Scope & Setup
                 </span>
                 <span className="text-[9px] font-bold text-slate-400">
-                  {cardScope === 'all' ? (activeMode === 'fsrs' ? 'Interleaved' : 'All Cards') : cardScope === 'review' ? 'Due Only' : 'New Only'} • {randomEnabled ? 'Random' : 'Sequential'}
+                  {cardScope === 'all' ? (activeMode === 'fsrs' ? 'Interleaved' : 'All Cards') : cardScope === 'review' ? 'Due Only' : 'New Only'} • {flipSides ? 'Invert (Back First)' : 'Normal'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs flex-1">
-                  <button
-                    type="button"
-                    onClick={() => onSelectCardScope?.('all')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      cardScope === 'all'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <span>All</span>
-                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.all ?? 0}
-                    </span>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onSelectCardScope?.('review')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      cardScope === 'review'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <span>Due</span>
-                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.review ?? 0}
-                    </span>
-                  </button>
+              {/* Row 1: Target Scope Full Width Segmented */}
+              <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => onSelectCardScope?.('all')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    cardScope === 'all'
+                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  <span>All</span>
+                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                    {scopeCounts?.all ?? 0}
+                  </span>
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onSelectCardScope?.('new')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      cardScope === 'new'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <span>New</span>
-                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.new ?? 0}
-                    </span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectCardScope?.('review')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    cardScope === 'review'
+                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  <span>Due</span>
+                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                    {scopeCounts?.review ?? 0}
+                  </span>
+                </button>
 
-                {/* Shuffle Button in Queue Engine */}
+                <button
+                  type="button"
+                  onClick={() => onSelectCardScope?.('new')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    cardScope === 'new'
+                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  <span>New</span>
+                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                    {scopeCounts?.new ?? 0}
+                  </span>
+                </button>
+              </div>
+
+              {/* Row 2: Queue Controls (Order & Sides) */}
+              <div className="grid grid-cols-2 gap-1.5">
+                {/* 1. Shuffle Order */}
                 <button
                   type="button"
                   onClick={() => {
@@ -630,18 +633,38 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info');
                   }}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border transition-all cursor-pointer shadow-2xs select-none shrink-0",
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl border transition-all cursor-pointer shadow-2xs select-none",
                     randomEnabled
                       ? "bg-violet-600 border-violet-700 text-white shadow-xs font-black"
-                      : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                      : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-100 font-bold"
                   )}
                   title={`Shuffle Order: ${randomEnabled ? 'Random' : 'Sequential'}`}
                 >
                   <Shuffle className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-black uppercase tracking-wider">
-                    {randomEnabled ? 'Rand' : 'Seq'}
+                  <span className="text-[10px] uppercase tracking-wider">
+                    {randomEnabled ? 'Rand Order' : 'Seq Order'}
                   </span>
                 </button>
+
+                {/* 2. Flip Sides (Normal vs Invert) */}
+                {onToggleFlipSides !== undefined && (
+                  <button
+                    type="button"
+                    onClick={onToggleFlipSides}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl border transition-all cursor-pointer shadow-2xs select-none",
+                      flipSides
+                        ? "bg-indigo-600 border-indigo-700 text-white shadow-xs font-black"
+                        : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-100 font-bold"
+                    )}
+                    title={`Card Sides: ${flipSides ? 'Invert (Meaning First)' : 'Normal (Front First)'}`}
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5" />
+                    <span className="text-[10px] uppercase tracking-wider">
+                      {flipSides ? 'Invert Sides' : 'Front First'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1160,24 +1183,24 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                   {/* ══════ TAB 2: PREFERENCES (Tùy chọn Phiên học) ══════ */}
                   {quickTab === 'preferences' && (
                     <div className="flex flex-col gap-2.5">
-                      {/* 1. Audio & Flow */}
+                      {/* 1. Audio & Haptics (Pure Sound & Feedback) */}
                       <div className="flex flex-col gap-1 text-left px-0.5">
                         <div className="flex items-center justify-between px-1">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                            Audio & Flow
+                            Audio & Haptics
                           </span>
                           <span className="text-[9px] font-bold text-slate-400">
-                            Sound & Pacing
+                            Sound & Feedback
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
+                        <div className="grid grid-cols-4 gap-1.5">
                           {/* 1. Autoplay */}
                           <button
                             type="button"
                             onClick={handleCycleAutoplay}
                             className={cn(
-                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                               autoplayMeta.container
                             )}
                             title={autoplayMeta.title}
@@ -1246,7 +1269,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                                 type="button"
                                 onClick={handleCycleSpeed}
                                 className={cn(
-                                  "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                  "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                                   speedMeta.container
                                 )}
                                 title={speedMeta.title}
@@ -1264,7 +1287,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             )
                           })()}
 
-                          {/* 2. SFX Sounds */}
+                          {/* 3. SFX Sounds */}
                           <button
                             type="button"
                             onClick={() => {
@@ -1291,7 +1314,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </div>
                           </button>
 
-                          {/* 3. Haptic Feedback */}
+                          {/* 4. Haptic Feedback */}
                           <button
                             type="button"
                             onClick={() => {
@@ -1318,8 +1341,22 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               </span>
                             </div>
                           </button>
+                        </div>
+                      </div>
 
-                          {/* 4. Auto Next */}
+                      {/* 2. Display & Gestures (8 buttons in 4x2 grid) */}
+                      <div className="flex flex-col gap-1 text-left px-0.5">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Display & Gestures
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            Visuals & Interaction
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {/* 1. Auto Next (Card Flow Gesture) */}
                           {(() => {
                             const isAutoOn = autoNextSec !== undefined ? autoNextSec > 0 : effectiveAutoAdvance
                             const autoBadgeText = autoNextSec !== undefined
@@ -1376,45 +1413,6 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               </button>
                             )
                           })()}
-                        </div>
-                      </div>
-
-                      {/* 2. Display & Gestures (6 buttons in 3x2 grid) */}
-                      <div className="flex flex-col gap-1 text-left px-0.5">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                            Display & Gestures
-                          </span>
-                          <span className="text-[9px] font-bold text-slate-400">
-                            Visuals & Controls
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {/* 1. Flip Sides (Invert) */}
-                          {onToggleFlipSides !== undefined && (
-                            <button
-                              type="button"
-                              onClick={onToggleFlipSides}
-                              className={cn(
-                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                                flipSides
-                                  ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs font-bold"
-                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                              )}
-                              title={`Card Sides: ${flipSides ? 'INVERT (Meaning First)' : 'NORMAL (Front First)'}`}
-                            >
-                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", flipSides ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                                <ArrowLeftRight className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="flex flex-col items-center leading-none gap-0.5">
-                                <span className="text-[9.5px] font-bold tracking-tight">Flip Sides</span>
-                                <span className={cn("text-[8px] font-black uppercase tracking-wider", flipSides ? "text-violet-600 font-black" : "text-slate-400")}>
-                                  {flipSides ? "INVERT" : "NORMAL"}
-                                </span>
-                              </div>
-                            </button>
-                          )}
 
                           {/* 2. Rating Mode */}
                           {onCycleRatingMode !== undefined ? (
