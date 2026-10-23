@@ -521,150 +521,129 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             </div>
 
-            {/* 5 Flashcard Modes Quick Switcher */}
-            {onSelectMode && (
-              <div className="flex flex-col gap-1 text-left px-0.5">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                    Flashcard Study Mode
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400">
-                    3 Modes Available
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
+            {/* Unified Session Setup Console (Ultra Compact 2-Row Layout) */}
+            <div className="flex flex-col gap-1.5 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/90 shadow-2xs">
+              {/* Row 1: Study Modes (Segmented 3-tab pill, inline icon + text) */}
+              {onSelectMode && (
+                <div className="grid grid-cols-3 gap-1 p-0.5 rounded-xl bg-slate-200/70 border border-slate-200/60 shadow-2xs">
                   {FLASHCARD_MODES.map((m) => {
                     const isActive = activeMode === m.id || (m.id === 'skim' && (activeMode === 'speed_skim' || activeMode === 'flip'));
                     return (
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => {
-                          onSelectMode(m.id);
-                        }}
+                        onClick={() => onSelectMode(m.id)}
                         className={cn(
-                          "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all cursor-pointer select-none",
+                          "flex items-center justify-center gap-1.5 py-1 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer select-none",
                           isActive
-                            ? cn(m.activeClass, "scale-[1.02]")
+                            ? cn(m.activeClass, "scale-[1.01]")
                             : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
                         )}
                         title={m.name}
                       >
-                        <span className="text-base leading-none mb-1">{m.icon}</span>
-                        <span className="text-[10px] font-black tracking-tight uppercase leading-tight">{m.short}</span>
+                        <span className="text-xs leading-none">{m.icon}</span>
+                        <span className="text-[11px] font-black uppercase tracking-tight">{m.short}</span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Target Scope & Queue Setup (Queue Engine) */}
-            <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  🎯 Target Scope & Setup
-                </span>
-                <span className="text-[9px] font-bold text-slate-400">
-                  {cardScope === 'all' ? (activeMode === 'fsrs' ? 'Interleaved' : 'All Cards') : cardScope === 'review' ? 'Due Only' : 'New Only'} • {flipSides ? 'Invert (Back First)' : 'Normal'}
-                </span>
-              </div>
-
-              {/* Row 1: Target Scope Full Width Segmented */}
-              <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => onSelectCardScope?.('all')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    cardScope === 'all'
-                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <span>All</span>
-                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                    {scopeCounts?.all ?? 0}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSelectCardScope?.('review')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    cardScope === 'review'
-                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <span>Due</span>
-                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                    {scopeCounts?.review ?? 0}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSelectCardScope?.('new')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    cardScope === 'new'
-                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <span>New</span>
-                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                    {scopeCounts?.new ?? 0}
-                  </span>
-                </button>
-              </div>
-
-              {/* Row 2: Queue Controls (Order & Sides) */}
-              <div className="grid grid-cols-2 gap-1.5">
-                {/* 1. Shuffle Order */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextVal = !randomEnabled;
-                    if (onToggleRandom) onToggleRandom(nextVal);
-                    else setRandomEnabled(nextVal);
-                    showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info');
-                  }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl border transition-all cursor-pointer shadow-2xs select-none",
-                    randomEnabled
-                      ? "bg-violet-600 border-violet-700 text-white shadow-xs font-black"
-                      : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-100 font-bold"
-                  )}
-                  title={`Shuffle Order: ${randomEnabled ? 'Random' : 'Sequential'}`}
-                >
-                  <Shuffle className="w-3.5 h-3.5" />
-                  <span className="text-[10px] uppercase tracking-wider">
-                    {randomEnabled ? 'Rand Order' : 'Seq Order'}
-                  </span>
-                </button>
-
-                {/* 2. Flip Sides (Normal vs Invert) */}
-                {onToggleFlipSides !== undefined && (
+              {/* Row 2: Target Scope & Queue Controls (Inline & Balanced) */}
+              <div className="flex items-center gap-1.5">
+                {/* 2A: Scope (All | Due | New) */}
+                <div className="flex-1 grid grid-cols-3 gap-0.5 p-0.5 rounded-xl bg-white border border-slate-200/70 shadow-2xs">
                   <button
                     type="button"
-                    onClick={onToggleFlipSides}
+                    onClick={() => onSelectCardScope?.('all')}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl border transition-all cursor-pointer shadow-2xs select-none",
-                      flipSides
-                        ? "bg-indigo-600 border-indigo-700 text-white shadow-xs font-black"
-                        : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-100 font-bold"
+                      "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
+                      cardScope === 'all'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
                     )}
-                    title={`Card Sides: ${flipSides ? 'Invert (Meaning First)' : 'Normal (Front First)'}`}
+                    title="All Cards"
                   >
-                    <ArrowLeftRight className="w-3.5 h-3.5" />
-                    <span className="text-[10px] uppercase tracking-wider">
-                      {flipSides ? 'Invert Sides' : 'Front First'}
+                    <span>All</span>
+                    <span className={cn("text-[9px] px-1 py-0.2 rounded-full font-black", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.all ?? 0}
                     </span>
                   </button>
-                )}
+
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('review')}
+                    className={cn(
+                      "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
+                      cardScope === 'review'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                    title="Due Cards"
+                  >
+                    <span>Due</span>
+                    <span className={cn("text-[9px] px-1 py-0.2 rounded-full font-black", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.review ?? 0}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('new')}
+                    className={cn(
+                      "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
+                      cardScope === 'new'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                    title="New Cards"
+                  >
+                    <span>New</span>
+                    <span className={cn("text-[9px] px-1 py-0.2 rounded-full font-black", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.new ?? 0}
+                    </span>
+                  </button>
+                </div>
+
+                {/* 2B: Queue Controls (Rand & Invert) */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !randomEnabled;
+                      if (onToggleRandom) onToggleRandom(nextVal);
+                      else setRandomEnabled(nextVal);
+                      showLocalToast?.(`Order: ${nextVal ? 'Random' : 'Sequential'}`, 'info');
+                    }}
+                    className={cn(
+                      "flex items-center gap-1 py-1 px-2 rounded-xl border text-[10.5px] transition-all cursor-pointer shadow-2xs select-none",
+                      randomEnabled
+                        ? "bg-violet-600 border-violet-700 text-white shadow-xs font-black"
+                        : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-50 font-bold"
+                    )}
+                    title={`Queue Order: ${randomEnabled ? 'Random' : 'Sequential'}`}
+                  >
+                    <Shuffle className="w-3 h-3" />
+                    <span>{randomEnabled ? 'Rand' : 'Seq'}</span>
+                  </button>
+
+                  {onToggleFlipSides !== undefined && (
+                    <button
+                      type="button"
+                      onClick={onToggleFlipSides}
+                      className={cn(
+                        "flex items-center gap-1 py-1 px-2 rounded-xl border text-[10.5px] transition-all cursor-pointer shadow-2xs select-none",
+                        flipSides
+                          ? "bg-indigo-600 border-indigo-700 text-white shadow-xs font-black"
+                          : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-50 font-bold"
+                      )}
+                      title={`Card Sides: ${flipSides ? 'Invert (Meaning First)' : 'Front First'}`}
+                    >
+                      <ArrowLeftRight className="w-3 h-3" />
+                      <span>{flipSides ? 'Invert' : 'Front'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
