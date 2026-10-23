@@ -1256,9 +1256,6 @@ export default function Dashboard() {
   const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
   const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<any | null>(null)
   const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
-  const [roomCode, setRoomCode] = useState('')
-  const [isJoining, setIsJoining] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [mobileRoadmapIdx, setMobileRoadmapIdx] = useState(0)
   const [timeFilter, setTimeFilter] = useState<LeaderboardTimeFilter>('week')
@@ -1570,20 +1567,6 @@ export default function Dashboard() {
       document.documentElement.style.height = ''
     }
   }, [])
-
-  const handleJoinRoom = async (code?: string) => {
-    const targetCode = (typeof code === 'string' && code.trim()) ? code.trim() : roomCode
-    if (!targetCode) return
-    setIsJoining(true)
-    try {
-      await axios.post('/api/v1/deck/room/join', { room_code: targetCode })
-      navigate(`/room/${targetCode.toUpperCase()}`)
-    } catch (e) {
-      alert("Room not found or expired")
-    } finally {
-      setIsJoining(false)
-    }
-  }
 
   const handleOpenStudyModal = (deck: any, tab: 'flashcard' | 'practice') => {
     const id = deck.deck_id || deck.id

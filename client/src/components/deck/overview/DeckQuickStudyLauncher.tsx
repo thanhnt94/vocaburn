@@ -31,8 +31,8 @@ export function DeckQuickStudyLauncher({
         </div>
       </div>
 
-      {/* 3 Core Learn Modes */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 mb-3">
+      {/* Core Flashcard Learn Modes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-3">
         {/* 1. FSRS Spaced Repetition */}
         {!disabledModes.includes('fsrs') && (
           <Link
@@ -77,28 +77,6 @@ export function DeckQuickStudyLauncher({
           </Link>
         )}
 
-        {/* 3. Memrise Deep Study */}
-        {!disabledModes.includes('memrise') && (
-          <Link
-            to={`/memrise/${deckId}/plant`}
-            className="group relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
-          >
-            <div className="flex items-start justify-between mb-2 sm:mb-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-base sm:text-lg shrink-0 group-hover:scale-110 transition-transform">
-                🌱
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-white/20 text-white">
-                Deep
-              </span>
-            </div>
-            <div>
-              <span className="text-xs sm:text-sm font-black tracking-tight block">Memrise Mode</span>
-              <p className="text-[10px] sm:text-[11px] text-emerald-100 font-medium mt-0.5 line-clamp-1">
-                Plant seeds & water step-by-step
-              </p>
-            </div>
-          </Link>
-        )}
       </div>
 
       {/* Practice Tests Row */}

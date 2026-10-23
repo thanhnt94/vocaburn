@@ -14,12 +14,9 @@ const DeckDetailPage = lazy(() => import('./pages/DeckDetailPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const FlashcardPlay = lazy(() => import('./pages/FlashcardPlay'))
 const PracticePlay = lazy(() => import('./pages/PracticePlay'))
-const MemrisePlay = lazy(() => import('./pages/MemrisePlay'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Stats = lazy(() => import('./pages/Stats'))
 const Settings = lazy(() => import('./pages/Settings'))
-const FlashcardRoom = lazy(() => import('./pages/FlashcardRoom'))
-const RoomJoin = lazy(() => import('./pages/RoomJoin'))
 const RoadmapHub = lazy(() => import('./pages/RoadmapHub'))
 
 const queryClient = new QueryClient({
@@ -78,7 +75,6 @@ function AppContent() {
               <Route path="/stats" element={isLoggedIn ? <Stats /> : <Navigate to="/login" replace />} />
               <Route path="/settings" element={isLoggedIn ? <Settings /> : <Navigate to="/login" replace />} />
               <Route path="/roadmap" element={isLoggedIn ? <RoadmapHub /> : <Navigate to="/login" replace />} />
-              <Route path="/room/join" element={isLoggedIn ? <RoomJoin /> : <Navigate to="/login" replace />} />
 
               {/* Admin Control Panel */}
               <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />
@@ -87,8 +83,6 @@ function AppContent() {
             {/* Fullscreen Dedicated Study Views */}
             <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
             <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
-            <Route path="/memrise/:id/:sessionType" element={isLoggedIn ? <MemrisePlay /> : <Navigate to="/login" replace />} />
-            <Route path="/room/:code" element={isLoggedIn ? <FlashcardRoom /> : <Navigate to="/login" replace />} />
 
             {/* Catch-all Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />

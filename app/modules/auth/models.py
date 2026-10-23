@@ -43,7 +43,7 @@ class UserGlobalSettings(Base):
     back_halign = Column(String(20), default="left") # 'left' | 'center'
     
     # Study Modes & Preferences
-    quiz_learning_mode = Column(String(50), default="fsrs") # 'fsrs' | 'leitner' | 'practice'
+    quiz_learning_mode = Column(String(50), default="fsrs") # 'fsrs' | 'practice'
     practice_submode = Column(String(50), default="mcq") # 'mcq' | 'typing' | 'listening'
     practice_range = Column(String(20), default="all") # 'all' | 'learned'
     

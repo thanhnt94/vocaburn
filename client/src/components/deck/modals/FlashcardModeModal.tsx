@@ -55,14 +55,6 @@ export function FlashcardModeModal({
       badge: '1-Tap Fast',
       color: 'hover:border-amber-500/40 hover:bg-amber-50/15'
     },
-    { 
-      mode: 'memrise', 
-      icon: '🌱', 
-      title: 'Memrise Mode', 
-      desc: 'Deep multi-stage word mastery: Plant seeds & water step-by-step',
-      badge: 'Deep Study',
-      color: 'hover:border-emerald-500/40 hover:bg-emerald-50/15'
-    },
   ].filter(item => !disabledModes.includes(item.mode))
 
   const handleLaunchMode = (modeKey: string) => {
@@ -73,12 +65,8 @@ export function FlashcardModeModal({
       random_enabled: isRandom
     })
 
-    if (modeKey === 'memrise') {
-      navigate(`/memrise/${deck.id}/plant`)
-    } else {
-      const filterParam = cardFilter !== 'all' ? `&filter=${cardFilter}` : ''
-      navigate(`/flashcard/${deck.id}/play?mode=${modeKey}&order=${cardOrder}${filterParam}`)
-    }
+    const filterParam = cardFilter !== 'all' ? `&filter=${cardFilter}` : ''
+    navigate(`/flashcard/${deck.id}/play?mode=${modeKey}&order=${cardOrder}${filterParam}`)
   }
 
   return (

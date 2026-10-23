@@ -51,8 +51,7 @@ export default function Layout() {
   const isLandingPage = location.pathname === '/' && !isLoggedIn
   const isDashboard = location.pathname === '/' || location.pathname === '/dashboard'
   const isFullscreenPlay = location.pathname.includes('/play') || 
-                          location.pathname.includes('/practice/') || 
-                          location.pathname.includes('/room/')
+                          location.pathname.includes('/practice/')
   const isDeckDetail = /^\/decks\/[^/]+$/.test(location.pathname)
   const isImmersiveView = isFullscreenPlay || isDeckDetail
   const showDesktopHeader = !isLandingPage && !isFullscreenPlay

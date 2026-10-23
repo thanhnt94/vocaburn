@@ -104,15 +104,7 @@ export default function Stats() {
     staleTime: 60 * 1000
   })
 
-  // 6. Leitner distribution & hard cards
-  const { data: leitnerStats } = useQuery({
-    queryKey: ['stats-leitner'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/deck/stats/leitner')
-      return res.data
-    },
-    staleTime: 30 * 1000
-  })
+
 
   // 7. Speed vs Accuracy
   const { data: speedAccuracyStats } = useQuery({
@@ -300,7 +292,6 @@ export default function Stats() {
                   personalStats={personal}
                   heatmapData={heatmapData}
                   weeklyReport={weeklyReport}
-                  leitnerStats={leitnerStats}
                   speedAccuracyStats={speedAccuracyStats}
                   forecastData={forecastData}
                   practiceStats={practiceStats}

@@ -115,7 +115,6 @@ async def clean_user_id_cookie(request: Request, call_next):
     return await call_next(request)
 
 from app.modules.deck.routes.api import router as deck_api_router
-from app.modules.deck.routes.room import router as deck_room_router
 from app.modules.deck.routes.folder_routes import router as folder_router, folder_play_router
 from app.modules.sso_module.routes import router as sso_api_router
 from app.modules.admin import router as admin_router
@@ -124,10 +123,8 @@ from app.modules.stats import router as stats_router
 from app.modules.notification import router as notification_router
 from app.modules.gamification.routes import router as gamification_router
 from app.modules.media.routes import router as media_router
-from app.modules.memrise.routes.memrise_routes import router as memrise_router
 
 app.include_router(deck_api_router, prefix=settings.API_V1_STR)
-app.include_router(deck_room_router, prefix=settings.API_V1_STR)
 app.include_router(folder_router, prefix=settings.API_V1_STR)
 app.include_router(folder_play_router, prefix=settings.API_V1_STR)
 app.include_router(sso_api_router)
@@ -139,7 +136,6 @@ app.include_router(stats_router, prefix=settings.API_V1_STR)
 app.include_router(notification_router, prefix=settings.API_V1_STR)
 app.include_router(gamification_router, prefix=settings.API_V1_STR)
 app.include_router(media_router)
-app.include_router(memrise_router, prefix=f"{settings.API_V1_STR}/memrise")
 
 # --- Health Checks for Ecosystem ---
 @app.get("/api/health")
@@ -177,11 +173,9 @@ async def serve_sw():
 @app.get("/manage/{path:path}")
 @app.get("/roadmap")
 @app.get("/roadmap/{path:path}")
-@app.get("/room/{path:path}")
 @app.get("/admin")
 @app.get("/admin/{path:path}")
 @app.get("/auth/callback")
-@app.get("/memrise/{path:path}")
 async def serve_spa(request: Request):
     # Serve React SPA index.html unconditionally for all frontend paths
     spa_index = os.path.join(DIST_DIR, "index.html")

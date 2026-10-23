@@ -16,7 +16,6 @@ import axios from 'axios'
 import { 
   DeckStudyModal, 
   PracticeModeModal,
-  DeckJoinRoomModal, 
   DeckCreateModal,
   FolderModal,
   FolderDetailModal,
@@ -99,7 +98,6 @@ export default function DecksPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   
   // Selection State (Master-Detail matching Home Learning)
@@ -1485,11 +1483,6 @@ export default function DecksPage() {
       )}
 
       {/* ═══════════ MODALS ═══════════ */}
-      <DeckJoinRoomModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
-      />
-
       <DeckCreateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

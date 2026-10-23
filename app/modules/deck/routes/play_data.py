@@ -1,0 +1,725 @@
+from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks, Query, HTTPException
+from fastapi.responses import JSONResponse
+from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
+from app.modules.auth.services.auth_service import AuthService
+from app.modules.auth.services.user_settings_service import UserSettingsService
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, func, Integer, or_, desc
+from sqlalchemy.orm import selectinload
+from app.core.db import get_db
+from app.modules.deck.services.excel_service import ExcelDeckService
+from app.modules.deck.services.deck_service import DeckService
+from app.modules.deck.services.ai_service import ai_service
+from app.modules.deck.schemas import DeckSchema, CardSchema, CardExplainRequest
+from app.modules.deck.models import (
+    UserDeckSettings, FlashcardDeck, Flashcard, DeckAttempt, UserAnswer,
+    UserCardMastery, UserPracticeStats, UserCardNote, DeckSession
+)
+from app.modules.deck.services.mcq_engine import MCQEngine
+from app.modules.deck.services.typing_engine import TypingEngine
+from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_intervals, apply_stability_boost
+from app.modules.deck.services.roadmap_service import RoadmapService
+from app.modules.deck.utils import (
+    fix_static_urls, migrate_practice_settings,
+    get_enabled_practice_modes, check_has_practice_setup, check_has_mcq_setup,
+    resolve_effective_study_settings
+)
+from .play_utils import resolve_play_cards
+import json
+import re
+import os
+import asyncio
+from datetime import datetime, timezone, date, timedelta
+
+router = APIRouter(tags=["Deck Play"])
+
+@router.get("/{deck_id}/data")
+async def get_deck_data(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    from app.modules.deck.models import DeckCollaborator
+    
+    deck = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+    
+    # Check if user is collaborator
+    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+    is_collaborator = collab_res.scalar() is not None
+
+    from app.modules.auth.models import User as UserDB
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and user_obj.role == "admin"
+
+    if not deck.is_public and deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
+        return JSONResponse(status_code=403, content={"error": "This is a private deck"})
+    
+    from app.modules.deck.models import Flashcard, UserDeckSettings
+    c_count_res = await db.execute(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id))
+    c_count = c_count_res.scalar()
+
+    user_settings_res = await db.execute(
+        select(UserDeckSettings.settings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
+    )
+    user_custom_settings = user_settings_res.scalar_one_or_none()
+    settings_data = user_custom_settings if (user_custom_settings and isinstance(user_custom_settings, dict)) else (deck.practice_settings or {})
+    pipeline = settings_data.get("pipeline", [])
+    has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
+    
+    # Get creator username
+    creator_name = "Hệ thống"
+    if deck.creator_id:
+        c_user_res = await db.execute(select(UserDB.username).where(UserDB.id == deck.creator_id))
+        c_name_val = c_user_res.scalar()
+        if c_name_val:
+            creator_name = c_name_val
+        else:
+            creator_name = f"user_{deck.creator_id}"
+
+    is_creator = bool(deck.creator_id == user_id or user_id == 1 or is_admin)
+    can_edit = bool(is_creator or is_collaborator)
+
+    # Fetch recent study/practice attempts for this user on this deck
+    from app.modules.deck.models import DeckAttempt, UserAnswer
+    from sqlalchemy import case, or_
+
+    recent_attempts = []
+    if user_id:
+        attempts_q = await db.execute(
+            select(DeckAttempt)
+            .where(
+                DeckAttempt.deck_id == deck_id,
+                DeckAttempt.user_id == user_id
+            )
+            .order_by(DeckAttempt.id.desc())
+            .limit(15)
+        )
+        db_attempts = attempts_q.scalars().all()
+        for att in db_attempts:
+            # Check actual answers logged for this attempt
+            ans_stats = await db.execute(
+                select(
+                    func.count(UserAnswer.id).label("total"),
+                    func.sum(case((or_(UserAnswer.is_correct == True, UserAnswer.rating >= 3), 1), else_=0)).label("correct"),
+                    func.min(UserAnswer.created_at).label("first_answer"),
+                    func.max(UserAnswer.created_at).label("last_answer")
+                )
+                .where(UserAnswer.attempt_id == att.id)
+            )
+            row = ans_stats.one_or_none()
+            total = (row.total if row and row.total else 0) or (att.total_cards or 0)
+            correct = (row.correct if row and row.correct else 0) or (att.score or 0)
+
+            # Skip empty auto-enrolled attempts with 0 answers
+            if total == 0:
+                continue
+
+            started = (row.first_answer if row and row.first_answer else None) or att.started_at
+            completed = (row.last_answer if row and row.last_answer else None) or att.completed_at
+
+            recent_attempts.append({
+                "id": att.id,
+                "mode": att.mode or "play",
+                "score": int(correct),
+                "total_cards": int(total),
+                "accuracy": round((correct / total) * 100) if total > 0 else 0,
+                "started_at": started.isoformat() if started else "",
+                "completed_at": completed.isoformat() if completed else None
+            })
+
+            if len(recent_attempts) >= 5:
+                break
+
+    return {
+        "id": deck.id,
+        "title": deck.title,
+        "description": deck.description,
+        "instruction": deck.instruction,
+        "creator_id": deck.creator_id,
+        "owner_id": deck.creator_id,
+        "creator_name": creator_name,
+        "is_creator": is_creator,
+        "is_collaborator": is_collaborator,
+        "can_edit": can_edit,
+        "is_admin": is_admin,
+        "is_public": deck.is_public,
+        "cards_count": c_count,
+        "questions_count": c_count, # compatibility
+        "tags": [t.name for t in deck.tags],
+        "cover_image": deck.cover_image,
+        "has_roadmap": has_roadmap,
+        "category_name": deck.category.name if deck.category else "General",
+        "practice_settings": deck.practice_settings or {},
+        "study_defaults": (deck.practice_settings or {}).get("study_defaults", {}),
+        "default_mode": (deck.practice_settings or {}).get("study_defaults", {}).get("learning_mode", "fsrs"),
+        "recent_attempts": recent_attempts
+    }
+
+def migrate_practice_settings(settings: Optional[dict]) -> dict:
+    if not settings:
+        return {}
+    if any(k in settings for k in ("mcq", "typing", "listening")):
+        return settings
+    
+    active_pairs = settings.get("active_pairs", [])
+    num_choices = settings.get("num_choices", 4)
+    
+    new_settings = dict(settings)
+    new_settings["mcq"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    new_settings["typing"] = {"active_pairs": active_pairs}
+    new_settings["listening"] = {"active_pairs": active_pairs, "num_choices": num_choices}
+    return new_settings
+
+@router.get("/quick-play-data")
+async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = AuthService.get_user_id(request)
+    
+    # 1. Fetch all decks connected to this user
+    from app.modules.deck.models import FlashcardDeck, DeckCollaborator, DeckAttempt
+    
+    attempt_sub = select(DeckAttempt.deck_id).where(DeckAttempt.user_id == user_id).scalar_subquery()
+    collab_sub = select(DeckCollaborator.deck_id).where(DeckCollaborator.user_id == user_id).scalar_subquery()
+    
+    deck_stmt = select(FlashcardDeck).where(
+        or_(
+            FlashcardDeck.creator_id == user_id,
+            FlashcardDeck.id.in_(attempt_sub),
+            FlashcardDeck.id.in_(collab_sub)
+        )
+    )
+    deck_res = await db.execute(deck_stmt)
+    decks = deck_res.scalars().all()
+    
+    if not decks:
+        # Load active public decks if user has no decks
+        public_deck_stmt = select(FlashcardDeck).where(FlashcardDeck.is_public == True).limit(5)
+        public_deck_res = await db.execute(public_deck_stmt)
+        decks = public_deck_res.scalars().all()
+        
+    deck_ids = [d.id for d in decks]
+    if not deck_ids:
+        return {
+            "id": 0,
+            "title": "Học Nhanh (Quick Play)",
+            "description": "Tự động ôn tập các thẻ đến hạn và học mới ngẫu nhiên từ tất cả các bộ bài của bạn.",
+            "cards": [],
+            "questions": [],
+            "user_total_xp": 0,
+            "user_today_xp": 0,
+            "user_today_time": 0,
+            "user_all_time_time": 0
+        }
+        
+    # 2. Fetch all cards of these decks
+    from app.modules.deck.models import Flashcard
+    card_stmt = select(Flashcard).where(Flashcard.deck_id.in_(deck_ids))
+    card_res = await db.execute(card_stmt)
+    cards = card_res.scalars().all()
+    
+    if not cards:
+        return {
+            "id": 0,
+            "title": "Học Nhanh (Quick Play)",
+            "description": "Tự động ôn tập các thẻ đến hạn và học mới ngẫu nhiên từ tất cả các bộ bài của bạn.",
+            "cards": [],
+            "questions": [],
+            "user_total_xp": 0,
+            "user_today_xp": 0,
+            "user_today_time": 0,
+            "user_all_time_time": 0
+        }
+        
+    # 3. Load user card mastery
+    from app.modules.deck.models import UserCardMastery
+    mastery_stmt = select(UserCardMastery).where(
+        UserCardMastery.user_id == user_id,
+        UserCardMastery.card_id.in_([c.id for c in cards])
+    )
+    mastery_res = await db.execute(mastery_stmt)
+    mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
+    
+    # 4. Group into due and new
+    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+    due_cards = []
+    new_cards = []
+    
+    for c in cards:
+        m = mastery_records.get(c.id)
+        if m:
+            if m.is_ignored:
+                continue
+            if m.state == 0 and m.last_review is None:
+                new_cards.append(c)
+            else:
+                m_due = m.due.replace(tzinfo=timezone.utc) if m.due else now_utc
+                if m_due <= now_utc:
+                    due_cards.append((c, m))
+        else:
+            new_cards.append(c)
+            
+    import random
+    selected_items = []
+    if due_cards:
+        random.shuffle(due_cards)
+        selected_items = due_cards[:100]
+    else:
+        random.shuffle(new_cards)
+        selected_items = [(c, None) for c in new_cards[:30]]
+        
+    # 5. Fetch review times
+    from app.modules.deck.models import UserAnswer
+    selected_card_ids = [item[0].id for item in selected_items]
+    
+    review_times_stmt = select(
+        UserAnswer.card_id,
+        func.min(UserAnswer.created_at),
+        func.max(UserAnswer.created_at)
+    ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)\
+     .where(
+         DeckAttempt.user_id == user_id,
+         UserAnswer.card_id.in_(selected_card_ids)
+     ).group_by(UserAnswer.card_id)
+     
+    review_times_res = await db.execute(review_times_stmt)
+    review_times_map = {row[0]: (row[1], row[2]) for row in review_times_res.all()}
+    
+    # 6. Fetch gamification stats
+    from app.modules.gamification.interface import GamificationInterface
+    user_stats = await GamificationInterface.get_user_stats(db, user_id)
+    user_total_xp = user_stats.get("xp", 0)
+    
+    from app.modules.gamification.models import XPTransaction
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
+        XPTransaction.user_id == user_id,
+        XPTransaction.created_at >= today_start
+    )
+    today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id,
+        UserAnswer.created_at >= today_start
+    )
+    all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id
+    )
+    
+    today_xp_res = await db.execute(today_xp_stmt)
+    today_time_res = await db.execute(today_time_stmt)
+    all_time_time_res = await db.execute(all_time_time_stmt)
+    
+    user_today_xp = today_xp_res.scalar() or 0
+    user_today_time = today_time_res.scalar() or 0
+    user_all_time_time = all_time_time_res.scalar() or 0
+    
+    from fsrs import Scheduler
+    scheduler = Scheduler(enable_fuzzing=False)
+    new_card_template = build_fsrs_card(None, now_utc)
+    default_new_intervals = estimate_intervals(scheduler, new_card_template, now_utc)
+    
+    cards_list = []
+    for c, m in selected_items:
+        m_state = m.state if m else 0
+        m_stability = m.stability if m else None
+        m_difficulty = m.difficulty if m else None
+        m_due = m.due if m else datetime.utcnow()
+        m_last_review = m.last_review if m else None
+        m_box_level = m.box_level if m else 1
+        
+        is_new = (m is None) or (m_state == 0 and m_last_review is None)
+        if is_new:
+            intervals = default_new_intervals
+        else:
+            fsrs_card = build_fsrs_card(m, now_utc)
+            intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
+            
+        r_times = review_times_map.get(c.id)
+        first_learned = r_times[0] if r_times else None
+        last_reviewed = r_times[1] if r_times else None
+        
+        cards_list.append({
+            "id": c.id,
+            "content": c.content,
+            "explanation": c.explanation,
+            "front_audio_content": c.front_audio_content,
+            "back_audio_content": c.back_audio_content,
+            "front_audio_url": c.front_audio_url,
+            "back_audio_url": c.back_audio_url,
+            "front_img": c.front_img,
+            "back_img": c.back_img,
+            "stats": getattr(c, 'stats', None),
+            "box_level": m_box_level,
+            "is_ignored": m.is_ignored if m else False,
+            "is_starred": m.is_starred if m else False,
+            "fsrs": {
+                "state": m_state,
+                "stability": m_stability,
+                "difficulty": m_difficulty,
+                "due": m_due.isoformat() if m_due else None,
+                "last_review": m_last_review.isoformat() if m_last_review else None,
+                "first_learned": first_learned.isoformat() if first_learned else None,
+                "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
+                "intervals": intervals
+            },
+            "options": [],
+            "image": fix_static_urls(c.back_img),
+            "audio": fix_static_urls(c.front_audio_url),
+            "others": fix_static_urls(c.others)
+        })
+        
+    await resolve_play_cards(cards_list, db)
+    return {
+        "id": 0,
+        "title": "Học Nhanh (Quick Play)",
+        "description": "Tự động ôn tập các thẻ đến hạn và học mới ngẫu nhiên từ tất cả các bộ bài của bạn.",
+        "ai_prompts": [],
+        "instruction": "",
+        "category_id": 0,
+        "creator_id": 0,
+        "is_collaborator": False,
+        "user_total_xp": user_total_xp,
+        "user_today_xp": user_today_xp,
+        "user_today_time": user_today_time,
+        "user_all_time_time": user_all_time_time,
+        "practice_needs_setup": False,
+        "practice_disabled": False,
+        "cards": cards_list,
+        "questions": cards_list
+    }
+
+@router.get("/{deck_id}/play-data")
+async def get_deck_play_data(
+    request: Request,
+    deck_id: int,
+    mode: Optional[str] = None,
+    lightweight: Optional[bool] = None,
+    sub_col: Optional[str] = Query(None),
+    sub_val: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = AuthService.get_user_id(request)
+    
+    # Check if deck exists and enforce privacy
+    deck_check = await DeckService.get_deck_by_id(db, deck_id)
+    if not deck_check: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+    
+    from app.modules.deck.models import DeckCollaborator
+    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
+    is_collaborator = collab_res.scalar() is not None
+
+    from app.modules.auth.models import User as UserDB
+    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
+    user_obj = user_res.scalar_one_or_none()
+    is_admin = user_obj and user_obj.role == "admin"
+
+    if not deck_check.is_public and deck_check.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
+        return JSONResponse(status_code=403, content={"error": "This is a private deck"})
+
+    if lightweight:
+        from app.modules.deck.models import FlashcardDeck
+        result = await db.execute(
+            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+                selectinload(FlashcardDeck.cards),
+                selectinload(FlashcardDeck.tags)
+            )
+        )
+        deck = result.scalar_one_or_none()
+        if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+        
+        source_cards = deck.cards or []
+        if sub_col and sub_val is not None:
+            def matches_sub_light(c):
+                val = ""
+                if c.others and isinstance(c.others, dict):
+                    val = str(c.others.get(sub_col, "") or "").strip()
+                elif hasattr(c, sub_col):
+                    val = str(getattr(c, sub_col) or "").strip()
+                if sub_val == "__empty__":
+                    return not val
+                return val == sub_val.strip()
+            source_cards = [c for c in source_cards if matches_sub_light(c)]
+
+        cards_list = [{
+            "id": c.id,
+            "original_index": i + 1,
+            "content": c.content,
+            "explanation": c.explanation,
+            "front_audio_content": c.front_audio_content,
+            "back_audio_content": c.back_audio_content,
+            "front_audio_url": c.front_audio_url,
+            "back_audio_url": c.back_audio_url,
+            "front_img": c.front_img,
+            "back_img": c.back_img,
+            "image": fix_static_urls(c.back_img),
+            "audio": fix_static_urls(c.front_audio_url),
+            "others": fix_static_urls(c.others)
+        } for i, c in enumerate(source_cards)]
+        
+        await resolve_play_cards(cards_list, db)
+        return {
+            "id": deck.id,
+            "title": deck.title,
+            "description": deck.description,
+            "cover_image": fix_static_urls(deck.cover_image),
+            "tags": [t.name for t in deck.tags] if deck.tags else [],
+            "ai_prompts": deck.practice_settings.get("ai_prompts", []) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else [],
+            "instruction": deck.instruction,
+            "category_id": deck.category_id,
+            "creator_id": deck.creator_id,
+            "cards": cards_list,
+            "questions": cards_list,
+            "sub_group": {
+                "column": sub_col,
+                "value": sub_val,
+                "total_cards": len(cards_list)
+            } if sub_col and sub_val is not None else None
+        }
+
+    is_practice = mode in ("mcq", "typing", "listening")
+    
+    from app.modules.deck.models import FlashcardDeck, Flashcard, Tag, DeckCollaborator, UserCardMastery, UserDeckSettings
+    from app.modules.gamification.models import XPTransaction
+    from app.modules.deck.models import UserAnswer, DeckAttempt
+    from app.modules.gamification.interface import GamificationInterface
+
+    # 1. Fetch deck with cards and tags in 1 optimized query
+    deck_query = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+        selectinload(FlashcardDeck.cards),
+        selectinload(FlashcardDeck.tags)
+    )
+    
+    # 2. Prepare parallel tasks for user stats, mastery, and settings
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    user_sett_stmt = select(UserDeckSettings).where(
+        UserDeckSettings.user_id == user_id,
+        UserDeckSettings.deck_id == deck_id
+    ).order_by(UserDeckSettings.id.desc()).limit(1)
+    collab_stmt = select(DeckCollaborator).where(
+        DeckCollaborator.deck_id == deck_id, 
+        DeckCollaborator.user_id == user_id
+    )
+    today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
+        XPTransaction.user_id == user_id,
+        XPTransaction.created_at >= today_start
+    )
+    today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id,
+        UserAnswer.created_at >= today_start
+    )
+    all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+        DeckAttempt.user_id == user_id
+    )
+
+    deck_res = await db.execute(deck_query)
+    deck = deck_res.scalar_one_or_none()
+    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+
+    user_sett_res = await db.execute(user_sett_stmt)
+    collab_res = await db.execute(collab_stmt)
+    user_stats = await GamificationInterface.get_user_stats(db, user_id)
+    today_xp_res = await db.execute(today_xp_stmt)
+    today_time_res = await db.execute(today_time_stmt)
+    all_time_time_res = await db.execute(all_time_time_stmt)
+
+    user_sett = user_sett_res.scalar_one_or_none()
+    is_collaborator = collab_res.scalar() is not None
+    user_total_xp = user_stats.get("xp", 0)
+    user_today_xp = today_xp_res.scalar() or 0
+    user_today_time = today_time_res.scalar() or 0
+    user_all_time_time = all_time_time_res.scalar() or 0
+
+    source_cards = deck.cards or []
+    if sub_col and sub_val is not None:
+        def matches_sub(c):
+            val = ""
+            if c.others and isinstance(c.others, dict):
+                val = str(c.others.get(sub_col, "") or "").strip()
+            elif hasattr(c, sub_col):
+                val = str(getattr(c, sub_col) or "").strip()
+            if sub_val == "__empty__":
+                return not val
+            return val == sub_val.strip()
+        source_cards = [c for c in source_cards if matches_sub(c)]
+
+    # 3. Fetch Mastery records in 1 indexed query (Skip for practice mode)
+    mastery_records = {}
+    if not is_practice and user_id and source_cards:
+        card_ids = [c.id for c in source_cards]
+        mastery_stmt = select(UserCardMastery).where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.card_id.in_(card_ids)
+        )
+        mastery_res = await db.execute(mastery_stmt)
+        mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
+
+    # Check settings if practice mode
+    practice_needs_setup = False
+    practice_disabled = False
+    active_pairs = []
+    num_choices = 4
+    
+    if is_practice:
+        raw_settings = deck.practice_settings
+        settings = migrate_practice_settings(raw_settings)
+        mode_settings = settings.get(mode, {})
+        
+        if not mode_settings or not mode_settings.get("active_pairs"):
+            creator_settings = migrate_practice_settings(deck.practice_settings)
+            creator_mode_settings = creator_settings.get(mode, {})
+            
+            creator_has_settings = creator_mode_settings and creator_mode_settings.get("active_pairs")
+            if not creator_has_settings:
+                is_owner = deck.creator_id == user_id
+                if not (is_owner or is_collaborator or user_id == 1):
+                    practice_disabled = True
+                else:
+                    practice_needs_setup = True
+            else:
+                active_pairs = creator_mode_settings.get("active_pairs", [])
+                num_choices = creator_mode_settings.get("num_choices", 4)
+        else:
+            active_pairs = mode_settings.get("active_pairs", [])
+            num_choices = mode_settings.get("num_choices", 4)
+
+    cards_list = []
+    
+    if is_practice:
+        # Ultra-fast path for practice: just card data, no FSRS computation
+        for i, c in enumerate(source_cards):
+            cards_list.append({
+                "id": c.id,
+                "original_index": i + 1,
+                "content": c.content,
+                "explanation": c.explanation,
+                "ai_explanation": c.others.get("ai_explanation") if c.others else None,
+                "hint": c.others.get("hint") if c.others else None,
+                "mnemonic": c.others.get("mnemonic") if c.others else None,
+                "stats": None,
+                "box_level": 1,
+                "is_ignored": False,
+                "is_starred": False,
+                "fsrs": None,
+                "options": [],
+                "image": fix_static_urls(c.back_img),
+                "audio": fix_static_urls(c.front_audio_url),
+                "others": fix_static_urls(c.others)
+            })
+    else:
+        from fsrs import Card, Scheduler, Rating, State
+        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+        
+        # Predefined static default intervals for new cards (Zero CPU cost)
+        default_new_intervals = {1: "1m", 2: "5m", 3: "10m", 4: "4d"}
+        
+        # Instantiate scheduler once only if needed for review cards
+        scheduler = None
+        
+        for idx, c in enumerate(source_cards):
+            m = mastery_records.get(c.id)
+            
+            m_state = m.state if m else 0
+            m_step = m.step if m else 0
+            m_stability = m.stability if m else None
+            m_difficulty = m.difficulty if m else None
+            m_due = m.due if m else datetime.utcnow()
+            m_last_review = m.last_review if m else None
+            m_box_level = m.box_level if m else 1
+            
+            is_new = (m is None) or (m_state == 0 and m_last_review is None)
+            
+            if is_new:
+                intervals = default_new_intervals
+            else:
+                if scheduler is None:
+                    scheduler = Scheduler(enable_fuzzing=False)
+                fsrs_card = build_fsrs_card(m, now_utc)
+                intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
+                        
+            cards_list.append({
+                "id": c.id,
+                "original_index": idx + 1,
+                "content": c.content,
+                "explanation": c.explanation,
+                "front_audio_content": c.front_audio_content,
+                "back_audio_content": c.back_audio_content,
+                "front_audio_url": c.front_audio_url,
+                "back_audio_url": c.back_audio_url,
+                "front_img": c.front_img,
+                "back_img": c.back_img,
+                "stats": {
+                    "total": m.consecutive_correct if m else 0,
+                    "correct": m.consecutive_correct if m else 0,
+                    "last_answered": m.last_answered.isoformat() if (m and m.last_answered) else None
+                } if m else None,
+                "box_level": m_box_level,
+                "is_ignored": m.is_ignored if m else False,
+                "is_starred": m.is_starred if m else False,
+                "fsrs": {
+                    "state": m_state,
+                    "stability": m_stability,
+                    "difficulty": m_difficulty,
+                    "due": m_due.isoformat() if m_due else None,
+                    "last_review": m_last_review.isoformat() if m_last_review else None,
+                    "first_learned": m.last_answered.isoformat() if (m and m.state > 0 and m.last_answered) else None,
+                    "last_reviewed": m_last_review.isoformat() if m_last_review else None,
+                    "intervals": intervals
+                },
+                "options": [],
+                "image": fix_static_urls(c.back_img),
+                "audio": fix_static_urls(c.front_audio_url),
+                "others": fix_static_urls(c.others)
+            })
+        
+    user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
+    user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
+
+    study_resolved = resolve_effective_study_settings(
+        deck.practice_settings,
+        user_sett.settings if user_sett else None,
+        user_global_sett_dict
+    )
+
+    await resolve_play_cards(cards_list, db)
+    return {
+        "id": deck.id,
+        "title": deck.title,
+        "description": deck.description,
+        "ai_prompts": deck.practice_settings.get("ai_prompts", []) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else [],
+        "instruction": deck.instruction,
+        "category_id": deck.category_id,
+        "creator_id": deck.creator_id,
+        "is_collaborator": is_collaborator,
+        "user_total_xp": user_total_xp,
+        "user_today_xp": user_today_xp,
+        "user_today_time": user_today_time,
+        "user_all_time_time": user_all_time_time,
+        "enabled_practice_modes": get_enabled_practice_modes(deck.practice_settings),
+        "has_practice_setup": check_has_practice_setup(deck.practice_settings),
+        "has_mcq_setup": check_has_mcq_setup(deck.practice_settings),
+        "practice_needs_setup": practice_needs_setup,
+        "practice_disabled": not check_has_practice_setup(deck.practice_settings),
+        "cards": cards_list,
+        "questions": cards_list, # compatibility
+        "practice_settings": deck.practice_settings,
+        "user_settings": user_sett.settings if user_sett else None,
+        "study_defaults": study_resolved["creator_study_defaults"],
+        "creator_study_defaults": study_resolved["creator_study_defaults"],
+        "user_study_settings": study_resolved["user_study_settings"],
+        "user_global_settings": study_resolved["user_global_settings"],
+        "study_profiles": study_resolved["study_profiles"],
+        "active_profile_id": study_resolved["active_profile_id"],
+        "effective_study_settings": study_resolved["effective_study_settings"],
+        "setting_origin": study_resolved["setting_origin"],
+        "is_study_customized": study_resolved["is_customized"],
+        "sub_group": {
+            "column": sub_col,
+            "value": sub_val,
+            "total_cards": len(cards_list)
+        } if sub_col and sub_val is not None else None
+    }
+
+

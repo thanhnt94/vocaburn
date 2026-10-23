@@ -461,11 +461,11 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                 </span>
                 <span className={cn(
                   "px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider",
-                  cardInfo.box_level === 5 ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                  cardInfo.box_level >= 3 ? "bg-blue-50 text-blue-600 border-blue-100" :
+                  (cardInfo.stability && cardInfo.stability >= 21) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                  (cardInfo.stability && cardInfo.stability >= 3) ? "bg-blue-50 text-blue-600 border-blue-100" :
                   "bg-amber-50 text-amber-600 border-amber-100"
                 )}>
-                  Leitner Box {cardInfo.box_level || 1} / 5
+                  FSRS {cardInfo.stability ? `S: ${Math.round(cardInfo.stability)}d` : 'New'}
                 </span>
                 {cardInfo.consecutive_correct > 0 && (
                   <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 border border-orange-100 text-[9px] font-black">

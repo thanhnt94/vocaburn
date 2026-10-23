@@ -388,7 +388,7 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
             return None
     if key == "learning_mode":
         val_str = str(val).lower().strip()
-        if val_str in ("fsrs", "roadmap", "new", "review", "hardest", "flip", "mcq", "typing", "listening", "skim", "speed_skim", "memrise"):
+        if val_str in ("fsrs", "roadmap", "new", "review", "hardest", "flip", "mcq", "typing", "listening", "skim", "speed_skim"):
             return val_str
         if val_str in ("trắc nghiệm", "trac nghiem", "quiz"):
             return "mcq"
@@ -407,7 +407,7 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         if val_str in ("lật thẻ", "lật", "lướt", "luot", "speed skim"):
             return "skim"
         if val_str in ("memrise", "gieo hạt", "gieo hat", "tưới cây", "tuoi cay"):
-            return "memrise"
+            return "fsrs"
         return "fsrs"
     return val
 

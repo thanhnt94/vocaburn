@@ -35,7 +35,6 @@ import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { DeckPagination } from '@/components/deck/DeckPagination'
-import { LearnModeModal } from '@/components/LearnModeModal'
 import { AutoSaveIndicator } from '@/components/deck/settings'
 
 // Lazy load tab components for optimal performance
@@ -80,17 +79,6 @@ export const STUDY_MODES: StudyModeOption[] = [
     badgeColor: 'bg-amber-100 text-amber-700',
     color: 'from-amber-500 to-orange-500',
     getUrl: (id) => `/flashcard/${id}/play?mode=skim`
-  },
-  {
-    id: 'memrise',
-    name: 'Memrise Mode',
-    fullName: 'Memrise Deep Learning',
-    emoji: '🌱',
-    desc: 'Deep multi-stage word mastery: Plant & water step-by-step',
-    badge: () => 'Deep Study',
-    badgeColor: 'bg-emerald-100 text-emerald-700',
-    color: 'from-emerald-500 to-teal-600',
-    getUrl: (id) => `/memrise/${id}/plant`
   },
   {
     id: 'mcq',
@@ -207,7 +195,6 @@ export function DeckDetailPage() {
   // Study Mode Selector & Sheet State
   const [selectedStudyMode, setSelectedStudyMode] = useState<string>('fsrs')
   const [studySheetType, setStudySheetType] = useState<'flashcard' | 'practice' | null>(null)
-  const [isLearnModalOpen, setIsLearnModalOpen] = useState(false)
 
   // Fetch Deck Metadata
   const { data: deckMeta, isLoading } = useQuery({
@@ -240,7 +227,7 @@ export function DeckDetailPage() {
     const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
     let targetId = modeId || selectedStudyMode
     if (disabledModes.includes(targetId)) {
-      const fallback = ['fsrs', 'skim', 'memrise'].find(m => !disabledModes.includes(m)) || 'fsrs'
+      const fallback = ['fsrs', 'skim'].find(m => !disabledModes.includes(m)) || 'fsrs'
       targetId = fallback
     }
     const targetMode = STUDY_MODES.find(m => m.id === targetId) || STUDY_MODES[0]
@@ -257,7 +244,7 @@ export function DeckDetailPage() {
                               deckMeta?.practice_settings?.study_defaults?.learning_mode || 'fsrs'
     const normalizedDefault = configuredDefault === 'speed_skim' ? 'skim' : configuredDefault
     const effectiveMode = disabledModes.includes(normalizedDefault)
-      ? (['fsrs', 'skim', 'memrise'].find(m => !disabledModes.includes(m)) || 'fsrs')
+      ? (['fsrs', 'skim'].find(m => !disabledModes.includes(m)) || 'fsrs')
       : normalizedDefault
 
     handleLaunchStudy(effectiveMode)
@@ -588,8 +575,6 @@ export function DeckDetailPage() {
           </div>
         </div>
       </div>
-
-      <LearnModeModal isOpen={isLearnModalOpen} onClose={() => setIsLearnModalOpen(false)} deckId={id || ''} />
 
       {/* ═══════════ TAB CONTENT AREA (INTERNAL SCROLLABLE - FLEX-1 WITH TOUCH SWIPE) ═══════════ */}
       <div 

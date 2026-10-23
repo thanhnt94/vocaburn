@@ -29,7 +29,7 @@ export interface StudySettings {
 }
 
 export interface LearnModeOption {
-  id: 'fsrs' | 'skim' | 'memrise'
+  id: 'fsrs' | 'skim'
   name: string
   shortName: string
   emoji: string
@@ -53,14 +53,6 @@ export const CORE_LEARN_MODES: LearnModeOption[] = [
     emoji: '⚡',
     desc: 'Rapid 1-tap/Space card scanning without rating friction (+3 XP)',
     badge: '1-Tap Rapid'
-  },
-  {
-    id: 'memrise',
-    name: 'Memrise Mode',
-    shortName: 'Memrise',
-    emoji: '🌱',
-    desc: 'Deep multi-stage word mastery: Plant & water step-by-step',
-    badge: 'Deep Study'
   },
 ]
 

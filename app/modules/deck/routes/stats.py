@@ -649,65 +649,6 @@ async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = De
         "tracked_count": tracked_count
     }
 
-@router.get("/stats/leitner")
-async def get_global_leitner_stats(request: Request, db: AsyncSession = Depends(get_db)):
-    user = await AuthService.get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user_id = user.id
-    
-    # Query count of cards grouped by box_level
-    stmt = select(
-        UserCardMastery.box_level,
-        func.count(UserCardMastery.id)
-    ).where(
-        UserCardMastery.user_id == user_id,
-        or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
-    ).group_by(UserCardMastery.box_level)
-    
-    results = await db.execute(stmt)
-    
-    box_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-    for row in results.all():
-        lvl = row[0]
-        if lvl in box_counts:
-            box_counts[lvl] = row[1]
-            
-    total_tracked = sum(box_counts.values())
-    mastery_percentage = round((box_counts[5] / total_tracked * 100), 1) if total_tracked > 0 else 0
-    
-    # Get a list of the user's hardest cards (e.g. up to 5 cards in Box 1)
-    hardest_cards_stmt = select(Flashcard)\
-        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)\
-        .where(
-            UserCardMastery.user_id == user_id,
-            UserCardMastery.box_level == 1,
-            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
-        )\
-        .limit(5)
-        
-    hardest_cards_res = await db.execute(hardest_cards_stmt)
-    hardest_cards = [{
-        "id": c.id,
-        "content": c.content,
-        "explanation": c.explanation,
-        "deck_id": c.deck_id,
-        "quiz_id": c.deck_id # compatibility
-    } for c in hardest_cards_res.scalars().all()]
-    
-    return {
-        "box_distribution": [
-            {"box": 1, "count": box_counts[1], "label": "Box 1: Hard"},
-            {"box": 2, "count": box_counts[2], "label": "Box 2: Learning"},
-            {"box": 3, "count": box_counts[3], "label": "Box 3: Familiar"},
-            {"box": 4, "count": box_counts[4], "label": "Box 4: Proficient"},
-            {"box": 5, "count": box_counts[5], "label": "Box 5: Mastered"}
-        ],
-        "total_tracked": total_tracked,
-        "mastery_percentage": mastery_percentage,
-        "hardest_cards": hardest_cards
-    }
-
 @router.get("/stats/speed-accuracy")
 async def get_speed_accuracy_stats(request: Request, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
@@ -1079,8 +1020,7 @@ async def get_deck_overview_stats(request: Request, deck_id: int, db: AsyncSessi
     active_days = max(1, answer_stats.active_days or 1) if total_reviews > 0 else 0
     accuracy_percent = round((correct_count / total_reviews * 100), 1) if total_reviews > 0 else 0
 
-    # 3. Box & FSRS Breakdown
-    box_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    # 3. Pure FSRS v6 Breakdown
     now_utc = datetime.utcnow()
     mastered_count = 0
     learning_count = 0
@@ -1090,19 +1030,17 @@ async def get_deck_overview_stats(request: Request, deck_id: int, db: AsyncSessi
     mastery_map = {m.card_id: m for m in mastery_list}
     for c in deck.cards:
         m = mastery_map.get(c.id)
-        b_level = m.box_level if m else 1
-        b_level = max(1, min(5, b_level))
-        box_counts[b_level] += 1
-
-        if b_level == 5:
+        if m and m.state == 2 and (m.stability or 0) >= 21:
             mastered_count += 1
-        elif m and m.state != 0 and m.last_review:
+        elif m and m.last_review:
             learning_count += 1
         else:
             new_count += 1
 
         if m and m.due and m.due <= now_utc and not m.is_ignored and (m.state != 0 or m.last_review):
             due_count += 1
+
+    box_counts = {1: new_count, 2: learning_count, 3: 0, 4: 0, 5: mastered_count}
 
     learned_total = total_cards - new_count
     avg_new_per_day = round(learned_total / active_days, 1) if active_days > 0 else 0

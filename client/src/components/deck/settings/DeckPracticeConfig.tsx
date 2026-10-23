@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export type PracticeModeKey = 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
-export type LearnModeKey = 'fsrs' | 'skim' | 'memrise'
+export type LearnModeKey = 'fsrs' | 'skim'
 
 export interface QuestionAnswerPair {
   q: string
@@ -88,17 +88,6 @@ const FLASHCARD_LEARN_MODES = [
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     borderColor: 'border-amber-200',
-  },
-  {
-    id: 'memrise' as LearnModeKey,
-    name: 'Memrise Mode',
-    shortName: 'Memrise',
-    emoji: '🌱',
-    desc: 'Deep multi-stage word mastery: Plant new words, grow, and water them step-by-step',
-    badge: 'Deep Study',
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-200',
   },
 ]
 
@@ -173,7 +162,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
 
       const rawDefault = studyDefs.quiz_learning_mode || studyDefs.learning_mode || effectiveSettings?.learning_mode || 'fsrs'
       const sanitized = rawDefault === 'speed_skim' ? 'skim' : (rawDefault as LearnModeKey)
-      setDefaultLearnMode(sanitized === 'skim' || sanitized === 'memrise' ? sanitized : 'fsrs')
+      setDefaultLearnMode(sanitized === 'skim' ? 'skim' : 'fsrs')
 
       // MCQ
       const mcqConfig = effectiveSettings?.mcq || {}
@@ -313,11 +302,11 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     let nextDefault = defaultLearnMode
     if (!isCurrentlyDisabled) {
       // If disabling a learn mode, check that at least one remains active
-      const learnIds = ['fsrs', 'skim', 'memrise']
+      const learnIds = ['fsrs', 'skim']
       if (learnIds.includes(modeKey)) {
         const remaining = learnIds.filter(id => id !== modeKey && !disabledModes.includes(id))
         if (remaining.length === 0) {
-          alert('At least one flashcard learning mode (FSRS, Speed Skim, or Memrise) must remain active for this deck!')
+          alert('At least one flashcard learning mode (FSRS or Speed Skim) must remain active for this deck!')
           return
         }
         if (defaultLearnMode === modeKey) {

@@ -7,7 +7,6 @@ import ReviewForecastWidget from './ReviewForecastWidget'
 import type { ForecastResponse } from './ReviewForecastWidget'
 import HeatmapWidget from './HeatmapWidget'
 import type { HeatmapDay } from './HeatmapWidget'
-import LeitnerDistributionWidget from './LeitnerDistributionWidget'
 import SpeedAccuracyWidget from './SpeedAccuracyWidget'
 import PracticeStatsWidget from './PracticeStatsWidget'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
@@ -24,7 +23,6 @@ interface PersonalStatsTabProps {
   } | undefined
   heatmapData: HeatmapDay[] | undefined
   weeklyReport: any
-  leitnerStats: any
   speedAccuracyStats: any
   forecastData: ForecastResponse | undefined
   practiceStats: any
@@ -37,7 +35,6 @@ export default function PersonalStatsTab({
   personalStats,
   heatmapData,
   weeklyReport,
-  leitnerStats,
   speedAccuracyStats,
   forecastData,
   practiceStats,
@@ -311,9 +308,6 @@ export default function PersonalStatsTab({
           isLoading={isDailyComparisonLoading} 
         />
       )}
-
-      {/* 📦 Leitner 5-Box Memory Distribution & Hard Cards */}
-      <LeitnerDistributionWidget leitnerStats={leitnerStats} />
 
       {/* ⚡ Speed vs Accuracy Correlation */}
       <SpeedAccuracyWidget speedAccuracyStats={speedAccuracyStats} />

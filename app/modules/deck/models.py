@@ -143,47 +143,6 @@ class DeckTag(Base):
     deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
     tag_id = Column(Integer, ForeignKey("tags.id"), primary_key=True)
 
-class DeckRoom(Base):
-    __tablename__ = "deck_rooms"
-    id = Column(Integer, primary_key=True, index=True)
-    deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), index=True)
-    room_code = Column(String(20), unique=True, index=True)
-    host_id = Column(Integer, ForeignKey("users.id"), index=True)
-    status = Column(String(50), default="waiting") # waiting, active, finished
-    settings = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    started_at = Column(DateTime, nullable=True)
-    finished_at = Column(DateTime, nullable=True)
-    
-    deck = relationship("FlashcardDeck")
-    host = relationship("User")
-    participants = relationship("DeckRoomParticipant", back_populates="room", cascade="all, delete-orphan")
-
-class DeckRoomParticipant(Base):
-    __tablename__ = "deck_room_participants"
-    id = Column(Integer, primary_key=True, index=True)
-    deck_room_id = Column("room_id", Integer, ForeignKey("deck_rooms.id"), index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    is_ready = Column(Boolean, default=False)
-    score = Column(Integer, default=0)
-    total_answered = Column(Integer, default=0)
-    joined_at = Column(DateTime, default=datetime.utcnow)
-    last_active = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    room = relationship("DeckRoom", back_populates="participants")
-    user = relationship("User")
-
-class DeckRoomChat(Base):
-    __tablename__ = "deck_room_chats"
-    id = Column(Integer, primary_key=True, index=True)
-    deck_room_id = Column("room_id", Integer, ForeignKey("deck_rooms.id", ondelete="CASCADE"), index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    message = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    room = relationship("DeckRoom")
-    user = relationship("User")
-
 class DeckCollaborator(Base):
     __tablename__ = "deck_collaborators"
     deck_id = Column("deck_id", Integer, ForeignKey("flashcard_decks.id"), primary_key=True)
