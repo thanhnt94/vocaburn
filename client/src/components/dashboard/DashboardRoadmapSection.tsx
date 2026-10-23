@@ -14,6 +14,7 @@ import {
   Calendar
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/store/useAppStore'
 
 interface DashboardRoadmapSectionProps {
   roadmapDecks: any[] | undefined
@@ -44,6 +45,7 @@ export function DashboardRoadmapSection({
   navigate,
   onOpenCustomize
 }: DashboardRoadmapSectionProps) {
+  const user = useAppStore(s => s.user)
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
   const [internalIdx, setInternalIdx] = useState(0)
 
@@ -152,8 +154,8 @@ export function DashboardRoadmapSection({
   const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
   const isMastered = totalCards > 0 && learnedCards >= totalCards
 
-  // Author & Creation Info
-  const authorName = deck.author || deck.creator_name || deck.creator?.username || (deck.title?.includes('Thảo Lê') ? 'Thảo Lê' : 'Vocaburn Official')
+  // Author & Creation Info: Prioritize uploader/creator (tnhnaht)
+  const authorName = deck.creator_name || deck.creator_username || deck.creator?.username || user?.username || 'tnhnaht'
   const createdAtStr = deck.created_at 
     ? new Date(deck.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
     : 'Oct 2026'
@@ -275,11 +277,11 @@ export function DashboardRoadmapSection({
           {/* ── 2A. HERO STAGE (MASCOT LARGE & ANCHORED RIGHT + RICH LEFT CONTENT) ── */}
           <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-row items-center justify-between min-h-0">
             
-            {/* Left Side (~60% width): Title, Author/Date, Description, Streak & Progress */}
-            <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[64%] min-w-0 flex flex-col justify-between h-full py-0.5 text-left">
+            {/* Left Side (~62% width): Title, Creator, Description Box, 4-Metric Grid, and Progress Bar */}
+            <div className="relative z-20 flex-1 max-w-[62%] sm:max-w-[65%] min-w-0 flex flex-col justify-between h-full py-0.5 text-left gap-1.5">
               
-              {/* Title & Level Tag */}
-              <div>
+              {/* 1. Header: Title, Level & Creator */}
+              <div className="shrink-0">
                 <Link
                   to={`/decks/${deck.deck_id ?? deck.id}`}
                   className="inline-flex items-center gap-1.5 max-w-full group cursor-pointer"
@@ -298,10 +300,10 @@ export function DashboardRoadmapSection({
                 </Link>
 
                 {/* Creator & Creation Date Info */}
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold mt-1">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold mt-1">
                   <span className="flex items-center gap-1">
                     <User className="w-3 h-3 text-slate-400" />
-                    <span>By <strong className="text-slate-700 font-black">{authorName}</strong></span>
+                    <span>Uploaded by <strong className="text-slate-800 font-black">{authorName}</strong></span>
                   </span>
                   <span className="text-slate-300">•</span>
                   <span className="flex items-center gap-1">
@@ -311,31 +313,64 @@ export function DashboardRoadmapSection({
                 </div>
               </div>
 
-              {/* Deck Description Box */}
-              <div className="bg-white/70 backdrop-blur-xs border border-orange-200/70 rounded-2xl p-2.5 shadow-2xs my-1">
-                <p className="text-[11px] text-slate-600 font-medium leading-relaxed line-clamp-2">
+              {/* 2. Deck Description Box */}
+              <div className="bg-white/85 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2.5 shadow-2xs">
+                <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block mb-0.5">
+                  About this deck
+                </span>
+                <p className="text-[11px] text-slate-700 font-medium leading-relaxed line-clamp-2">
                   {deckDescription}
                 </p>
               </div>
 
-              {/* Badges Row: Streak & Total Words */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {streak > 0 && (
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs shrink-0">
-                    <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                    <span>{streak}d Streak</span>
+              {/* 3. Rich 4-Metric Grid (Lấp đầy đoạn giữa bằng thông tin học tập trực quan!) */}
+              <div className="grid grid-cols-2 gap-1.5 shrink-0">
+                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                    📚
                   </div>
-                )}
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-orange-200/80 text-[10px] font-bold text-slate-600 shadow-2xs shrink-0">
-                  {totalCards.toLocaleString()} words
-                </span>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Total Vocab</span>
+                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{totalCards.toLocaleString()} words</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                    ⚡
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Algorithm</span>
+                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">FSRS v6</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                    🔥
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Streak</span>
+                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{streak > 0 ? `${streak} Days` : 'Active'}</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                    🎯
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Remaining</span>
+                    <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{unlearnedCards} new</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Motivation & Mastery Progress Bar */}
-              <div className="space-y-1.5 pt-0.5">
+              {/* 4. Motivation & Mastery Progress Bar */}
+              <div className="space-y-1 shrink-0 pt-0.5">
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
                   <span className="truncate font-extrabold text-slate-800">{mascotHeadline}</span>
-                  <span className="text-emerald-600 font-black tabular-nums shrink-0">{pct}%</span>
+                  <span className="text-emerald-600 font-black tabular-nums shrink-0">{pct}% Mastered</span>
                 </div>
                 
                 <div className="h-2 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/70 shadow-2xs">
