@@ -373,6 +373,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
+  const [quickTab, setQuickTab] = useState<'actions' | 'preferences'>('actions')
   const dragControls = useDragControls()
 
   const handleCopyCurrentFace = (e: React.MouseEvent) => {
@@ -538,62 +539,87 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             )}
 
-            {/* Universal Target Scope Filter for All 3 Modes */}
+            {/* Target Scope & Card Order (Queue Engine) */}
             <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  🎯 Target Card Scope
+                  🎯 Target Scope & Order
                 </span>
                 <span className="text-[9px] font-bold text-slate-400">
-                  {cardScope === 'all' ? (activeMode === 'fsrs' ? 'Interleaved' : 'All Cards') : cardScope === 'review' ? 'Due Only' : 'New Only'}
+                  {cardScope === 'all' ? (activeMode === 'fsrs' ? 'Interleaved' : 'All Cards') : cardScope === 'review' ? 'Due Only' : 'New Only'} • {randomEnabled ? 'Random' : 'Sequential'}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => onSelectCardScope?.('all')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    cardScope === 'all'
-                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <span>All</span>
-                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                    {scopeCounts?.all ?? 0}
-                  </span>
-                </button>
+              <div className="flex items-center gap-1.5">
+                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs flex-1">
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('all')}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      cardScope === 'all'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>All</span>
+                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.all ?? 0}
+                    </span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => onSelectCardScope?.('review')}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    cardScope === 'review'
-                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  <span>Due</span>
-                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                    {scopeCounts?.review ?? 0}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('review')}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      cardScope === 'review'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>Due</span>
+                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.review ?? 0}
+                    </span>
+                  </button>
 
+                  <button
+                    type="button"
+                    onClick={() => onSelectCardScope?.('new')}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      cardScope === 'new'
+                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>New</span>
+                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                      {scopeCounts?.new ?? 0}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Shuffle Button in Queue Engine */}
                 <button
                   type="button"
-                  onClick={() => onSelectCardScope?.('new')}
+                  onClick={() => {
+                    const nextVal = !randomEnabled;
+                    if (onToggleRandom) onToggleRandom(nextVal);
+                    else setRandomEnabled(nextVal);
+                    showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info');
+                  }}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    cardScope === 'new'
-                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
-                      : "text-slate-600 hover:bg-slate-100"
+                    "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border transition-all cursor-pointer shadow-2xs select-none shrink-0",
+                    randomEnabled
+                      ? "bg-violet-600 border-violet-700 text-white shadow-xs font-black"
+                      : "bg-white border-slate-200/70 text-slate-600 hover:bg-slate-100"
                   )}
+                  title={`Shuffle Order: ${randomEnabled ? 'Random' : 'Sequential'}`}
                 >
-                  <span>New</span>
-                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                    {scopeCounts?.new ?? 0}
+                  <Shuffle className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">
+                    {randomEnabled ? 'Rand' : 'Seq'}
                   </span>
                 </button>
               </div>
@@ -928,495 +954,517 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               }
 
               return (
-                <div className="flex flex-col gap-2.5">
-                  {/* ══════ SECTION 1: AUDIO & FLOW ══════ */}
-                  <div className="flex flex-col gap-1 text-left px-0.5">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                        Audio & Flow
-                      </span>
-                      <span className="text-[9px] font-bold text-slate-400">
-                        Sound & Pacing
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {/* 1. Autoplay */}
-                      <button
-                        type="button"
-                        onClick={handleCycleAutoplay}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                          autoplayMeta.container
-                        )}
-                        title={autoplayMeta.title}
-                      >
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", autoplayMeta.iconBox)}>
-                          {autoplayMeta.icon}
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[9.5px] font-bold tracking-tight">Autoplay</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
-                            {autoplayMeta.label}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 2. SFX Sounds */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextVal = !sfxEnabled
-                          setSfxEnabled(nextVal)
-                          showLocalToast?.(`SFX Sounds: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                          sfxEnabled
-                            ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
-                      >
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Sparkles className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[9.5px] font-bold tracking-tight">SFX Audio</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", sfxEnabled ? "text-purple-600" : "text-slate-400")}>
-                            {sfxEnabled ? "ON" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 3. Haptic Feedback */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextVal = !hapticEnabled
-                          setHapticEnabled?.(nextVal)
-                          if (nextVal) triggerHaptic?.('success')
-                          showLocalToast?.(`Haptic Feedback: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                          hapticEnabled
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={`Haptic Vibration: ${hapticEnabled ? 'ON' : 'OFF'}`}
-                      >
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", hapticEnabled ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          {hapticEnabled ? <Vibrate className="w-3.5 h-3.5" /> : <VibrateOff className="w-3.5 h-3.5" />}
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[9.5px] font-bold tracking-tight">Haptic</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", hapticEnabled ? "text-emerald-600" : "text-slate-400")}>
-                            {hapticEnabled ? "ON" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 4. Auto Next (Cycle: OFF -> 1s -> 2s -> 3s -> 5s -> OFF) */}
-                      {(() => {
-                        const isAutoOn = autoNextSec !== undefined ? autoNextSec > 0 : effectiveAutoAdvance
-                        const autoBadgeText = autoNextSec !== undefined
-                          ? (autoNextSec > 0 ? `${autoNextSec}s` : 'OFF')
-                          : (effectiveAutoAdvance ? 'ON' : 'OFF')
-
-                        const handleClick = () => {
-                          if (onCycleAutoNext) {
-                            const currentSec = autoNextSec !== undefined ? autoNextSec : (effectiveAutoAdvance ? 2 : 0)
-                            let nextSec = 0
-                            if (currentSec === 0) nextSec = 1
-                            else if (currentSec === 1) nextSec = 2
-                            else if (currentSec === 2) nextSec = 3
-                            else if (currentSec === 3) nextSec = 5
-                            else nextSec = 0
-                            onCycleAutoNext(nextSec)
-                          } else {
-                            const nextVal = !effectiveAutoAdvance
-                            setIsAutoAdvance(nextVal)
-                            if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
-                            showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                          }
-                        }
-
-                        return (
-                          <button
-                            type="button"
-                            onClick={handleClick}
-                            className={cn(
-                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                              isAutoOn
-                                ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
-                                : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                            )}
-                            title={`Auto Next: ${autoBadgeText}`}
-                          >
-                            <div className={cn(
-                              "w-7 h-7 rounded-lg flex items-center justify-center",
-                              isAutoOn
-                                ? "bg-amber-500 text-white shadow-2xs"
-                                : "bg-white text-slate-400 border border-slate-200/60"
-                            )}>
-                              <Zap className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="flex flex-col items-center leading-none gap-0.5">
-                              <span className="text-[9.5px] font-bold tracking-tight">Auto Next</span>
-                              <span className={cn(
-                                "text-[8px] font-black uppercase tracking-wider",
-                                isAutoOn ? "text-amber-600" : "text-slate-400"
-                              )}>
-                                {autoBadgeText}
-                              </span>
-                            </div>
-                          </button>
-                        )
-                      })()}
-                    </div>
+                <div className="flex flex-col gap-2">
+                  {/* Segmented Sub-Tab Switcher */}
+                  <div className="flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
+                    <button
+                      type="button"
+                      onClick={() => setQuickTab('actions')}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer select-none",
+                        quickTab === 'actions'
+                          ? "bg-white text-indigo-700 shadow-xs scale-[1.01]"
+                          : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Card Actions</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickTab('preferences')}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer select-none",
+                        quickTab === 'preferences'
+                          ? "bg-white text-indigo-700 shadow-xs scale-[1.01]"
+                          : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Preferences</span>
+                    </button>
                   </div>
 
-                  {/* ══════ SECTION 2: DISPLAY & GESTURES (Compact 3x2 Grid) ══════ */}
-                  <div className="flex flex-col gap-1 text-left px-0.5">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                        Display & Gestures
-                      </span>
-                      <span className="text-[9px] font-bold text-slate-400">
-                        Visuals & Controls
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {/* 1. Rating Mode */}
-                      {onCycleRatingMode !== undefined ? (
+                  {/* ══════ TAB 1: CARD ACTIONS (Thao tác Thẻ hiện tại) ══════ */}
+                  {quickTab === 'actions' && (
+                    <div className="flex flex-col gap-1 text-left px-0.5">
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {/* 1. Edit Card */}
                         <button
                           type="button"
-                          onClick={handleCycleRating}
+                          disabled={!canEdit}
+                          onClick={() => {
+                            onClose()
+                            onOpenEditModal?.()
+                          }}
                           className={cn(
-                            "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                            ratingModeMeta.container
+                            "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs min-h-[42px]",
+                            canEdit
+                              ? "bg-slate-50 hover:bg-blue-50/70 border-slate-200/80 hover:border-blue-300 cursor-pointer"
+                              : "bg-slate-50/60 border-slate-200/50 opacity-60 cursor-not-allowed"
                           )}
-                          title={ratingModeMeta.title}
+                          title={canEdit ? "Open Card Editor Modal" : "Card editing locked"}
                         >
-                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", ratingModeMeta.iconBox)}>
-                            {ratingModeMeta.icon}
+                          <div className={cn(
+                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
+                            canEdit ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
+                          )}>
+                            <Pencil className="w-3.5 h-3.5" />
                           </div>
-                          <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[9.5px] font-bold tracking-tight">Rate Mode</span>
-                            <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
-                              {ratingModeMeta.label}
-                            </span>
-                          </div>
-                        </button>
-                      ) : (
-                        <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[9.5px] font-bold tracking-tight text-slate-500">Rate Mode</span>
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
+                          <div className="flex flex-col min-w-0 leading-tight">
+                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Edit Card</span>
+                            <span className="text-[8px] text-slate-400 font-medium truncate">{canEdit ? "Editor" : "Locked"}</span>
                           </div>
                         </button>
-                      )}
 
-                      {/* 2. Card Images (Cycles: BOTH -> FRONT -> BACK -> OFF) */}
-                      <button
-                        type="button"
-                        onClick={handleCycleImages}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                          imagesMeta.container
-                        )}
-                        title={imagesMeta.title}
-                      >
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", imagesMeta.iconBox)}>
-                          {imagesMeta.icon}
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[9.5px] font-bold tracking-tight">Images</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", imagesMeta.color)}>
-                            {imagesMeta.label}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 3. Font Size (Cycles: 100% -> 125% -> 150% -> 85%) */}
-                      <button
-                        type="button"
-                        onClick={handleCycleFontSize}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                          fontSizeMeta.container
-                        )}
-                        title={fontSizeMeta.title}
-                      >
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", fontSizeMeta.iconBox)}>
-                          {fontSizeMeta.icon}
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[9.5px] font-bold tracking-tight">Font Size</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", fontSizeMeta.color)}>
-                            {fontSizeMeta.label}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 4. Text Alignment */}
-                      {setFrontHalign !== undefined ? (
-                        <button
-                          type="button"
-                          onClick={handleCycleTextAlign}
-                          className={cn(
-                            "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                            textAlignMeta.container
-                          )}
-                          title={textAlignMeta.title}
-                        >
-                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", textAlignMeta.iconBox)}>
-                            {textAlignMeta.icon}
-                          </div>
-                          <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[9.5px] font-bold tracking-tight">Alignment</span>
-                            <span className={cn("text-[8px] font-black uppercase tracking-wider", textAlignMeta.color)}>
-                              {textAlignMeta.label}
-                            </span>
-                          </div>
-                        </button>
-                      ) : null}
-
-                      {/* 5. Shuffle Order */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextVal = !randomEnabled
-                          if (onToggleRandom) {
-                            onToggleRandom(nextVal)
-                          } else {
-                            setRandomEnabled(nextVal)
-                          }
-                          showLocalToast?.(`Shuffle: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                        }}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                          randomEnabled
-                            ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs"
-                            : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                        )}
-                        title={`Shuffle Order: ${randomEnabled ? 'ON' : 'OFF'}`}
-                      >
-                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", randomEnabled ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                          <Shuffle className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex flex-col items-center leading-none gap-0.5">
-                          <span className="text-[9.5px] font-bold tracking-tight">Shuffle</span>
-                          <span className={cn("text-[8px] font-black uppercase tracking-wider", randomEnabled ? "text-violet-600" : "text-slate-400")}>
-                            {randomEnabled ? "ON" : "OFF"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 6. FSRS Badges (Moved here from Study Shortcuts) */}
-                      {setShowFsrs !== undefined ? (
+                        {/* 2. Card Note */}
                         <button
                           type="button"
                           onClick={() => {
-                            const nextVal = !showFsrs
-                            setShowFsrs?.(nextVal)
-                            showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
+                            onClose()
+                            onOpenCardHub?.('note')
                           }}
-                          className={cn(
-                            "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                            showFsrs
-                              ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
-                              : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
-                          )}
-                          title={`FSRS Badges: ${showFsrs ? 'SHOWN' : 'HIDDEN'}`}
+                          className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]"
+                          title="Open Personal Notes Drawer"
                         >
-                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
-                            <Layers className="w-3.5 h-3.5" />
+                          <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                            <FileText className="w-3.5 h-3.5" />
                           </div>
-                          <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[9.5px] font-bold tracking-tight">FSRS Badges</span>
-                            <span className={cn("text-[8px] font-black uppercase tracking-wider", showFsrs ? "text-emerald-600" : "text-slate-400")}>
-                              {showFsrs ? "SHOWN" : "OFF"}
+                          <div className="flex flex-col min-w-0 leading-tight">
+                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Note</span>
+                            <span className="text-[8px] text-slate-400 font-medium truncate">Notes</span>
+                          </div>
+                        </button>
+
+                        {/* 3. AI Explain */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose()
+                            onOpenCardHub?.('insight')
+                          }}
+                          className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]"
+                          title="Open AI Explanations Drawer"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                            <Brain className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-tight">
+                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">AI Explain</span>
+                            <span className="text-[8px] text-slate-400 font-medium truncate">Insights</span>
+                          </div>
+                        </button>
+
+                        {/* 4. Card Stats */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose()
+                            onOpenCardHub?.('stats')
+                          }}
+                          className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]"
+                          title="Open Detailed Card Stats & History"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-tight">
+                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Stats</span>
+                            <span className="text-[8px] text-slate-400 font-medium truncate">FSRS</span>
+                          </div>
+                        </button>
+
+                        {/* 5. Copy Current Face */}
+                        <button
+                          type="button"
+                          onClick={handleCopyCurrentFace}
+                          className={cn(
+                            "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]",
+                            copiedFace
+                              ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
+                              : "bg-slate-50 hover:bg-emerald-50/70 border-slate-200/80 hover:border-emerald-300"
+                          )}
+                          title={isFlipped ? "Copy Back Face to clipboard (for AI Prompt)" : "Copy Front Face to clipboard (for AI Prompt)"}
+                        >
+                          <div className={cn(
+                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
+                            copiedFace
+                              ? "bg-emerald-600 text-white scale-105"
+                              : "bg-emerald-500 text-white"
+                          )}>
+                            {copiedFace ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="flex flex-col min-w-0 leading-tight">
+                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
+                              {copiedFace ? "Copied!" : isFlipped ? "Copy Back" : "Copy Front"}
+                            </span>
+                            <span className="text-[8px] text-slate-400 font-medium truncate">
+                              {copiedFace ? "Ready" : isFlipped ? "Back Face" : "Front Face"}
                             </span>
                           </div>
                         </button>
-                      ) : (
-                        <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
-                            <Layers className="w-3.5 h-3.5" />
+
+                        {/* 6. Copy Full Card */}
+                        <button
+                          type="button"
+                          onClick={handleCopyFullCard}
+                          className={cn(
+                            "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]",
+                            copiedFull
+                              ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300"
+                              : "bg-slate-50 hover:bg-indigo-50/70 border-slate-200/80 hover:border-indigo-300"
+                          )}
+                          title="Copy both Front and Back content to clipboard (for AI Prompt)"
+                        >
+                          <div className={cn(
+                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
+                            copiedFull
+                              ? "bg-indigo-600 text-white scale-105"
+                              : "bg-indigo-500 text-white"
+                          )}>
+                            {copiedFull ? <Check className="w-3.5 h-3.5" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
                           </div>
-                          <div className="flex flex-col items-center leading-none gap-0.5">
-                            <span className="text-[9.5px] font-bold tracking-tight text-slate-500">FSRS Badges</span>
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
+                          <div className="flex flex-col min-w-0 leading-tight">
+                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
+                              {copiedFull ? "Copied!" : "Copy Full"}
+                            </span>
+                            <span className="text-[8px] text-slate-400 font-medium truncate">
+                              {copiedFull ? "Ready" : "Front & Back"}
+                            </span>
                           </div>
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* ══════ SECTION 3: CARD ACTIONS & DRAWERS (Compact 3x2 Grid) ══════ */}
-                  <div className="flex flex-col gap-1 text-left px-0.5">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                        Card Actions & Drawers
-                      </span>
-                      <span className="text-[9px] font-bold text-slate-400">
-                        Actions & Hub
-                      </span>
+                  {/* ══════ TAB 2: PREFERENCES (Tùy chọn Phiên học) ══════ */}
+                  {quickTab === 'preferences' && (
+                    <div className="flex flex-col gap-2.5">
+                      {/* 1. Audio & Flow */}
+                      <div className="flex flex-col gap-1 text-left px-0.5">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Audio & Flow
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            Sound & Pacing
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {/* 1. Autoplay */}
+                          <button
+                            type="button"
+                            onClick={handleCycleAutoplay}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              autoplayMeta.container
+                            )}
+                            title={autoplayMeta.title}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", autoplayMeta.iconBox)}>
+                              {autoplayMeta.icon}
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Autoplay</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", autoplayMeta.color)}>
+                                {autoplayMeta.label}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 2. SFX Sounds */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextVal = !sfxEnabled
+                              setSfxEnabled(nextVal)
+                              showLocalToast?.(`SFX Sounds: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              sfxEnabled
+                                ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
+                                : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                            )}
+                            title={`SFX Sounds: ${sfxEnabled ? 'ON' : 'OFF'}`}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", sfxEnabled ? "bg-purple-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">SFX Audio</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", sfxEnabled ? "text-purple-600" : "text-slate-400")}>
+                                {sfxEnabled ? "ON" : "OFF"}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 3. Haptic Feedback */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextVal = !hapticEnabled
+                              setHapticEnabled?.(nextVal)
+                              if (nextVal) triggerHaptic?.('success')
+                              showLocalToast?.(`Haptic Feedback: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              hapticEnabled
+                                ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                                : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                            )}
+                            title={`Haptic Vibration: ${hapticEnabled ? 'ON' : 'OFF'}`}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", hapticEnabled ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                              {hapticEnabled ? <Vibrate className="w-3.5 h-3.5" /> : <VibrateOff className="w-3.5 h-3.5" />}
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Haptic</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", hapticEnabled ? "text-emerald-600" : "text-slate-400")}>
+                                {hapticEnabled ? "ON" : "OFF"}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 4. Auto Next */}
+                          {(() => {
+                            const isAutoOn = autoNextSec !== undefined ? autoNextSec > 0 : effectiveAutoAdvance
+                            const autoBadgeText = autoNextSec !== undefined
+                              ? (autoNextSec > 0 ? `${autoNextSec}s` : 'OFF')
+                              : (effectiveAutoAdvance ? 'ON' : 'OFF')
+
+                            const handleClick = () => {
+                              if (onCycleAutoNext) {
+                                const currentSec = autoNextSec !== undefined ? autoNextSec : (effectiveAutoAdvance ? 2 : 0)
+                                let nextSec = 0
+                                if (currentSec === 0) nextSec = 1
+                                else if (currentSec === 1) nextSec = 2
+                                else if (currentSec === 2) nextSec = 3
+                                else if (currentSec === 3) nextSec = 5
+                                else nextSec = 0
+                                onCycleAutoNext(nextSec)
+                              } else {
+                                const nextVal = !effectiveAutoAdvance
+                                setIsAutoAdvance(nextVal)
+                                if (setQuickLearnEnabled) setQuickLearnEnabled(nextVal)
+                                showLocalToast?.(`Auto Next: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                              }
+                            }
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={handleClick}
+                                className={cn(
+                                  "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                  isAutoOn
+                                    ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                                    : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                                )}
+                                title={`Auto Next: ${autoBadgeText}`}
+                              >
+                                <div className={cn(
+                                  "w-7 h-7 rounded-lg flex items-center justify-center",
+                                  isAutoOn
+                                    ? "bg-amber-500 text-white shadow-2xs"
+                                    : "bg-white text-slate-400 border border-slate-200/60"
+                                )}>
+                                  <Zap className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="flex flex-col items-center leading-none gap-0.5">
+                                  <span className="text-[9.5px] font-bold tracking-tight">Auto Next</span>
+                                  <span className={cn(
+                                    "text-[8px] font-black uppercase tracking-wider",
+                                    isAutoOn ? "text-amber-600" : "text-slate-400"
+                                  )}>
+                                    {autoBadgeText}
+                                  </span>
+                                </div>
+                              </button>
+                            )
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* 2. Display & Gestures (6 buttons in 3x2 grid) */}
+                      <div className="flex flex-col gap-1 text-left px-0.5">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Display & Gestures
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            Visuals & Controls
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {/* 1. Rating Mode */}
+                          {onCycleRatingMode !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={handleCycleRating}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                ratingModeMeta.container
+                              )}
+                              title={ratingModeMeta.title}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", ratingModeMeta.iconBox)}>
+                                {ratingModeMeta.icon}
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Rate Mode</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", ratingModeMeta.color)}>
+                                  {ratingModeMeta.label}
+                                </span>
+                              </div>
+                            </button>
+                          ) : (
+                            <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
+                                <Sparkles className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight text-slate-500">Rate Mode</span>
+                                <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* 2. Card Images */}
+                          <button
+                            type="button"
+                            onClick={handleCycleImages}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              imagesMeta.container
+                            )}
+                            title={imagesMeta.title}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", imagesMeta.iconBox)}>
+                              {imagesMeta.icon}
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Images</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", imagesMeta.color)}>
+                                {imagesMeta.label}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 3. Font Size */}
+                          <button
+                            type="button"
+                            onClick={handleCycleFontSize}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              fontSizeMeta.container
+                            )}
+                            title={fontSizeMeta.title}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", fontSizeMeta.iconBox)}>
+                              {fontSizeMeta.icon}
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Font Size</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", fontSizeMeta.color)}>
+                                {fontSizeMeta.label}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 4. Text Alignment */}
+                          {setFrontHalign !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={handleCycleTextAlign}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                textAlignMeta.container
+                              )}
+                              title={textAlignMeta.title}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", textAlignMeta.iconBox)}>
+                                {textAlignMeta.icon}
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Alignment</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", textAlignMeta.color)}>
+                                  {textAlignMeta.label}
+                                </span>
+                              </div>
+                            </button>
+                          ) : null}
+
+                          {/* 5. Rating Buttons Dock Toggle */}
+                          {onToggleActionDock !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={onToggleActionDock}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                showActionDock
+                                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
+                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                              )}
+                              title={`Rating Buttons Dock: ${showActionDock ? 'SHOWN' : 'HIDDEN'}`}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showActionDock ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                                <Layers className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Rating Dock</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", showActionDock ? "text-indigo-600" : "text-slate-400")}>
+                                  {showActionDock ? "SHOW" : "HIDE"}
+                                </span>
+                              </div>
+                            </button>
+                          ) : null}
+
+                          {/* 6. FSRS Badges */}
+                          {setShowFsrs !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextVal = !showFsrs
+                                setShowFsrs?.(nextVal)
+                                showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
+                              }}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                showFsrs
+                                  ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                              )}
+                              title={`FSRS Badges: ${showFsrs ? 'SHOWN' : 'HIDDEN'}`}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showFsrs ? "bg-emerald-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                                <Layers className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">FSRS Badges</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", showFsrs ? "text-emerald-600" : "text-slate-400")}>
+                                  {showFsrs ? "SHOWN" : "OFF"}
+                                </span>
+                              </div>
+                            </button>
+                          ) : (
+                            <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
+                                <Layers className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight text-slate-500">FSRS Badges</span>
+                                <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {/* 1. Edit Card */}
-                      <button
-                        type="button"
-                        disabled={!canEdit}
-                        onClick={() => {
-                          onClose()
-                          onOpenEditModal?.()
-                        }}
-                        className={cn(
-                          "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs min-h-[38px]",
-                          canEdit
-                            ? "bg-slate-50 hover:bg-blue-50/70 border-slate-200/80 hover:border-blue-300 cursor-pointer"
-                            : "bg-slate-50/60 border-slate-200/50 opacity-60 cursor-not-allowed"
-                        )}
-                        title={canEdit ? "Open Card Editor Modal" : "Card editing locked"}
-                      >
-                        <div className={cn(
-                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
-                          canEdit ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
-                        )}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex flex-col min-w-0 leading-tight">
-                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Edit Card</span>
-                          <span className="text-[8px] text-slate-400 font-medium truncate">{canEdit ? "Editor" : "Locked"}</span>
-                        </div>
-                      </button>
-
-                      {/* 2. Card Note */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          onOpenCardHub?.('note')
-                        }}
-                        className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]"
-                        title="Open Personal Notes Drawer"
-                      >
-                        <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                          <FileText className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex flex-col min-w-0 leading-tight">
-                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Note</span>
-                          <span className="text-[8px] text-slate-400 font-medium truncate">Notes</span>
-                        </div>
-                      </button>
-
-                      {/* 3. AI Explain */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          onOpenCardHub?.('insight')
-                        }}
-                        className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]"
-                        title="Open AI Explanations Drawer"
-                      >
-                        <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                          <Brain className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex flex-col min-w-0 leading-tight">
-                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">AI Explain</span>
-                          <span className="text-[8px] text-slate-400 font-medium truncate">Insights</span>
-                        </div>
-                      </button>
-
-                      {/* 4. Card Stats */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose()
-                          onOpenCardHub?.('stats')
-                        }}
-                        className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]"
-                        title="Open Detailed Card Stats & History"
-                      >
-                        <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex flex-col min-w-0 leading-tight">
-                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Stats</span>
-                          <span className="text-[8px] text-slate-400 font-medium truncate">FSRS</span>
-                        </div>
-                      </button>
-
-                      {/* 5. Copy Current Face */}
-                      <button
-                        type="button"
-                        onClick={handleCopyCurrentFace}
-                        className={cn(
-                          "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]",
-                          copiedFace
-                            ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
-                            : "bg-slate-50 hover:bg-emerald-50/70 border-slate-200/80 hover:border-emerald-300"
-                        )}
-                        title={isFlipped ? "Copy Back Face to clipboard (for AI Prompt)" : "Copy Front Face to clipboard (for AI Prompt)"}
-                      >
-                        <div className={cn(
-                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
-                          copiedFace
-                            ? "bg-emerald-600 text-white scale-105"
-                            : "bg-emerald-500 text-white"
-                        )}>
-                          {copiedFace ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        </div>
-                        <div className="flex flex-col min-w-0 leading-tight">
-                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
-                            {copiedFace ? "Copied!" : isFlipped ? "Copy Back" : "Copy Front"}
-                          </span>
-                          <span className="text-[8px] text-slate-400 font-medium truncate">
-                            {copiedFace ? "Ready" : isFlipped ? "Back Face" : "Front Face"}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* 6. Copy Full Card */}
-                      <button
-                        type="button"
-                        onClick={handleCopyFullCard}
-                        className={cn(
-                          "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[38px]",
-                          copiedFull
-                            ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300"
-                            : "bg-slate-50 hover:bg-indigo-50/70 border-slate-200/80 hover:border-indigo-300"
-                        )}
-                        title="Copy both Front and Back content to clipboard (for AI Prompt)"
-                      >
-                        <div className={cn(
-                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
-                          copiedFull
-                            ? "bg-indigo-600 text-white scale-105"
-                            : "bg-indigo-500 text-white"
-                        )}>
-                          {copiedFull ? <Check className="w-3.5 h-3.5" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
-                        </div>
-                        <div className="flex flex-col min-w-0 leading-tight">
-                          <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
-                            {copiedFull ? "Copied!" : "Copy Full"}
-                          </span>
-                          <span className="text-[8px] text-slate-400 font-medium truncate">
-                            {copiedFull ? "Ready" : "Front & Back"}
-                          </span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )
             })()}
