@@ -8,7 +8,8 @@ import {
   Flame, 
   Brain, 
   Trophy, 
-  Sparkles
+  Sparkles,
+  SlidersHorizontal
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +38,7 @@ export function DashboardRoadmapSection({
   roadmapDecks,
   selectedRoadmapIdx,
   onSelectRoadmapIdx,
+  onOpenStudyModal,
   navigate,
   onOpenCustomize
 }: DashboardRoadmapSectionProps) {
@@ -257,88 +259,89 @@ export function DashboardRoadmapSection({
           transition={{ duration: 0.2 }}
           className="flex-1 flex flex-col justify-between gap-2.5 min-h-0"
         >
-          {/* ── 2A. HERO MASCOT CARD (BALANCED, CENTERED, ZERO EMPTY VOID) ── */}
-          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/80 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between items-center text-center">
+          {/* ── 2A. HERO MASCOT CARD (LARGE, PROMINENT, GAMIFIED) ── */}
+          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between items-center text-center">
             
-            {/* Top Deck Tag & Streak */}
+            {/* Ambient Warm Sunburst Glow */}
+            <div className="absolute inset-x-12 top-10 h-44 bg-gradient-to-t from-orange-400/20 via-amber-300/30 to-transparent rounded-full filter blur-2xl pointer-events-none" />
+
+            {/* Top Deck Tag & Streak Strip */}
             <div className="w-full flex items-center justify-between gap-2 z-10 shrink-0">
               <Link 
                 to={`/decks/${deck.deck_id ?? deck.id}`}
-                className="flex items-center gap-1.5 min-w-0 max-w-[75%] hover:opacity-80 transition-opacity text-left"
+                className="flex items-center gap-1.5 min-w-0 max-w-[70%] hover:opacity-85 transition-opacity text-left group/deck"
               >
-                <div className="w-6 h-6 rounded-lg bg-orange-500/15 text-orange-600 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-3.5 h-3.5 stroke-[2.4]" />
+                <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-300/70 text-orange-600 flex items-center justify-center shrink-0 group-hover/deck:scale-105 transition-transform shadow-2xs">
+                  <BookOpen className="w-4 h-4 stroke-[2.4]" />
                 </div>
-                <h3 className="text-sm sm:text-base font-black text-slate-900 truncate">
-                  {deck.title}
-                </h3>
-                {deck.level && (
-                  <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
-                    {deck.level}
-                  </span>
-                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 truncate group-hover/deck:text-orange-600 transition-colors">
+                      {deck.title}
+                    </h3>
+                    {deck.level && (
+                      <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
+                        {deck.level}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </Link>
 
-              {streak > 0 && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs shrink-0">
-                  <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                  <span>{streak}d Streak</span>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {streak > 0 && (
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs">
+                    <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
+                    <span>{streak}d Streak</span>
+                  </div>
+                )}
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-orange-200/80 text-[10px] font-bold text-slate-600 shadow-2xs">
+                  {totalCards.toLocaleString()} words
+                </span>
+              </div>
             </div>
 
-            {/* Mascot Centerpiece (Large, Lively, Speech Bubble on Tap) */}
+            {/* Centerpiece: Big, Lovable Mascot + Companion Speech Bubble */}
             <div 
               onClick={handleMascotTap}
               title="Tap the mascot for extra motivation! 🔥"
-              className="relative my-auto flex flex-col items-center justify-center cursor-pointer group py-1"
+              className="relative my-auto flex flex-col items-center justify-center cursor-pointer group py-1.5 z-10"
             >
-              <AnimatePresence>
-                {mascotCheer && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.85 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                    className="absolute -top-7 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black py-1.5 px-3 rounded-2xl shadow-xl z-30 max-w-[210px] pointer-events-none text-center"
-                  >
-                    <div className="relative">
-                      {mascotCheer}
-                      <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-white" />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Interactive Speech Bubble */}
+              <div className="relative mb-2">
+                <motion.div 
+                  key={mascotCheer || mascotHeadline}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-white/95 backdrop-blur-md border border-orange-200/90 text-slate-800 text-[11px] sm:text-xs font-black py-1.5 px-3.5 rounded-2xl shadow-sm text-center max-w-[240px] flex items-center gap-1.5"
+                >
+                  <span>{mascotCheer || mascotHeadline}</span>
+                  <span className="text-orange-500 text-xs">✨</span>
+                </motion.div>
+                <div className="w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-white mx-auto" />
+              </div>
 
-              <img 
-                src={`${mascotImg}?v=clean_v16`} 
+              {/* Large, Crisp Mascot Illustration */}
+              <motion.img 
+                src={`${mascotImg}?v=clean_v18`} 
                 alt="Vocaburn Mascot" 
-                className="h-[145px] sm:h-[180px] w-auto max-w-full object-contain drop-shadow-xl select-none transition-transform group-hover:scale-105 active:scale-95"
+                className="h-[175px] sm:h-[215px] w-auto max-w-full object-contain drop-shadow-2xl select-none transition-transform group-hover:scale-105 active:scale-95"
               />
             </div>
 
             {/* Bottom Motivation Headline & Mastery Progress Bar */}
-            <div className="w-full z-10 shrink-0 space-y-2 pt-1">
-              <div>
-                <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
-                  {mascotHeadline}
-                </h4>
-                <p className="text-[11px] font-bold text-slate-600 mt-0.5 line-clamp-1">
-                  {mascotSubline}
-                </p>
+            <div className="w-full z-10 shrink-0 space-y-2 pt-1 max-w-md mx-auto">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-0.5">
+                <span className="truncate">{mascotSubline}</span>
+                <span className="text-emerald-600 font-black tabular-nums shrink-0">{pct}% Mastered</span>
               </div>
 
               {/* Mastery Progress Bar */}
-              <div className="space-y-1 max-w-sm mx-auto w-full">
-                <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-500">
-                  <span>{learnedCards.toLocaleString()} / {totalCards.toLocaleString()} words</span>
-                  <span className="text-emerald-600 font-black tabular-nums">{pct}% Mastered</span>
-                </div>
-                <div className="h-2 w-full bg-white/80 rounded-full overflow-hidden p-0.5 border border-orange-200/60 shadow-2xs">
-                  <div 
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+              <div className="h-2 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/70 shadow-2xs">
+                <div 
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
           </div>
@@ -388,53 +391,88 @@ export function DashboardRoadmapSection({
             </div>
           </div>
 
-          {/* ── 2C. DIRECT 1-CLICK STUDY ACTIONS ── */}
+          {/* ── 2C. DUAL STUDY ACTIONS (INSTANT PLAY + QUICK MODE POPUP) ── */}
           <div className="shrink-0">
             <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
-              {/* Study Flashcards */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                  navigate(`/flashcard/${deck.deck_id ?? deck.id}/play`)
-                }}
-                className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 flex items-center justify-center gap-2.5 shadow-xs active:scale-[0.98] transition-all cursor-pointer group"
-              >
-                <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                  <Brain className="w-4.5 h-4.5 text-white" />
-                </div>
-                <div className="text-left min-w-0">
-                  <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block leading-tight truncate">
-                    Study Flashcards
-                  </span>
-                  <span className="text-[10px] text-orange-100 font-bold block leading-tight truncate">
-                    {dueRemaining > 0 ? `${dueRemaining} reviews waiting` : 'Review & Learn'}
-                  </span>
-                </div>
-              </button>
-
-              {/* Practice Quiz */}
-              {!isPracticeDisabled && (
+              
+              {/* Flashcard Action Group */}
+              <div className="flex items-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 shadow-xs p-1 gap-1">
+                {/* Primary: Study Flashcards Instant Play */}
                 <button
                   type="button"
                   onClick={() => {
                     if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                    navigate(`/practice/${deck.deck_id ?? deck.id}`)
+                    navigate(`/flashcard/${deck.deck_id ?? deck.id}/play`)
                   }}
-                  className="relative overflow-hidden bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-600 text-white rounded-2xl p-3 flex items-center justify-center gap-2.5 shadow-xs active:scale-[0.98] transition-all cursor-pointer group"
+                  className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
+                  title="Start studying with FSRS spaced repetition"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                    <Trophy className="w-4.5 h-4.5 text-white" />
+                  <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                    <Brain className="w-4 h-4 text-white" />
                   </div>
                   <div className="text-left min-w-0">
-                    <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block leading-tight truncate">
-                      Practice Quiz
+                    <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
+                      Study Flashcards
                     </span>
-                    <span className="text-[10px] text-teal-100 font-bold block leading-tight truncate">
-                      MCQ, Typing & Tests
+                    <span className="text-[9.5px] text-orange-100 font-bold block leading-tight truncate">
+                      {dueRemaining > 0 ? `${dueRemaining} reviews waiting` : 'Review & Learn'}
                     </span>
                   </div>
                 </button>
+
+                {/* Secondary: Quick Mode Select Popup */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+                    onOpenStudyModal?.(deck, 'flashcard')
+                  }}
+                  className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
+                  title="Quick Study Mode Settings (FSRS, Leitner, Skim...)"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Practice Action Group */}
+              {!isPracticeDisabled && (
+                <div className="flex items-center rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 shadow-xs p-1 gap-1">
+                  {/* Primary: Practice Quiz Instant Play */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
+                      navigate(`/practice/${deck.deck_id ?? deck.id}`)
+                    }}
+                    className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
+                    title="Start practice quiz"
+                  >
+                    <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                      <Trophy className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
+                        Practice Quiz
+                      </span>
+                      <span className="text-[9.5px] text-teal-100 font-bold block leading-tight truncate">
+                        MCQ, Typing & Tests
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Secondary: Quick Practice Mode Select Popup */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+                      onOpenStudyModal?.(deck, 'practice')
+                    }}
+                    className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
+                    title="Quick Practice Mode Settings (MCQ, Typing, Listening...)"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
