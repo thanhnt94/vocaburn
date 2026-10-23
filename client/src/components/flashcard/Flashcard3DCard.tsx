@@ -243,9 +243,42 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     ? (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url)
     : (currentQuestion?.front_img || currentQuestion?.others?.front_img);
 
-  const backRevealedText = flipSides
-    ? (currentQuestion?.content || '')
-    : (currentQuestion?.options?.find((o: any) => o.is_correct)?.content || currentQuestion?.explanation || "Definition revealed.");
+  // Determine clean back content without duplicate text
+  const correctOptionText = currentQuestion?.options?.find((o: any) => o.is_correct)?.content;
+  const explanationText = currentQuestion?.explanation;
+  
+  let primaryBackText = '';
+  let secondaryExplanation = '';
+
+  if (flipSides) {
+    // When flipSides is true, back face is the front prompt (word/kanji)
+    primaryBackText = currentQuestion?.content || '';
+    secondaryExplanation = '';
+  } else {
+    // Standard mode: Front is word/kanji, Back is definition/explanation
+    const norm = (str?: string | null) => (str || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const optNorm = norm(correctOptionText);
+    const expNorm = norm(explanationText);
+
+    if (optNorm && expNorm) {
+      if (optNorm === expNorm || expNorm.includes(optNorm)) {
+        // Option is identical to or already inside explanation: just render explanation once
+        primaryBackText = explanationText || '';
+        secondaryExplanation = '';
+      } else if (optNorm.includes(expNorm)) {
+        // Explanation is already inside option: just render option once
+        primaryBackText = correctOptionText || '';
+        secondaryExplanation = '';
+      } else {
+        // Distinct values (e.g. option is short answer, explanation is detailed notes/examples)
+        primaryBackText = correctOptionText || '';
+        secondaryExplanation = explanationText || '';
+      }
+    } else {
+      primaryBackText = correctOptionText || explanationText || currentQuestion?.others?.back || currentQuestion?.back || "Definition revealed.";
+      secondaryExplanation = '';
+    }
+  }
 
   const backImg = flipSides
     ? (currentQuestion?.front_img || currentQuestion?.others?.front_img)
@@ -435,40 +468,35 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 backHalign === 'center' ? "items-center text-center" : "items-start text-left",
                 isSelectMode && "select-text cursor-text"
               )}>
-                {/* Show the correct options or direct explanation */}
-                <div className={cn("space-y-2 w-full", backHalign === 'center' ? "flex justify-center" : "")}>
-                  <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4 w-full">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
-                      ✓
-                    </div>
-                    <div 
-                      className={cn(
-                        "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
-                        backHalign === 'center' ? "text-center" : "text-left",
-                        isSelectMode && "select-text cursor-text"
-                      )}
-                      style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                {/* Primary Back / Definition Content */}
+                {primaryBackText && (
+                  <div 
+                    className={cn(
+                      "text-slate-800 font-extrabold text-xl md:text-2xl lg:text-3xl leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
+                      backHalign === 'center' ? "items-center text-center" : "items-start text-left",
+                      isSelectMode && "select-text cursor-text"
+                    )}
+                    style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                  >
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]} 
+                      rehypePlugins={[rehypeRaw]} 
+                      components={{
+                        ...MarkdownComponents,
+                        p: ({ children }) => (
+                          <p 
+                            className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                            style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                          >
+                            {children}
+                          </p>
+                        )
+                      }}
                     >
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]} 
-                        rehypePlugins={[rehypeRaw]} 
-                        components={{
-                          ...MarkdownComponents,
-                          p: ({ children }) => (
-                            <p 
-                              className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
-                              style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                            >
-                              {children}
-                            </p>
-                          )
-                        }}
-                      >
-                        {parseBBCodeToHtml(backRevealedText)}
-                      </ReactMarkdown>
-                    </div>
+                      {parseBBCodeToHtml(primaryBackText)}
+                    </ReactMarkdown>
                   </div>
-                </div>
+                )}
 
                 {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && backImg && (
                   <div className="space-y-2 flex justify-center w-full">
@@ -493,14 +521,19 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                   </div>
                 )}
 
-                {currentQuestion?.explanation && (
+                {/* Secondary Explanation (only if distinct and not duplicated) */}
+                {secondaryExplanation && (
                   <div 
-                    className={cn("w-full bg-white flex flex-col min-h-0", backHalign === 'center' ? "text-center items-center" : "text-left items-start", isSelectMode && "select-text cursor-text")}
+                    className={cn(
+                      "w-full flex flex-col min-h-0 pt-3 border-t border-slate-100/80",
+                      backHalign === 'center' ? "text-center items-center" : "text-left items-start",
+                      isSelectMode && "select-text cursor-text"
+                    )}
                     style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
                   >
                     <div 
                       className={cn(
-                        "text-slate-700 font-bold text-xl md:text-2xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
+                        "text-slate-700 font-semibold text-lg md:text-xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
                         backHalign === 'center' ? "text-center" : "text-left",
                         isSelectMode && "select-text cursor-text"
                       )}
@@ -521,7 +554,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                           )
                         }}
                       >
-                        {parseBBCodeToHtml(currentQuestion.explanation)}
+                        {parseBBCodeToHtml(secondaryExplanation)}
                       </ReactMarkdown>
                     </div>
                   </div>
