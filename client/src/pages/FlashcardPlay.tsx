@@ -499,7 +499,14 @@ export default function FlashcardPlay() {
 
   const isCardReview = useCallback((q: any) => {
     if (!q) return false;
-    return q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && (q.stats?.total || 0) > 0);
+    if (q.fsrs) {
+      if (q.fsrs.state === 0 && !q.fsrs.last_review) return false;
+      if (q.fsrs.due) {
+        return new Date(q.fsrs.due).getTime() <= Date.now();
+      }
+      return q.fsrs.state > 0;
+    }
+    return !q.is_new && (q.stats?.total || 0) > 0;
   }, []);
 
   const isCardNew = useCallback((q: any) => {
@@ -997,33 +1004,84 @@ export default function FlashcardPlay() {
       const quizRes = await axios.get(fetchUrl)
       let questions = quizRes.data.questions || []
 
-      // Apply URL filter if specified (e.g. ?filter=new, ?filter=due, ?filter=hard)
-      const urlFilter = currentSearchParams.get('filter')
-      if (urlFilter === 'new') {
-        const filtered = questions.filter((q: any) => {
-          return q.fsrs ? (q.fsrs.state === 0 && q.fsrs.last_review === null) : (q.is_new || !q.stats?.total)
-        })
-        if (filtered.length > 0) questions = filtered
-      } else if (urlFilter === 'due' || urlFilter === 'review') {
-        const filtered = questions.filter((q: any) => {
-          return q.fsrs ? (q.fsrs.state > 0 || q.fsrs.last_review !== null) : (!q.is_new && (q.stats?.total || 0) > 0)
-        })
-        if (filtered.length > 0) questions = filtered
-      } else if (urlFilter === 'hard') {
-        const filtered = questions.filter((q: any) => {
+      // Apply Target Card Scope & Intelligent Interleaving
+      const urlScope = currentSearchParams.get('scope') || currentSearchParams.get('filter') || cardScope || 'all'
+      const initialOrder = currentSearchParams.get('order') || (userSettings?.random_enabled ? 'random' : 'sequential')
+      const isRandom = initialOrder === 'random'
+      const rawMode = currentSearchParams.get('mode') || activeMode || 'fsrs'
+      const isFsrsMode = rawMode === 'fsrs' || rawMode === 'review' || rawMode === 'new'
+
+      const shuffleCards = (arr: any[]) => {
+        const copy = [...arr]
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy
+      }
+
+      if (urlScope === 'new') {
+        const newCards = questions.filter((q: any) => isCardNew(q))
+        questions = isRandom ? shuffleCards(newCards) : newCards
+      } else if (urlScope === 'due' || urlScope === 'review') {
+        const dueCards = questions.filter((q: any) => isCardReview(q))
+        if (isRandom) {
+          questions = shuffleCards(dueCards)
+        } else {
+          questions = dueCards.sort((a: any, b: any) => {
+            const timeA = a.fsrs?.due ? new Date(a.fsrs.due).getTime() : 0
+            const timeB = b.fsrs?.due ? new Date(b.fsrs.due).getTime() : 0
+            return timeA - timeB
+          })
+        }
+      } else if (urlScope === 'hard') {
+        const hardCards = questions.filter((q: any) => {
           const diff = q.fsrs?.difficulty || 0
           const laps = q.fsrs?.lapses || 0
           return diff >= 6 || laps > 0 || q.is_hard
         })
-        if (filtered.length > 0) questions = filtered
-      }
+        questions = isRandom ? shuffleCards(hardCards) : hardCards
+      } else {
+        // urlScope === 'all'
+        if (isFsrsMode) {
+          // FSRS All mode: Interleave due cards (due <= now) with new cards (4 due : 1 new)
+          let dueCards = questions.filter((q: any) => isCardReview(q))
+          let newCards = questions.filter((q: any) => isCardNew(q))
 
-      // Apply random order if specified in URL
-      const initialOrder = currentSearchParams.get('order')
-      if (initialOrder === 'random') {
-        for (let i = questions.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [questions[i], questions[j]] = [questions[j], questions[i]];
+          if (isRandom) {
+            dueCards = shuffleCards(dueCards)
+            newCards = shuffleCards(newCards)
+          } else {
+            dueCards.sort((a: any, b: any) => {
+              const timeA = a.fsrs?.due ? new Date(a.fsrs.due).getTime() : 0
+              const timeB = b.fsrs?.due ? new Date(b.fsrs.due).getTime() : 0
+              return timeA - timeB
+            })
+          }
+
+          if (dueCards.length > 0 && newCards.length > 0) {
+            const interleaved: any[] = []
+            let dIdx = 0
+            let nIdx = 0
+            while (dIdx < dueCards.length || nIdx < newCards.length) {
+              for (let k = 0; k < 4 && dIdx < dueCards.length; k++) {
+                interleaved.push(dueCards[dIdx++])
+              }
+              if (nIdx < newCards.length) {
+                interleaved.push(newCards[nIdx++])
+              }
+            }
+            questions = interleaved
+          } else if (dueCards.length > 0) {
+            questions = dueCards
+          } else if (newCards.length > 0) {
+            questions = newCards
+          }
+        } else {
+          // Skim or AutoPlay All mode: scan all cards
+          if (isRandom) {
+            questions = shuffleCards(questions)
+          }
         }
       }
 

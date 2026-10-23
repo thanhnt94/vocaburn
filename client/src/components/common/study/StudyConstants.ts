@@ -29,7 +29,7 @@ export interface StudySettings {
 }
 
 export interface LearnModeOption {
-  id: 'fsrs' | 'skim'
+  id: 'fsrs' | 'skim' | 'autoplay'
   name: string
   shortName: string
   emoji: string
@@ -53,6 +53,14 @@ export const CORE_LEARN_MODES: LearnModeOption[] = [
     emoji: '⚡',
     desc: 'Rapid 1-tap/Space card scanning without rating friction (+3 XP)',
     badge: '1-Tap Rapid'
+  },
+  {
+    id: 'autoplay',
+    name: 'AutoPlay',
+    shortName: 'Auto',
+    emoji: '🎧',
+    desc: 'Automated hands-free listening and reading with speech pacing',
+    badge: 'Hands-Free'
   },
 ]
 

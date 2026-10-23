@@ -81,6 +81,17 @@ export const STUDY_MODES: StudyModeOption[] = [
     getUrl: (id) => `/flashcard/${id}/play?mode=skim`
   },
   {
+    id: 'autoplay',
+    name: 'AutoPlay',
+    fullName: 'AutoPlay (Hands-Free)',
+    emoji: '🎧',
+    desc: 'Automated hands-free listening and reading with speech pacing',
+    badge: () => 'Radio',
+    badgeColor: 'bg-cyan-100 text-cyan-700',
+    color: 'from-cyan-500 to-blue-600',
+    getUrl: (id) => `/flashcard/${id}/play?mode=autoplay`
+  },
+  {
     id: 'mcq',
     name: 'MCQ Test',
     fullName: '4-Choice Quiz Test',
@@ -171,7 +182,7 @@ export function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { user } = useAppStore()
+  const { user, userSettings, updateUserSettings } = useAppStore()
 
   // Active Tab from URL
   const tabParam = searchParams.get('tab') as DeckDetailTab
@@ -194,6 +205,10 @@ export function DeckDetailPage() {
 
   // Study Mode Selector & Sheet State
   const [selectedStudyMode, setSelectedStudyMode] = useState<string>('fsrs')
+  const [flashcardScope, setFlashcardScope] = useState<'all' | 'due' | 'new'>('all')
+  const [flashcardOrder, setFlashcardOrder] = useState<'sequential' | 'random'>(
+    userSettings?.random_enabled ? 'random' : 'sequential'
+  )
   const [studySheetType, setStudySheetType] = useState<'flashcard' | 'practice' | null>(null)
 
   // Fetch Deck Metadata
@@ -227,14 +242,22 @@ export function DeckDetailPage() {
     const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
     let targetId = modeId || selectedStudyMode
     if (disabledModes.includes(targetId)) {
-      const fallback = ['fsrs', 'skim'].find(m => !disabledModes.includes(m)) || 'fsrs'
+      const fallback = ['fsrs', 'skim', 'autoplay'].find(m => !disabledModes.includes(m)) || 'fsrs'
       targetId = fallback
     }
     const targetMode = STUDY_MODES.find(m => m.id === targetId) || STUDY_MODES[0]
     if (id) {
       setSelectedStudyMode(targetMode.id)
       setStudySheetType(null)
-      navigate(targetMode.getUrl(id))
+      if (['fsrs', 'skim', 'autoplay'].includes(targetMode.id)) {
+        const isRandom = flashcardOrder === 'random'
+        updateUserSettings?.({ random_enabled: isRandom })
+        const scopeParam = flashcardScope !== 'all' ? `&scope=${flashcardScope}&filter=${flashcardScope}` : ''
+        const orderParam = `&order=${flashcardOrder}`
+        navigate(`/flashcard/${id}/play?mode=${targetMode.id}${scopeParam}${orderParam}`)
+      } else {
+        navigate(targetMode.getUrl(id))
+      }
     }
   }
 
@@ -1032,8 +1055,72 @@ export function DeckDetailPage() {
                     </button>
                   </div>
 
+                  {/* Card Scope & Order Console */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 my-3 shrink-0">
+                    {/* 1. Target Card Scope */}
+                    <div className="flex items-center justify-between p-1.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-2">
+                        Target Scope
+                      </span>
+                      <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-slate-200/70">
+                        {[
+                          { id: 'all', label: 'All Cards' },
+                          { id: 'due', label: 'Due Only' },
+                          { id: 'new', label: 'New Only' }
+                        ].map(s => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setFlashcardScope(s.id as any)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                              flashcardScope === s.id
+                                ? "bg-white text-indigo-600 shadow-2xs"
+                                : "text-slate-600 hover:text-slate-900"
+                            )}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2. Card Order */}
+                    <div className="flex items-center justify-between p-1.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-2">
+                        Card Order
+                      </span>
+                      <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-slate-200/70">
+                        <button
+                          type="button"
+                          onClick={() => setFlashcardOrder('sequential')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                            flashcardOrder === 'sequential'
+                              ? "bg-white text-indigo-600 shadow-2xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          )}
+                        >
+                          📋 Sequential
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFlashcardOrder('random')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                            flashcardOrder === 'random'
+                              ? "bg-white text-indigo-600 shadow-2xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          )}
+                        >
+                          🔀 Random
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Modes List */}
-                  <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
+                  <div className="flex-1 overflow-y-auto py-1 space-y-2 custom-scrollbar pr-1">
                     {(() => {
                       const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
                       const activeLearnModes = STUDY_MODES.slice(0, 3).filter(m => !disabledModes.includes(m.id))

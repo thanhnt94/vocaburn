@@ -55,6 +55,14 @@ export function FlashcardModeModal({
       badge: '1-Tap Fast',
       color: 'hover:border-amber-500/40 hover:bg-amber-50/15'
     },
+    { 
+      mode: 'autoplay', 
+      icon: '🎧', 
+      title: 'AutoPlay', 
+      desc: 'Automated continuous hands-free listening and reading with speech pacing',
+      badge: 'Hands-Free',
+      color: 'hover:border-cyan-500/40 hover:bg-cyan-50/15'
+    },
   ].filter(item => !disabledModes.includes(item.mode))
 
   const handleLaunchMode = (modeKey: string) => {
@@ -65,7 +73,7 @@ export function FlashcardModeModal({
       random_enabled: isRandom
     })
 
-    const filterParam = cardFilter !== 'all' ? `&filter=${cardFilter}` : ''
+    const filterParam = cardFilter !== 'all' ? `&scope=${cardFilter}&filter=${cardFilter}` : ''
     navigate(`/flashcard/${deck.id}/play?mode=${modeKey}&order=${cardOrder}${filterParam}`)
   }
 

@@ -305,11 +305,9 @@ export interface FlashcardQuickControlsSheetProps {
 }
 
 const FLASHCARD_MODES = [
-  { id: 'fsrs', short: 'FSRS', name: 'FSRS Repetition', icon: '🧠', activeClass: 'bg-emerald-600 text-white shadow-xs font-black' },
+  { id: 'fsrs', short: 'FSRS', name: 'FSRS Spaced Repetition', icon: '🧠', activeClass: 'bg-indigo-600 text-white shadow-xs font-black' },
   { id: 'skim', short: 'SKIM', name: 'Speed Skim', icon: '⚡', activeClass: 'bg-amber-500 text-white shadow-xs font-black' },
   { id: 'autoplay', short: 'AUTO', name: 'Auto Play (Hands-Free)', icon: '🎧', activeClass: 'bg-cyan-600 text-white shadow-xs font-black' },
-  { id: 'review', short: 'REV', name: 'Review Due', icon: '📚', activeClass: 'bg-sky-600 text-white shadow-xs font-black' },
-  { id: 'new', short: 'NEW', name: 'Learn New', icon: '✨', activeClass: 'bg-indigo-600 text-white shadow-xs font-black' },
 ]
 
 /**
@@ -510,10 +508,10 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     Flashcard Study Mode
                   </span>
                   <span className="text-[9px] font-bold text-slate-400">
-                    5 Modes Available
+                    3 Modes Available
                   </span>
                 </div>
-                <div className="grid grid-cols-5 gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
+                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
                   {FLASHCARD_MODES.map((m) => {
                     const isActive = activeMode === m.id || (m.id === 'skim' && (activeMode === 'speed_skim' || activeMode === 'flip'));
                     return (
@@ -524,7 +522,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           onSelectMode(m.id);
                         }}
                         className={cn(
-                          "flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all cursor-pointer select-none",
+                          "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all cursor-pointer select-none",
                           isActive
                             ? cn(m.activeClass, "scale-[1.02]")
                             : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900"
@@ -532,7 +530,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                         title={m.name}
                       >
                         <span className="text-base leading-none mb-1">{m.icon}</span>
-                        <span className="text-[9.5px] font-black tracking-tight uppercase leading-tight">{m.short}</span>
+                        <span className="text-[10px] font-black tracking-tight uppercase leading-tight">{m.short}</span>
                       </button>
                     );
                   })}
@@ -540,68 +538,66 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
             )}
 
-            {/* Conditional Scope Filter for Skim & AutoPlay */}
-            {(activeMode === 'skim' || activeMode === 'speed_skim' || activeMode === 'flip' || activeMode === 'autoplay') && (
-              <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                    {activeMode === 'autoplay' ? '🎧 AutoPlay Target Scope' : '⚡ Skim Target Scope'}
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400">
-                    Filter Cards
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => onSelectCardScope?.('all')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      cardScope === 'all'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : "bg-amber-500 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <span>All Cards</span>
-                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.all ?? 0}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onSelectCardScope?.('review')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      cardScope === 'review'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : "bg-amber-500 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <span>Review Due</span>
-                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.review ?? 0}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onSelectCardScope?.('new')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      cardScope === 'new'
-                        ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : "bg-amber-500 text-white shadow-xs font-black")
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <span>Learn New</span>
-                    <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
-                      {scopeCounts?.new ?? 0}
-                    </span>
-                  </button>
-                </div>
+            {/* Universal Target Scope Filter for All 3 Modes */}
+            <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  🎯 Target Card Scope
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">
+                  {cardScope === 'all' ? (activeMode === 'fsrs' ? 'Interleaved' : 'All Cards') : cardScope === 'review' ? 'Due Only' : 'New Only'}
+                </span>
               </div>
-            )}
+              <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => onSelectCardScope?.('all')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    cardScope === 'all'
+                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  <span>All</span>
+                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'all' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                    {scopeCounts?.all ?? 0}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectCardScope?.('review')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    cardScope === 'review'
+                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  <span>Due</span>
+                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'review' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                    {scopeCounts?.review ?? 0}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectCardScope?.('new')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    cardScope === 'new'
+                      ? (activeMode === 'autoplay' ? "bg-cyan-600 text-white shadow-xs font-black" : activeMode === 'skim' ? "bg-amber-500 text-white shadow-xs font-black" : "bg-indigo-600 text-white shadow-xs font-black")
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  <span>New</span>
+                  <span className={cn("text-[9.5px] px-1.5 py-0.2 rounded-full", cardScope === 'new' ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500")}>
+                    {scopeCounts?.new ?? 0}
+                  </span>
+                </button>
+              </div>
+            </div>
 
             {/* AutoPlay Pacing Controls — ONLY VISIBLE WHEN activeMode === 'autoplay' */}
             {activeMode === 'autoplay' && (

@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export type PracticeModeKey = 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
-export type LearnModeKey = 'fsrs' | 'skim'
+export type LearnModeKey = 'fsrs' | 'skim' | 'autoplay'
 
 export interface QuestionAnswerPair {
   q: string
@@ -88,6 +88,17 @@ const FLASHCARD_LEARN_MODES = [
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     borderColor: 'border-amber-200',
+  },
+  {
+    id: 'autoplay' as LearnModeKey,
+    name: 'AutoPlay (Hands-Free)',
+    shortName: 'AutoPlay',
+    emoji: '🎧',
+    desc: 'Automated continuous hands-free speech and card flipping with customized pacing',
+    badge: 'Hands-Free',
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-50',
+    borderColor: 'border-cyan-200',
   },
 ]
 
@@ -302,11 +313,11 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     let nextDefault = defaultLearnMode
     if (!isCurrentlyDisabled) {
       // If disabling a learn mode, check that at least one remains active
-      const learnIds = ['fsrs', 'skim']
+      const learnIds = ['fsrs', 'skim', 'autoplay']
       if (learnIds.includes(modeKey)) {
         const remaining = learnIds.filter(id => id !== modeKey && !disabledModes.includes(id))
         if (remaining.length === 0) {
-          alert('At least one flashcard learning mode (FSRS or Speed Skim) must remain active for this deck!')
+          alert('At least one flashcard study mode must remain active for this deck!')
           return
         }
         if (defaultLearnMode === modeKey) {
