@@ -215,246 +215,223 @@ export function DashboardRoadmapSection({
     )
   }
 
-  // ══════════════ SPOTLIGHT REEL VIEW (RECOMMENDED HERO DESIGN) ══════════════
+  // ══════════════ ALL-IN-ONE DECK STUDIO (RECOMMENDED HERO DESIGN) ══════════════
   return (
-    <div className="flex-1 flex flex-col justify-between gap-3 min-h-0 w-full p-3 sm:p-4 select-none">
-      {/* ── Top Bar: Deck Selector & Navigation ── */}
-      <div className="flex items-center justify-between shrink-0 px-0.5">
-        {/* Left: Deck Carousel Navigator */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
-            <button
-              type="button"
-              onClick={prevDeck}
-              disabled={safeIdx === 0}
-              className={cn(
-                "w-5 h-5 rounded-full flex items-center justify-center transition-all",
-                safeIdx === 0 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-slate-100 cursor-pointer active:scale-90"
-              )}
-              title="Previous deck"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-            <span className="text-[11px] font-black text-slate-800 px-1.5 tabular-nums">
-              {safeIdx + 1} / {totalDecks}
-            </span>
-            <button
-              type="button"
-              onClick={nextDeck}
-              disabled={safeIdx === totalDecks - 1}
-              className={cn(
-                "w-5 h-5 rounded-full flex items-center justify-center transition-all",
-                safeIdx === totalDecks - 1 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-slate-100 cursor-pointer active:scale-90"
-              )}
-              title="Next deck"
-            >
-              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-          </div>
-
-          <span className="text-[11px] font-bold text-slate-400 truncate max-w-[140px] sm:max-w-none">
-            {deck.title}
-          </span>
-        </div>
-
-        {/* Right: Deck Details Link */}
-        <Link 
-          to={`/decks/${deck.deck_id}`}
-          className="text-xs font-black text-orange-600 hover:text-orange-700 bg-white hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
-        >
-          <span>Deck Details</span>
-          <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
-        </Link>
-      </div>
-
-      {/* ── ═══════════ HERO SPOTLIGHT MASCOT CARD ═══════════ ── */}
-      <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/75 to-amber-200/40 border border-orange-200/90 rounded-3xl p-4 sm:p-5 relative overflow-hidden shadow-xs flex flex-row items-center justify-between flex-1 min-h-[220px] shrink-0">
-        {/* Left Side: Deck Info, Mastery Progress & Motivation */}
-        <div className="relative z-20 flex-1 max-w-[62%] min-w-0 flex flex-col justify-center gap-2.5 py-1">
-          {/* Deck Title & Level */}
-          <Link
-            to={`/decks/${deck.deck_id}`}
-            className="inline-flex items-center gap-2 max-w-full text-left group cursor-pointer"
-          >
-            <div className="w-8 h-8 rounded-xl bg-orange-500/15 border border-orange-300/70 flex items-center justify-center text-orange-600 shrink-0 group-hover:scale-105 transition-transform">
-              <BookOpen className="w-4 h-4" />
+    <div className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none">
+      {/* ── ═══════════ UNIFIED ALL-IN-ONE DECK STUDIO CARD ═══════════ ── */}
+      <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-100/35 border border-orange-200/80 rounded-3xl p-3.5 sm:p-4 shadow-2xs flex-1 flex flex-col justify-between min-h-0 relative overflow-hidden">
+        
+        {/* ── 1. CARD TOP: Deck Navigator & Title & Streak & Details ── */}
+        <div className="flex items-center justify-between gap-2 shrink-0 pb-2 border-b border-orange-200/60">
+          {/* Deck Navigator Pill & Title */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <div className="flex items-center bg-white/95 px-2 py-0.5 rounded-full border border-orange-200/80 shadow-2xs shrink-0">
+              <button
+                type="button"
+                onClick={prevDeck}
+                disabled={safeIdx === 0}
+                className={cn(
+                  "w-5 h-5 rounded-full flex items-center justify-center transition-all",
+                  safeIdx === 0 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-orange-50 cursor-pointer active:scale-90"
+                )}
+                title="Previous deck"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+              <span className="text-[11px] font-black text-slate-800 px-1 tabular-nums">
+                {safeIdx + 1}/{totalDecks}
+              </span>
+              <button
+                type="button"
+                onClick={nextDeck}
+                disabled={safeIdx === totalDecks - 1}
+                className={cn(
+                  "w-5 h-5 rounded-full flex items-center justify-center transition-all",
+                  safeIdx === totalDecks - 1 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-orange-50 cursor-pointer active:scale-90"
+                )}
+                title="Next deck"
+              >
+                <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
             </div>
-            <span className="text-sm sm:text-base font-black text-slate-900 truncate group-hover:text-orange-600 transition-colors">
+
+            <Link
+              to={`/decks/${deck.deck_id}`}
+              className="text-xs sm:text-sm font-black text-slate-900 truncate hover:text-orange-600 transition-colors"
+              title={deck.title}
+            >
               {deck.title}
-            </span>
+            </Link>
             {deck.level && (
-              <span className="px-2 py-0.5 rounded-lg bg-orange-500/15 text-orange-700 border border-orange-200/80 text-[11px] font-black shrink-0">
+              <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-black shrink-0">
                 {deck.level}
               </span>
             )}
-          </Link>
+          </div>
 
-          {/* Badges Row: Streak & Mastery % */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {/* Right: Streak & Details link */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {streak > 0 && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[11px] font-black shadow-xs shrink-0">
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-[10px] font-black shadow-2xs">
                 <Flame className="w-3 h-3 fill-amber-200 text-amber-200" />
-                <span>{streak}d Streak</span>
+                <span>{streak}d</span>
               </div>
             )}
+            <Link 
+              to={`/decks/${deck.deck_id}`}
+              className="text-[11px] font-black text-orange-600 hover:text-orange-700 bg-white/95 hover:bg-orange-50 border border-orange-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-2xs active:scale-95 transition-all"
+            >
+              <span>Details</span>
+              <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+            </Link>
+          </div>
+        </div>
 
-            {/* Total Mastery Bar Pill */}
-            <div className="inline-flex items-center gap-1.5 shrink-0">
-              <div className="relative h-6 min-w-[130px] sm:min-w-[150px] bg-white/90 backdrop-blur-xs border border-orange-200/90 rounded-full p-0.5 shadow-2xs overflow-hidden flex items-center">
+        {/* ── 2. CARD CENTER: Progression & Truth Stats & Balanced Mascot ── */}
+        <div className="flex-1 flex items-center justify-between gap-2.5 min-h-0 py-2.5 relative">
+          {/* Left Panel: Headline, Progress Bar & 3-Stat Strip */}
+          <div className="flex-1 max-w-[62%] sm:max-w-[65%] flex flex-col justify-center gap-2 z-10">
+            {/* Motivation Headline */}
+            <div>
+              <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
+                {mascotHeadline}
+              </h2>
+              <p className="text-[11px] font-bold text-slate-600 leading-snug line-clamp-1 mt-0.5">
+                {mascotSubline}
+              </p>
+            </div>
+
+            {/* Mastery Progress Bar */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                <span>Mastery Progress</span>
+                <span className="text-emerald-600 font-black tabular-nums">{pct}%</span>
+              </div>
+              <div className="h-2 w-full bg-slate-200/70 rounded-full overflow-hidden p-0.5">
                 <div 
-                  className="absolute inset-y-0.5 left-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500 shadow-2xs"
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
                   style={{ width: `${pct}%` }}
                 />
-                <span className="relative z-10 font-black text-[11px] text-slate-900 px-2.5 truncate">
-                  {learnedCards.toLocaleString()} / {totalCards.toLocaleString()} words
+              </div>
+              <div className="text-[10px] text-slate-400 font-semibold truncate">
+                {learnedCards.toLocaleString()} / {totalCards.toLocaleString()} words learned
+              </div>
+            </div>
+
+            {/* Integrated 3 Truth Stats Strip */}
+            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+              {/* Due for Review */}
+              <div className="bg-white/90 backdrop-blur-xs border border-orange-200/70 rounded-xl p-1.5 text-center shadow-2xs">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Due</span>
+                <span className={cn(
+                  "text-xs sm:text-sm font-black tabular-nums block mt-0.2",
+                  dueRemaining > 0 ? "text-purple-600" : "text-emerald-600"
+                )}>
+                  {dueRemaining}
                 </span>
               </div>
-              <span className="font-black text-xs sm:text-sm text-emerald-600 tabular-nums shrink-0">
-                {pct}%
-              </span>
+
+              {/* Unlearned */}
+              <div className="bg-white/90 backdrop-blur-xs border border-orange-200/70 rounded-xl p-1.5 text-center shadow-2xs">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">New</span>
+                <span className="text-xs sm:text-sm font-black text-orange-600 tabular-nums block mt-0.2">
+                  {unlearnedCards}
+                </span>
+              </div>
+
+              {/* Mastered */}
+              <div className="bg-white/90 backdrop-blur-xs border border-orange-200/70 rounded-xl p-1.5 text-center shadow-2xs">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">Mastered</span>
+                <span className="text-xs sm:text-sm font-black text-emerald-600 tabular-nums block mt-0.2">
+                  {learnedCards}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Motivation Speech */}
-          <div className="flex flex-col gap-0.5 pt-0.5">
-            <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
-              {mascotHeadline}
-            </h2>
-            <p className="text-xs font-bold text-slate-600 leading-snug">
-              {mascotSubline}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Side: Animated 3D Mascot with Cheer Bubble */}
-        <div 
-          onClick={handleMascotTap}
-          title="Tap the mascot for extra motivation! 🔥"
-          className="w-[42%] max-w-[260px] absolute right-1 sm:right-3 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group"
-        >
-          <AnimatePresence>
-            {mascotCheer && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.85 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[11px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
-              >
-                <div className="relative">
-                  {mascotCheer}
-                  <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.img 
-            key={mascotImg}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            src={`${mascotImg}?v=clean_v12`} 
-            alt="Vocaburn Mascot" 
-            className="h-[105%] max-h-[290px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
-          />
-        </div>
-      </div>
-
-      {/* ── ═══════════ REAL DECK STATS BAR (NO FAKE ROADMAP QUOTAS!) ═══════════ ── */}
-      <div className="grid grid-cols-3 gap-2 shrink-0">
-        {/* Due Cards */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Due for Review
-          </span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className={cn(
-              "text-base sm:text-lg font-black tabular-nums",
-              dueRemaining > 0 ? "text-purple-600" : "text-emerald-600"
-            )}>
-              {dueRemaining}
-            </span>
-            <span className="text-[10px] font-bold text-slate-400">cards</span>
-          </div>
-        </div>
-
-        {/* Unlearned / New Cards */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Unlearned
-          </span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className="text-base sm:text-lg font-black text-orange-600 tabular-nums">
-              {unlearnedCards}
-            </span>
-            <span className="text-[10px] font-bold text-slate-400">cards</span>
-          </div>
-        </div>
-
-        {/* Mastered Cards */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Mastered
-          </span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className="text-base sm:text-lg font-black text-emerald-600 tabular-nums">
-              {learnedCards}
-            </span>
-            <span className="text-[10px] font-bold text-slate-400">cards</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── ═══════════ DIRECT 1-CLICK STUDY ACTIONS (NO DUPLICATES!) ═══════════ ── */}
-      <div className="shrink-0 pt-0.5">
-        <div className={cn("grid gap-2.5", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
-          {/* Primary Action: Study Flashcards */}
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-              navigate(`/flashcard/${deck.deck_id}/play`)
-            }}
-            className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
+          {/* Right Stage: Animated Mascot with Cheer Bubble */}
+          <div 
+            onClick={handleMascotTap}
+            title="Tap the mascot for extra motivation! 🔥"
+            className="w-[38%] sm:w-[35%] h-full flex items-end justify-center relative cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-              <Brain className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block truncate">
-                Study Flashcards
-              </span>
-              <span className="text-[10px] sm:text-[11px] text-orange-100 font-medium block truncate">
-                {dueRemaining > 0 ? `${dueRemaining} reviews waiting` : 'Review & Learn'}
-              </span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-orange-200 group-hover:translate-x-0.5 transition-transform shrink-0" />
-          </button>
+            <AnimatePresence>
+              {mascotCheer && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                  className="absolute top-0 right-0 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10px] font-black p-2 rounded-2xl shadow-xl z-30 max-w-[150px] pointer-events-none text-center"
+                >
+                  <div className="relative">
+                    {mascotCheer}
+                    <div className="absolute -bottom-3 right-4 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px] border-t-white" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Secondary Action: Practice Quiz */}
-          {!isPracticeDisabled && (
+            <motion.img 
+              key={mascotImg}
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.25 }}
+              src={`${mascotImg}?v=clean_v12`} 
+              alt="Vocaburn Mascot" 
+              className="max-h-[165px] sm:max-h-[195px] w-auto max-w-full object-contain object-bottom drop-shadow-xl select-none transition-transform group-hover:scale-105 active:scale-95"
+            />
+          </div>
+        </div>
+
+        {/* ── 3. CARD BOTTOM: Direct 1-Click Action Buttons ── */}
+        <div className="pt-2 border-t border-orange-200/60 shrink-0">
+          <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
+            {/* Study Flashcards */}
             <button
               type="button"
               onClick={() => {
                 if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                navigate(`/practice/${deck.deck_id}`)
+                navigate(`/flashcard/${deck.deck_id}/play`)
               }}
-              className="relative overflow-hidden bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-600 text-white rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 shadow-md shadow-teal-500/25 active:scale-[0.98] transition-all cursor-pointer group text-left"
+              className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl py-2 px-3 flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] transition-all cursor-pointer group"
             >
-              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                <Trophy className="w-5 h-5 text-white" />
+              <div className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                <Brain className="w-4 h-4 text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-white block truncate">
-                  Practice Quiz
+              <div className="text-left min-w-0">
+                <span className="text-xs font-black tracking-wide uppercase text-white block leading-tight truncate">
+                  Study Flashcards
                 </span>
-                <span className="text-[10px] sm:text-[11px] text-teal-100 font-medium block truncate">
-                  MCQ, Typing & Tests
+                <span className="text-[9.5px] text-orange-100 font-bold block leading-tight truncate">
+                  {dueRemaining > 0 ? `${dueRemaining} reviews waiting` : 'Review & Learn'}
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-teal-200 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </button>
-          )}
+
+            {/* Practice Quiz */}
+            {!isPracticeDisabled && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
+                  navigate(`/practice/${deck.deck_id}`)
+                }}
+                className="relative overflow-hidden bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-600 hover:to-emerald-600 text-white rounded-2xl py-2 px-3 flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] transition-all cursor-pointer group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                  <Trophy className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <span className="text-xs font-black tracking-wide uppercase text-white block leading-tight truncate">
+                    Practice Quiz
+                  </span>
+                  <span className="text-[9.5px] text-teal-100 font-bold block leading-tight truncate">
+                    MCQ, Typing & Tests
+                  </span>
+                </div>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

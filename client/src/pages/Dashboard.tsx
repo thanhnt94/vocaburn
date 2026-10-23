@@ -1793,21 +1793,21 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 hover:from-indigo-900 hover:to-purple-900 text-white rounded-2xl transition-all cursor-pointer group shadow-sm border border-indigo-700/60"
+            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl transition-all cursor-pointer group shadow-sm border border-orange-400/80"
             title="Học tập tổng hợp: gộp tất cả thẻ FSRS cần ôn hôm nay"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-sm shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs text-white flex items-center justify-center font-black text-sm shadow-2xs shrink-0 group-hover:scale-105 transition-transform">
                 ⚡
               </div>
               <div className="text-left min-w-0">
                 <span className="text-xs font-black block leading-tight truncate">Chế Độ Học Tổng Hợp</span>
-                <span className="text-[9.5px] font-bold text-amber-300">
+                <span className="text-[9.5px] font-bold text-amber-100">
                   {globalFocus ? (globalFocus.total_due > 0 ? `${globalFocus.total_due} thẻ FSRS cần ôn` : 'Đã hoàn tất hôm nay 🎉') : 'Daily Focus Queue'}
                 </span>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-amber-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            <ChevronRight className="w-4 h-4 text-white group-hover:translate-x-0.5 transition-transform shrink-0" />
           </button>
 
           {/* Rich Leaderboard */}
@@ -1827,52 +1827,41 @@ export default function Dashboard() {
               {globalFocus.total_due > 0 ? (
                 <div 
                   onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                  className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all group"
+                  className="py-2 px-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-amber-950 flex items-center justify-between gap-3 shadow-2xs cursor-pointer active:scale-[0.99] transition-all group"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-base shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                       ⚡
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
-                        <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px]">{globalFocus.total_due} FSRS cards due</span>
-                      </div>
-                      <p className="text-[11px] text-indigo-200 truncate mt-0.5">Consolidated reviews from {globalFocus.active_decks_count} active decks</p>
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="text-xs font-black tracking-tight text-amber-950">Daily Focus Queue</span>
+                      <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-black text-[10px] tabular-nums">{globalFocus.total_due} cards due</span>
+                      <span className="text-[11px] text-amber-800/60 truncate">({globalFocus.active_decks_count} decks)</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-                      <span>Study Now</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </div>
+                  <div className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-2xs shrink-0">
+                    <span>Review All</span>
+                    <ChevronRight className="w-3 h-3 stroke-[2.5]" />
                   </div>
                 </div>
               ) : (
                 <div 
-                  className="p-3 rounded-2xl bg-white border border-indigo-100 text-slate-800 flex items-center justify-between gap-3 shadow-2xs"
+                  className="py-1.5 px-3 rounded-2xl bg-slate-50 border border-slate-200/70 text-slate-700 flex items-center justify-between gap-2 shadow-2xs"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm shrink-0">
-                      ⚡
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[10px] shrink-0">
+                      ✓
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black tracking-tight text-slate-800">Daily Focus Queue</span>
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">All Done Today 🎉</span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">0 cards pending • {globalFocus.active_decks_count} active decks</p>
-                    </div>
+                    <span className="text-xs font-bold text-slate-600 truncate">
+                      All {globalFocus.active_decks_count} decks up to date • Great job! 🎉
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <span>Enter Queue</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                    className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer shrink-0"
+                  >
+                    Open Queue
+                  </button>
                 </div>
               )}
             </div>
@@ -2048,51 +2037,44 @@ export default function Dashboard() {
         {/* MOBILE MAIN CONTENT */}
         <div className="flex-1 bg-[#f8fafc] overflow-hidden relative flex flex-col min-h-0">
           {globalFocus && (
-            <div className="px-2.5 pt-2.5 shrink-0">
+            <div className="px-3 pt-2 shrink-0">
               {globalFocus.total_due > 0 ? (
                 <div 
                   onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                  className="p-3 rounded-2xl bg-gradient-to-r from-indigo-950 via-indigo-900 to-purple-950 text-white flex items-center justify-between gap-3 shadow-md border border-indigo-700/60 cursor-pointer active:scale-[0.98] transition-all"
+                  className="py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-amber-950 flex items-center justify-between gap-2 shadow-2xs cursor-pointer active:scale-[0.99] transition-all"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-[11px] shrink-0 shadow-2xs">
                       ⚡
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
-                        <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-slate-950 font-black text-[9px]">{globalFocus.total_due} due</span>
-                      </div>
-                      <p className="text-[10px] text-indigo-200 truncate mt-0.5">Consolidated reviews: {globalFocus.active_decks_count} active decks</p>
+                    <div className="flex items-center gap-1.5 truncate text-[11px]">
+                      <span className="font-black text-amber-950">Daily Focus Queue:</span>
+                      <span className="font-extrabold text-orange-600 tabular-nums">{globalFocus.total_due} due</span>
+                      <span className="text-amber-800/60 text-[10px] hidden sm:inline">({globalFocus.active_decks_count} decks)</span>
                     </div>
                   </div>
-                  <div className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-xs">
-                    <span>Study Now</span>
-                    <ChevronRight className="w-3 h-3" />
+                  <div className="px-2 py-0.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-0.5 shadow-2xs">
+                    <span>Review All</span>
+                    <ChevronRight className="w-3 h-3 stroke-[3]" />
                   </div>
                 </div>
               ) : (
                 <div 
-                  className="p-2.5 rounded-2xl bg-white border border-indigo-100 text-slate-800 flex items-center justify-between gap-2 shadow-2xs"
+                  className="py-1 px-3 rounded-xl bg-slate-50 border border-slate-200/70 text-slate-600 flex items-center justify-between gap-2 shadow-2xs"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shrink-0">
-                      ⚡
+                    <div className="w-4.5 h-4.5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[10px] shrink-0">
+                      ✓
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] font-black tracking-tight text-slate-800">Daily Focus Queue</span>
-                        <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[8.5px]">Done 🎉</span>
-                      </div>
-                      <p className="text-[9.5px] text-slate-500 truncate mt-0.2">All reviews complete • {globalFocus.active_decks_count} active decks</p>
-                    </div>
+                    <span className="text-[10.5px] font-bold text-slate-600 truncate">
+                      All decks up to date • Great job! 🎉
+                    </span>
                   </div>
                   <button
                     onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                    className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[10px] flex items-center gap-0.5 active:scale-95 transition-all cursor-pointer"
+                    className="text-[10px] font-bold text-orange-600 hover:underline cursor-pointer"
                   >
-                    <span>Enter Queue</span>
-                    <ChevronRight className="w-2.5 h-2.5" />
+                    View queue
                   </button>
                 </div>
               )}
