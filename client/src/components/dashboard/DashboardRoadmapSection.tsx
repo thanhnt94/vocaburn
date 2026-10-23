@@ -312,23 +312,59 @@ export function DashboardRoadmapSection({
                 </div>
               </div>
 
-              {/* FULL-WIDTH MASTERY & REVIEW PROGRESS BAR (To ra và chiếm hết bề ngang màn hình) */}
-              <div className="bg-white/90 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2.5 sm:p-3 shadow-2xs">
-                <div className="flex items-center justify-between text-xs sm:text-[13px] font-bold text-slate-700 mb-1.5">
-                  <span className="truncate font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
-                    {mascotHeadline}
-                  </span>
-                  <span className="text-emerald-600 font-black tabular-nums shrink-0">
-                    {pct}% Mastered
-                  </span>
+              {/* GAMIFIED MASTERY & QUEST HUD (Khung tiến độ game hóa siêu đẹp, nổi bật) */}
+              <div className="bg-gradient-to-r from-orange-500/10 via-amber-400/15 to-emerald-500/15 border-2 border-orange-300/80 rounded-2xl p-2.5 sm:p-3 shadow-xs relative overflow-hidden backdrop-blur-xs">
+                {/* Decorative background glow */}
+                <div className="absolute -right-6 -top-6 w-20 h-20 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
+                <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-emerald-400/15 rounded-full blur-xl pointer-events-none" />
+
+                {/* Top Row: Fiery Quest Badge + Status + Glowing Percentage */}
+                <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 text-white flex items-center justify-center font-black shadow-md shadow-orange-500/30 shrink-0 text-sm">
+                      🔥
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block leading-tight">
+                        Daily Mastery Goal
+                      </span>
+                      <span className="text-xs sm:text-[13px] font-black text-slate-900 truncate block leading-tight">
+                        {mascotHeadline}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* High-impact Vibrant Percentage Badge */}
+                  <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs sm:text-[13px] font-black shadow-sm shadow-emerald-500/25 flex items-center gap-1 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>{pct}%</span>
+                  </div>
                 </div>
                 
-                <div className="h-2.5 w-full bg-slate-100/90 rounded-full overflow-hidden p-0.5 border border-orange-200/60 shadow-inner">
+                {/* 3D Chunky Video Game XP Bar */}
+                <div className="h-3.5 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/80 shadow-inner relative z-10">
                   <div 
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 transition-all duration-500 shadow-xs"
-                    style={{ width: `${pct}%` }}
-                  />
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 transition-all duration-500 relative shadow-xs"
+                    style={{ width: `${Math.max(pct, 4)}%` }}
+                  >
+                    {/* Gloss Reflection Top Layer for Juicy 3D Feel */}
+                    <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Bottom Row: Milestone Metrics Summary */}
+                <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] font-bold text-slate-600 mt-1.5 px-0.5 relative z-10">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                    <strong>{learnedCards}</strong> mastered
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />
+                    <strong>{dueRemaining}</strong> due today
+                  </span>
+                  <span className="flex items-center gap-1 text-slate-400">
+                    <strong>{totalCards}</strong> total
+                  </span>
                 </div>
               </div>
             </div>
@@ -336,14 +372,15 @@ export function DashboardRoadmapSection({
             {/* 2. LOWER BODY (LEFT: Description & 4-Metric Grid | RIGHT: Mascot Anchored Bottom-Right) */}
             <div className="relative z-10 flex-1 flex flex-row items-end justify-between min-h-0 pt-2 gap-2">
               
-              {/* Left Column (~58% - 62% width): Description Box & 4-Metric Grid */}
-              <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-between h-full py-0.5 text-left gap-1.5">
+              {/* Left Column (~58% - 62% width): Balanced Center Stack to Eliminate Gaps */}
+              <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-center h-full py-1 text-left gap-2">
                 
                 {/* Deck Description Box */}
-                <div className="bg-white/85 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block mb-0.5">
-                    About this deck
-                  </span>
+                <div className="bg-white/90 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2.5 shadow-2xs">
+                  <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-orange-600 mb-0.5">
+                    <span>📖</span>
+                    <span>About this deck</span>
+                  </div>
                   <p className="text-[10.5px] sm:text-[11px] text-slate-700 font-medium leading-relaxed line-clamp-2">
                     {deckDescription}
                   </p>
@@ -351,7 +388,7 @@ export function DashboardRoadmapSection({
 
                 {/* Rich 4-Metric Grid */}
                 <div className="grid grid-cols-2 gap-1.5 shrink-0">
-                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       📚
                     </div>
@@ -361,7 +398,7 @@ export function DashboardRoadmapSection({
                     </div>
                   </div>
 
-                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       ⚡
                     </div>
@@ -371,7 +408,7 @@ export function DashboardRoadmapSection({
                     </div>
                   </div>
 
-                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       🔥
                     </div>
@@ -381,7 +418,7 @@ export function DashboardRoadmapSection({
                     </div>
                   </div>
 
-                  <div className="bg-white/80 border border-orange-200/60 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
+                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       🎯
                     </div>
