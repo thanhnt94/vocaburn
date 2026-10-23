@@ -295,6 +295,8 @@ export default function FlashcardPlay() {
     setBackValign,
     backHalign,
     setBackHalign,
+    backFontSize,
+    setBackFontSize,
     cardFlipTrigger: deckCardFlipTrigger,
     setCardFlipTrigger,
     cardRatingMode: deckCardRatingMode,
@@ -4347,6 +4349,7 @@ export default function FlashcardPlay() {
                   frontFontSize={frontFontSize}
                   backValign={backValign}
                   backHalign={backHalign}
+                  backFontSize={backFontSize}
                   showImages={showImages}
                   setZoomedImage={setZoomedImage}
                   effectiveShowFsrs={effectiveShowFsrs}
@@ -4571,6 +4574,8 @@ export default function FlashcardPlay() {
         setFrontFontSize={setFrontFontSize}
         backHalign={backHalign}
         setBackHalign={setBackHalign}
+        backFontSize={backFontSize}
+        setBackFontSize={setBackFontSize}
         frontValign={frontValign}
         setFrontValign={setFrontValign}
         backValign={backValign}
@@ -4669,6 +4674,10 @@ export default function FlashcardPlay() {
         setFrontFontSize={setFrontFontSize}
         frontHalign={frontHalign}
         setFrontHalign={setFrontHalign}
+        backFontSize={backFontSize}
+        setBackFontSize={setBackFontSize}
+        backHalign={backHalign}
+        setBackHalign={setBackHalign}
         canEdit={canEdit}
         onOpenEditModal={openEditModal}
         onOpenCardHub={handleOpenCardHub}

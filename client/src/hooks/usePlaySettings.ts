@@ -18,6 +18,7 @@ export interface StudySettingsState {
   front_font_size?: string
   back_valign: VAlignMode
   back_halign: HAlignMode
+  back_font_size?: string
   random_enabled: boolean
   sfx_enabled: boolean
   haptic_enabled: boolean
@@ -44,6 +45,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   front_font_size: '100%',
   back_valign: 'center',
   back_halign: 'left',
+  back_font_size: '100%',
   random_enabled: false,
   sfx_enabled: true,
   haptic_enabled: true,
@@ -83,6 +85,7 @@ export function usePlaySettings(
   const [frontFontSize, setFrontFontSizeState] = useState<string>(DEFAULT_STUDY_SETTINGS.front_font_size || '100%')
   const [backValign, setBackValignState] = useState<VAlignMode>(DEFAULT_STUDY_SETTINGS.back_valign)
   const [backHalign, setBackHalignState] = useState<HAlignMode>(DEFAULT_STUDY_SETTINGS.back_halign)
+  const [backFontSize, setBackFontSizeState] = useState<string>(DEFAULT_STUDY_SETTINGS.back_font_size || '100%')
   const [cardFlipTrigger, setCardFlipTriggerState] = useState<CardFlipTrigger | undefined>(undefined)
   const [cardRatingMode, setCardRatingModeState] = useState<CardRatingMode>(DEFAULT_STUDY_SETTINGS.card_rating_mode || 'both')
   const [tapToFlip, setTapToFlipState] = useState<boolean | undefined>(undefined)
@@ -190,6 +193,9 @@ export function usePlaySettings(
       }
       if (effectiveSettings.back_halign !== undefined) {
         setBackHalignState(effectiveSettings.back_halign === 'center' ? 'center' : 'left')
+      }
+      if (effectiveSettings.back_font_size !== undefined) {
+        setBackFontSizeState(effectiveSettings.back_font_size)
       }
       // Sync interaction and gesture settings from effective study settings (profile/user/creator)
       if (effectiveSettings.card_flip_trigger !== undefined) {
@@ -383,6 +389,10 @@ export function usePlaySettings(
     saveGeneralSettings({ back_halign: mode })
   }, [saveGeneralSettings])
 
+  const setBackFontSize = useCallback((size: string) => {
+    saveGeneralSettings({ back_font_size: size })
+  }, [saveGeneralSettings])
+
   const setCardRatingMode = useCallback((mode: CardRatingMode) => {
     saveGeneralSettings({ card_rating_mode: mode })
   }, [saveGeneralSettings])
@@ -457,6 +467,7 @@ export function usePlaySettings(
       front_font_size: frontFontSize,
       back_valign: backValign,
       back_halign: backHalign,
+      back_font_size: backFontSize,
       random_enabled: randomEnabled,
       sfx_enabled: sfxEnabled,
       haptic_enabled: hapticEnabled,
@@ -532,6 +543,8 @@ export function usePlaySettings(
     setBackValign,
     backHalign,
     setBackHalign,
+    backFontSize,
+    setBackFontSize,
     cardFlipTrigger,
     setCardFlipTrigger: setCardFlipTriggerState,
     cardRatingMode,

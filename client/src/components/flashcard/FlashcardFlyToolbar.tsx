@@ -255,6 +255,10 @@ export interface FlashcardQuickControlsSheetProps {
   setFrontFontSize?: (size: string) => void
   frontHalign?: 'left' | 'center'
   setFrontHalign?: (val: 'left' | 'center') => void
+  backFontSize?: string
+  setBackFontSize?: (size: string) => void
+  backHalign?: 'left' | 'center'
+  setBackHalign?: (val: 'left' | 'center') => void
   canEdit?: boolean
   onOpenEditModal?: () => void
   onOpenCardHub?: (subTab: 'stats' | 'insight' | 'note' | 'community') => void
@@ -319,6 +323,10 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   setFrontFontSize,
   frontHalign = 'center',
   setFrontHalign,
+  backFontSize = '100%',
+  setBackFontSize,
+  backHalign = 'center',
+  setBackHalign,
   canEdit = false,
   onOpenEditModal,
   onOpenCardHub,
@@ -949,40 +957,40 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                 showLocalToast?.(toastMsg, 'info')
               }
 
-              // 4. Font Size cycle & meta (100% Normal -> 125% Large -> 150% XL -> 85% Compact)
-              const fontSizeMeta = (() => {
+              // 4. Front Font Size cycle & meta
+              const frontFontSizeMeta = (() => {
                 const match = String(frontFontSize || '100%').match(/\d+/)
                 const pct = match ? parseInt(match[0], 10) : 100
-                if (pct <= 85) return { label: '85%', sub: 'Compact', active: true, color: 'text-amber-600', container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs', iconBox: 'bg-amber-500 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Font Size: 85% (Compact)' }
-                if (pct <= 105) return { label: '100%', sub: 'Normal', active: false, color: 'text-slate-500', container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500', iconBox: 'bg-white text-slate-400 border border-slate-200/60', icon: <Type className="w-4 h-4" />, title: 'Font Size: 100% (Normal)' }
-                if (pct <= 135) return { label: '125%', sub: 'Large', active: true, color: 'text-indigo-600', container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs', iconBox: 'bg-indigo-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Font Size: 125% (Large)' }
-                return { label: '150%', sub: 'XL', active: true, color: 'text-purple-600', container: 'bg-purple-50 border-purple-300 text-purple-700 shadow-2xs', iconBox: 'bg-purple-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Font Size: 150% (Extra Large)' }
+                if (pct <= 85) return { label: '85%', sub: 'Compact', active: true, color: 'text-amber-600', container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs', iconBox: 'bg-amber-500 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Front Font Size: 85% (Compact)' }
+                if (pct <= 105) return { label: '100%', sub: 'Normal', active: false, color: 'text-slate-500', container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500', iconBox: 'bg-white text-slate-400 border border-slate-200/60', icon: <Type className="w-4 h-4" />, title: 'Front Font Size: 100% (Normal)' }
+                if (pct <= 135) return { label: '125%', sub: 'Large', active: true, color: 'text-indigo-600', container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs', iconBox: 'bg-indigo-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Front Font Size: 125% (Large)' }
+                return { label: '150%', sub: 'XL', active: true, color: 'text-purple-600', container: 'bg-purple-50 border-purple-300 text-purple-700 shadow-2xs', iconBox: 'bg-purple-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Front Font Size: 150% (Extra Large)' }
               })()
 
-              const handleCycleFontSize = () => {
+              const handleCycleFrontFontSize = () => {
                 const match = String(frontFontSize || '100%').match(/\d+/)
                 const pct = match ? parseInt(match[0], 10) : 100
                 let nextVal = '100%'
-                let toastMsg = 'Font Size: 100% (Normal)'
+                let toastMsg = 'Front Font Size: 100% (Normal)'
                 if (pct <= 85) {
                   nextVal = '100%'
-                  toastMsg = 'Font Size: 100% (Normal)'
+                  toastMsg = 'Front Font Size: 100% (Normal)'
                 } else if (pct <= 105) {
                   nextVal = '125%'
-                  toastMsg = 'Font Size: 125% (Large)'
+                  toastMsg = 'Front Font Size: 125% (Large)'
                 } else if (pct <= 135) {
                   nextVal = '150%'
-                  toastMsg = 'Font Size: 150% (Extra Large)'
+                  toastMsg = 'Front Font Size: 150% (Extra Large)'
                 } else {
                   nextVal = '85%'
-                  toastMsg = 'Font Size: 85% (Compact)'
+                  toastMsg = 'Front Font Size: 85% (Compact)'
                 }
                 setFrontFontSize?.(nextVal)
                 showLocalToast?.(toastMsg, 'info')
               }
 
-              // 5. Text Align cycle & meta
-              const textAlignMeta = (() => {
+              // 5. Front Text Align cycle & meta
+              const frontTextAlignMeta = (() => {
                 if (frontHalign === 'left') {
                   return {
                     label: 'LEFT',
@@ -990,7 +998,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                     container: 'bg-sky-50 border-sky-300 text-sky-700 shadow-2xs',
                     iconBox: 'bg-sky-500 text-white shadow-2xs',
                     icon: <AlignLeft className="w-4 h-4" />,
-                    title: 'Text Alignment: Left'
+                    title: 'Front Text Align: Left'
                   }
                 }
                 return {
@@ -999,18 +1007,83 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                   container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
                   iconBox: 'bg-indigo-600 text-white shadow-2xs',
                   icon: <AlignCenter className="w-4 h-4" />,
-                  title: 'Text Alignment: Center'
+                  title: 'Front Text Align: Center'
                 }
               })()
 
-              const handleCycleTextAlign = () => {
+              const handleCycleFrontTextAlign = () => {
                 if (!setFrontHalign) return
                 if (frontHalign === 'center') {
                   setFrontHalign('left')
-                  showLocalToast?.('Text Align: Left', 'info')
+                  showLocalToast?.('Front Align: Left', 'info')
                 } else {
                   setFrontHalign('center')
-                  showLocalToast?.('Text Align: Center', 'info')
+                  showLocalToast?.('Front Align: Center', 'info')
+                }
+              }
+
+              // 6. Back Font Size cycle & meta
+              const backFontSizeMeta = (() => {
+                const match = String(backFontSize || '100%').match(/\d+/)
+                const pct = match ? parseInt(match[0], 10) : 100
+                if (pct <= 85) return { label: '85%', sub: 'Compact', active: true, color: 'text-amber-600', container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs', iconBox: 'bg-amber-500 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Back Font Size: 85% (Compact)' }
+                if (pct <= 105) return { label: '100%', sub: 'Normal', active: false, color: 'text-slate-500', container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500', iconBox: 'bg-white text-slate-400 border border-slate-200/60', icon: <Type className="w-4 h-4" />, title: 'Back Font Size: 100% (Normal)' }
+                if (pct <= 135) return { label: '125%', sub: 'Large', active: true, color: 'text-emerald-600', container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs', iconBox: 'bg-emerald-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Back Font Size: 125% (Large)' }
+                return { label: '150%', sub: 'XL', active: true, color: 'text-purple-600', container: 'bg-purple-50 border-purple-300 text-purple-700 shadow-2xs', iconBox: 'bg-purple-600 text-white shadow-2xs', icon: <Type className="w-4 h-4" />, title: 'Back Font Size: 150% (Extra Large)' }
+              })()
+
+              const handleCycleBackFontSize = () => {
+                const match = String(backFontSize || '100%').match(/\d+/)
+                const pct = match ? parseInt(match[0], 10) : 100
+                let nextVal = '100%'
+                let toastMsg = 'Back Font Size: 100% (Normal)'
+                if (pct <= 85) {
+                  nextVal = '100%'
+                  toastMsg = 'Back Font Size: 100% (Normal)'
+                } else if (pct <= 105) {
+                  nextVal = '125%'
+                  toastMsg = 'Back Font Size: 125% (Large)'
+                } else if (pct <= 135) {
+                  nextVal = '150%'
+                  toastMsg = 'Back Font Size: 150% (Extra Large)'
+                } else {
+                  nextVal = '85%'
+                  toastMsg = 'Back Font Size: 85% (Compact)'
+                }
+                setBackFontSize?.(nextVal)
+                showLocalToast?.(toastMsg, 'info')
+              }
+
+              // 7. Back Text Align cycle & meta
+              const backTextAlignMeta = (() => {
+                if (backHalign === 'left') {
+                  return {
+                    label: 'LEFT',
+                    color: 'text-sky-600',
+                    container: 'bg-sky-50 border-sky-300 text-sky-700 shadow-2xs',
+                    iconBox: 'bg-sky-500 text-white shadow-2xs',
+                    icon: <AlignLeft className="w-4 h-4" />,
+                    title: 'Back Text Align: Left'
+                  }
+                }
+                return {
+                  label: 'CENTER',
+                  color: 'text-emerald-600',
+                  container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs',
+                  iconBox: 'bg-emerald-600 text-white shadow-2xs',
+                  icon: <AlignCenter className="w-4 h-4" />,
+                  title: 'Back Text Align: Center'
+                }
+              })()
+
+              const handleCycleBackTextAlign = () => {
+                if (!setBackHalign) return
+                if (backHalign === 'center') {
+                  setBackHalign('left')
+                  showLocalToast?.('Back Align: Left', 'info')
+                } else {
+                  setBackHalign('center')
+                  showLocalToast?.('Back Align: Center', 'info')
                 }
               }
 
@@ -1485,51 +1558,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </div>
                           </button>
 
-                          {/* 4. Font Size */}
-                          <button
-                            type="button"
-                            onClick={handleCycleFontSize}
-                            className={cn(
-                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                              fontSizeMeta.container
-                            )}
-                            title={fontSizeMeta.title}
-                          >
-                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", fontSizeMeta.iconBox)}>
-                              {fontSizeMeta.icon}
-                            </div>
-                            <div className="flex flex-col items-center leading-none gap-0.5">
-                              <span className="text-[9.5px] font-bold tracking-tight">Font Size</span>
-                              <span className={cn("text-[8px] font-black uppercase tracking-wider", fontSizeMeta.color)}>
-                                {fontSizeMeta.label}
-                              </span>
-                            </div>
-                          </button>
-
-                          {/* 5. Text Alignment */}
-                          {setFrontHalign !== undefined ? (
-                            <button
-                              type="button"
-                              onClick={handleCycleTextAlign}
-                              className={cn(
-                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                                textAlignMeta.container
-                              )}
-                              title={textAlignMeta.title}
-                            >
-                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", textAlignMeta.iconBox)}>
-                                {textAlignMeta.icon}
-                              </div>
-                              <div className="flex flex-col items-center leading-none gap-0.5">
-                                <span className="text-[9.5px] font-bold tracking-tight">Alignment</span>
-                                <span className={cn("text-[8px] font-black uppercase tracking-wider", textAlignMeta.color)}>
-                                  {textAlignMeta.label}
-                                </span>
-                              </div>
-                            </button>
-                          ) : null}
-
-                          {/* 6. Rating Buttons Dock Toggle */}
+                          {/* 4. Rating Buttons Dock Toggle */}
                           {onToggleActionDock !== undefined ? (
                             <button
                               type="button"
@@ -1549,6 +1578,94 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                                 <span className="text-[9.5px] font-bold tracking-tight">Rating Dock</span>
                                 <span className={cn("text-[8px] font-black uppercase tracking-wider", showActionDock ? "text-indigo-600" : "text-slate-400")}>
                                   {showActionDock ? "SHOW" : "HIDE"}
+                                </span>
+                              </div>
+                            </button>
+                          ) : null}
+
+                          {/* 5. Front Font Size */}
+                          <button
+                            type="button"
+                            onClick={handleCycleFrontFontSize}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              frontFontSizeMeta.container
+                            )}
+                            title={frontFontSizeMeta.title}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", frontFontSizeMeta.iconBox)}>
+                              {frontFontSizeMeta.icon}
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Front Size</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", frontFontSizeMeta.color)}>
+                                {frontFontSizeMeta.label}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 6. Front Alignment */}
+                          {setFrontHalign !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={handleCycleFrontTextAlign}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                frontTextAlignMeta.container
+                              )}
+                              title={frontTextAlignMeta.title}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", frontTextAlignMeta.iconBox)}>
+                                {frontTextAlignMeta.icon}
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Front Align</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", frontTextAlignMeta.color)}>
+                                  {frontTextAlignMeta.label}
+                                </span>
+                              </div>
+                            </button>
+                          ) : null}
+
+                          {/* 7. Back Font Size */}
+                          <button
+                            type="button"
+                            onClick={handleCycleBackFontSize}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              backFontSizeMeta.container
+                            )}
+                            title={backFontSizeMeta.title}
+                          >
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", backFontSizeMeta.iconBox)}>
+                              {backFontSizeMeta.icon}
+                            </div>
+                            <div className="flex flex-col items-center leading-none gap-0.5">
+                              <span className="text-[9.5px] font-bold tracking-tight">Back Size</span>
+                              <span className={cn("text-[8px] font-black uppercase tracking-wider", backFontSizeMeta.color)}>
+                                {backFontSizeMeta.label}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 8. Back Alignment */}
+                          {setBackHalign !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={handleCycleBackTextAlign}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                backTextAlignMeta.container
+                              )}
+                              title={backTextAlignMeta.title}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", backTextAlignMeta.iconBox)}>
+                                {backTextAlignMeta.icon}
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Back Align</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", backTextAlignMeta.color)}>
+                                  {backTextAlignMeta.label}
                                 </span>
                               </div>
                             </button>

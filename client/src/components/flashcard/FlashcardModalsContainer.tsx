@@ -129,6 +129,8 @@ export interface FlashcardModalsContainerProps {
   setFrontFontSize: (val: string) => void
   backHalign: 'left' | 'center'
   setBackHalign: (val: 'left' | 'center') => void
+  backFontSize?: string
+  setBackFontSize: (val: string) => void
   frontValign: 'center' | 'top'
   setFrontValign: (val: 'center' | 'top') => void
   backValign: 'center' | 'top'
@@ -265,6 +267,8 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   setFrontFontSize,
   backHalign,
   setBackHalign,
+  backFontSize,
+  setBackFontSize,
   frontValign,
   setFrontValign,
   backValign,
@@ -530,6 +534,8 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         setFrontFontSize={setFrontFontSize}
         backHalign={backHalign}
         setBackHalign={setBackHalign}
+        backFontSize={backFontSize}
+        setBackFontSize={setBackFontSize}
         frontValign={frontValign}
         setFrontValign={setFrontValign}
         backValign={backValign}

@@ -83,6 +83,8 @@ interface PlaySettingsModalProps {
   setFrontFontSize?: (val: string) => void;
   backHalign?: 'center' | 'left';
   setBackHalign?: (val: 'center' | 'left') => void;
+  backFontSize?: string;
+  setBackFontSize?: (val: string) => void;
   frontValign?: 'center' | 'top';
   setFrontValign?: (val: 'center' | 'top') => void;
   backValign?: 'center' | 'top';
@@ -132,6 +134,8 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   setFrontFontSize,
   backHalign = 'left',
   setBackHalign,
+  backFontSize = '100%',
+  setBackFontSize,
   frontValign = 'center',
   setFrontValign,
   backValign = 'center',
@@ -629,6 +633,87 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                           style={{ fontSize: getFrontFontSizeStyle(frontFontSize || '100%') }}
                         >
                           Aa Vocabulary
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Back Font Size Scale */}
+                    <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5 text-emerald-600" />
+                          <label className="text-xs font-bold text-slate-800">
+                            Back Font Size
+                          </label>
+                        </div>
+                        <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          {(() => {
+                            const match = String(backFontSize || '100%').match(/\d+/)
+                            const pct = match ? parseInt(match[0], 10) : 100
+                            const lbl = pct <= 85 ? 'Compact' : pct <= 105 ? 'Normal' : pct <= 135 ? 'Large' : pct <= 165 ? 'Extra Large' : 'Huge'
+                            return `${pct}% • ${lbl}`
+                          })()}
+                        </span>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="grid grid-cols-5 gap-1">
+                        {[
+                          { id: '85%', label: '85%', sub: 'Compact' },
+                          { id: '100%', label: '100%', sub: 'Normal' },
+                          { id: '125%', label: '125%', sub: 'Large' },
+                          { id: '150%', label: '150%', sub: 'XL' },
+                          { id: '175%', label: '175%', sub: 'Huge' },
+                        ].map((p) => {
+                          const match = String(backFontSize || '100%').match(/\d+/)
+                          const currentPct = match ? parseInt(match[0], 10) : 100
+                          const active = currentPct === parseInt(p.id, 10)
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setBackFontSize && setBackFontSize(p.id)}
+                              className={cn(
+                                "flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all cursor-pointer border text-center",
+                                active
+                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-black"
+                                  : "bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:text-slate-900"
+                              )}
+                            >
+                              <span className="text-xs font-black leading-tight">{p.label}</span>
+                              <span className={cn("text-[9px] tracking-tight leading-none mt-0.5", active ? "text-emerald-100" : "text-slate-400")}>
+                                {p.sub}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {/* Fine-Tuning Slider */}
+                      <div className="flex items-center gap-2.5 px-1 pt-0.5">
+                        <span className="text-[10px] font-bold text-slate-400">75%</span>
+                        <input
+                          type="range"
+                          min={75}
+                          max={200}
+                          step={5}
+                          value={(() => {
+                            const match = String(backFontSize || '100%').match(/\d+/)
+                            return match ? parseInt(match[0], 10) : 100
+                          })()}
+                          onChange={(e) => setBackFontSize && setBackFontSize(`${e.target.value}%`)}
+                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                        />
+                        <span className="text-[10px] font-bold text-slate-400">200%</span>
+                      </div>
+
+                      {/* Live Preview Box */}
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center overflow-hidden min-h-[50px]">
+                        <span
+                          className="font-bold text-slate-700 tracking-tight transition-all duration-150 truncate max-w-full text-center"
+                          style={{ fontSize: getFrontFontSizeStyle(backFontSize || '100%') }}
+                        >
+                          Definition & Meaning
                         </span>
                       </div>
                     </div>

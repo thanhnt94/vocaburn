@@ -33,6 +33,7 @@ export interface Flashcard3DCardProps {
   frontFontSize?: string
   backValign: 'center' | 'top'
   backHalign: 'left' | 'center'
+  backFontSize?: string
   showImages: any
   setZoomedImage: (url: string | null) => void
   effectiveShowFsrs: boolean
@@ -78,6 +79,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   frontFontSize,
   backValign,
   backHalign,
+  backFontSize,
   showImages,
   setZoomedImage,
   effectiveShowFsrs,
@@ -472,11 +474,14 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 {primaryBackText && (
                   <div 
                     className={cn(
-                      "text-slate-800 font-extrabold text-xl md:text-2xl lg:text-3xl leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
+                      "text-slate-800 font-extrabold leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
                       backHalign === 'center' ? "items-center text-center" : "items-start text-left",
                       isSelectMode && "select-text cursor-text"
                     )}
-                    style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                    style={{
+                      textAlign: backHalign === 'center' ? 'center' : 'left',
+                      fontSize: getFrontFontSizeStyle(backFontSize || frontFontSize || '100%')
+                    }}
                   >
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]} 
@@ -533,11 +538,14 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                   >
                     <div 
                       className={cn(
-                        "text-slate-700 font-semibold text-lg md:text-xl leading-relaxed markdown-content w-full whitespace-pre-wrap",
+                        "text-slate-700 font-semibold leading-relaxed markdown-content w-full whitespace-pre-wrap",
                         backHalign === 'center' ? "text-center" : "text-left",
                         isSelectMode && "select-text cursor-text"
                       )}
-                      style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                      style={{
+                        textAlign: backHalign === 'center' ? 'center' : 'left',
+                        fontSize: `calc(${getFrontFontSizeStyle(backFontSize || frontFontSize || '100%')} * 0.85)`
+                      }}
                     >
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]} 
