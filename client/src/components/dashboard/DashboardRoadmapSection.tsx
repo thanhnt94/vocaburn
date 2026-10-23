@@ -89,7 +89,7 @@ export function DashboardRoadmapSection({
   const handleTouchEnd = () => {
     if (touchStartX.current !== null && touchEndX.current !== null) {
       const diff = touchStartX.current - touchEndX.current
-      const threshold = 45 // min swipe distance
+      const threshold = 35 // min swipe distance
       if (diff > threshold && safeIdx < totalDecks - 1) {
         nextDeck()
       } else if (diff < -threshold && safeIdx > 0) {
@@ -98,6 +98,24 @@ export function DashboardRoadmapSection({
     }
     touchStartX.current = null
     touchEndX.current = null
+  }
+
+  // Wheel scroll handling (mouse wheel & trackpad swipe)
+  const wheelCooldown = useRef(false)
+  const handleWheel = (e: React.WheelEvent) => {
+    if (wheelCooldown.current) return
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+    if (Math.abs(delta) > 18) {
+      wheelCooldown.current = true
+      if (delta > 0 && safeIdx < totalDecks - 1) {
+        nextDeck()
+      } else if (delta < 0 && safeIdx > 0) {
+        prevDeck()
+      }
+      setTimeout(() => {
+        wheelCooldown.current = false
+      }, 350)
+    }
   }
 
   const handleMascotTap = () => {
@@ -196,10 +214,12 @@ export function DashboardRoadmapSection({
 
   return (
     <div 
-      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none"
+      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none touch-pan-y"
+      onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       {/* ── 1. TOP CAROUSEL NAVIGATOR (SWIPE INDICATOR) ── */}
       <div className="flex items-center justify-between shrink-0 px-0.5 pb-1">
@@ -268,11 +288,23 @@ export function DashboardRoadmapSection({
       <AnimatePresence mode="wait">
         <motion.div
           key={deck.deck_id ?? deck.id ?? safeIdx}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(_, info) => {
+            const swipeThreshold = 35
+            const velocityThreshold = 300
+            if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+              if (safeIdx < totalDecks - 1) nextDeck()
+            } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+              if (safeIdx > 0) prevDeck()
+            }
+          }}
           initial={{ opacity: 0, x: 18 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -18 }}
           transition={{ duration: 0.2 }}
-          className="flex-1 flex flex-col justify-between gap-2.5 min-h-0"
+          className="flex-1 flex flex-col justify-between gap-2.5 min-h-0 cursor-grab active:cursor-grabbing touch-pan-y"
         >
           {/* ── 2A. HERO STAGE (FULL-WIDTH TOP PROGRESS + RICH LEFT METRICS + ANCHORED MASCOT) ── */}
           <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between min-h-0">
