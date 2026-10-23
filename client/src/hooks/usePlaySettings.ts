@@ -26,6 +26,8 @@ export interface StudySettingsState {
   auto_front_delay?: number | null
   auto_back_delay?: number | null
   show_fsrs: boolean
+  audio_speed?: number
+  flip_sides?: boolean
   card_flip_trigger?: CardFlipTrigger
   card_rating_mode?: CardRatingMode
   tap_to_flip?: boolean
@@ -50,6 +52,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   auto_front_delay: 2.0,
   auto_back_delay: 3.0,
   show_fsrs: true,
+  audio_speed: 1.0,
+  flip_sides: false,
   card_flip_trigger: 'both',
   card_rating_mode: 'both',
   tap_to_flip: true,
@@ -84,6 +88,8 @@ export function usePlaySettings(
   const [tapToFlip, setTapToFlipState] = useState<boolean | undefined>(undefined)
   const [showActionDock, setShowActionDockState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_action_dock ?? true)
   const [swipeToRate, setSwipeToRateState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.swipe_to_rate ?? true)
+  const [audioSpeed, setAudioSpeedState] = useState<number>(DEFAULT_STUDY_SETTINGS.audio_speed ?? 1.0)
+  const [flipSides, setFlipSidesState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.flip_sides ?? false)
 
   // Creator baseline & user customization status
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
@@ -147,6 +153,12 @@ export function usePlaySettings(
       }
       if (effectiveSettings.show_fsrs !== undefined) {
         setShowFsrsState(Boolean(effectiveSettings.show_fsrs))
+      }
+      if (effectiveSettings.audio_speed !== undefined) {
+        setAudioSpeedState(Number(effectiveSettings.audio_speed) || 1.0)
+      }
+      if (effectiveSettings.flip_sides !== undefined) {
+        setFlipSidesState(Boolean(effectiveSettings.flip_sides))
       }
       if (effectiveSettings.random_enabled !== undefined) {
         setRandomEnabledState(Boolean(effectiveSettings.random_enabled))
@@ -268,6 +280,8 @@ export function usePlaySettings(
     if (updates.tap_to_flip !== undefined) setTapToFlipState(updates.tap_to_flip)
     if (updates.show_action_dock !== undefined) setShowActionDockState(updates.show_action_dock)
     if (updates.swipe_to_rate !== undefined) setSwipeToRateState(updates.swipe_to_rate)
+    if (updates.audio_speed !== undefined) setAudioSpeedState(Number(updates.audio_speed) || 1.0)
+    if (updates.flip_sides !== undefined) setFlipSidesState(Boolean(updates.flip_sides))
 
     setIsCustomized(true)
     setSettingOrigin('deck_override')
@@ -454,7 +468,9 @@ export function usePlaySettings(
       card_flip_trigger: cardFlipTrigger || 'both',
       card_rating_mode: cardRatingMode || 'both',
       show_action_dock: showActionDock,
-      swipe_to_rate: swipeToRate
+      swipe_to_rate: swipeToRate,
+      audio_speed: audioSpeed,
+      flip_sides: flipSides
     }
     try {
       await axios.patch(`/api/v1/deck/${deckId}`, {
@@ -526,6 +542,16 @@ export function usePlaySettings(
     setShowActionDock,
     swipeToRate,
     setSwipeToRate,
+    audioSpeed,
+    setAudioSpeed: (speed: number) => {
+      setAudioSpeedState(speed)
+      saveGeneralSettings({ audio_speed: speed })
+    },
+    flipSides,
+    setFlipSides: (flip: boolean) => {
+      setFlipSidesState(flip)
+      saveGeneralSettings({ flip_sides: flip })
+    },
     creatorDefaults,
     isCustomized,
     settingOrigin,

@@ -56,6 +56,7 @@ export interface Flashcard3DCardProps {
   activeMode?: string
   handleNext?: () => void
   isFlyingOut?: boolean
+  flipSides?: boolean
   handleOpenCardHub?: (tab?: 'stats' | 'insight' | 'note' | 'community') => void
 }
 
@@ -67,6 +68,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   isSelectMode,
   effectiveCardFlipTrigger,
   isFlyingOut = false,
+  flipSides = false,
   setIsFlyToolbarOpen,
   setShowFeedback,
   setJustAnswered,
@@ -127,22 +129,22 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           <div className={cn(
             "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border font-black text-[10px] shadow-2xs transition-all",
             isFront 
-              ? "bg-indigo-50/90 border-indigo-200/80 text-indigo-700" 
+              ? (flipSides ? "bg-violet-50/90 border-violet-200/80 text-violet-700" : "bg-indigo-50/90 border-indigo-200/80 text-indigo-700")
               : "bg-emerald-50/90 border-emerald-200/80 text-emerald-700"
           )}>
             <span className={cn(
               "tracking-widest uppercase text-[9px] sm:text-[9.5px]",
-              isFront ? "text-indigo-600" : "text-emerald-600"
+              isFront ? (flipSides ? "text-violet-600" : "text-indigo-600") : "text-emerald-600"
             )}>
-              {isFront ? 'FRONT' : 'BACK'}
+              {isFront ? (flipSides ? 'INVERT • MEANING' : 'FRONT') : (flipSides ? 'INVERT • WORD' : 'BACK')}
             </span>
             <span className={cn(
               "font-bold text-[8px] opacity-40",
-              isFront ? "text-indigo-900" : "text-emerald-900"
+              isFront ? (flipSides ? "text-violet-900" : "text-indigo-900") : "text-emerald-900"
             )}>•</span>
             <span className={cn(
               "font-mono tracking-tight font-black",
-              isFront ? "text-indigo-800" : "text-emerald-800"
+              isFront ? (flipSides ? "text-violet-800" : "text-indigo-800") : "text-emerald-800"
             )}>
               #{originalIndex}
             </span>
@@ -233,6 +235,22 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   const isNonRatingMode = activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip';
   const isHorizontalOnlyDrag = isFlipped && isNonRatingMode;
 
+  const frontText = flipSides
+    ? (currentQuestion?.options?.find((o: any) => o.is_correct)?.content || currentQuestion?.explanation || currentQuestion?.others?.back || currentQuestion?.back || '')
+    : (currentQuestion?.content || '');
+
+  const frontImg = flipSides
+    ? (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url)
+    : (currentQuestion?.front_img || currentQuestion?.others?.front_img);
+
+  const backRevealedText = flipSides
+    ? (currentQuestion?.content || '')
+    : (currentQuestion?.options?.find((o: any) => o.is_correct)?.content || currentQuestion?.explanation || "Definition revealed.");
+
+  const backImg = flipSides
+    ? (currentQuestion?.front_img || currentQuestion?.others?.front_img)
+    : (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url);
+
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
       <motion.div
@@ -309,12 +327,12 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 frontValign === 'top' ? "mt-0 mb-auto" : "my-auto",
                 frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
               )}>
-                {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.front_img || currentQuestion?.others?.front_img) && (
+                {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && frontImg && (
                   <img 
-                    src={resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || undefined} 
+                    src={resolveMediaUrl(frontImg) || undefined} 
                     alt="Front Visual" 
                     className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                    onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || null)}
+                    onClick={() => setZoomedImage(resolveMediaUrl(frontImg) || null)}
                   />
                 )}
                 <div 
@@ -342,7 +360,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                       )
                     }}
                   >
-                    {parseBBCodeToHtml(currentQuestion?.content || '')}
+                    {parseBBCodeToHtml(frontText)}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -418,49 +436,47 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 isSelectMode && "select-text cursor-text"
               )}>
                 {/* Show the correct options or direct explanation */}
-                {currentQuestion?.options && currentQuestion.options.length > 0 && (
-                  <div className={cn("space-y-2 w-full", backHalign === 'center' ? "flex justify-center" : "")}>
-                    <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4 w-full">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
-                        ✓
-                      </div>
-                      <div 
-                        className={cn(
-                          "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
-                          backHalign === 'center' ? "text-center" : "text-left",
-                          isSelectMode && "select-text cursor-text"
-                        )}
-                        style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                <div className={cn("space-y-2 w-full", backHalign === 'center' ? "flex justify-center" : "")}>
+                  <div className="md:p-6 p-4 rounded-3xl bg-emerald-50/50 border border-emerald-100/80 flex items-start gap-4 w-full">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0 mt-0.5">
+                      ✓
+                    </div>
+                    <div 
+                      className={cn(
+                        "text-slate-800 font-extrabold text-2xl md:text-3xl lg:text-4xl leading-snug markdown-content flex-1 whitespace-pre-wrap",
+                        backHalign === 'center' ? "text-center" : "text-left",
+                        isSelectMode && "select-text cursor-text"
+                      )}
+                      style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                    >
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]} 
+                        rehypePlugins={[rehypeRaw]} 
+                        components={{
+                          ...MarkdownComponents,
+                          p: ({ children }) => (
+                            <p 
+                              className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                              style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                            >
+                              {children}
+                            </p>
+                          )
+                        }}
                       >
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]} 
-                          rehypePlugins={[rehypeRaw]} 
-                          components={{
-                            ...MarkdownComponents,
-                            p: ({ children }) => (
-                              <p 
-                                className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
-                                style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                              >
-                                {children}
-                              </p>
-                            )
-                          }}
-                        >
-                          {parseBBCodeToHtml(currentQuestion.options.find((o: any) => o.is_correct)?.content || "Definition revealed.")}
-                        </ReactMarkdown>
-                      </div>
+                        {parseBBCodeToHtml(backRevealedText)}
+                      </ReactMarkdown>
                     </div>
                   </div>
-                )}
+                </div>
 
-                {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && (currentQuestion?.back_img || currentQuestion?.others?.back_img) && (
+                {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && backImg && (
                   <div className="space-y-2 flex justify-center w-full">
                     <img 
-                      src={resolveMediaUrl(currentQuestion.back_img || currentQuestion.others?.back_img) || undefined} 
+                      src={resolveMediaUrl(backImg) || undefined} 
                       alt="Back Visual" 
                       className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                      onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || null)}
+                      onClick={() => setZoomedImage(resolveMediaUrl(backImg) || null)}
                     />
                   </div>
                 )}

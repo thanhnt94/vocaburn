@@ -303,6 +303,12 @@ export default function FlashcardPlay() {
     setShowActionDock,
     swipeToRate,
     setSwipeToRate,
+    audioSpeed,
+    setAudioSpeed,
+    flipSides,
+    setFlipSides,
+    tapToFlip: deckTapToFlip,
+    setTapToFlip,
     creatorDefaults,
     isCustomized,
     settingOrigin,
@@ -312,9 +318,8 @@ export default function FlashcardPlay() {
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
-  // Tap card body to flip is the permanent default gesture
-  const tapToFlip = true;
-  const effectiveCardFlipTrigger = 'both';
+  const tapToFlip = deckTapToFlip ?? true;
+  const effectiveCardFlipTrigger = tapToFlip ? 'both' : 'button_only';
 
   const effectiveCardRatingMode: 'both' | 'swipe_4way' | 'buttons' =
     (deckCardRatingMode as any) || (showActionDock && swipeToRate ? 'both' : showActionDock ? 'buttons' : 'swipe_4way');
@@ -374,7 +379,7 @@ export default function FlashcardPlay() {
     isAudioEnabled,
     isLoadingAudio,
     isPlayingAudio
-  } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio)
+  } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio, audioSpeed)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
   const [comboStreak, setComboStreak] = useState(0)
@@ -790,18 +795,19 @@ export default function FlashcardPlay() {
       return;
     }
 
+    const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
     if (isFlipped) {
       if (autoPlayAudio === 'always' || autoPlayAudio === 'back' || (activeMode === 'autoplay' && autoPlayAudio !== 'none')) {
         lastAutoplayKeyRef.current = autoplayKey;
-        playCardAudio('back');
+        playCardAudio(targetFace);
       }
     } else {
       if (autoPlayAudio === 'always' || autoPlayAudio === 'front' || (activeMode === 'autoplay' && autoPlayAudio !== 'none')) {
         lastAutoplayKeyRef.current = autoplayKey;
-        playCardAudio('front');
+        playCardAudio(targetFace);
       }
     }
-  }, [currentIndex, isFlipped, currentQuestion?.id, autoPlayAudio, activeMode]);
+  }, [currentIndex, isFlipped, currentQuestion?.id, autoPlayAudio, activeMode, flipSides]);
 
   const [currentTime, setCurrentTime] = useState(new Date())
   useEffect(() => {
@@ -3944,7 +3950,8 @@ export default function FlashcardPlay() {
           else await speakWithEdgeTTS(qText);
         }
       } else {
-        await playCardAudio(isFlipped ? 'back' : 'front');
+        const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
+        await playCardAudio(targetFace);
       }
     };
 
@@ -3962,6 +3969,7 @@ export default function FlashcardPlay() {
         isPlayingAudio={isPlayingAudio}
         autoPlayAudio={autoPlayAudio}
         setAutoPlayAudio={setAutoPlayAudio}
+        flipSides={flipSides}
         sfxEnabled={sfxEnabled}
         setSfxEnabled={setSfxEnabled}
         effectiveAutoAdvance={effectiveAutoAdvance}
@@ -4364,6 +4372,7 @@ export default function FlashcardPlay() {
                   isSelectMode={isSelectMode}
                   effectiveCardFlipTrigger={effectiveCardFlipTrigger}
                   isFlyingOut={isFlyingOut}
+                  flipSides={flipSides}
                   setIsFlyToolbarOpen={setIsFlyToolbarOpen}
                   setShowFeedback={setShowFeedback}
                   setJustAnswered={setJustAnswered}
@@ -4717,6 +4726,21 @@ export default function FlashcardPlay() {
         autoBackDelay={autoBackDelay}
         onChangeAutoFrontDelay={setAutoFrontDelay}
         onChangeAutoBackDelay={setAutoBackDelay}
+        audioSpeed={audioSpeed}
+        onChangeAudioSpeed={setAudioSpeed}
+        flipSides={flipSides}
+        onToggleFlipSides={() => {
+          const nextVal = !flipSides;
+          setFlipSides(nextVal);
+          showLocalToast(`Card Sides: ${nextVal ? 'INVERT (Meaning First)' : 'NORMAL (Front First)'}`, 'info');
+        }}
+        tapToFlip={tapToFlip}
+        onToggleTapToFlip={() => {
+          const nextVal = !tapToFlip;
+          setTapToFlip(nextVal);
+          saveGeneralSettings({ tap_to_flip: nextVal, card_flip_trigger: nextVal ? 'both' : 'button_only' });
+          showLocalToast(`Tap Card to Flip: ${nextVal ? 'ON' : 'OFF (Buttons Only)'}`, 'info');
+        }}
       />
     </div>
   )

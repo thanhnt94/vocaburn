@@ -242,7 +242,7 @@ export const speakSequentially = (segments: { text: string; langCode: string }[]
   speakNext();
 };
 
-export const speakWithEdgeTTS = async (text: string, lang?: string) => {
+export const speakWithEdgeTTS = async (text: string, lang?: string, rate: number = 1.0) => {
   if (!text || !text.trim()) return;
   const clean = stripTagsAndBBCode(text);
   if (!clean) return;
@@ -265,6 +265,7 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
 
       if (data.url) {
         const audio = new Audio(`${data.url}?t=${Date.now()}`);
+        audio.playbackRate = rate;
         registerAudioElement(audio);
         audio.play().catch(e => {
           console.warn('[EDGE TTS AUTOPLAY BLOCKED]', e);
@@ -282,7 +283,7 @@ export const speakWithEdgeTTS = async (text: string, lang?: string) => {
   }
 };
 
-export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<void> => {
+export const speakWithEdgeTTSPromise = (text: string, lang?: string, rate: number = 1.0): Promise<void> => {
   return new Promise(async (resolve) => {
     if (!text || !text.trim()) return resolve();
     const clean = stripTagsAndBBCode(text);
@@ -306,6 +307,7 @@ export const speakWithEdgeTTSPromise = (text: string, lang?: string): Promise<vo
 
         if (data.url) {
           const audio = new Audio(`${data.url}?t=${Date.now()}`);
+          audio.playbackRate = rate;
           registerAudioElement(audio);
           audio.onended = () => resolve();
           audio.onerror = () => {

@@ -35,7 +35,9 @@ import {
   AlignCenter,
   Copy,
   Check,
-  ClipboardCopy
+  ClipboardCopy,
+  Gauge,
+  ArrowLeftRight
 } from 'lucide-react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -78,6 +80,7 @@ export interface FlashcardFlyToolbarProps {
   showFlipBackBtn?: boolean
   isFlipped?: boolean
   setIsFlipped?: (val: boolean) => void
+  flipSides?: boolean
   setIsSettingsModalOpen?: (val: boolean) => void
   onOpenCardHub?: (subTab?: 'stats' | 'insight' | 'note' | 'community') => void
 }
@@ -153,13 +156,16 @@ export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
   isPlayingAudio = false,
   currentQuestion,
   isFlipped = false,
+  flipSides = false,
   showLocalToast,
 }) => {
   const [copiedMini, setCopiedMini] = useState(false)
 
   const handleMiniCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const text = isFlipped ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion)
+    const text = isFlipped
+      ? (flipSides ? getCardFrontText(currentQuestion) : getCardBackText(currentQuestion))
+      : (flipSides ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion))
     if (!text) {
       showLocalToast?.("No content on this face to copy", "warning")
       return
@@ -302,6 +308,12 @@ export interface FlashcardQuickControlsSheetProps {
   autoBackDelay?: number
   onChangeAutoFrontDelay?: (val: number) => void
   onChangeAutoBackDelay?: (val: number) => void
+  audioSpeed?: number
+  onChangeAudioSpeed?: (speed: number) => void
+  flipSides?: boolean
+  onToggleFlipSides?: () => void
+  tapToFlip?: boolean
+  onToggleTapToFlip?: () => void
 }
 
 const FLASHCARD_MODES = [
@@ -370,6 +382,12 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   autoBackDelay = 3.0,
   onChangeAutoFrontDelay,
   onChangeAutoBackDelay,
+  audioSpeed = 1.0,
+  onChangeAudioSpeed,
+  flipSides = false,
+  onToggleFlipSides,
+  tapToFlip = true,
+  onToggleTapToFlip,
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
@@ -378,7 +396,9 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 
   const handleCopyCurrentFace = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const text = isFlipped ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion)
+    const text = isFlipped
+      ? (flipSides ? getCardFrontText(currentQuestion) : getCardBackText(currentQuestion))
+      : (flipSides ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion))
     if (!text) {
       showLocalToast?.(`No content on ${isFlipped ? 'back' : 'front'} face to copy`, 'warning')
       return
@@ -1151,13 +1171,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
                           {/* 1. Autoplay */}
                           <button
                             type="button"
                             onClick={handleCycleAutoplay}
                             className={cn(
-                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                               autoplayMeta.container
                             )}
                             title={autoplayMeta.title}
@@ -1172,6 +1192,77 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               </span>
                             </div>
                           </button>
+
+                          {/* 2. Audio Speed */}
+                          {(() => {
+                            const currentSpeed = audioSpeed ?? 1.0
+                            const speedMeta = (() => {
+                              if (Math.abs(currentSpeed - 0.8) < 0.05) {
+                                return {
+                                  label: '0.8x',
+                                  color: 'text-amber-600',
+                                  container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs',
+                                  iconBox: 'bg-amber-500 text-white shadow-2xs',
+                                  title: 'Audio Speed: 0.8x (Slow)'
+                                }
+                              }
+                              if (Math.abs(currentSpeed - 1.2) < 0.05) {
+                                return {
+                                  label: '1.2x',
+                                  color: 'text-indigo-600',
+                                  container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
+                                  iconBox: 'bg-indigo-600 text-white shadow-2xs',
+                                  title: 'Audio Speed: 1.2x (Fast)'
+                                }
+                              }
+                              return {
+                                label: '1.0x',
+                                color: 'text-slate-500',
+                                container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500',
+                                iconBox: 'bg-white text-slate-400 border border-slate-200/60',
+                                title: 'Audio Speed: 1.0x (Normal)'
+                              }
+                            })()
+
+                            const handleCycleSpeed = () => {
+                              let nextSpeed = 1.0
+                              let toast = 'Speed: 1.0x (Normal)'
+                              if (Math.abs(currentSpeed - 1.0) < 0.05) {
+                                nextSpeed = 0.8
+                                toast = 'Speed: 0.8x (Slow, Clear)'
+                              } else if (Math.abs(currentSpeed - 0.8) < 0.05) {
+                                nextSpeed = 1.2
+                                toast = 'Speed: 1.2x (Fast)'
+                              } else {
+                                nextSpeed = 1.0
+                                toast = 'Speed: 1.0x (Normal)'
+                              }
+                              onChangeAudioSpeed?.(nextSpeed)
+                              showLocalToast?.(toast, 'info')
+                            }
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={handleCycleSpeed}
+                                className={cn(
+                                  "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                  speedMeta.container
+                                )}
+                                title={speedMeta.title}
+                              >
+                                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", speedMeta.iconBox)}>
+                                  <Gauge className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="flex flex-col items-center leading-none gap-0.5">
+                                  <span className="text-[9.5px] font-bold tracking-tight">Speed</span>
+                                  <span className={cn("text-[8px] font-black uppercase tracking-wider", speedMeta.color)}>
+                                    {speedMeta.label}
+                                  </span>
+                                </div>
+                              </button>
+                            )
+                          })()}
 
                           {/* 2. SFX Sounds */}
                           <button
@@ -1299,14 +1390,39 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {/* 1. Rating Mode */}
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {/* 1. Flip Sides (Invert) */}
+                          {onToggleFlipSides !== undefined && (
+                            <button
+                              type="button"
+                              onClick={onToggleFlipSides}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                flipSides
+                                  ? "bg-violet-50 border-violet-300 text-violet-700 shadow-2xs font-bold"
+                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                              )}
+                              title={`Card Sides: ${flipSides ? 'INVERT (Meaning First)' : 'NORMAL (Front First)'}`}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", flipSides ? "bg-violet-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                                <ArrowLeftRight className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Flip Sides</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", flipSides ? "text-violet-600 font-black" : "text-slate-400")}>
+                                  {flipSides ? "INVERT" : "NORMAL"}
+                                </span>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* 2. Rating Mode */}
                           {onCycleRatingMode !== undefined ? (
                             <button
                               type="button"
                               onClick={handleCycleRating}
                               className={cn(
-                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                                 ratingModeMeta.container
                               )}
                               title={ratingModeMeta.title}
@@ -1322,7 +1438,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               </div>
                             </button>
                           ) : (
-                            <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                            <button type="button" className="flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
                               <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
                                 <Sparkles className="w-3.5 h-3.5" />
                               </div>
@@ -1333,12 +1449,12 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </button>
                           )}
 
-                          {/* 2. Card Images */}
+                          {/* 3. Card Images */}
                           <button
                             type="button"
                             onClick={handleCycleImages}
                             className={cn(
-                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                               imagesMeta.container
                             )}
                             title={imagesMeta.title}
@@ -1354,12 +1470,12 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </div>
                           </button>
 
-                          {/* 3. Font Size */}
+                          {/* 4. Font Size */}
                           <button
                             type="button"
                             onClick={handleCycleFontSize}
                             className={cn(
-                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                              "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                               fontSizeMeta.container
                             )}
                             title={fontSizeMeta.title}
@@ -1375,13 +1491,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </div>
                           </button>
 
-                          {/* 4. Text Alignment */}
+                          {/* 5. Text Alignment */}
                           {setFrontHalign !== undefined ? (
                             <button
                               type="button"
                               onClick={handleCycleTextAlign}
                               className={cn(
-                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                                 textAlignMeta.container
                               )}
                               title={textAlignMeta.title}
@@ -1398,13 +1514,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </button>
                           ) : null}
 
-                          {/* 5. Rating Buttons Dock Toggle */}
+                          {/* 6. Rating Buttons Dock Toggle */}
                           {onToggleActionDock !== undefined ? (
                             <button
                               type="button"
                               onClick={onToggleActionDock}
                               className={cn(
-                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                                 showActionDock
                                   ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
                                   : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
@@ -1423,7 +1539,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                             </button>
                           ) : null}
 
-                          {/* 6. FSRS Badges */}
+                          {/* 7. FSRS Badges */}
                           {setShowFsrs !== undefined ? (
                             <button
                               type="button"
@@ -1433,7 +1549,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                                 showLocalToast?.(`FSRS Badges: ${nextVal ? 'SHOWN' : 'HIDDEN'}`, 'info')
                               }}
                               className={cn(
-                                "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
                                 showFsrs
                                   ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
                                   : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
@@ -1451,13 +1567,38 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               </div>
                             </button>
                           ) : (
-                            <button type="button" className="flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
+                            <button type="button" className="flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all text-center min-h-[58px] gap-1 select-none bg-slate-50 border-slate-200/70 opacity-50 pointer-events-none">
                               <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-400 border border-slate-200/60">
                                 <Layers className="w-3.5 h-3.5" />
                               </div>
                               <div className="flex flex-col items-center leading-none gap-0.5">
                                 <span className="text-[9.5px] font-bold tracking-tight text-slate-500">FSRS Badges</span>
                                 <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">OFF</span>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* 8. Tap to Flip Gesture */}
+                          {onToggleTapToFlip !== undefined && (
+                            <button
+                              type="button"
+                              onClick={onToggleTapToFlip}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                tapToFlip
+                                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
+                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                              )}
+                              title={`Tap Card to Flip: ${tapToFlip ? 'ON' : 'OFF (Buttons Only)'}`}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", tapToFlip ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                                <Hand className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Tap Flip</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", tapToFlip ? "text-indigo-600" : "text-slate-400")}>
+                                  {tapToFlip ? "ON" : "OFF"}
+                                </span>
                               </div>
                             </button>
                           )}

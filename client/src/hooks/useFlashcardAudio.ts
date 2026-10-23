@@ -10,7 +10,8 @@ export function useFlashcardAudio(
   currentQuestion: any,
   practiceSettings?: any,
   scopedAutoPlayAudio?: AutoPlayMode,
-  scopedSetAutoPlayAudio?: (mode: AutoPlayMode) => void
+  scopedSetAutoPlayAudio?: (mode: AutoPlayMode) => void,
+  audioSpeed: number = 1.0
 ) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentQuestionIdRef = useRef<number | null>(null);
@@ -220,8 +221,9 @@ export function useFlashcardAudio(
     if (audioUrl) {
       unlockAudio();
       const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl;
-      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${resolvedUrl}`);
+      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${resolvedUrl} at ${audioSpeed}x`);
       const audio = new Audio(resolvedUrl);
+      audio.playbackRate = audioSpeed || 1.0;
       registerAudioElement(audio);
       activeAudioRef.current = audio;
 
@@ -244,13 +246,13 @@ export function useFlashcardAudio(
         console.warn(`[TTS PLAYBACK WARNING] Playback of Edge TTS audio file failed:`, err?.message);
         if (err?.name !== 'NotAllowedError' && script && script.trim()) {
           if (playSeqRef.current === currentSeq) {
-            speakWithEdgeTTS(script, lang);
+            speakWithEdgeTTS(script, lang, audioSpeed || 1.0);
           }
         }
       });
     } else if (script && script.trim()) {
-      console.log(`[TTS EDGE STREAM] Streaming Edge TTS dynamically for column ${columnKey}: "${script}"`);
-      speakWithEdgeTTS(script, lang);
+      console.log(`[TTS EDGE STREAM] Streaming Edge TTS dynamically for column ${columnKey}: "${script}" at ${audioSpeed}x`);
+      speakWithEdgeTTS(script, lang, audioSpeed || 1.0);
     }
   };
 

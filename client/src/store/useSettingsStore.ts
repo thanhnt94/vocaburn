@@ -28,6 +28,8 @@ export interface UserSettings {
   front_halign?: 'left' | 'center'
   back_valign?: 'center' | 'top'
   back_halign?: 'left' | 'center'
+  audio_speed?: number
+  flip_sides?: boolean
   study_profiles?: StudyProfile[]
   active_profile_id?: string | null
   home_active_tab?: 'roadmap' | 'learning' | 'daily'
@@ -62,6 +64,8 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   practice_range: 'all',
   score_mode: 'all',
   time_mode: 'card',
+  audio_speed: 1.0,
+  flip_sides: false,
   last_deck_id: null,
   paste_columns: ['front', 'back'],
   quick_add_columns: ['front', 'back'],
