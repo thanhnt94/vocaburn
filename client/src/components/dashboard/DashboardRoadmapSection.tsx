@@ -169,8 +169,12 @@ export function DashboardRoadmapSection({
   const unlearnedCards = Math.max(0, totalCards - learnedCards)
   const dueRemaining = Number(st.review_due_today ?? deck.review_remaining ?? 0)
   const streak = Number(st.streak || deck.streak || 0)
+  const masteredCount = Number(st.mastered_count ?? st.mastered ?? deck.mastered_count ?? 0)
+  const hasExplicitMastered = masteredCount > 0
   const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
-  const isMastered = totalCards > 0 && learnedCards >= totalCards
+  const isMastered = (hasExplicitMastered && masteredCount >= totalCards) || (totalCards > 0 && learnedCards >= totalCards)
+  const estimatedMins = Math.max(2, Math.round(dueRemaining * 0.12))
+  const retentionRate = Math.min(100, Math.max(70, Number(st.retention_rate || 90)))
 
   // Author & Creation Info: Prioritize uploader/creator (tnhnaht)
   const authorName = deck.creator_name || deck.creator_username || deck.creator?.username || user?.username || 'tnhnaht'
@@ -309,7 +313,7 @@ export function DashboardRoadmapSection({
           {/* ── 2A. HERO STAGE (FULL-WIDTH TOP PROGRESS + RICH LEFT METRICS + ANCHORED MASCOT) ── */}
           <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between min-h-0">
             
-            {/* 1. TOP HEADER & FULL-WIDTH PROGRESS (Chiếm trọn bề ngang màn hình theo yêu cầu) */}
+            {/* 1. TOP HEADER & FULL-WIDTH PROGRESS */}
             <div className="relative z-20 w-full shrink-0 space-y-2">
               {/* Deck Title, Level & Creator */}
               <div>
@@ -344,7 +348,7 @@ export function DashboardRoadmapSection({
                 </div>
               </div>
 
-              {/* GAMIFIED MASTERY & QUEST HUD (Khung tiến độ game hóa siêu đẹp, nổi bật) */}
+              {/* GAMIFIED MASTERY & QUEST HUD */}
               <div className="bg-gradient-to-r from-orange-500/10 via-amber-400/15 to-emerald-500/15 border-2 border-orange-300/80 rounded-2xl p-2.5 sm:p-3 shadow-xs relative overflow-hidden backdrop-blur-xs">
                 {/* Decorative background glow */}
                 <div className="absolute -right-6 -top-6 w-20 h-20 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
@@ -358,7 +362,7 @@ export function DashboardRoadmapSection({
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block leading-tight">
-                        Daily Mastery Goal
+                        Daily Learning Goal
                       </span>
                       <span className="text-xs sm:text-[13px] font-black text-slate-900 truncate block leading-tight">
                         {mascotHeadline}
@@ -369,7 +373,7 @@ export function DashboardRoadmapSection({
                   {/* High-impact Vibrant Percentage Badge */}
                   <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs sm:text-[13px] font-black shadow-sm shadow-emerald-500/25 flex items-center gap-1 shrink-0">
                     <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{pct}%</span>
+                    <span>{pct}% Learned</span>
                   </div>
                 </div>
                 
@@ -388,7 +392,7 @@ export function DashboardRoadmapSection({
                 <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] font-bold text-slate-600 mt-1.5 px-0.5 relative z-10">
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    <strong>{learnedCards}</strong> mastered
+                    <strong>{hasExplicitMastered ? masteredCount : learnedCards}</strong> {hasExplicitMastered ? 'mastered' : 'learned'}
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />
@@ -418,45 +422,49 @@ export function DashboardRoadmapSection({
                   </p>
                 </div>
 
-                {/* Rich 4-Metric Grid */}
+                {/* Rich 4-Metric Grid (Hữu ích, không trùng lặp các ô bên dưới) */}
                 <div className="grid grid-cols-2 gap-1.5 shrink-0">
+                  {/* 1. Total Vocab */}
                   <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       📚
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Total Vocab</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{totalCards.toLocaleString()} words</span>
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Total Cards</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{totalCards.toLocaleString()} items</span>
                     </div>
                   </div>
 
+                  {/* 2. Algorithm */}
                   <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       ⚡
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Algorithm</span>
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Engine</span>
                       <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">FSRS v6</span>
                     </div>
                   </div>
 
+                  {/* 3. Estimated Study Time Today */}
                   <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                      🔥
+                      ⏱️
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Streak</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{streak > 0 ? `${streak} Days` : 'Active'}</span>
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Est. Time</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">~{estimatedMins} mins</span>
                     </div>
                   </div>
 
+                  {/* 4. Target Retention Rate */}
                   <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
                     <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                      🎯
+                      🧠
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Remaining</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{unlearnedCards} new</span>
+                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Retention</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{retentionRate}% Rate</span>
                     </div>
                   </div>
                 </div>
@@ -468,18 +476,19 @@ export function DashboardRoadmapSection({
                 title="Tap Vocaburn mascot for extra motivation! 🔥"
                 className="w-[42%] max-w-[280px] absolute right-0 bottom-0 top-0 flex items-end justify-center z-10 cursor-pointer group pointer-events-auto"
               >
-                {/* Tap Speech Bubble */}
+                {/* Tap Speech Bubble: Positioned right above mascot head & close */}
                 <AnimatePresence>
                   {mascotCheer && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                      initial={{ opacity: 0, y: 8, scale: 0.85 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.85 }}
-                      className="absolute top-2 right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black p-2.5 rounded-2xl shadow-xl z-30 max-w-[170px] pointer-events-none text-center"
+                      exit={{ opacity: 0, y: -8, scale: 0.85 }}
+                      className="absolute bottom-[175px] sm:bottom-[195px] right-2 bg-white/95 backdrop-blur-md border border-orange-200 text-slate-900 text-[10.5px] font-black px-3 py-2 rounded-2xl shadow-xl z-30 max-w-[165px] pointer-events-none text-center"
                     >
                       <div className="relative">
                         {mascotCheer}
-                        <div className="absolute -bottom-4 right-6 w-0 h-0 border-x-[6px] border-x-transparent border-t-[8px] border-t-white" />
+                        {/* Tail pointing right down at mascot flame head */}
+                        <div className="absolute -bottom-2.5 right-10 w-0 h-0 border-x-[5px] border-x-transparent border-t-[6px] border-t-white" />
                       </div>
                     </motion.div>
                   )}
@@ -499,7 +508,7 @@ export function DashboardRoadmapSection({
             </div>
           </div>
 
-          {/* ── 2B. 3 TRUTH STAT BOXES (DUE, NEW, MASTERED) ── */}
+          {/* ── 2B. 3 TRUTH STAT BOXES (DUE, UNLEARNED, LEARNED) ── */}
           <div className="grid grid-cols-3 gap-2 shrink-0">
             {/* Due for Review */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
@@ -530,14 +539,14 @@ export function DashboardRoadmapSection({
               </div>
             </div>
 
-            {/* Mastered Cards */}
+            {/* Learned / Mastered Cards */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
               <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                Mastered
+                {hasExplicitMastered ? 'Mastered' : 'Learned'}
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-0.5">
                 <span className="text-base sm:text-lg font-black text-emerald-600 tabular-nums">
-                  {learnedCards}
+                  {hasExplicitMastered ? masteredCount : learnedCards}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">cards</span>
               </div>
