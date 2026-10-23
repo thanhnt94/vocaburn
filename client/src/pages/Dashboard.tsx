@@ -1243,13 +1243,7 @@ export default function Dashboard() {
 
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false)
   const [isDailyDrawerOpen, setIsDailyDrawerOpen] = useState(false)
-  const [activeHomeTab, setActiveHomeTab] = useState<'roadmap' | 'learning'>('roadmap')
-
-  useEffect(() => {
-    if (userSettings?.home_active_tab === 'learning' || userSettings?.home_active_tab === 'roadmap') {
-      setActiveHomeTab(userSettings.home_active_tab)
-    }
-  }, [userSettings?.home_active_tab])
+  const [homeViewMode, setHomeViewMode] = useState<'spotlight' | 'grid'>('spotlight')
 
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<any | null>(null)
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
@@ -1457,33 +1451,21 @@ export default function Dashboard() {
     return list.sort((a, b) => a.deck_id - b.deck_id);
   }, [roadmapDecks, todayReview, data]);
 
-  const sortedRoadmapDecks = useMemo(() => {
-    if (!roadmapDecks || roadmapDecks.length === 0) return []
-    const order = (userSettings?.roadmap_deck_order || []).map((x: any) => String(x))
-    if (order.length === 0) return roadmapDecks
-    return [...roadmapDecks].sort((a, b) => {
-      const idA = String(a.deck_id ?? a.id ?? '')
-      const idB = String(b.deck_id ?? b.id ?? '')
-      const idxA = order.indexOf(idA)
-      const idxB = order.indexOf(idB)
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB
-      if (idxA !== -1) return -1
-      if (idxB !== -1) return 1
-      return 0
-    })
-  }, [roadmapDecks, userSettings?.roadmap_deck_order]);
-
-  const sortedActiveDecks = useMemo(() => {
-    if (!activeDecks || activeDecks.length === 0) return []
-    const order = (userSettings?.learning_deck_order || []).map((x: any) => String(x))
+  const displayDecks = useMemo(() => {
+    const order = (userSettings?.learning_deck_order || userSettings?.roadmap_deck_order || []).map((x: any) => String(x))
+    const source = roadmapDecks && roadmapDecks.length > 0 ? roadmapDecks : activeDecks
+    if (!source || source.length === 0) return []
+    
     if (order.length > 0) {
-      // User explicitly selected which decks to pin as shortcuts!
-      const deckMap = new Map(activeDecks.map(d => [String(d.deck_id ?? d.id), d]))
-      return order.map(id => deckMap.get(id)).filter(Boolean)
+      const deckMap = new Map(source.map((d: any) => [String(d.deck_id ?? d.id), d]))
+      const ordered = order.map(id => deckMap.get(id)).filter(Boolean) as any[]
+      if (ordered.length > 0) return ordered
     }
-    // Default fallback: top 4 active decks if user has not yet customized their shortcuts
-    return activeDecks.slice(0, 4)
-  }, [activeDecks, userSettings?.learning_deck_order]);
+    return source
+  }, [roadmapDecks, activeDecks, userSettings?.learning_deck_order, userSettings?.roadmap_deck_order])
+
+  const sortedRoadmapDecks = displayDecks
+  const sortedActiveDecks = displayDecks
 
   const { data: weeklyReport } = useQuery({
     queryKey: ['weeklyReport'],
@@ -1853,24 +1835,15 @@ export default function Dashboard() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black tracking-tight text-white">Chế Độ Học Tập Tổng Hợp</span>
-                        <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px]">{globalFocus.total_due} thẻ FSRS</span>
+                        <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
+                        <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[10px]">{globalFocus.total_due} FSRS cards due</span>
                       </div>
-                      <p className="text-[11px] text-indigo-200 truncate mt-0.5">Gộp toàn bộ thẻ đến hạn từ {globalFocus.active_decks_count} bộ thẻ đang kích hoạt</p>
+                      <p className="text-[11px] text-indigo-200 truncate mt-0.5">Consolidated reviews from {globalFocus.active_decks_count} active decks</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Link
-                      to="/roadmap"
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-200 hover:text-white font-bold text-[11px] flex items-center gap-1 transition-colors"
-                      title="Mở Roadmap Hub & Đóng băng bộ thẻ"
-                    >
-                      <Compass className="w-3.5 h-3.5" />
-                      <span className="hidden lg:inline">Hub</span>
-                    </Link>
                     <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-                      <span>Học ngay</span>
+                      <span>Study Now</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
@@ -1885,26 +1858,18 @@ export default function Dashboard() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black tracking-tight text-slate-800">Chế Độ Học Tập Tổng Hợp</span>
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">Đã xong hôm nay 🎉</span>
+                        <span className="text-xs font-black tracking-tight text-slate-800">Daily Focus Queue</span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">All Done Today 🎉</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">0 thẻ tồn đọng • {globalFocus.active_decks_count} bộ đang học {globalFocus.frozen_decks_count > 0 ? `(${globalFocus.frozen_decks_count} bộ đóng băng)` : ''}</p>
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">0 cards pending • {globalFocus.active_decks_count} active decks</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Link
-                      to="/roadmap"
-                      className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-[11px] flex items-center gap-1 transition-colors border border-indigo-200/60"
-                      title="Quản lý đóng băng bộ thẻ"
-                    >
-                      <Compass className="w-3.5 h-3.5" />
-                      <span>Roadmap Hub</span>
-                    </Link>
                     <button
                       onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
                       className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
                     >
-                      <span>Vào Queue</span>
+                      <span>Enter Queue</span>
                       <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -1962,19 +1927,17 @@ export default function Dashboard() {
             return;
           }
 
-          // Horizontal Swipe detection (Swipe left: Roadmap -> Learning, Swipe right: Learning -> Roadmap)
+          // Horizontal Swipe detection (Swipe left: Spotlight -> Grid, Swipe right: Grid -> Spotlight)
           if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
             if (diffX < -40) {
-              if (activeHomeTab === 'roadmap') {
-                setActiveHomeTab('learning')
+              if (homeViewMode === 'spotlight') {
+                setHomeViewMode('grid')
                 if (navigator.vibrate) navigator.vibrate(8)
-                updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
               }
             } else if (diffX > 40) {
-              if (activeHomeTab === 'learning') {
-                setActiveHomeTab('roadmap')
+              if (homeViewMode === 'grid') {
+                setHomeViewMode('spotlight')
                 if (navigator.vibrate) navigator.vibrate(8)
-                updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
               }
             }
           }
@@ -2026,95 +1989,59 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ═══════════ MINIMAL BORDERLESS 2 TABS (ROADMAP & LEARNING) ═══════════ */}
+          {/* ═══════════ UNIFIED LEARNING DECKS SUBHEADER ═══════════ */}
           <div className="bg-white border-t border-slate-100/90 px-3.5 flex items-center justify-between w-full select-none flex-shrink-0 h-10">
-            {/* Tabs Group */}
-            <div className="flex items-center gap-6 h-full">
-              {/* Tab 1: Roadmap */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveHomeTab('roadmap')
-                  if (navigator.vibrate) navigator.vibrate(6)
-                  updateUserSettings({ home_active_tab: 'roadmap' }).catch(console.error)
-                }}
-                className={cn(
-                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
-                  activeHomeTab === 'roadmap' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <Layers className={cn(
-                  "w-3.5 h-3.5 transition-colors",
-                  activeHomeTab === 'roadmap' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
-                )} />
-                <span className="text-[13px]">Roadmap</span>
-                {sortedRoadmapDecks.length > 0 && (
-                  <span className={cn(
-                    "text-[10px] font-bold px-1.5 py-0.2 rounded-full tabular-nums transition-colors",
-                    activeHomeTab === 'roadmap' ? "bg-orange-50 text-orange-600 border border-orange-200/60" : "bg-slate-100 text-slate-400"
-                  )}>
-                    {sortedRoadmapDecks.length}
-                  </span>
-                )}
-                {/* Clean Animated Orange Underline Indicator */}
-                {activeHomeTab === 'roadmap' && (
-                  <motion.div
-                    layoutId="homeTabUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
-                  />
-                )}
-              </button>
-
-              {/* Tab 2: Learning */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveHomeTab('learning')
-                  if (navigator.vibrate) navigator.vibrate(6)
-                  updateUserSettings({ home_active_tab: 'learning' }).catch(console.error)
-                }}
-                className={cn(
-                  "relative h-full flex items-center gap-1.5 text-xs font-black tracking-tight transition-colors cursor-pointer select-none",
-                  activeHomeTab === 'learning' ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <BookOpen className={cn(
-                  "w-3.5 h-3.5 transition-colors",
-                  activeHomeTab === 'learning' ? "text-orange-500 stroke-[2.4]" : "text-slate-400"
-                )} />
-                <span className="text-[13px]">Learning</span>
-                {sortedActiveDecks.length > 0 && (
-                  <span className={cn(
-                    "text-[10px] font-bold px-1.5 py-0.2 rounded-full tabular-nums transition-colors",
-                    activeHomeTab === 'learning' ? "bg-orange-50 text-orange-600 border border-orange-200/60" : "bg-slate-100 text-slate-400"
-                  )}>
-                    {sortedActiveDecks.length}
-                  </span>
-                )}
-                {/* Clean Animated Orange Underline Indicator */}
-                {activeHomeTab === 'learning' && (
-                  <motion.div
-                    layoutId="homeTabUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
-                  />
-                )}
-              </button>
+            {/* Title & Active Count */}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center">
+                <BookOpen className="w-3.5 h-3.5 stroke-[2.4]" />
+              </div>
+              <span className="text-xs font-black text-slate-900 tracking-tight">Learning Decks</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200/60 tabular-nums">
+                {displayDecks.length} active
+              </span>
             </div>
 
-            {/* Subtle Customize Button on Far Right */}
-            <button
-              type="button"
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(6)
-                setIsCustomizeModalOpen(true)
-              }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-orange-600 hover:bg-orange-50/70 transition-all cursor-pointer active:scale-95"
-              title="Customize display mode & deck order"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
-            </button>
+            {/* View Switcher + Manage Button */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200/70 gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setHomeViewMode('spotlight')}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer",
+                    homeViewMode === 'spotlight' ? "bg-white text-orange-600 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
+                  )}
+                  title="Spotlight Hero View"
+                >
+                  Spotlight
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeViewMode('grid')}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer",
+                    homeViewMode === 'grid' ? "bg-white text-orange-600 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
+                  )}
+                  title="Grid Cards View"
+                >
+                  Grid
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(6)
+                  setIsCustomizeModalOpen(true)
+                }}
+                className="h-7 px-2 rounded-lg bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 border border-slate-200 flex items-center gap-1 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-2xs"
+                title="Manage active decks & reorder"
+              >
+                <SlidersHorizontal className="w-3 h-3 stroke-[2.2]" />
+                <span>Manage</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2134,13 +2061,13 @@ export default function Dashboard() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-black tracking-tight text-white">Daily Focus Queue</span>
-                        <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-slate-950 font-black text-[9px]">{globalFocus.total_due} thẻ</span>
+                        <span className="px-1.5 py-0.2 rounded-md bg-amber-400 text-slate-950 font-black text-[9px]">{globalFocus.total_due} due</span>
                       </div>
-                      <p className="text-[10px] text-indigo-200 truncate mt-0.5">Học tập tổng hợp: {globalFocus.active_decks_count} bộ thẻ đến hạn</p>
+                      <p className="text-[10px] text-indigo-200 truncate mt-0.5">Consolidated reviews: {globalFocus.active_decks_count} active decks</p>
                     </div>
                   </div>
                   <div className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1 shadow-xs">
-                    <span>Học ngay</span>
+                    <span>Study Now</span>
                     <ChevronRight className="w-3 h-3" />
                   </div>
                 </div>
@@ -2155,34 +2082,25 @@ export default function Dashboard() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1">
                         <span className="text-[11px] font-black tracking-tight text-slate-800">Daily Focus Queue</span>
-                        <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[8.5px]">Đã xong 🎉</span>
+                        <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[8.5px]">Done 🎉</span>
                       </div>
-                      <p className="text-[9.5px] text-slate-500 truncate mt-0.2">0 thẻ tồn đọng • {globalFocus.active_decks_count} bộ đã đạt chỉ tiêu</p>
+                      <p className="text-[9.5px] text-slate-500 truncate mt-0.2">All reviews complete • {globalFocus.active_decks_count} active decks</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Link
-                      to="/roadmap"
-                      className="px-2 py-1 rounded-xl bg-indigo-50 text-indigo-700 font-black text-[10px] flex items-center gap-0.5 border border-indigo-200/60 active:scale-95 transition-all"
-                    >
-                      <Compass className="w-3 h-3" />
-                      <span>Hub</span>
-                    </Link>
-                    <button
-                      onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
-                      className="px-2 py-1 rounded-xl bg-slate-100 text-slate-700 font-black text-[10px] flex items-center gap-0.5 active:scale-95 transition-all cursor-pointer"
-                    >
-                      <span>Vào</span>
-                      <ChevronRight className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                    className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[10px] flex items-center gap-0.5 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span>Enter Queue</span>
+                    <ChevronRight className="w-2.5 h-2.5" />
+                  </button>
                 </div>
               )}
             </div>
           )}
-          {activeHomeTab === 'roadmap' ? (
+          {homeViewMode === 'spotlight' ? (
             <DashboardRoadmapSection
-              roadmapDecks={sortedRoadmapDecks}
+              roadmapDecks={displayDecks}
               remainingTime={remainingTime}
               selectedRoadmapIdx={selectedRoadmapIdx}
               onSelectRoadmapIdx={setSelectedRoadmapIdx}
@@ -2196,7 +2114,7 @@ export default function Dashboard() {
             <div className="flex-1 overflow-hidden p-2.5 sm:p-3 flex flex-col min-h-0">
               <DashboardQuickDecksWidget
                 todayReview={todayReview}
-                activeDecks={sortedActiveDecks}
+                activeDecks={displayDecks}
                 allDecksCount={activeDecks?.length || 0}
                 onOpenStudyModal={handleOpenStudyModal}
                 navigate={navigate}
@@ -2239,7 +2157,7 @@ export default function Dashboard() {
           onClose={() => setIsDailyDrawerOpen(false)}
           navigate={navigate}
           onSwitchTab={(tab) => {
-            setActiveHomeTab(tab)
+            setHomeViewMode(tab === 'learning' ? 'grid' : 'spotlight')
             setIsDailyDrawerOpen(false)
           }}
         />

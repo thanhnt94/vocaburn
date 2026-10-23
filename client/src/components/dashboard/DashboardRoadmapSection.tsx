@@ -790,7 +790,7 @@ export function DashboardRoadmapSection({
             className="w-full h-12 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Layers className="w-4 h-4" />
-            <span>Explore Decks & Activate Roadmap →</span>
+            <span>Explore Decks Library →</span>
           </button>
         </div>
       </div>
@@ -809,7 +809,7 @@ export function DashboardRoadmapSection({
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center gap-1.5 text-slate-900 font-black tracking-tight text-xs shrink-0 bg-white/80 backdrop-blur-xs px-2.5 py-1 rounded-full border border-slate-200/60 shadow-2xs">
               <Layers className="w-3.5 h-3.5 text-orange-500" />
-              <span>{totalDecks} Roadmap Decks</span>
+              <span>{totalDecks} Active Decks</span>
             </div>
 
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-orange-50/90 text-orange-700 border border-orange-200/70 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
@@ -819,23 +819,12 @@ export function DashboardRoadmapSection({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            {isDesktop && (
-              <button
-                type="button"
-                onClick={() => navigate('/roadmap')}
-                className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                title="Open Roadmap Hub & Freeze/Unfreeze Decks"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Roadmap Hub</span>
-              </button>
-            )}
             {onOpenCustomize && isDesktop && (
               <button
                 type="button"
                 onClick={onOpenCustomize}
                 className="w-7 h-7 rounded-lg bg-white hover:bg-orange-50 hover:text-orange-600 border border-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                title="Customize Roadmap & Layout"
+                title="Manage Decks & Layout"
               >
                 <Settings className="w-3.5 h-3.5" />
               </button>
@@ -871,7 +860,7 @@ export function DashboardRoadmapSection({
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center gap-1.5 text-slate-900 font-black tracking-tight text-xs shrink-0 bg-white/80 backdrop-blur-xs px-2.5 py-1 rounded-full border border-slate-200/60 shadow-2xs">
               <Layers className="w-3.5 h-3.5 text-orange-500" />
-              <span>{totalDecks} Roadmap Decks</span>
+              <span>{totalDecks} Active Decks</span>
             </div>
 
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-orange-50/90 text-orange-700 border border-orange-200/70 rounded-full text-[10px] sm:text-[11px] font-black shadow-2xs shrink-0">
@@ -881,23 +870,12 @@ export function DashboardRoadmapSection({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            {isDesktop && (
-              <button
-                type="button"
-                onClick={() => navigate('/roadmap')}
-                className="h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                title="Open Roadmap Hub & Freeze/Unfreeze Decks"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Roadmap Hub</span>
-              </button>
-            )}
             {onOpenCustomize && isDesktop && (
               <button
                 type="button"
                 onClick={onOpenCustomize}
                 className="w-7 h-7 rounded-lg bg-white hover:bg-orange-50 hover:text-orange-600 border border-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                title="Customize Roadmap & Layout"
+                title="Manage Decks & Layout"
               >
                 <Settings className="w-3.5 h-3.5" />
               </button>
@@ -968,7 +946,7 @@ export function DashboardRoadmapSection({
           ) : (
             <div className="flex items-center gap-1.5 text-slate-900 font-black tracking-tight text-xs shrink-0 bg-white px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs">
               <Layers className="w-3.5 h-3.5 text-orange-500" />
-              <span>Daily Roadmap</span>
+              <span>Daily Focus</span>
             </div>
           )}
 
@@ -986,23 +964,12 @@ export function DashboardRoadmapSection({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
-          {isDesktop && (
-            <Link
-              to="/roadmap"
-              className="text-xs font-black text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
-              title="Open Roadmap Hub & Freeze/Unfreeze Decks"
-            >
-              <Compass className="w-3 h-3" />
-              <span>Roadmap Hub</span>
-            </Link>
-          )}
-
           {onOpenCustomize && isDesktop && (
             <button
               type="button"
               onClick={onOpenCustomize}
               className="w-7 h-7 rounded-lg bg-white hover:bg-orange-50 hover:text-orange-600 border border-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-              title="Customize Roadmap & Layout"
+              title="Manage Decks & Layout"
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
