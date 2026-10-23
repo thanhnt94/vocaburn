@@ -15,13 +15,12 @@ import app.modules.stats.models
 import app.modules.notification.models
 from app.core.config import settings
 from app.modules.auth.models import User
-from app.modules.deck.models import Category, FlashcardDeck, Flashcard, DeckSession, DeckAttempt, UserAnswer, UserCardNote, DeckRoom, DeckRoomParticipant, UserDeckGoal, UserDailyProgress
+from app.modules.deck.models import Category, FlashcardDeck, Flashcard, DeckSession, DeckAttempt, UserAnswer, UserCardNote, UserDeckGoal, UserDailyProgress
 from app.modules.gamification.models import UserGamification, Badge, UserDailyActivity
 from app.modules.notification.models import Notification, PushSubscription, UserTelegramConfig
 from app.modules.stats.models import UserDailyStats
 from app.modules.admin.models import SystemConfig, AdminLog
 from app.modules.sso_module.models import SSOConfig
-import app.modules.memrise.models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
