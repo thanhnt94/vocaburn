@@ -48,6 +48,11 @@ export interface Question {
     last_reviewed?: string | null
     intervals: Record<number, string>
   }
+  practice_summary?: {
+    total_attempts: number
+    drill_correct: number
+    last_practiced?: string | null
+  }
   practice?: {
     question: string
     choices?: string[]
@@ -59,6 +64,8 @@ export interface Question {
     answer_key?: string
   }
 }
+
+export type CardLifecycleState = 'due' | 'learn' | 'drill' | 'practice' | 'skim' | 'new'
 
 export type LearningMode = 'fsrs' | 'skim' | 'review' | 'speed_skim' | 'new' | 'flip'
 export type CardBoxId = 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed'

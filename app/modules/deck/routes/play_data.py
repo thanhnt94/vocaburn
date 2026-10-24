@@ -545,8 +545,9 @@ async def get_deck_play_data(
             return val == sub_val.strip()
         source_cards = [c for c in source_cards if matches_sub(c)]
 
-    # 3. Fetch Mastery records in 1 indexed query (Skip for practice mode)
+    # 3. Fetch Mastery records and Practice stats in 1 indexed query (Skip for practice mode)
     mastery_records = {}
+    practice_records = {}
     if not is_practice and user_id and source_cards:
         card_ids = [c.id for c in source_cards]
         mastery_stmt = select(UserCardMastery).where(
@@ -555,6 +556,17 @@ async def get_deck_play_data(
         )
         mastery_res = await db.execute(mastery_stmt)
         mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
+
+        from app.modules.deck.models import UserPracticeStats
+        p_stats_stmt = select(UserPracticeStats).where(
+            UserPracticeStats.user_id == user_id,
+            UserPracticeStats.card_id.in_(card_ids)
+        )
+        p_stats_res = await db.execute(p_stats_stmt)
+        for ps in p_stats_res.scalars().all():
+            if ps.card_id not in practice_records:
+                practice_records[ps.card_id] = []
+            practice_records[ps.card_id].append(ps)
 
     # Check settings if practice mode
     practice_needs_setup = False
@@ -639,6 +651,17 @@ async def get_deck_play_data(
                 fsrs_card = build_fsrs_card(m, now_utc)
                 intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
                         
+            card_p_stats = practice_records.get(c.id, [])
+            total_attempts = sum((ps.correct_count or 0) + (ps.wrong_count or 0) for ps in card_p_stats)
+            drill_correct = sum((ps.correct_count or 0) for ps in card_p_stats if ps.practice_mode == "hybrid_drill")
+            p_dates = [ps.last_practiced for ps in card_p_stats if ps.last_practiced]
+            last_practiced_dt = max(p_dates) if p_dates else None
+            practice_summary = {
+                "total_attempts": total_attempts,
+                "drill_correct": drill_correct,
+                "last_practiced": last_practiced_dt.isoformat() if last_practiced_dt else None
+            }
+
             cards_list.append({
                 "id": c.id,
                 "original_index": idx + 1,
@@ -650,6 +673,7 @@ async def get_deck_play_data(
                 "back_audio_url": c.back_audio_url,
                 "front_img": c.front_img,
                 "back_img": c.back_img,
+                "practice_summary": practice_summary,
                 "stats": {
                     "total": m.consecutive_correct if m else 0,
                     "correct": m.consecutive_correct if m else 0,
