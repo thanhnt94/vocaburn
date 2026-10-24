@@ -44,16 +44,30 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
     """Extracts text content for a given column key from a Flashcard object."""
     if not key:
         return (getattr(card, "content", None) or "").strip()
-    # 1. Check card.others dict FIRST for custom column keys (e.g. kanji, meaning, hiragana, etc.)
+    lower_key = str(key).strip().lower()
+
+    # 1. Check card.others dict FIRST for custom column keys
     if hasattr(card, "others") and card.others and isinstance(card.others, dict):
         if key in card.others:
             val = card.others.get(key)
             if val is not None and str(val).strip():
                 return str(val).strip()
-        lower_key = str(key).strip().lower()
         for k, v in card.others.items():
             if str(k).strip().lower() == lower_key and v is not None and str(v).strip():
                 return str(v).strip()
+        # Semantic match for meaning / nghĩa (e.g. key is "nghĩa", others has "nghĩa tiếng việt")
+        if lower_key in ("nghĩa", "meaning") or "nghĩa" in lower_key or "mean" in lower_key:
+            for k, v in card.others.items():
+                k_lower = str(k).lower()
+                if ("nghĩa" in k_lower or "mean" in k_lower) and v is not None and str(v).strip():
+                    return str(v).strip()
+        # Semantic match for ipa / phiên âm
+        if "ipa" in lower_key or "phiên âm" in lower_key or "phát âm" in lower_key:
+            for k, v in card.others.items():
+                k_lower = str(k).lower()
+                if ("ipa" in k_lower or "phiên âm" in k_lower or "phát âm" in k_lower) and v is not None and str(v).strip():
+                    return str(v).strip()
+
     if key in ("front", "content"):
         return (getattr(card, "content", None) or "").strip()
     if key in ("back", "explanation"):
@@ -62,7 +76,20 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
         val = getattr(card, key)
         if val is not None and str(val).strip():
             return str(val).strip()
-    return (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
+
+    # Fallback with tag extraction for nghĩa/meaning
+    exp = getattr(card, "explanation", None) or getattr(card, "content", None) or ""
+    exp_str = str(exp).strip()
+    if lower_key in ("nghĩa", "meaning") or "nghĩa" in lower_key or "mean" in lower_key:
+        import re
+        tag_m = re.search(r'🏷️\s*([^\n🌱💡📢📌📝🗣️]+)', exp_str)
+        if tag_m and tag_m.group(1).strip():
+            return tag_m.group(1).strip()
+        bulb_m = re.search(r'💡\s*([^\n🌱📢📌📝🗣️🏷️]+)', exp_str)
+        if bulb_m and bulb_m.group(1).strip():
+            return bulb_m.group(1).strip()
+
+    return exp_str
 
 def extract_card_answers(card: Any, key: Any) -> list[str]:
     """Extracts a list of non-empty text answers for a given column key or list of keys, supporting '|' delimiter."""

@@ -748,8 +748,8 @@ export default function PracticePlay() {
       return String(item[keyStr]).trim();
     }
 
-    // 2. Exact or case-insensitive match in item.others FIRST!
-    // This ensures custom column values (like item.others["nghĩa"] = "Nuôi dưỡng") take top priority!
+    // 2. Exact, case-insensitive, or semantic match in item.others FIRST!
+    // This ensures custom column values (like item.others["nghĩa tiếng việt"] = "Phát hiện bất ngờ") take top priority!
     if (item.others && typeof item.others === 'object') {
       if (item.others[keyStr] !== undefined && item.others[keyStr] !== null && String(item.others[keyStr]).trim()) {
         return String(item.others[keyStr]).trim();
@@ -757,6 +757,36 @@ export default function PracticePlay() {
       for (const [k, v] of Object.entries(item.others)) {
         if (k.toLowerCase() === keyLower && v !== undefined && v !== null && String(v).trim()) {
           return String(v).trim();
+        }
+      }
+
+      // 2b. Semantic match for meaning columns (e.g. key is "nghĩa" / "meaning", matching "nghĩa tiếng việt", "định nghĩa", "ý nghĩa")
+      if (keyLower === 'nghĩa' || keyLower.includes('nghĩa') || keyLower.includes('mean')) {
+        for (const [k, v] of Object.entries(item.others)) {
+          const kLower = k.toLowerCase();
+          if ((kLower.includes('nghĩa') || kLower.includes('mean')) && v !== undefined && v !== null && String(v).trim()) {
+            return String(v).trim();
+          }
+        }
+      }
+
+      // 2c. Semantic match for IPA / pronunciation columns (e.g. key is "ipa" / "phiên âm", matching "phiên âm ipa", "cách đọc")
+      if (keyLower.includes('ipa') || keyLower.includes('phiên âm') || keyLower.includes('phát âm')) {
+        for (const [k, v] of Object.entries(item.others)) {
+          const kLower = k.toLowerCase();
+          if ((kLower.includes('ipa') || kLower.includes('phiên âm') || kLower.includes('phát âm')) && v !== undefined && v !== null && String(v).trim()) {
+            return String(v).trim();
+          }
+        }
+      }
+
+      // 2d. Semantic match for part of speech columns (e.g. key is "loại từ" / "pos", matching "loại từ")
+      if (keyLower.includes('loại từ') || keyLower.includes('pos')) {
+        for (const [k, v] of Object.entries(item.others)) {
+          const kLower = k.toLowerCase();
+          if ((kLower.includes('loại từ') || kLower.includes('pos')) && v !== undefined && v !== null && String(v).trim()) {
+            return String(v).trim();
+          }
         }
       }
     }
