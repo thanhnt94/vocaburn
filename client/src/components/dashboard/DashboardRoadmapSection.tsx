@@ -472,81 +472,6 @@ export function DashboardRoadmapSection({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      {/* ── 1. TOP CAROUSEL NAVIGATOR (SWIPE INDICATOR) ── */}
-      <div className="flex items-center justify-between shrink-0 px-0.5 pb-1">
-        {/* Left: Previous / Next & Page Count */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-white px-2 py-0.5 rounded-full border border-slate-200/90 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => prevDeck('right')}
-              disabled={safeIdx === 0}
-              className={cn(
-                "w-5 h-5 rounded-full flex items-center justify-center transition-all",
-                safeIdx === 0 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-orange-50 cursor-pointer active:scale-90"
-              )}
-              title="Previous deck"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-            <span className="text-[11px] font-black text-slate-800 px-1.5 tabular-nums">
-              {safeIdx + 1} / {totalDecks}
-            </span>
-            <button
-              type="button"
-              onClick={() => nextDeck('left')}
-              disabled={safeIdx === totalDecks - 1}
-              className={cn(
-                "w-5 h-5 rounded-full flex items-center justify-center transition-all",
-                safeIdx === totalDecks - 1 ? "text-slate-300 cursor-not-allowed" : "text-slate-700 hover:bg-orange-50 cursor-pointer active:scale-90"
-              )}
-              title="Next deck"
-            >
-              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-          </div>
-
-          {/* Dot Indicators */}
-          {totalDecks > 1 && (
-            <div className="flex items-center gap-1">
-              {safeDecks.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setIndex(i, i > safeIdx ? 'left' : 'right')}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all cursor-pointer",
-                    i === safeIdx ? "w-4 bg-orange-500" : "w-1.5 bg-slate-200 hover:bg-slate-300"
-                  )}
-                  title={`Go to deck ${i + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Deck Details Link & Manage Button */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onOpenCustomize && (
-            <button
-              type="button"
-              onClick={onOpenCustomize}
-              className="p-1 rounded-full bg-white hover:bg-orange-50 border border-slate-200/90 text-slate-500 hover:text-orange-600 shadow-2xs active:scale-90 transition-all cursor-pointer"
-              title="Manage Home Decks & Display Style"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <Link 
-            to={`/decks/${deck.deck_id ?? deck.id}`}
-            className="text-[11px] font-black text-orange-600 hover:text-orange-700 bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-200 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-2xs active:scale-95 transition-all shrink-0"
-          >
-            <span>Deck Details</span>
-            <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-          </Link>
-        </div>
-      </div>
-
       {/* ── 2. ANIMATED DECK SLIDE (HERO STAGE + STATS + ACTIONS) ── */}
       <AnimatePresence mode="wait" custom={swipeDir}>
         <motion.div
@@ -665,6 +590,10 @@ export function DashboardRoadmapSection({
                       {deck.level}
                     </span>
                   )}
+                  <span className="text-[10px] font-black text-orange-600 bg-white/80 group-hover:bg-orange-100 border border-orange-200/60 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 transition-colors shrink-0 shadow-2xs ml-0.5">
+                    <span>Details</span>
+                    <ChevronRight className="w-2.5 h-2.5 stroke-[2.5]" />
+                  </span>
                 </Link>
 
                 {/* Creator & Creation Date Info */}

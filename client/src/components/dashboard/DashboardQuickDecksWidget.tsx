@@ -144,25 +144,7 @@ export function DashboardQuickDecksWidget({
   })()
 
   return (
-    <div className="h-full w-full flex flex-col justify-between overflow-hidden text-left select-none relative">
-      {/* ═══════════ TOP HEADER: LEARNING TITLE (Sort button removed as requested) ═══════════ */}
-      <div className="flex items-center justify-between px-1 pt-1 pb-2 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center shadow-2xs">
-            <BookOpen className="w-5 h-5 stroke-[2.4]" />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
-              Learning
-            </h3>
-            <p className="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1">
-              <span>Chọn bộ thẻ bạn muốn học</span>
-              <span className="text-amber-500">✨</span>
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="h-full w-full flex flex-col justify-between overflow-hidden text-left select-none relative pt-1">
       {/* ═══════════ SCROLLABLE DECK SELECTION LIST (Enlarged Card Proportions) ═══════════ */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-0.5 pb-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
         {activeDecks.length === 0 ? (
