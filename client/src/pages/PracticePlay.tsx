@@ -1211,7 +1211,8 @@ export default function PracticePlay() {
 
 
   useEffect(() => {
-    setCurrentIndex(0)
+    setCurrentIndex(-1)
+    setSession(null)
     setPracticeAnswers({})
     setSelectedOption(null)
     setShowFeedback(false)

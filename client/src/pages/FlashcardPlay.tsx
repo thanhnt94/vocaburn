@@ -920,7 +920,9 @@ export default function FlashcardPlay() {
 
 
   useEffect(() => {
-    setCurrentIndex(0)
+    setCurrentIndex(-1)
+    setSession(null)
+    setFsrsCompletionData(null)
     setSessionAnswers({})
     setSelectedOption(null)
     setShowFeedback(false)
@@ -1086,20 +1088,6 @@ export default function FlashcardPlay() {
         }
       }
 
-      setSession({ ...quizRes.data, questions })
-
-      if (questions.length === 0) {
-        setFsrsCompletionData({
-          is_all_completed: true,
-          next_index: -1,
-          total_cards: 0,
-          learned_cards: 0,
-          message: isGlobalFocus 
-            ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉' 
-            : 'Không có thẻ nào phù hợp với bộ lọc này.'
-        })
-      }
-
       const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};
       const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
       const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
@@ -1109,41 +1097,30 @@ export default function FlashcardPlay() {
 
       const rawUrlMode = currentSearchParams.get('mode');
       const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
+      let targetActiveMode = activeMode;
       if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
         setActiveMode(urlMode);
+        targetActiveMode = urlMode;
       } else if (effectiveStudy.learning_mode) {
         const rawEff = effectiveStudy.learning_mode;
         const eff = (rawEff === 'speed_skim' || rawEff === 'flip') ? 'skim' : rawEff;
         setActiveMode(eff);
+        targetActiveMode = eff;
       }
 
       const urlOrder = currentSearchParams.get('order');
+      let effectiveRandom = Boolean(effectiveStudy.random_enabled);
       if (urlOrder === 'random') {
         setRandomEnabled(true);
         saveGeneralSettings({ random_enabled: true });
+        effectiveRandom = true;
       } else if (urlOrder === 'sequential') {
         setRandomEnabled(false);
         saveGeneralSettings({ random_enabled: false });
+        effectiveRandom = false;
       } else if (effectiveStudy.random_enabled !== undefined) {
-        setRandomEnabled(Boolean(effectiveStudy.random_enabled));
-      }
-      
-      const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
-      if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
-        setPracticeRange('all');
-        updateUserSettings({ practice_range: 'all' });
-      }
-      
-      if (isPractice && quizRes.data.practice_settings) {
-        const parsed = quizRes.data.practice_settings;
-        setModeSettings(parsed);
-        if (!parsed.mcq?.active_pairs || parsed.mcq.active_pairs.length === 0) {
-          setPracticeNeedsSetup(true)
-          if ((subMode as string) !== 'setting') {
-            navigate(`/practice/${id}/setting`, { replace: true })
-          }
-          return
-        }
+        effectiveRandom = Boolean(effectiveStudy.random_enabled);
+        setRandomEnabled(effectiveRandom);
       }
       
       setPromptInput(quizRes.data.ai_prompt || '')
@@ -1153,73 +1130,54 @@ export default function FlashcardPlay() {
       setInitialAllTimeTime(quizRes.data.user_all_time_time || 0)
       setPracticeNeedsSetup(!!quizRes.data.practice_needs_setup)
       setPracticeDisabled(!!quizRes.data.practice_disabled)
-      
-      if (activeTab === 'practice') {
-        fetchPracticeSettings()
-        if (currentIndex < 0) setCurrentIndex(0)
+
+      // Determine initial starting card index BEFORE revealing session/card to eliminate visual jitter
+      let curIdx = 0;
+      let completionData: any = null;
+
+      if (questions.length === 0) {
+        completionData = {
+          is_all_completed: true,
+          next_index: -1,
+          total_cards: 0,
+          learned_cards: 0,
+          message: isGlobalFocus 
+            ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉' 
+            : 'Không có thẻ nào phù hợp với bộ lọc này.'
+        };
+      } else if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
+        curIdx = 0;
+      } else {
+        const effectiveMode = urlMode || targetActiveMode || userSettings.quiz_learning_mode || 'fsrs';
+        try {
+          const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
+            mode: effectiveMode,
+            step_type: undefined,
+            answered_indexes: [],
+            current_index: 0,
+            random_enabled: effectiveRandom
+          });
+          if (res.data) {
+            if (res.data.is_all_completed || res.data.next_index === -1) {
+              completionData = res.data;
+              curIdx = 0;
+            } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
+              curIdx = res.data.next_index;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch initial next card from backend", err);
+          curIdx = 0;
+        }
       }
 
-      // Fetch Roadmap status for current deck
-      fetchRoadmapStatus();
-
-      // Dynamic Realtime Queue Initialization (Stateless across devices)
-      const initIndex = async () => {
-        let rmStatus = roadmapStatus;
-        if (!rmStatus && refetchRoadmap) {
-          const fetched = await refetchRoadmap();
-          rmStatus = fetched?.data || undefined;
-        }
-        const rawIdx = rmStatus?.current_step_index || 0;
-        const rawStep = rmStatus?.pipeline?.[rawIdx];
-        const searchParams = new URLSearchParams(window.location.search);
-        const urlMode = searchParams.get('mode');
-        const urlStep = searchParams.get('step');
-        const effectiveMode = urlMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
-        const effectiveRandom = urlOrder === 'random'
-          ? true
-          : urlOrder === 'sequential'
-          ? false
-          : (effectiveStudy.random_enabled !== undefined ? Boolean(effectiveStudy.random_enabled) : randomEnabled);
-
-        const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
-
-        let curIdx = 0;
-        if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
-          curIdx = 0;
-        } else {
-          try {
-            const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-              mode: effectiveMode,
-              step_type: activeStepType,
-              answered_indexes: [],
-              current_index: 0,
-              random_enabled: effectiveRandom
-            });
-            if (res.data) {
-              if (res.data.is_all_completed || res.data.next_index === -1) {
-                setFsrsCompletionData(res.data);
-                setCurrentIndex(-1);
-                setSelectedOption(null);
-                setShowFeedback(false);
-                return;
-              } else {
-                setFsrsCompletionData(null);
-                if (res.data.next_index !== undefined) {
-                  curIdx = res.data.next_index;
-                }
-              }
-            }
-          } catch (err) {
-            console.error("Failed to fetch initial next card from backend", err);
-          }
-        }
-
-        setCurrentIndex(curIdx);
-        setSelectedOption(null);
-        setShowFeedback(false);
-      };
-
-      initIndex();
+      // Batch all initial states together so React renders directly at the correct target card in a single tick
+      setFsrsCompletionData(completionData);
+      setSession({ ...quizRes.data, questions });
+      setCurrentIndex(curIdx);
+      setSelectedOption(null);
+      setShowFeedback(false);
+      setIsFlipped(false);
     } catch (e) {
       console.error("Failed to load deck data:", e)
       showLocalToast("Failed to load deck data. Please check your connection.", "error")
