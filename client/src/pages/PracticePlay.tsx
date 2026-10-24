@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
@@ -27,7 +27,6 @@ import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
-import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
@@ -36,7 +35,10 @@ import {
   PracticeMcqCard,
   PracticeTypingCard,
   PracticeListeningCard,
-  PracticeBottomBar
+  PracticeBottomBar,
+  PracticeQuickControlsSheet,
+  type PracticeScope,
+  type PracticeSubMode
 } from '@/components/practice'
 import { usePracticeAudio, resolveAudioConfig, getCardFieldValue } from '@/hooks/usePracticeAudio'
 import type { Question, Option } from '@/types/flashcard'
@@ -624,14 +626,20 @@ export default function PracticePlay() {
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
     message: string;
-    type?: 'info' | 'warning';
+    type?: 'info' | 'warning' | 'success' | 'error';
   } | null>(null)
   const [justAnswered, setJustAnswered] = useState(false)
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [isQuickControlsOpen, setIsQuickControlsOpen] = useState(false)
+  const isSettingsModalOpen = isQuickControlsOpen
+  const setIsSettingsModalOpen = setIsQuickControlsOpen
 
-  useEffect(() => {
-    cancelAllAudio();
-  }, [currentIndex]);
+  // Toast notification helper
+  const showLocalToast = useCallback((message: string, type: 'info' | 'warning' | 'success' | 'error' = 'info') => {
+    setLearningModeAlert({ visible: true, message, type });
+    setTimeout(() => {
+      setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
+    }, 3500);
+  }, []);
 
   // ── Multi-Modal Practice State Hooks ──
   const mainTab = 'practice' as 'fsrs' | 'practice'
@@ -639,8 +647,72 @@ export default function PracticePlay() {
   const practiceSubMode = userSettings.practice_submode || 'mcq'
   const setPracticeSubMode = (mode: string) => updateUserSettings({ practice_submode: mode as any })
   const baseMode = getBaseMode(practiceSubMode)
-  const practiceRange = userSettings.practice_range || 'all'
-  const setPracticeRange = (range: 'all' | 'learned') => updateUserSettings({ practice_range: range })
+
+  // Card Scope & Filter State ('all' | 'review' | 'new' | 'learned')
+  const [cardScope, setCardScope] = useState<PracticeScope>(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const scopeParam = searchParams.get('scope') || searchParams.get('filter');
+    if (scopeParam === 'review' || scopeParam === 'due') return 'review';
+    if (scopeParam === 'new') return 'new';
+    if (scopeParam === 'learned') return 'learned';
+    return (userSettings.practice_range as any) || 'all';
+  });
+  const practiceRange = cardScope
+  const setPracticeRange = (range: any) => setCardScope(range)
+
+  const isCardReview = useCallback((q: any) => {
+    if (!q) return false;
+    if (q.fsrs) {
+      if (q.fsrs.state === 0 && !q.fsrs.last_review) return false;
+      if (q.fsrs.due) {
+        return new Date(q.fsrs.due).getTime() <= Date.now();
+      }
+      return q.fsrs.state > 0;
+    }
+    return !q.is_new && (q.stats?.total || 0) > 0;
+  }, []);
+
+  const isCardNew = useCallback((q: any) => {
+    if (!q) return false;
+    return q.fsrs ? (q.fsrs.state === 0 && q.fsrs.last_review === null) : (q.is_new || !q.stats?.total);
+  }, []);
+
+  const isCardLearned = useCallback((q: any) => {
+    if (!q) return false;
+    return (q.stats?.total || 0) > 0 || (q.fsrs && q.fsrs.state > 0);
+  }, []);
+
+  const isCardMatchingScope = useCallback((q: any, scope: PracticeScope) => {
+    if (!q) return false;
+    if (scope === 'all') return true;
+    if (scope === 'review') return isCardReview(q);
+    if (scope === 'new') return isCardNew(q);
+    if (scope === 'learned') return isCardLearned(q);
+    return true;
+  }, [isCardReview, isCardNew, isCardLearned]);
+
+  const scopeCounts = useMemo(() => {
+    if (!session?.questions) return { all: 0, review: 0, new: 0, learned: 0 };
+    const all = session.questions.filter((q: any) => !q.is_ignored).length;
+    const review = session.questions.filter((q: any) => !q.is_ignored && isCardReview(q)).length;
+    const newCount = session.questions.filter((q: any) => !q.is_ignored && isCardNew(q)).length;
+    const learned = session.questions.filter((q: any) => !q.is_ignored && isCardLearned(q)).length;
+    return { all, review, new: newCount, learned };
+  }, [session?.questions, isCardReview, isCardNew, isCardLearned]);
+
+  const availableSubLessons = useMemo(() => {
+    if (!session?.questions) return [];
+    const set = new Set<string>();
+    session.questions.forEach((q: any) => {
+      const sub = q.sub_lesson || q.subLesson || (q.others && (q.others.sub_lesson || q.others.subLesson || q.others['bài']));
+      if (sub && typeof sub === 'string' && sub.trim()) {
+        set.add(sub.trim());
+      }
+    });
+    return Array.from(set);
+  }, [session?.questions]);
+
+  const [selectedSubLesson, setSelectedSubLesson] = useState<string | null>(null);
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
@@ -2816,6 +2888,36 @@ export default function PracticePlay() {
     saveSession(isPractice ? customPracticeAnswers : sessionAnswers, idx)
   }
 
+  const handleSelectCardScope = (newScope: PracticeScope) => {
+    setCardScope(newScope);
+    updateUserSettings({ practice_range: newScope as any });
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('scope', newScope);
+    const newPath = window.location.pathname + '?' + searchParams.toString();
+    window.history.replaceState(null, '', newPath);
+
+    if (!session?.questions || session.questions.length === 0) return;
+
+    if (!isCardMatchingScope(currentQuestion, newScope)) {
+      const targetIdx = session.questions.findIndex((q: any) => 
+        !q.is_ignored && isCardMatchingScope(q, newScope)
+      );
+      if (targetIdx !== -1) {
+        navigateToQuestion(targetIdx);
+      } else {
+        showLocalToast(`No ${newScope === 'review' ? 'review due' : newScope} cards in this deck`, 'warning');
+      }
+    }
+  };
+
+  const handleSelectPracticeMode = (targetMode: PracticeSubMode) => {
+    setPracticeAnswers({});
+    setSelectedOption(null);
+    setShowFeedback(false);
+    navigate(`/practice/${id}/${targetMode}`, { replace: true });
+    fetchSession('practice', targetMode as any);
+  };
+
   const handleNext = async (customAnswers?: Record<number, number>) => {
     if (!session || !session.questions) return
 
@@ -2881,21 +2983,41 @@ export default function PracticePlay() {
       return;
     }
 
-    const getNextPracticeIndex = (currentIdx: number, range: 'all' | 'learned', totalQuestions: any[]): number => {
-      const allIndices = totalQuestions.map((q, i) => q.is_ignored ? -1 : i).filter(i => i !== -1);
-      const learnedIndices = totalQuestions.map((q, i) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter(i => i !== -1);
+    const getNextPracticeIndex = (currentIdx: number, scope: PracticeScope, totalQuestions: any[], isRandom: boolean): number => {
+      let matchedIndices = totalQuestions
+        .map((q, i) => (!q.is_ignored && isCardMatchingScope(q, scope)) ? i : -1)
+        .filter(i => i !== -1);
 
-      const activeIndices = (range === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
+      if (selectedSubLesson) {
+        const subMatched = matchedIndices.filter(i => {
+          const q = totalQuestions[i];
+          const sub = q?.sub_lesson || q?.subLesson || (q?.others && (q.others.sub_lesson || q.others.subLesson || q.others['bài']));
+          return sub === selectedSubLesson;
+        });
+        if (subMatched.length > 0) matchedIndices = subMatched;
+      }
+
+      const activeIndices = matchedIndices.length > 0 
+        ? matchedIndices 
+        : totalQuestions.map((q, i) => q.is_ignored ? -1 : i).filter(i => i !== -1);
 
       if (activeIndices.length <= 1) return activeIndices[0] || 0;
 
-      const otherIndices = activeIndices.filter(i => i !== currentIdx);
-      const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
-      return pool[Math.floor(Math.random() * pool.length)];
+      if (isRandom) {
+        const otherIndices = activeIndices.filter(i => i !== currentIdx);
+        const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
+        return pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        const currentPos = activeIndices.indexOf(currentIdx);
+        if (currentPos === -1 || currentPos >= activeIndices.length - 1) {
+          return activeIndices[0];
+        }
+        return activeIndices[currentPos + 1];
+      }
     };
 
     if (mainTab === 'practice') {
-      const nextIdx = getNextPracticeIndex(currentIndex, practiceRange as any, questions);
+      const nextIdx = getNextPracticeIndex(currentIndex, cardScope, questions, Boolean(randomEnabled));
 
       // Clear the answer for both the current and next card so they are always clickable and reusable
       const newAnswers = { ...practiceAnswers };
@@ -4120,165 +4242,12 @@ export default function PracticePlay() {
             onToggleTimeMode={toggleTimeMode}
             onToggleScoreMode={toggleScoreMode}
             formatHeaderTime={formatHeaderTime}
+            onOpenStudyConsole={() => setIsQuickControlsOpen(true)}
           />
         );
       })()}
 
-      {/* Dynamic Mode Switcher Bar (Hidden completely in Roadmap mode) */}
-      {!isRoadmapTestMode && (
-        <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 px-4 lg:px-8 py-1.5 md:py-2 flex items-center justify-between gap-2 md:gap-3 z-50 w-full shadow-sm">
-          {/* Left Side: Branding */}
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
-            <span className="text-xs font-black text-slate-700 tracking-wider uppercase">Luyện tập (Practice Mode)</span>
-          </div>
-
-            {/* Right Side: Sub-mode Selector for Practice Tab */}
-            {!practiceNeedsSetup && !practiceDisabled && (
-              <div
-                className="flex items-center gap-2.5 overflow-x-auto w-full md:w-auto scrollbar-none [&::-webkit-scrollbar]:hidden py-0.5 justify-center flex-nowrap"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {/* Mode Range Selector (Tất cả vs Đã học) */}
-                <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 shadow-inner flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setPracticeRange('all');
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      practiceRange === 'all'
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                        : "text-slate-500 hover:text-slate-700"
-                    )}
-                    title="Random (All)"
-                  >
-                    <Shuffle className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Random (All)</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
-                      if (learnedIndices.length === 0) {
-                        setLearningModeAlert({
-                          visible: true,
-                          message: "You haven't learned any cards in this deck yet! Automatically switching to 'Random (All)' mode.",
-                          type: 'warning'
-                        });
-                        setTimeout(() => {
-                          setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
-                        }, 4500);
-                        return;
-                      }
-                      setPracticeRange('learned');
-
-                      if (!learnedIndices.includes(currentIndex)) {
-                        navigateToQuestion(learnedIndices[0]);
-                      }
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      practiceRange === 'learned'
-                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    )}
-                    title="Practice (Learned)"
-                  >
-                    <ListOrdered className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Practice (Learned)</span>
-                  </button>
-                </div>
-
-                <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
-
-                <div className="flex bg-slate-100/60 p-0.5 rounded-xl border border-slate-200/30 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setPracticeAnswers({});
-                      setSelectedOption(null);
-                      setShowFeedback(false);
-                      navigate(`/practice/${id}/mcq`, { replace: true });
-                      fetchSession('practice', 'mcq');
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      baseMode === 'mcq'
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                        : "text-slate-500 hover:text-slate-700"
-                    )}
-                    title="MCQ"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">MCQ</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setPracticeAnswers({});
-                      setSelectedOption(null);
-                      setShowFeedback(false);
-                      navigate(`/practice/${id}/typing`, { replace: true });
-                      fetchSession('practice', 'typing');
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      baseMode === 'typing'
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                        : "text-slate-500 hover:text-slate-700"
-                    )}
-                    title="Typing"
-                  >
-                    <Keyboard className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Typing</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setPracticeAnswers({});
-                      setSelectedOption(null);
-                      setShowFeedback(false);
-                      navigate(`/practice/${id}/listening_mcq`, { replace: true });
-                      fetchSession('practice', 'listening_mcq');
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      baseMode === 'listening_mcq' || (baseMode === 'listening' && Array.isArray(currentPracticeData?.choices) && currentPracticeData.choices.length > 0)
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                        : "text-slate-500 hover:text-slate-700"
-                    )}
-                    title="Listening MCQ (Nghe chọn đáp án)"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Nghe chọn</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setPracticeAnswers({});
-                      setSelectedOption(null);
-                      setShowFeedback(false);
-                      navigate(`/practice/${id}/listening_typing`, { replace: true });
-                      fetchSession('practice', 'listening_typing');
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5",
-                      baseMode === 'listening_typing' || (baseMode === 'listening' && (!currentPracticeData?.choices || currentPracticeData.choices.length === 0))
-                        ? "bg-white text-indigo-600 shadow-sm border border-slate-200/10"
-                        : "text-slate-500 hover:text-slate-700"
-                    )}
-                    title="Listening Typing (Nghe gõ từ)"
-                  >
-                    <Headphones className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Nghe gõ</span>
-                  </button>
-                </div>
-              </div>
-            )}
-        </div>
-      )}
-
-<main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
+      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
         <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? (
             <FeedbackArea
@@ -5576,337 +5545,7 @@ export default function PracticePlay() {
         )}
       </AnimatePresence>
 
-      {/* ⚙️ PRACTICE SETTINGS MODAL */}
-      <AnimatePresence>
-        {isSettingsModalOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSettingsModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md pointer-events-auto"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white md:rounded-[2rem] rounded-[1.25rem] p-6 shadow-2xl border border-slate-100/80 overflow-hidden text-slate-800 pointer-events-auto"
-            >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
-              
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-indigo-600">
-                  <Sliders className="w-5 h-5" />
-                  Cấu hình luyện tập
-                </h3>
-              </div>
 
-              <div className="space-y-6">
-                {/* 1. Practice Range */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Phạm vi câu hỏi</label>
-                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                    <button
-                      onClick={() => {
-                        setPracticeRange('all');
-                      }}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-bold transition-all",
-                        practiceRange === 'all'
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100"
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Shuffle className={cn("w-4.5 h-4.5", practiceRange === 'all' ? "text-indigo-600" : "text-slate-400")} />
-                      <span>Ngẫu nhiên (Tất cả)</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        const learnedIndices = session?.questions?.map((q: any, i: number) => (q.stats?.total || 0) > 0 ? i : -1).filter((i: number) => i !== -1) || [];
-                        if (learnedIndices.length === 0) {
-                          setLearningModeAlert({
-                            visible: true,
-                            message: "Bạn chưa học từ nào trong bộ này! Tự động chuyển về chế độ Ngẫu nhiên (Tất cả).",
-                            type: 'warning'
-                          });
-                          setTimeout(() => {
-                            setLearningModeAlert(prev => prev ? { ...prev, visible: false } : null);
-                          }, 4500);
-                          return;
-                        }
-                        setPracticeRange('learned');
-                        if (!learnedIndices.includes(currentIndex)) {
-                          navigateToQuestion(learnedIndices[0]);
-                        }
-                      }}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-[10px] font-bold transition-all",
-                        practiceRange === 'learned'
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100"
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <ListOrdered className={cn("w-4.5 h-4.5", practiceRange === 'learned' ? "text-indigo-600" : "text-slate-400")} />
-                      <span>Thẻ đã học</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. Practice Sub-mode */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hình thức luyện tập</label>
-                  <div className="grid grid-cols-4 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                    {[
-                      { id: 'mcq', label: 'Trắc nghiệm', icon: HelpCircle },
-                      { id: 'typing', label: 'Tự gõ', icon: Keyboard },
-                      { id: 'listening_mcq', label: 'Nghe chọn', icon: Volume2 },
-                      { id: 'listening_typing', label: 'Nghe gõ', icon: Headphones }
-                    ].map(m => {
-                      const IconComp = m.icon;
-                      const active = practiceSubMode === m.id || (m.id === 'listening_mcq' && practiceSubMode === 'listening');
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={() => {
-                            setPracticeAnswers({});
-                            setSelectedOption(null);
-                            setShowFeedback(false);
-                            navigate(`/practice/${id}/${m.id}`, { replace: true });
-                            fetchSession('practice', m.id as any);
-                          }}
-                          className={cn(
-                            "flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-[10px] font-bold transition-all",
-                            active 
-                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                              : "text-slate-500 hover:bg-white/50"
-                          )}
-                        >
-                          <IconComp className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
-                          <span className="truncate w-full text-center text-[9px]">{m.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. Compact Reading Audio Grid */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Âm thanh đọc</label>
-                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                    {/* Front Audio */}
-                    {(() => {
-                      const active = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                      return (
-                        <button
-                          onClick={() => {
-                            const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                            const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                            const nextState = isFrontOn ? (isBackOn ? 'back' : 'none') : (isBackOn ? 'always' : 'front');
-                            setAutoPlayAudio(nextState);
-                          }}
-                          className={cn(
-                            "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                            active 
-                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                              : "text-slate-500 hover:bg-white/50"
-                          )}
-                        >
-                          <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
-                          <span className="truncate w-full text-center text-[9px]">Mặt trước</span>
-                        </button>
-                      );
-                    })()}
-
-                    {/* Back Audio */}
-                    {(() => {
-                      const active = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                      return (
-                        <button
-                          onClick={() => {
-                            const isFrontOn = autoPlayAudio === 'always' || autoPlayAudio === 'front';
-                            const isBackOn = autoPlayAudio === 'always' || autoPlayAudio === 'back';
-                            const nextState = isBackOn ? (isFrontOn ? 'front' : 'none') : (isFrontOn ? 'always' : 'back');
-                            setAutoPlayAudio(nextState);
-                          }}
-                          className={cn(
-                            "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                            active 
-                              ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                              : "text-slate-500 hover:bg-white/50"
-                          )}
-                        >
-                          <Volume2 className={cn("w-4.5 h-4.5", active ? "text-indigo-600" : "text-slate-400")} />
-                          <span className="truncate w-full text-center text-[9px]">Mặt sau</span>
-                        </button>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* 4. Compact Effects & Interaction Grid */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Hiệu ứng & Hiển thị</label>
-                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                    {/* Effect Sound */}
-                    <button
-                      onClick={() => setSfxEnabled(!sfxEnabled)}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                        sfxEnabled 
-                          ? "bg-white text-emerald-600 shadow-sm border border-slate-100" 
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Music className={cn("w-4.5 h-4.5", sfxEnabled ? "text-emerald-500" : "text-slate-400")} />
-                      <span className="truncate w-full text-center text-[9px]">Âm hiệu ứng</span>
-                    </button>
-
-                    {/* Haptic */}
-                    <button
-                      onClick={() => setHapticEnabled(!hapticEnabled)}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                        hapticEnabled 
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Zap className={cn("w-4.5 h-4.5", hapticEnabled ? "text-indigo-500" : "text-slate-400")} />
-                      <span className="truncate w-full text-center text-[9px]">Rung Haptic</span>
-                    </button>
-
-                    {/* Show Images Toggle */}
-                    <button
-                      onClick={() => setShowImages(showImages === 'none' ? 'always' : 'none')}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                        showImages !== 'none' 
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Image className={cn("w-4.5 h-4.5", showImages ? "text-indigo-500" : "text-slate-400")} />
-                      <span className="truncate w-full text-center text-[9px]">Hiện hình ảnh</span>
-                    </button>
-
-                    {/* FSRS Toggle */}
-                    <button
-                      onClick={() => setShowFsrs(!showFsrs)}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[10px] font-bold transition-all active:scale-95",
-                        showFsrs 
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                          : "text-slate-500 hover:bg-white/50"
-                      )}
-                    >
-                      <Brain className={cn("w-4.5 h-4.5", showFsrs ? "text-indigo-500" : "text-slate-400")} />
-                      <span className="truncate w-full text-center text-[9px]">Hiện chỉ số FSRS</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Thao tác thẻ học */}
-                <div className="py-2.5 border-t border-slate-100 space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Thao tác thẻ học</label>
-                  <div className="flex items-center justify-center gap-3">
-                    {showFeedback && (
-                      <button 
-                        onClick={() => {
-                          copyQuestionToClipboard();
-                          setIsSettingsModalOpen(false);
-                        }}
-                        title="Copy nội dung"
-                        className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
-                      >
-                        <Copy className="w-5 h-5" />
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        handleIgnoreQuestion();
-                      }}
-                      title={currentQuestion?.is_ignored ? "Hủy bỏ qua thẻ" : "Bỏ qua thẻ"}
-                      className={cn(
-                        "w-11 h-11 rounded-2xl border flex items-center justify-center shadow-sm transition-all active:scale-90",
-                        currentQuestion?.is_ignored 
-                          ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100"
-                          : "bg-slate-50 border-slate-200/60 hover:bg-slate-100 text-slate-500 hover:text-slate-700"
-                      )}
-                    >
-                      {currentQuestion?.is_ignored ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        openEditModal();
-                      }}
-                      title="Sửa thẻ này"
-                      className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 shadow-sm transition-all active:scale-90"
-                    >
-                      <Edit3 className="w-5 h-5" />
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        setIsQuitModalOpen(true);
-                      }}
-                      title="Thoát phiên học"
-                      className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-200 text-rose-500 hover:bg-rose-100 flex items-center justify-center shadow-sm transition-all active:scale-90"
-                    >
-                      <LogOut className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quản lý bộ thẻ */}
-                {id && (
-                  <div className="py-2.5 border-t border-slate-100 space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-center">Quản lý bộ thẻ</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button 
-                        onClick={() => {
-                          setIsSettingsModalOpen(false);
-                          navigate(`/decks/${id}?tab=settings`);
-                        }}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
-                      >
-                        <Settings className="w-4 h-4 text-indigo-500 animate-pulse" />
-                        <span>Cấu hình bộ</span>
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setIsSettingsModalOpen(false);
-                          navigate(`/decks/${id}?tab=cards`);
-                        }}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl text-slate-700 font-black text-[10px] uppercase tracking-wider shadow-sm transition-all active:scale-95"
-                      >
-                        <BookOpen className="w-4 h-4 text-emerald-500 animate-pulse" />
-                        <span>Danh sách thẻ</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 5. Agree / Close Button */}
-                <div className="pt-3 border-t border-slate-100 flex justify-center">
-                  <button 
-                    onClick={() => setIsSettingsModalOpen(false)}
-                    className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    Đồng ý / Đóng
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Exit Confirmation Modal */}
       <AnimatePresence>
@@ -6439,60 +6078,55 @@ export default function PracticePlay() {
 
 
 
-      {/* Play Settings Modal */}
-      <PlaySettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        activeMode={activeMode}
-        applyLearningMode={setActiveMode}
+      {/* Practice Quick Controls Sheet (Unified with Flashcard Quick Controls) */}
+      <PracticeQuickControlsSheet
+        isOpen={isQuickControlsOpen}
+        onClose={() => setIsQuickControlsOpen(false)}
+        practiceSubMode={(subMode as PracticeSubMode) || (practiceSubMode as PracticeSubMode) || 'mcq'}
+        onSelectPracticeMode={handleSelectPracticeMode}
+        cardScope={cardScope}
+        onSelectCardScope={handleSelectCardScope}
+        scopeCounts={scopeCounts}
+        randomEnabled={Boolean(randomEnabled)}
+        onToggleRandom={(val) => setRandomEnabled(val)}
         autoPlayAudio={autoPlayAudio}
         setAutoPlayAudio={setAutoPlayAudio}
-        sfxEnabled={sfxEnabled}
+        sfxEnabled={Boolean(sfxEnabled)}
         setSfxEnabled={setSfxEnabled}
-        hapticEnabled={hapticEnabled}
+        hapticEnabled={Boolean(hapticEnabled)}
         setHapticEnabled={setHapticEnabled}
-        showFeedback={showFeedback}
-        copyQuestionToClipboard={copyQuestionToClipboard}
-        currentQuestion={currentQuestion}
-        handleStarQuestion={() => {
-          if (currentQuestion?.id) {
-            setStarredCards(prev => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
-          }
-        }}
-        isStarred={Boolean(currentQuestion?.id && starredCards[currentQuestion.id])}
-        openEditModal={() => setIsEditModalOpen(true)}
-        setIsQuitModalOpen={() => navigate('/')}
+        fontSize={frontFontSize}
+        setFontSize={setFrontFontSize}
         showImages={showImages}
         setShowImages={setShowImages}
-        showFsrs={showFsrs}
-        setShowFsrs={setShowFsrs}
-        randomEnabled={randomEnabled}
-        setRandomEnabled={setRandomEnabled}
-        isCustomized={isCustomized}
-        settingOrigin={settingOrigin}
-        onResetToCreatorDefaults={resetToCreatorDefaults}
-        frontHalign={frontHalign}
-        setFrontHalign={setFrontHalign}
-        frontFontSize={frontFontSize}
-        setFrontFontSize={setFrontFontSize}
-        backHalign={backHalign}
-        setBackHalign={setBackHalign}
-        frontValign={frontValign}
-        setFrontValign={setFrontValign}
-        backValign={backValign}
-        setBackValign={setBackValign}
-        cardFlipTrigger={deckCardFlipTrigger || userSettings.card_flip_trigger || 'both'}
-        setCardFlipTrigger={(val) => {
-          setCardFlipTrigger(val);
-          saveGeneralSettings({ card_flip_trigger: val });
+        currentQuestion={currentQuestion}
+        currentPracticeData={currentPracticeData}
+        canEdit={Boolean(canEdit)}
+        onOpenEditModal={() => setIsEditModalOpen(true)}
+        onToggleIgnoreCard={handleIgnoreQuestion}
+        isIgnored={Boolean(currentQuestion?.is_ignored)}
+        deckId={id}
+        onRestartSession={() => {
+          setPracticeAnswers({});
+          setSessionAnswers({});
+          setSelectedOption(null);
+          setShowFeedback(false);
+          setCurrentIndex(0);
         }}
-        cardRatingMode={deckCardRatingMode || userSettings.card_rating_mode || 'both'}
-        setCardRatingMode={(val) => {
-          setCardRatingMode(val);
-          saveGeneralSettings({ card_rating_mode: val });
+        onExitSession={() => setIsQuitModalOpen(true)}
+        showLocalToast={showLocalToast}
+        subLessons={availableSubLessons}
+        selectedSubLesson={selectedSubLesson}
+        onSelectSubLesson={(sub) => {
+          setSelectedSubLesson(sub);
+          if (sub && session?.questions) {
+            const matchIdx = session.questions.findIndex((q: any) => {
+              const qSub = q.sub_lesson || q.subLesson || (q.others && (q.others.sub_lesson || q.others.subLesson || q.others['bài']));
+              return qSub === sub;
+            });
+            if (matchIdx !== -1) navigateToQuestion(matchIdx);
+          }
         }}
-        isCreator={Boolean(session?.is_creator || session?.creator_id === user?.id || user?.role === 'admin')}
-        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
       />
     </div>
   )
