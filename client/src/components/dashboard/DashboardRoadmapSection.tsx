@@ -37,6 +37,35 @@ const CHEER_QUOTES = [
   "Your brain is absorbing vocabulary at lightning speed! 🧠⚡"
 ]
 
+export interface MascotProfile {
+  img: string
+  headline: string
+  alt: string
+}
+
+export const ACTIVE_MASCOTS: MascotProfile[] = [
+  { img: '/mascot/excited.png', headline: 'Keep your memory burning! 🔥', alt: 'Hero Flame' },
+  { img: '/mascot/ninja.png', headline: 'Fast as lightning, sharp as steel! ⚡', alt: 'Ninja Flame' },
+  { img: '/mascot/detective.png', headline: 'Investigate and discover new words! 🔍', alt: 'Detective Flame' },
+  { img: '/mascot/dj.png', headline: 'Groove to the rhythm of learning! 🎧', alt: 'DJ Flame' },
+  { img: '/mascot/reading.png', headline: 'Deep focus, unstoppable growth! 📖', alt: 'Scholar Flame' },
+]
+
+export const CELEBRATING_MASCOTS: MascotProfile[] = [
+  { img: '/mascot/celebrating.png', headline: 'All caught up! Magnificent! 🎉', alt: 'Victory Flame' },
+  { img: '/mascot/dj.png', headline: 'Vibe time! Today review complete! 🎶', alt: 'Party DJ Flame' },
+  { img: '/mascot/excited.png', headline: 'High score achievement unlocked! 🌟', alt: 'Super Flame' },
+]
+
+export const MASTERED_MASCOTS: MascotProfile[] = [
+  { img: '/mascot/celebrating.png', headline: 'All Mastered! Legendary! 👑', alt: 'Crown Flame' },
+  { img: '/mascot/ninja.png', headline: 'Complete Deck Mastery achieved! ⚡', alt: 'Ninja Master Flame' },
+]
+
+export const SLEEPY_MASCOTS: MascotProfile[] = [
+  { img: '/mascot/sleepy.png', headline: 'Ready to study whenever you are! 💤', alt: 'Resting Flame' },
+]
+
 export function computeDeckData(deck: any, userSettings: any, user: any) {
   const st = deck?.status || {}
   const totalCards = Number(st.total_cards || deck?.total_cards || deck?.questions_count || 0)
@@ -157,6 +186,7 @@ export function DashboardRoadmapSection({
   const user = useAppStore(s => s.user)
   const userSettings = useAppStore(s => s.userSettings)
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
+  const [mascotOverride, setMascotOverride] = useState<MascotProfile | null>(null)
   const [internalIdx, setInternalIdx] = useState(0)
   type SwipeDirection = 'left' | 'right' | 'up' | 'down' | 'none'
   const [swipeDir, setSwipeDir] = useState<SwipeDirection>('left')
@@ -176,6 +206,7 @@ export function DashboardRoadmapSection({
   const setIndex = (idx: number, dir: SwipeDirection = 'left') => {
     setSwipeDir(dir)
     setInternalIdx(idx)
+    setMascotOverride(null)
     if (onSelectRoadmapIdx) onSelectRoadmapIdx(idx)
   }
 
@@ -270,9 +301,15 @@ export function DashboardRoadmapSection({
     }
     const randomQuote = CHEER_QUOTES[Math.floor(Math.random() * CHEER_QUOTES.length)]
     setMascotCheer(randomQuote)
+
+    // Randomize to a different lively mascot pose on tap for joyful interactivity
+    const availableMascots = ACTIVE_MASCOTS.concat(CELEBRATING_MASCOTS)
+    const nextRandomMascot = availableMascots[Math.floor(Math.random() * availableMascots.length)]
+    setMascotOverride(nextRandomMascot)
+
     setTimeout(() => {
       setMascotCheer(null)
-    }, 4000)
+    }, 4500)
   }
 
   // Empty state if no decks are active on Home
@@ -409,20 +446,22 @@ export function DashboardRoadmapSection({
     deckDescription
   } = deckData
 
-  // Mascot expression & speech
-  let mascotImg = '/mascot/sleepy.png'
-  let mascotHeadline = 'Ready to study!'
+  // Mascot expression & speech - Deterministically seeded per deck with tap override
+  const deckSeed = Math.abs(Number(deck.deck_id ?? deck.id ?? safeIdx))
 
+  let baseMascot: MascotProfile = SLEEPY_MASCOTS[0]
   if (isMastered) {
-    mascotImg = '/mascot/celebrating.png'
-    mascotHeadline = 'All Mastered! 🎉'
+    baseMascot = MASTERED_MASCOTS[deckSeed % MASTERED_MASCOTS.length]
   } else if (dueRemaining === 0 && learnedCards > 0) {
-    mascotImg = '/mascot/celebrating.png'
-    mascotHeadline = 'All caught up! ✨'
+    baseMascot = CELEBRATING_MASCOTS[deckSeed % CELEBRATING_MASCOTS.length]
   } else if (dueRemaining > 0) {
-    mascotImg = '/mascot/excited.png'
-    mascotHeadline = 'Keep your memory burning! 🔥'
+    baseMascot = ACTIVE_MASCOTS[deckSeed % ACTIVE_MASCOTS.length]
   }
+
+  const currentMascot = mascotOverride || baseMascot
+  const mascotImg = currentMascot.img
+  const mascotHeadline = currentMascot.headline
+  const mascotAlt = currentMascot.alt
 
   return (
     <div 
@@ -787,11 +826,11 @@ export function DashboardRoadmapSection({
                 {/* Large, Beautiful Mascot anchored right as originally designed */}
                 <motion.img 
                   key={mascotImg}
-                  initial={{ scale: 0.92, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.25 }}
-                  src={`${mascotImg}?v=clean_v21`} 
-                  alt="Vocaburn Mascot" 
+                  initial={{ scale: 0.88, opacity: 0, rotate: -3 }}
+                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                  src={`${mascotImg}?v=2`} 
+                  alt={mascotAlt} 
                   className="h-[105%] max-h-[220px] sm:max-h-[250px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
                 />
               </div>

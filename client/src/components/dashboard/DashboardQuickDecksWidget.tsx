@@ -33,7 +33,7 @@ const DECK_PALETTES = [
     cardBg: 'bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50',
     barTrack: 'bg-orange-100',
     barFill: 'bg-gradient-to-r from-orange-400 to-[#FF7A00]',
-    mascotImage: '/mascot/mascot_flame_sakura.jpg',
+    mascotImage: '/mascot/excited.png',
     accentColor: '#FF7A00'
   },
   {
@@ -43,7 +43,7 @@ const DECK_PALETTES = [
     cardBg: 'bg-gradient-to-r from-[#FAF8FF] via-white to-[#F5F3FF]',
     barTrack: 'bg-indigo-100/70',
     barFill: 'bg-gradient-to-r from-indigo-400 to-purple-500',
-    mascotImage: '/mascot/mascot_fox_reading.jpg',
+    mascotImage: '/mascot/dj.png',
     accentColor: '#7C3AED'
   },
   {
@@ -53,7 +53,7 @@ const DECK_PALETTES = [
     cardBg: 'bg-gradient-to-r from-[#F4FBF7] via-white to-[#ECFDF5]',
     barTrack: 'bg-emerald-100/70',
     barFill: 'bg-gradient-to-r from-emerald-400 to-teal-500',
-    mascotImage: '/mascot/mascot_leaf_spirit.jpg',
+    mascotImage: '/mascot/detective.png',
     accentColor: '#059669'
   },
   {
@@ -63,7 +63,7 @@ const DECK_PALETTES = [
     cardBg: 'bg-gradient-to-r from-[#F0F9FF] via-white to-[#E0F2FE]',
     barTrack: 'bg-sky-100/70',
     barFill: 'bg-gradient-to-r from-sky-400 to-blue-500',
-    mascotImage: '/mascot/mascot_flame_sakura.jpg',
+    mascotImage: '/mascot/ninja.png',
     accentColor: '#0284C7'
   }
 ]
