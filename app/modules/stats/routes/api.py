@@ -83,9 +83,6 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     if user.role != "admin":
         query_b = query_b.where(FlashcardDeck.creator_id == user_id_int)
 
-    # Query Creators in bulk
-    query_users = select(User.id, User.username)
-
     # Query User's Mastery progress per deck in bulk
     query_mastery = select(
         Flashcard.deck_id,
@@ -106,10 +103,14 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
 
     if only_created:
         res_b = await db.execute(query_b)
-        res_users = await db.execute(query_users)
         res_mastery = await db.execute(query_mastery)
         res_user_settings = await db.execute(query_user_settings)
-        creator_map = {row[0]: row[1] for row in res_users.all()}
+        b_rows = res_b.all()
+        creator_ids = {row[0].creator_id for row in b_rows if row[0].creator_id}
+        creator_map = {}
+        if creator_ids:
+            res_users = await db.execute(select(User.id, User.username).where(User.id.in_(creator_ids)))
+            creator_map = {row[0]: row[1] for row in res_users.all()}
         mastery_map = {row[0]: {"learned": row[1] or 0, "mastered": row[2] or 0} for row in res_mastery.all()}
         user_settings_map = {row[0]: row[1] for row in res_user_settings.all() if row[1]}
         
@@ -224,7 +225,6 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     res_a = await db.execute(query_a)
     res_b = await db.execute(query_b)
     res_c = await db.execute(query_c)
-    res_users = await db.execute(query_users)
     res_mastery = await db.execute(query_mastery)
     res_user_settings = await db.execute(query_user_settings)
     gamify_data = await GamificationInterface.get_user_stats(db, user_id_int, tz_offset=tz_offset)
@@ -232,7 +232,20 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     notifications = await NotificationInterface.get_latest(db, user_id_int)
     unread_count = await NotificationInterface.get_unread_count(db, user_id_int)
 
-    creator_map = {row[0]: row[1] for row in res_users.all()}
+    a_rows = res_a.all()
+    b_rows = res_b.all()
+    c_rows = res_c.all()
+
+    creator_ids = set()
+    for row in a_rows + b_rows + c_rows:
+        if row[0] and getattr(row[0], 'creator_id', None):
+            creator_ids.add(row[0].creator_id)
+
+    creator_map = {}
+    if creator_ids:
+        res_users = await db.execute(select(User.id, User.username).where(User.id.in_(creator_ids)))
+        creator_map = {row[0]: row[1] for row in res_users.all()}
+
     mastery_map = {row[0]: {"learned": row[1] or 0, "mastered": row[2] or 0} for row in res_mastery.all()}
     user_settings_map = {row[0]: row[1] for row in res_user_settings.all() if row[1]}
 

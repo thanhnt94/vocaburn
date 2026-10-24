@@ -18,7 +18,6 @@ import { useAppStore } from '@/store/useAppStore'
 
 interface DashboardRoadmapSectionProps {
   roadmapDecks: any[] | undefined
-  remainingTime?: string
   selectedRoadmapIdx?: number
   onSelectRoadmapIdx?: (idx: number) => void
   onOpenStudyModal?: (deck: any, tab: 'flashcard' | 'practice') => void

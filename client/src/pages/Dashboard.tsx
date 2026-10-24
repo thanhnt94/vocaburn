@@ -1084,29 +1084,7 @@ export default function Dashboard() {
   const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<any | null>(null)
   const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
   const [timeFilter, setTimeFilter] = useState<LeaderboardTimeFilter>('week')
-  const [remainingTime, setRemainingTime] = useState<string>('')
   const [selectedRoadmapIdx, setSelectedRoadmapIdx] = useState(0)
-
-  useEffect(() => {
-    const updateCountdown = () => {
-      const now = new Date()
-      // VPS resets daily goal at 23:59:59 UTC
-      const endOfUtcDay = new Date(Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-        23, 59, 59, 999
-      ))
-      const diffMs = Math.max(0, endOfUtcDay.getTime() - now.getTime())
-      const hours = Math.floor(diffMs / (1000 * 60 * 60))
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000)
-      setRemainingTime(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`)
-    }
-    updateCountdown()
-    const timer = setInterval(updateCountdown, 1000)
-    return () => clearInterval(timer)
-  }, [])
 
   const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
     queryKey: ['roadmapDecks'],
@@ -1246,6 +1224,7 @@ export default function Dashboard() {
       return res.data
     },
     staleTime: 5 * 60 * 1000,
+    enabled: typeof window !== 'undefined' && window.innerWidth >= 768,
   })
 
   const { data: leaderboardData } = useQuery({
@@ -1255,6 +1234,7 @@ export default function Dashboard() {
       return res.data
     },
     staleTime: 60 * 1000,
+    enabled: typeof window !== 'undefined' && window.innerWidth >= 768,
   })
 
   // Lock scroll on desktop
@@ -1470,7 +1450,6 @@ export default function Dashboard() {
           )}
           <DashboardRoadmapSection
             roadmapDecks={sortedRoadmapDecks}
-            remainingTime={remainingTime}
             selectedRoadmapIdx={selectedRoadmapIdx}
             onSelectRoadmapIdx={setSelectedRoadmapIdx}
             onOpenStudyModal={handleOpenStudyModal}
@@ -1718,7 +1697,6 @@ export default function Dashboard() {
           {homeViewMode === 'spotlight' ? (
             <DashboardRoadmapSection
               roadmapDecks={displayDecks}
-              remainingTime={remainingTime}
               selectedRoadmapIdx={selectedRoadmapIdx}
               onSelectRoadmapIdx={setSelectedRoadmapIdx}
               onOpenStudyModal={handleOpenStudyModal}

@@ -35,8 +35,6 @@ get_deck_roadmap_status_helper = RoadmapService.get_deck_roadmap_status
 async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
     
-    from app.modules.deck.models import FlashcardDeck, UserDeckSettings
-    
     # STRICT: Only show decks where user has EXPLICITLY set roadmap_active=True in their UserDeckSettings
     user_setts_res = await db.execute(
         select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
@@ -62,21 +60,112 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
         from .media_resolver import get_sso_server_url, resolve_central_url
         sso_url = await get_sso_server_url(db)
 
+        # UTC+0 Day boundaries (Rule 11)
+        now_utc = datetime.now(timezone.utc)
+        day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+        day_end = day_start + timedelta(days=1) - timedelta(microseconds=1)
+
+        # Batch Query 1: Total cards per deck
+        total_cards_res = await db.execute(
+            select(Flashcard.deck_id, func.count(Flashcard.id))
+            .where(Flashcard.deck_id.in_(active_deck_ids))
+            .group_by(Flashcard.deck_id)
+        )
+        total_map = {row[0]: row[1] for row in total_cards_res.all()}
+
+        # Batch Query 2: Mastery progress (learned & mastered)
+        mastery_res = await db.execute(
+            select(
+                Flashcard.deck_id,
+                func.count(UserCardMastery.id),
+                func.sum(case((UserCardMastery.box_level >= 4, 1), else_=0))
+            )
+            .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
+            .where(
+                Flashcard.deck_id.in_(active_deck_ids),
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.state > 0,
+                or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
+            )
+            .group_by(Flashcard.deck_id)
+        )
+        mastery_map = {row[0]: (row[1] or 0, row[2] or 0) for row in mastery_res.all()}
+
+        # Batch Query 3: Due reviews today (Rule 11: due <= day_end, exclude reviewed today)
+        due_res = await db.execute(
+            select(Flashcard.deck_id, func.count(UserCardMastery.id))
+            .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
+            .where(
+                Flashcard.deck_id.in_(active_deck_ids),
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.state > 0,
+                UserCardMastery.due <= day_end,
+                or_(UserCardMastery.last_review.is_(None), UserCardMastery.last_review < day_start),
+                or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
+            )
+            .group_by(Flashcard.deck_id)
+        )
+        due_map = {row[0]: row[1] for row in due_res.all()}
+
+        # Batch Query 4: Streak counts
+        goals_res = await db.execute(
+            select(UserDeckGoal.deck_id, UserDeckGoal.streak_count)
+            .where(
+                UserDeckGoal.user_id == user_id,
+                UserDeckGoal.deck_id.in_(active_deck_ids)
+            )
+        )
+        streak_map = {row[0]: (row[1] or 0) for row in goals_res.all()}
+
         for deck in decks:
             u_sett = user_setts_map.get(deck.id, {})
             creator_sett = deck.practice_settings if isinstance(deck.practice_settings, dict) else {}
-            merged_settings = {**creator_sett, **u_sett, "roadmap_active": True}
-            status = await get_deck_roadmap_status_helper(db, user_id, deck.id, merged_settings)
+            
+            is_frozen = bool(u_sett.get("is_frozen", False))
+            disabled_modes = []
+            if isinstance(creator_sett.get("disabled_modes"), list):
+                disabled_modes.extend(creator_sett["disabled_modes"])
+            if isinstance(u_sett.get("disabled_modes"), list):
+                disabled_modes.extend(u_sett["disabled_modes"])
+            disabled_modes = list(set(disabled_modes))
+
+            practice_modes_set = {"mcq", "typing", "listening_mcq", "listening_typing"}
+            is_practice_disabled = (
+                "practice" in disabled_modes or
+                "all_practice" in disabled_modes or
+                practice_modes_set.issubset(set(disabled_modes)) or
+                ({"mcq", "typing"}.issubset(set(disabled_modes)))
+            )
+
+            total_cnt = total_map.get(deck.id, 0)
+            learned_cnt, mastered_cnt = mastery_map.get(deck.id, (0, 0))
+            unlearned_cnt = max(0, total_cnt - learned_cnt)
+            due_cnt = due_map.get(deck.id, 0)
+            deck_streak = streak_map.get(deck.id, 0)
+
+            status = {
+                "total_cards": total_cnt,
+                "learned_cards": learned_cnt,
+                "mastered_count": mastered_cnt,
+                "unlearned_cards": unlearned_cnt,
+                "review_due_today": due_cnt,
+                "streak": deck_streak,
+                "is_frozen": is_frozen,
+                "disabled_modes": disabled_modes,
+                "is_practice_disabled": is_practice_disabled,
+                "retention_rate": 90,
+            }
+
             cover_image = resolve_central_url(deck.cover_image, sso_url) if deck.cover_image else None
             active_roadmaps.append({
                 "deck_id": deck.id,
                 "title": deck.title,
                 "description": deck.description,
                 "cover_image": cover_image,
-                "is_frozen": status.get("is_frozen", False),
+                "is_frozen": is_frozen,
                 "practice_settings": deck.practice_settings or {},
-                "disabled_modes": status.get("disabled_modes", []),
-                "is_practice_disabled": status.get("is_practice_disabled", False),
+                "disabled_modes": disabled_modes,
+                "is_practice_disabled": is_practice_disabled,
                 "status": status
             })
 
