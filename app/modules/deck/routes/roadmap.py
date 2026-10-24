@@ -171,8 +171,17 @@ async def get_global_focus_summary(request: Request, db: AsyncSession = Depends(
     )
     interacted_deck_ids = {r[0] for r in interacted_res.all()}
 
+    # 3. Identify user's archived decks (DeckAttempt.is_archived == True)
+    archived_res = await db.execute(
+        select(DeckAttempt.deck_id)
+        .where(DeckAttempt.user_id == user_id)
+        .group_by(DeckAttempt.deck_id)
+        .having(func.max(case((DeckAttempt.is_archived == True, 1), else_=0)) == 1)
+    )
+    archived_deck_ids = {r[0] for r in archived_res.all()}
+
     all_user_deck_ids = (roadmap_active_deck_ids | interacted_deck_ids)
-    active_deck_ids = all_user_deck_ids - frozen_deck_ids
+    active_deck_ids = (all_user_deck_ids - frozen_deck_ids) - archived_deck_ids
 
     if not active_deck_ids:
         return {
@@ -251,10 +260,10 @@ async def get_global_focus_summary(request: Request, db: AsyncSession = Depends(
 @router.get("/global-focus/play-data")
 async def get_global_focus_play_data(
     request: Request,
-    limit: int = Query(100, ge=1, le=300),
+    limit: int = Query(500, ge=1, le=1000),
     db: AsyncSession = Depends(get_db)
 ):
-    """Retrieve consolidated FSRS study cards across all active unfrozen decks for today (UTC+0)."""
+    """Retrieve consolidated FSRS study cards across all active unfrozen decks for today (UTC+0), automatically shuffled."""
     user_id = AuthService.get_user_id(request)
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -266,12 +275,55 @@ async def get_global_focus_play_data(
     day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
     day_end = day_start + timedelta(days=1)
 
-    # 1. Identify frozen deck IDs
+    # 1. Fetch user deck settings to separate frozen from active
     sett_res = await db.execute(
         select(UserDeckSettings).where(UserDeckSettings.user_id == user_id)
     )
     all_setts = sett_res.scalars().all()
-    frozen_deck_ids = {s.deck_id for s in all_setts if isinstance(s.settings, dict) and s.settings.get("is_frozen") is True}
+    frozen_deck_ids = set()
+    roadmap_active_deck_ids = set()
+    for s in all_setts:
+        sett_dict = s.settings or {}
+        if sett_dict.get("is_frozen") is True:
+            frozen_deck_ids.add(s.deck_id)
+        if sett_dict.get("roadmap_active") is True:
+            roadmap_active_deck_ids.add(s.deck_id)
+
+    # 2. Decks the user has learned cards in
+    interacted_res = await db.execute(
+        select(Flashcard.deck_id)
+        .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
+        .where(UserCardMastery.user_id == user_id, UserCardMastery.state > 0)
+        .distinct()
+    )
+    interacted_deck_ids = {r[0] for r in interacted_res.all()}
+
+    # 3. Identify user's archived decks (DeckAttempt.is_archived == True)
+    archived_res = await db.execute(
+        select(DeckAttempt.deck_id)
+        .where(DeckAttempt.user_id == user_id)
+        .group_by(DeckAttempt.deck_id)
+        .having(func.max(case((DeckAttempt.is_archived == True, 1), else_=0)) == 1)
+    )
+    archived_deck_ids = {r[0] for r in archived_res.all()}
+
+    all_user_deck_ids = (roadmap_active_deck_ids | interacted_deck_ids)
+    active_deck_ids = (all_user_deck_ids - frozen_deck_ids) - archived_deck_ids
+
+    if not active_deck_ids:
+        return {
+            "id": "global-focus",
+            "title": "Global Daily Focus Queue ⚡",
+            "deck_title": "Daily Focus (All Decks)",
+            "is_global_focus": True,
+            "total": 0,
+            "questions": [],
+            "effective_study_settings": {
+                "learning_mode": "fsrs",
+                "auto_play_audio": True,
+                "sfx_enabled": True
+            }
+        }
 
     # Subquery: exclude cards learned today
     min_answer_sub = select(
@@ -290,6 +342,7 @@ async def get_global_focus_play_data(
         .join(UserCardMastery, Flashcard.id == UserCardMastery.card_id)
         .outerjoin(min_answer_sub, UserCardMastery.card_id == min_answer_sub.c.card_id)
         .where(
+            Flashcard.deck_id.in_(active_deck_ids),
             UserCardMastery.user_id == user_id,
             UserCardMastery.state > 0,
             or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None)),
@@ -305,9 +358,6 @@ async def get_global_focus_play_data(
         )
     )
 
-    if frozen_deck_ids:
-        cards_query = cards_query.where(~Flashcard.deck_id.in_(frozen_deck_ids))
-
     # Priority: cards lowest in stability (highest forgetting danger), then earliest due
     cards_query = cards_query.order_by(
         func.coalesce(UserCardMastery.stability, 0.0).asc(),
@@ -318,10 +368,9 @@ async def get_global_focus_play_data(
     rows = res.all()
 
     questions = []
-    for idx, (card, deck_title, mastery) in enumerate(rows, start=1):
+    for (card, deck_title, mastery) in rows:
         c_dict = {
             "id": card.id,
-            "orig_index": idx,
             "deck_id": card.deck_id,
             "deck_title": deck_title,
             "content": card.content,
@@ -343,6 +392,11 @@ async def get_global_focus_play_data(
             "is_ignored": mastery.is_ignored
         }
         questions.append(c_dict)
+
+    # Automatically shuffle cards across active decks so they are thoroughly blended
+    random.shuffle(questions)
+    for idx, q in enumerate(questions, start=1):
+        q["orig_index"] = idx
 
     await resolve_play_cards(questions, db)
 

@@ -6,6 +6,8 @@ export interface Option {
 
 export interface Question {
   id: number
+  deck_id?: number
+  deck_title?: string
   original_index?: number
   is_ignored?: boolean
   is_starred?: boolean

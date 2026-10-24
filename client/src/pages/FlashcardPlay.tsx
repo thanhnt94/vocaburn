@@ -1015,7 +1015,7 @@ export default function FlashcardPlay() {
       // Apply Target Card Scope & Intelligent Interleaving
       const urlScope = currentSearchParams.get('scope') || currentSearchParams.get('filter') || cardScope || 'all'
       const initialOrder = currentSearchParams.get('order') || (userSettings?.random_enabled ? 'random' : 'sequential')
-      const isRandom = initialOrder === 'random'
+      const isRandom = isGlobalFocus || initialOrder === 'random'
       const rawMode = currentSearchParams.get('mode') || activeMode || 'fsrs'
       const isFsrsMode = rawMode === 'fsrs' || rawMode === 'review' || rawMode === 'new'
 
@@ -1028,7 +1028,10 @@ export default function FlashcardPlay() {
         return copy
       }
 
-      if (urlScope === 'new') {
+      if (isGlobalFocus) {
+        // Daily Focus Queue: thoroughly shuffle cards across all active decks
+        questions = shuffleCards(questions)
+      } else if (urlScope === 'new') {
         const newCards = questions.filter((q: any) => isCardNew(q))
         questions = isRandom ? shuffleCards(newCards) : newCards
       } else if (urlScope === 'due' || urlScope === 'review') {
@@ -1191,30 +1194,34 @@ export default function FlashcardPlay() {
         const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
 
         let curIdx = 0;
-        try {
-          const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-            mode: effectiveMode,
-            step_type: activeStepType,
-            answered_indexes: [],
-            current_index: 0,
-            random_enabled: effectiveRandom
-          });
-          if (res.data) {
-            if (res.data.is_all_completed || res.data.next_index === -1) {
-              setFsrsCompletionData(res.data);
-              setCurrentIndex(-1);
-              setSelectedOption(null);
-              setShowFeedback(false);
-              return;
-            } else {
-              setFsrsCompletionData(null);
-              if (res.data.next_index !== undefined) {
-                curIdx = res.data.next_index;
+        if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
+          curIdx = 0;
+        } else {
+          try {
+            const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
+              mode: effectiveMode,
+              step_type: activeStepType,
+              answered_indexes: [],
+              current_index: 0,
+              random_enabled: effectiveRandom
+            });
+            if (res.data) {
+              if (res.data.is_all_completed || res.data.next_index === -1) {
+                setFsrsCompletionData(res.data);
+                setCurrentIndex(-1);
+                setSelectedOption(null);
+                setShowFeedback(false);
+                return;
+              } else {
+                setFsrsCompletionData(null);
+                if (res.data.next_index !== undefined) {
+                  curIdx = res.data.next_index;
+                }
               }
             }
+          } catch (err) {
+            console.error("Failed to fetch initial next card from backend", err);
           }
-        } catch (err) {
-          console.error("Failed to fetch initial next card from backend", err);
         }
 
         setCurrentIndex(curIdx);
@@ -2705,6 +2712,29 @@ export default function FlashcardPlay() {
       const rawStep = rmStatus?.pipeline?.[rawIdx];
       const activeStepType = effectiveMode === 'roadmap' ? (urlStep || rawStep?.type) : undefined;
 
+      if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
+        if (currentIndex + 1 < total) {
+          nextIdx = currentIndex + 1;
+        } else {
+          setIsFlyingOut(false);
+          try {
+            cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+          } catch (e) {}
+          setFsrsCompletionData({
+            is_all_completed: true,
+            next_index: -1,
+            total_cards: total,
+            learned_cards: total,
+            message: id === 'global-focus'
+              ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉'
+              : 'Đã hoàn tất toàn bộ câu hỏi trong phiên học!'
+          });
+          return;
+        }
+        navigateToQuestion(nextIdx, updatedAnswers);
+        return;
+      }
+
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: effectiveMode,
         scope: cardScope,
@@ -2893,28 +2923,32 @@ export default function FlashcardPlay() {
     const answeredIndexes = Object.keys(updatedAnswers).map(Number)
 
     let targetIdx = -1
-    try {
-      const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-        mode: mode,
-        answered_indexes: answeredIndexes,
-        current_index: currentIndex,
-        random_enabled: effectiveRandom
-      })
-      if (res.data) {
-        if (res.data.is_all_completed || res.data.next_index === -1) {
-          setFsrsCompletionData(res.data);
-          setCurrentIndex(-1);
-          return;
-        } else {
-          setFsrsCompletionData(null);
-          if (res.data.next_index !== undefined) {
-            targetIdx = res.data.next_index;
+    if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
+      targetIdx = currentIndex
+    } else {
+      try {
+        const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
+          mode: mode,
+          answered_indexes: answeredIndexes,
+          current_index: currentIndex,
+          random_enabled: effectiveRandom
+        })
+        if (res.data) {
+          if (res.data.is_all_completed || res.data.next_index === -1) {
+            setFsrsCompletionData(res.data);
+            setCurrentIndex(-1);
+            return;
+          } else {
+            setFsrsCompletionData(null);
+            if (res.data.next_index !== undefined) {
+              targetIdx = res.data.next_index;
+            }
           }
         }
+      } catch (err) {
+        console.error("Failed to fetch next card from backend for mode update", err)
+        targetIdx = currentIndex
       }
-    } catch (err) {
-      console.error("Failed to fetch next card from backend for mode update", err)
-      targetIdx = currentIndex
     }
 
     if (targetIdx !== -1 && targetIdx !== currentIndex) {
@@ -4180,7 +4214,9 @@ export default function FlashcardPlay() {
               displayStepIdx={displayStepIdx}
               allDone={Boolean(roadmapStatus?.all_done)}
               deckId={id || ''}
-              deckTitle={session?.sub_group ? `${session.title} • ${session.sub_group.value === '__empty__' ? '(Uncategorized)' : session.sub_group.value}` : session?.title}
+              deckTitle={id === 'global-focus'
+                ? (currentQuestion?.deck_title ? `[${currentQuestion.deck_title}] • Daily Focus` : 'Daily Focus Queue')
+                : (session?.sub_group ? `${session.title} • ${session.sub_group.value === '__empty__' ? '(Uncategorized)' : session.sub_group.value}` : session?.title)}
               subCurr={subCurr}
               subTotal={subTotal}
               progressPillText={progressPillText}

@@ -1792,7 +1792,7 @@ export default function Dashboard() {
           {/* Action Button: Chế Độ Học Tập Tổng Hợp (Daily Focus Queue) */}
           <button
             type="button"
-            onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+            onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
             className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl transition-all cursor-pointer group shadow-sm border border-orange-400/80"
             title="Học tập tổng hợp: gộp tất cả thẻ FSRS cần ôn hôm nay"
           >
@@ -1826,7 +1826,7 @@ export default function Dashboard() {
             <div className="p-2 pb-0 shrink-0">
               {globalFocus.total_due > 0 ? (
                 <div 
-                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
                   className="py-2 px-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-amber-950 flex items-center justify-between gap-3 shadow-2xs cursor-pointer active:scale-[0.99] transition-all group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -1857,7 +1857,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <button
-                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
                     className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer shrink-0"
                   >
                     Open Queue
@@ -2040,7 +2040,7 @@ export default function Dashboard() {
             <div className="px-3 pt-2 shrink-0">
               {globalFocus.total_due > 0 ? (
                 <div 
-                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
                   className="py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-amber-950 flex items-center justify-between gap-2 shadow-2xs cursor-pointer active:scale-[0.99] transition-all"
                 >
                   <div className="flex items-center gap-2 min-w-0">
@@ -2071,7 +2071,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <button
-                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
                     className="text-[10px] font-bold text-orange-600 hover:underline cursor-pointer"
                   >
                     View queue

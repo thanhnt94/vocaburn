@@ -167,7 +167,7 @@ export default function RoadmapHub() {
               )}
 
               <button
-                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
                 className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-amber-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
@@ -436,7 +436,7 @@ export default function RoadmapHub() {
 
             <div className="shrink-0">
               <button
-                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs')}
+                onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
                 className="px-8 py-4 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
