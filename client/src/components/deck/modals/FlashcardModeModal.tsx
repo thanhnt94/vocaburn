@@ -26,7 +26,7 @@ export function FlashcardModeModal({
   const [cardOrder, setCardOrder] = React.useState<'sequential' | 'random'>(
     userSettings.random_enabled ? 'random' : 'sequential'
   )
-  const [cardFilter, setCardFilter] = React.useState<'all' | 'due' | 'new' | 'hard'>('all')
+  const [cardFilter, setCardFilter] = React.useState<'all' | 'due' | 'new'>('all')
 
   React.useEffect(() => {
     if (isOpen) {
@@ -139,7 +139,6 @@ export function FlashcardModeModal({
                   { id: 'all', label: 'All Cards' },
                   { id: 'due', label: 'Due Only' },
                   { id: 'new', label: 'New Only' },
-                  { id: 'hard', label: 'Hard Only' },
                 ].map((f) => (
                   <button
                     key={f.id}
