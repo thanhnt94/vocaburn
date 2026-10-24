@@ -775,6 +775,17 @@ export default function PracticePlay() {
         if (correctOpt) val = correctOpt.content;
       }
       if (!val) val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
+
+      // Smart extraction if key requested was specifically 'nghĩa' or 'meaning' but fallback was whole composite explanation
+      if (val && (keyLower.includes('nghĩa') || keyLower.includes('mean'))) {
+        const strVal = String(val);
+        // If explanation contains tag like 🏷️ Hỗn loạn, extract just the meaning tag
+        const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌]+)/);
+        if (tagMatch && tagMatch[1].trim()) {
+          return tagMatch[1].trim();
+        }
+      }
+
       if (val) return String(val).trim();
     }
 

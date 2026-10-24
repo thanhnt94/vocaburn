@@ -58,13 +58,23 @@ export function usePracticeMode(
       const val = item.content || (item.others && item.others.front);
       if (val) return String(val).trim();
     }
-    if (key === 'back' || key === 'explanation') {
+    const keyLower = String(key || "").toLowerCase();
+    if (keyLower === 'back' || keyLower === 'explanation' || keyLower.includes('nghĩa') || keyLower.includes('mean')) {
       let val = "";
       if (item.options && item.options.length > 0) {
         const correctOpt = item.options.find((o: any) => o.is_correct);
         if (correctOpt) val = correctOpt.content;
       }
-      if (!val) val = item.explanation || (item.others && item.others.back);
+      if (!val) val = item.explanation || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
+      
+      if (val && (keyLower.includes('nghĩa') || keyLower.includes('mean'))) {
+        const strVal = String(val);
+        const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌]+)/);
+        if (tagMatch && tagMatch[1].trim()) {
+          return tagMatch[1].trim();
+        }
+      }
+
       if (val) return String(val).trim();
     }
     const val = item[key] !== undefined && item[key] !== null
