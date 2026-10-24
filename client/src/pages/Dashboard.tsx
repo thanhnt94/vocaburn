@@ -1631,7 +1631,7 @@ export default function Dashboard() {
               <div className="w-6 h-6 rounded-lg bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center shrink-0">
                 <BookOpen className="w-3.5 h-3.5 stroke-[2.4]" />
               </div>
-              <span className="text-xs font-black text-slate-900 tracking-tight">Learning Decks</span>
+              <span className="text-xs font-black text-slate-900 tracking-tight">Decks</span>
 
               {homeViewMode === 'spotlight' && displayDecks.length > 0 ? (
                 <div className="flex items-center bg-slate-100/90 px-1.5 py-0.5 rounded-full border border-slate-200/90 gap-1 ml-0.5">
@@ -1670,30 +1670,30 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* View Switcher + ONLY ONE Manage Button */}
+            {/* View Switcher + Manage Button (Icon-only) */}
             <div className="flex items-center gap-1.5">
               <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200/70 gap-0.5">
                 <button
                   type="button"
                   onClick={() => handleSetHomeViewMode('spotlight')}
                   className={cn(
-                    "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer",
-                    homeViewMode === 'spotlight' ? "bg-white text-orange-600 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
+                    "w-7 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer",
+                    homeViewMode === 'spotlight' ? "bg-white text-orange-600 shadow-2xs" : "text-slate-400 hover:text-slate-700"
                   )}
-                  title="Spotlight Hero View"
+                  title="Spotlight View"
                 >
-                  Spotlight
+                  <Layers className="w-3.5 h-3.5 stroke-[2.3]" />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSetHomeViewMode('grid')}
                   className={cn(
-                    "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer",
-                    homeViewMode === 'grid' ? "bg-white text-orange-600 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
+                    "w-7 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer",
+                    homeViewMode === 'grid' ? "bg-white text-orange-600 shadow-2xs" : "text-slate-400 hover:text-slate-700"
                   )}
-                  title="Grid Cards View"
+                  title="Grid View"
                 >
-                  Grid
+                  <LayoutGrid className="w-3.5 h-3.5 stroke-[2.3]" />
                 </button>
               </div>
 
@@ -1703,11 +1703,10 @@ export default function Dashboard() {
                   if (navigator.vibrate) navigator.vibrate(6)
                   setIsCustomizeModalOpen(true)
                 }}
-                className="h-7 px-2 rounded-lg bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 border border-slate-200 flex items-center gap-1 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-2xs"
+                className="w-7 h-7 rounded-lg bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 border border-slate-200 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
                 title="Manage active decks & reorder"
               >
-                <SlidersHorizontal className="w-3 h-3 stroke-[2.2]" />
-                <span>Manage</span>
+                <SlidersHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
               </button>
             </div>
           </div>
