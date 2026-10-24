@@ -21,7 +21,6 @@ from app.modules.deck.models import (
 from app.modules.deck.services.mcq_engine import MCQEngine
 from app.modules.deck.services.typing_engine import TypingEngine
 from app.modules.deck.services.fsrs_service import build_fsrs_card, estimate_intervals, apply_stability_boost
-from app.modules.deck.services.roadmap_service import RoadmapService
 from app.modules.deck.utils import (
     fix_static_urls, migrate_practice_settings,
     get_enabled_practice_modes, check_has_practice_setup, check_has_mcq_setup,

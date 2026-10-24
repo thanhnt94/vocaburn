@@ -25,10 +25,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=['Roadmap'])
 
 
-from app.modules.deck.services.roadmap_service import RoadmapService
-
-# Service delegation for backwards compatibility
-get_deck_roadmap_status_helper = RoadmapService.get_deck_roadmap_status
 
 
 @router.get("/roadmap/decks")
@@ -504,8 +500,6 @@ async def get_global_focus_play_data(
     }
 
 
-# Service delegation for backwards compatibility
-get_deck_streak_for_user = RoadmapService.get_deck_streak_for_user
 
 
 
@@ -579,6 +573,10 @@ async def get_deck_leaderboard(request: Request, deck_id: int, db: AsyncSession 
 async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
     
+    deck_obj = await db.get(FlashcardDeck, deck_id)
+    if not deck_obj:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
+
     user_sett_res = await db.execute(
         select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
@@ -586,10 +584,67 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
         ).order_by(UserDeckSettings.id.desc()).limit(1)
     )
     user_sett = user_sett_res.scalar_one_or_none()
-    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-    
-    status = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings, target_date_str=target_date)
-    return status
+    u_sett = user_sett.settings if (user_sett and user_sett.settings) else {}
+    creator_sett = deck_obj.practice_settings if isinstance(deck_obj.practice_settings, dict) else {}
+
+    is_frozen = bool(u_sett.get("is_frozen", False))
+    disabled_modes = []
+    if isinstance(creator_sett.get("disabled_modes"), list):
+        disabled_modes.extend(creator_sett["disabled_modes"])
+    if isinstance(u_sett.get("disabled_modes"), list):
+        disabled_modes.extend(u_sett["disabled_modes"])
+    disabled_modes = list(set(disabled_modes))
+
+    now_utc = datetime.now(timezone.utc)
+    day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    day_end = day_start + timedelta(days=1) - timedelta(microseconds=1)
+
+    total_cnt = await db.scalar(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id)) or 0
+    learned_cnt = await db.scalar(
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
+        )
+    ) or 0
+    unlearned_cnt = max(0, total_cnt - learned_cnt)
+
+    due_cnt = await db.scalar(
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            UserCardMastery.due <= day_end,
+            or_(UserCardMastery.last_review.is_(None), UserCardMastery.last_review < day_start),
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
+        )
+    ) or 0
+
+    streak = await db.scalar(
+        select(UserDeckGoal.streak_count)
+        .where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id)
+    ) or 0
+
+    return {
+        "deck_title": deck_obj.title,
+        "total_cards": total_cnt,
+        "learned_cards": learned_cnt,
+        "unlearned_cards": unlearned_cnt,
+        "review_due_today": due_cnt,
+        "streak": streak,
+        "is_frozen": is_frozen,
+        "disabled_modes": disabled_modes,
+        "is_practice_disabled": ("practice" in disabled_modes or "all_practice" in disabled_modes),
+        "retention_rate": 90,
+        "all_done": due_cnt == 0,
+        "stage_1_done": True,
+        "stage_2_done": True,
+    }
 
 
 @router.get("/{deck_id}/roadmap-calendar")
@@ -907,26 +962,6 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                 }
         except Exception as e:
             logger.warning(f"Error loading existing test session state for deck {deck_id}: {e}")
-
-    # Gate check: Step 1 (Học từ mới) MUST be completed today before entering Stage 2 Test
-    user_sett_res = await db.execute(
-        select(UserDeckSettings).where(
-            UserDeckSettings.user_id == user_id,
-            UserDeckSettings.deck_id == deck_id
-        ).order_by(UserDeckSettings.id.desc()).limit(1)
-    )
-    user_sett = user_sett_res.scalar_one_or_none()
-    settings = user_sett.settings if (user_sett and user_sett.settings) else {}
-    status_info = await get_deck_roadmap_status_helper(db, user_id, deck_id, settings)
-    
-    if not status_info.get("stage_1_done"):
-        return JSONResponse(
-            status_code=400,
-            content={
-                "error": "stage_1_not_done",
-                "message": "Bạn chưa hoàn thành chỉ tiêu học từ mới hôm nay (Bước 1)! Hãy hoàn thành Bước 1 trước khi làm Bài kiểm tra Roadmap."
-            }
-        )
 
     # Load all cards for deck cleanly via async query
     all_cards_res = await db.execute(
