@@ -1264,27 +1264,9 @@ export default function Dashboard() {
   const [studyModalTab, setStudyModalTab] = useState<'flashcard' | 'practice'>('flashcard')
   const [selectedPracticeQuiz, setSelectedPracticeQuiz] = useState<any | null>(null)
   const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false)
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [mobileRoadmapIdx, setMobileRoadmapIdx] = useState(0)
   const [timeFilter, setTimeFilter] = useState<LeaderboardTimeFilter>('week')
   const [remainingTime, setRemainingTime] = useState<string>('')
-  const [deckSearchTerm, setDeckSearchTerm] = useState('')
-  const deckListRef = useRef<HTMLDivElement>(null)
-
-  // Auto-scroll to bottom of deck list by default on Slide 1 (Study Cards)
-  useEffect(() => {
-    if (currentSlide === 1 && deckListRef.current) {
-      const timer = setTimeout(() => {
-        if (deckListRef.current) {
-          deckListRef.current.scrollTo({
-            top: deckListRef.current.scrollHeight,
-            behavior: 'smooth'
-          })
-        }
-      }, 150)
-      return () => clearTimeout(timer)
-    }
-  }, [currentSlide])
+  const [selectedRoadmapIdx, setSelectedRoadmapIdx] = useState(0)
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -1306,49 +1288,6 @@ export default function Dashboard() {
     const timer = setInterval(updateCountdown, 1000)
     return () => clearInterval(timer)
   }, [])
-
-  const [selectedRoadmapIdx, setSelectedRoadmapIdx] = useState(0)
-  const [mascotCheer, setMascotCheer] = useState<string | null>(null)
-  const roadmapContainerRef = useRef<HTMLDivElement>(null)
-
-  const cheerQuotes = [
-    "Keep it up! You're on fire with this streak! 🔥",
-    "Every word learned today is a major leap forward! 🚀",
-    "With dedication like this, you'll reach your goal in no time! 🌟",
-    "I'm here cheering you on every single day! 💪",
-    "Outstanding work! Let's conquer all today's steps! 🎉",
-    "Your brain is absorbing vocabulary at lightning speed! 🧠⚡"
-  ];
-
-  const handleMascotTap = () => {
-    if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
-    const randomQuote = cheerQuotes[Math.floor(Math.random() * cheerQuotes.length)];
-    setMascotCheer(randomQuote);
-    setTimeout(() => {
-      setMascotCheer(null);
-    }, 4000);
-  };
-
-  const handleRoadmapScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    if (target.clientHeight > 0) {
-      const idx = Math.round(target.scrollTop / target.clientHeight);
-      if (idx !== selectedRoadmapIdx) {
-        setSelectedRoadmapIdx(idx);
-      }
-    }
-  };
-
-  const scrollToRoadmapDeck = (idx: number) => {
-    if (navigator.vibrate) navigator.vibrate(8);
-    setSelectedRoadmapIdx(idx);
-    if (roadmapContainerRef.current) {
-      roadmapContainerRef.current.scrollTo({
-        top: idx * roadmapContainerRef.current.clientHeight,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   const { data: roadmapDecks, isLoading: isRoadmapDecksLoading, refetch: refetchRoadmapDecks } = useQuery<any[]>({
     queryKey: ['roadmapDecks'],
@@ -1481,15 +1420,6 @@ export default function Dashboard() {
   const sortedRoadmapDecks = displayDecks
   const sortedActiveDecks = displayDecks
 
-  const { data: weeklyReport } = useQuery({
-    queryKey: ['weeklyReport'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/deck/stats/weekly-report')
-      return res.data
-    },
-    staleTime: 2 * 60 * 1000,
-  })
-
   const { data: heatmapData } = useQuery<HeatmapDay[]>({
     queryKey: ['stats-heatmap'],
     queryFn: async () => {
@@ -1507,35 +1437,6 @@ export default function Dashboard() {
     },
     staleTime: 60 * 1000,
   })
-
-  const { data: badgesProgress } = useQuery<BadgeProgress[]>({
-    queryKey: ['badgesProgress'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/gamification/badges/progress')
-      return res.data
-    },
-    staleTime: 2 * 60 * 1000,
-  })
-
-  const { data: forecastData } = useQuery<ForecastResponse>({
-    queryKey: ['reviewForecast'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/deck/stats/review-forecast')
-      return res.data
-    },
-    staleTime: 2 * 60 * 1000,
-  })
-
-  const { data: dailyComparisonRaw, isLoading: isDailyComparisonLoading } = useQuery<any>({
-    queryKey: ['dailyComparison'],
-    queryFn: async () => {
-      const res = await axios.get('/api/v1/stats/daily-comparison')
-      return res.data
-    },
-    staleTime: 2 * 60 * 1000,
-  })
-  const dailyComparisonData = dailyComparisonRaw?.days
-  const dailyComparisonAvg = dailyComparisonRaw?.all_time_avg
 
   // Lock scroll on desktop
   useEffect(() => {
@@ -1582,105 +1483,6 @@ export default function Dashboard() {
     }
   }
 
-  const renderTodayReviewWidget = () => {
-    if (isTodayReviewLoading || !todayReview) return null
-    const { due_cards_count, decks_summary, streak_at_risk, estimated_minutes } = todayReview
-
-    if (due_cards_count === 0) {
-      return (
-        <div className="rounded-2xl p-6 text-left border relative overflow-hidden transition-all duration-300 shadow-sm bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-slate-800 border-emerald-500/20 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                ✅ ALL CAUGHT UP
-              </span>
-              <h3 className="text-sm font-bold text-slate-800 tracking-tight mt-1.5">
-                You've completed all study & review cards for today! Excellent! 🎉
-              </h3>
-            </div>
-            <Link
-              to="/decks?tab=library"
-              className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 self-start sm:self-center"
-            >
-              Browse Library
-            </Link>
-          </div>
-        </div>
-      )
-    }
-
-    const hasMultipleDecks = decks_summary?.length > 1
-
-    return (
-      <div className="rounded-2xl p-4 text-left border relative overflow-hidden transition-all duration-300 shadow-sm flex-shrink-0 mb-4 bg-slate-900 text-white border-indigo-500/20 shadow-indigo-100/5">
-        <div className="absolute right-0 top-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 relative z-10">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/30">
-                ⚠️ REVIEW DUE
-              </span>
-              {streak_at_risk && (
-                <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-500/30 animate-pulse">
-                  🔥 Streak at risk
-                </span>
-              )}
-              <span className="text-[9px] font-black text-slate-400">
-                ⏱️ ~{estimated_minutes} min
-              </span>
-            </div>
-
-            <h3 className="text-sm font-bold text-white tracking-tight truncate leading-tight">
-              You have <span className="text-indigo-400 font-extrabold">{due_cards_count} cards</span> due for study & review today
-            </h3>
-          </div>
-
-          <button
-            onClick={() => {
-              navigate(`/flashcard/global-focus/play?mode=fsrs`)
-            }}
-            className="w-full sm:w-auto h-9 px-4 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0 cursor-pointer"
-          >
-            <Brain className="w-3.5 h-3.5" /> Start Daily Focus
-          </button>
-        </div>
-
-        {hasMultipleDecks && (
-          <div className="mt-3 pt-3 border-t border-slate-800 flex flex-col gap-1.5">
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
-              Deck breakdown:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {decks_summary.map((deck: any) => (
-                <div
-                  key={deck.deck_id}
-                  className="px-2.5 py-1 rounded-lg bg-slate-950/65 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer flex items-center gap-2 text-[9px] font-bold text-slate-300"
-                  onClick={() => navigate(`/flashcard/${deck.deck_id}/play`)}
-                >
-                  <span className="truncate max-w-[120px]">{deck.title}</span>
-                  <div className="flex items-center gap-1">
-                    {deck.due_count > 0 && (
-                      <span className="text-[7px] font-black text-indigo-400 bg-indigo-950/60 px-1 py-0.2 rounded">
-                        {deck.due_count}
-                      </span>
-                    )}
-                    {deck.new_count > 0 && (
-                      <span className="text-[7px] font-black text-emerald-400 bg-emerald-950/60 px-1 py-0.2 rounded">
-                        {deck.new_count}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-
   if (isLoading || !data) return (
     <div className="h-screen flex items-center justify-center font-black animate-pulse text-indigo-600 tracking-widest uppercase bg-[#fafbfd]">
       🚀 NEURAL SYNCING...
@@ -1694,39 +1496,6 @@ export default function Dashboard() {
       <div className="hidden md:block absolute top-[20%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-200/10 blur-[130px] pointer-events-none" />
       <div className="hidden md:block absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-pink-200/10 blur-[130px] pointer-events-none" />
 
-      {/* MOBILE HEADER - hidden because swiper overlay has its own */}
-      <div className="hidden">
-        <div className="px-4 py-2 flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-1.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-500 to-rose-500 flex items-center justify-center text-white shadow-sm shadow-orange-500/25">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <span className="text-[13px] font-black text-slate-800 tracking-tight">
-              Voca<span className="text-orange-500">burn</span>
-            </span>
-          </Link>
-
-          {/* Quick HUD Stats */}
-          <div className="flex items-center gap-2">
-            {/* Level Badge */}
-            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-[10px] font-bold text-indigo-650">
-              Lv {data.gamify?.level}
-            </span>
-            
-            {/* Streak Badge */}
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 border border-orange-100 rounded-full text-[10px] font-bold text-orange-600">
-              <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
-              {data.gamify?.streak}d
-            </span>
-
-            {/* Avatar */}
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/50 flex items-center justify-center text-slate-500 active:scale-95 transition-all">
-              <User className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT */}
       <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-6 py-4 gap-6">
