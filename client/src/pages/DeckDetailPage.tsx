@@ -91,6 +91,17 @@ export const STUDY_MODES: StudyModeOption[] = [
     getUrl: (id) => `/flashcard/${id}/play?mode=autoplay`
   },
   {
+    id: 'hybrid',
+    name: 'Hybrid Recall',
+    fullName: 'Hybrid Recall (Beta)',
+    emoji: '⚡',
+    desc: 'Dual-step mastery: Flip flashcard then test recall with smart practice',
+    badge: () => 'BETA',
+    badgeColor: 'bg-rose-100 text-rose-700',
+    color: 'from-rose-500 via-purple-500 to-indigo-600',
+    getUrl: (id) => `/hybrid/${id}/play`
+  },
+  {
     id: 'mcq',
     name: 'MCQ Test',
     fullName: '4-Choice Quiz Test',
@@ -913,7 +924,7 @@ export function DeckDetailPage() {
                   <div className="flex-1 overflow-y-auto py-1 space-y-2 custom-scrollbar pr-1">
                     {(() => {
                       const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
-                      const activeLearnModes = STUDY_MODES.slice(0, 3).filter(m => !disabledModes.includes(m.id))
+                      const activeLearnModes = STUDY_MODES.slice(0, 4).filter(m => !disabledModes.includes(m.id))
 
                       if (activeLearnModes.length === 0) {
                         return (
@@ -1035,7 +1046,7 @@ export function DeckDetailPage() {
                   <div className="flex-1 overflow-y-auto py-3 space-y-2 custom-scrollbar pr-1">
                     {(() => {
                       const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
-                      const activePracticeModes = STUDY_MODES.slice(3).filter(m => !disabledModes.includes(m.id))
+                      const activePracticeModes = STUDY_MODES.slice(4).filter(m => !disabledModes.includes(m.id))
 
                       if (activePracticeModes.length === 0) {
                         return (

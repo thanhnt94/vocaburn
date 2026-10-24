@@ -14,6 +14,7 @@ const DeckDetailPage = lazy(() => import('./pages/DeckDetailPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const FlashcardPlay = lazy(() => import('./pages/FlashcardPlay'))
 const PracticePlay = lazy(() => import('./pages/PracticePlay'))
+const HybridPlay = lazy(() => import('./pages/HybridPlay'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Stats = lazy(() => import('./pages/Stats'))
 const Settings = lazy(() => import('./pages/Settings'))
@@ -82,6 +83,8 @@ function AppContent() {
             {/* Fullscreen Dedicated Study Views */}
             <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
             <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
+            <Route path="/hybrid/:id/play" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
+            <Route path="/flashcard/:id/hybrid" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
 
             {/* Catch-all Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
