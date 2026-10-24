@@ -67,11 +67,19 @@ export function usePracticeMode(
       }
       if (!val) val = item.explanation || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
       
-      if (val && (keyLower.includes('nghĩa') || keyLower.includes('mean'))) {
+      if (val && (keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower === 'definition')) {
         const strVal = String(val);
-        const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌]+)/);
+        const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌📝🗣️]+)/);
         if (tagMatch && tagMatch[1].trim()) {
           return tagMatch[1].trim();
+        }
+        const bulbMatch = strVal.match(/💡\s*([^\n🌱📢📌📝🗣️🏷️]+)/);
+        if (bulbMatch && bulbMatch[1].trim()) {
+          return bulbMatch[1].trim();
+        }
+        const otherTagMatch = strVal.match(/(?:🎯|📖)\s*([^\n🌱📢📌📝🗣️🏷️💡]+)/);
+        if (otherTagMatch && otherTagMatch[1].trim()) {
+          return otherTagMatch[1].trim();
         }
       }
 

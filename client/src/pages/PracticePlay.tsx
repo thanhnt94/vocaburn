@@ -767,8 +767,26 @@ export default function PracticePlay() {
       if (val) return String(val).trim();
     }
 
-    // 4. Standard alias mapping: back / explanation / nghĩa / meaning
-    if (keyLower === 'back' || keyLower === 'explanation' || keyLower.includes('nghĩa') || keyLower.includes('mean')) {
+    // 4. IPA / Pronunciation mapping: phiên âm / ipa / phát âm
+    if (keyLower.includes('ipa') || keyLower.includes('phiên âm') || keyLower.includes('phát âm') || keyLower.includes('pronun')) {
+      const exp = String(item.explanation || item.back || '');
+      const ipaMatch = exp.match(/🗣️\s*([^\n💡🌱📢📌🏷️📝]+)/);
+      if (ipaMatch && ipaMatch[1].trim()) {
+        return ipaMatch[1].trim();
+      }
+    }
+
+    // 5. Part of speech mapping: loại từ / pos
+    if (keyLower.includes('loại từ') || keyLower.includes('pos') || keyLower === 'type') {
+      const exp = String(item.explanation || item.back || '');
+      const posMatch = exp.match(/\((n|v|adj|adv|phrase|n phrase|v phrase|idiom|prep|pron|conj|interj)[^)]*\)/i);
+      if (posMatch && posMatch[0].trim()) {
+        return posMatch[0].trim();
+      }
+    }
+
+    // 6. Standard alias mapping: back / explanation / nghĩa / meaning / definition
+    if (keyLower === 'back' || keyLower === 'explanation' || keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower === 'definition') {
       let val = "";
       if (item.options && item.options.length > 0) {
         const correctOpt = item.options.find((o: any) => o.is_correct);
@@ -777,12 +795,22 @@ export default function PracticePlay() {
       if (!val) val = item.explanation || item.back || (item.others && (item.others.back || item.others.explanation || item.others.nghĩa || item.others.Nghĩa));
 
       // Smart extraction if key requested was specifically 'nghĩa' or 'meaning' but fallback was whole composite explanation
-      if (val && (keyLower.includes('nghĩa') || keyLower.includes('mean'))) {
+      if (val && (keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower === 'definition')) {
         const strVal = String(val);
-        // If explanation contains tag like 🏷️ Hỗn loạn, extract just the meaning tag
-        const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌]+)/);
+        // Priority 1: Label icon 🏷️ (frequent in Japanese / Anki cards, e.g. "🏷️ Hỗn loạn")
+        const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌📝🗣️]+)/);
         if (tagMatch && tagMatch[1].trim()) {
           return tagMatch[1].trim();
+        }
+        // Priority 2: Idea/Meaning icon 💡 (frequent in English / IELTS cards, e.g. "💡 Phát hiện bất ngờ")
+        const bulbMatch = strVal.match(/💡\s*([^\n🌱📢📌📝🗣️🏷️]+)/);
+        if (bulbMatch && bulbMatch[1].trim()) {
+          return bulbMatch[1].trim();
+        }
+        // Priority 3: Target/Book icons 🎯, 📖
+        const otherTagMatch = strVal.match(/(?:🎯|📖)\s*([^\n🌱📢📌📝🗣️🏷️💡]+)/);
+        if (otherTagMatch && otherTagMatch[1].trim()) {
+          return otherTagMatch[1].trim();
         }
       }
 
