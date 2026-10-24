@@ -6,9 +6,12 @@ import {
   ChevronRight, 
   Flame, 
   Sparkles,
-  Layers
+  Layers,
+  Brain,
+  Trophy
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/store/useAppStore'
 
 interface DashboardQuickDecksWidgetProps {
   todayReview?: any
@@ -86,6 +89,59 @@ export function DashboardQuickDecksWidget({
   const currentSelectedDeck = activeDecks.find(
     d => (d.deck_id ?? d.id) === selectedDeckId
   ) || activeDecks[0]
+
+  const userSettings = useAppStore(s => s.userSettings)
+
+  const rawStudyMode = (
+    currentSelectedDeck?.user_study_settings?.learning_mode ||
+    currentSelectedDeck?.study_defaults?.learning_mode ||
+    currentSelectedDeck?.practice_settings?.default_learning_mode ||
+    currentSelectedDeck?.creator_settings?.learning_mode ||
+    userSettings?.quiz_learning_mode ||
+    'fsrs'
+  )
+  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+
+  const studyModeLabel = (() => {
+    switch (activeStudyMode) {
+      case 'skim':
+        return 'Speed Skim'
+      case 'autoplay':
+        return 'AutoPlay'
+      case 'review':
+        return 'FSRS Review'
+      case 'new':
+        return 'Learn New'
+      case 'fsrs':
+      default:
+        return 'FSRS v6'
+    }
+  })()
+
+  const rawPracticeMode = (
+    currentSelectedDeck?.practice_settings?.default_mode ||
+    currentSelectedDeck?.practice_settings?.active_mode ||
+    userSettings?.practice_submode ||
+    'mcq'
+  )
+  const activePracticeMode = rawPracticeMode || 'mcq'
+
+  const practiceModeLabel = (() => {
+    switch (activePracticeMode) {
+      case 'typing':
+        return 'Typing'
+      case 'listening':
+      case 'listening_mcq':
+        return 'Listening'
+      case 'listening_typing':
+        return 'Listen Typing'
+      case 'roadmap_test':
+        return 'Roadmap Test'
+      case 'mcq':
+      default:
+        return 'MCQ Quiz'
+    }
+  })()
 
   return (
     <div className="h-full w-full flex flex-col justify-between overflow-hidden text-left select-none relative">
@@ -249,57 +305,89 @@ export function DashboardQuickDecksWidget({
 
           {/* 2 Big Action Launch Buttons */}
           <div className="grid grid-cols-2 gap-2.5">
-            {/* Button 1: Học Flashcard */}
-            <button
-              type="button"
-              onClick={() => {
-                if (currentSelectedDeck) {
-                  onOpenStudyModal(currentSelectedDeck, 'flashcard')
-                }
-              }}
-              className="h-14 px-3.5 rounded-[22px] bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/25 active:scale-[0.97] transition-all flex items-center justify-between cursor-pointer border-b-[3px] border-[#c44e00]"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
+            {/* Button 1: Study Action */}
+            <div className="h-14 rounded-[22px] bg-gradient-to-r from-[#FF7A00] to-[#FFA100] text-white shadow-md shadow-orange-500/25 active:scale-[0.98] transition-all flex items-center justify-between border-b-[3px] border-[#c44e00] p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentSelectedDeck) {
+                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
+                    const id = currentSelectedDeck.deck_id ?? currentSelectedDeck.id
+                    navigate(`/flashcard/${id}/play?mode=${activeStudyMode}`)
+                  }
+                }}
+                className="flex-1 h-full px-2.5 flex items-center gap-2 min-w-0 text-left cursor-pointer"
+                title={`Study: ${studyModeLabel}`}
+              >
                 <div className="w-8.5 h-8.5 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/30 text-white">
-                  <Layers className="w-5 h-5 stroke-[2.5]" />
+                  <Brain className="w-5 h-5 stroke-[2.4]" />
                 </div>
-                <div className="text-left min-w-0">
+                <div className="min-w-0">
                   <span className="block text-xs font-black text-white leading-tight truncate">
-                    Học Flashcard
+                    Study
                   </span>
                   <span className="block text-[9.5px] font-bold text-amber-100 leading-tight mt-0.5 truncate">
-                    Ghi nhớ nhanh chóng
+                    {studyModeLabel}
                   </span>
                 </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white shrink-0 stroke-[3]" />
-            </button>
+              </button>
 
-            {/* Button 2: Practice */}
-            <button
-              type="button"
-              onClick={() => {
-                if (currentSelectedDeck) {
-                  onOpenStudyModal(currentSelectedDeck, 'practice')
-                }
-              }}
-              className="h-14 px-3.5 rounded-[22px] bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm active:scale-[0.97] transition-all flex items-center justify-between cursor-pointer border-b-[3px] border-orange-200"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 flex items-center justify-center shrink-0 border border-orange-200/60 text-orange-500">
-                  <span className="text-base select-none">🎯</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentSelectedDeck) {
+                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(6)
+                    onOpenStudyModal(currentSelectedDeck, 'flashcard')
+                  }
+                }}
+                className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center shrink-0 cursor-pointer border border-white/25 transition-colors"
+                title="Study Settings"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Button 2: Practice Action */}
+            <div className="h-14 rounded-[22px] bg-white hover:bg-teal-50/20 text-slate-800 border-2 border-teal-200/90 shadow-sm active:scale-[0.98] transition-all flex items-center justify-between border-b-[3px] border-teal-300 p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentSelectedDeck) {
+                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
+                    const id = currentSelectedDeck.deck_id ?? currentSelectedDeck.id
+                    navigate(`/practice/${id}/${activePracticeMode}`)
+                  }
+                }}
+                className="flex-1 h-full px-2.5 flex items-center gap-2 min-w-0 text-left cursor-pointer"
+                title={`Practice: ${practiceModeLabel}`}
+              >
+                <div className="w-8.5 h-8.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 border border-teal-200/80 text-teal-600">
+                  <Trophy className="w-4.5 h-4.5 stroke-[2.2]" />
                 </div>
-                <div className="text-left min-w-0">
+                <div className="min-w-0">
                   <span className="block text-xs font-black text-slate-900 leading-tight truncate">
                     Practice
                   </span>
-                  <span className="block text-[9.5px] font-bold text-slate-400 leading-tight mt-0.5 truncate">
-                    Luyện tập, kiểm tra
+                  <span className="block text-[9.5px] font-bold text-teal-600 leading-tight mt-0.5 truncate">
+                    {practiceModeLabel}
                   </span>
                 </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-orange-500 shrink-0 stroke-[3]" />
-            </button>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentSelectedDeck) {
+                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(6)
+                    onOpenStudyModal(currentSelectedDeck, 'practice')
+                  }
+                }}
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 cursor-pointer border border-slate-200 transition-colors"
+                title="Practice Settings"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}

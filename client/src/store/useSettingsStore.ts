@@ -33,6 +33,7 @@ export interface UserSettings {
   study_profiles?: StudyProfile[]
   active_profile_id?: string | null
   home_active_tab?: 'roadmap' | 'learning' | 'daily'
+  home_view_mode?: 'spotlight' | 'grid'
   roadmap_display_mode?: 'carousel' | 'vertical' | 'compact'
   roadmap_deck_order?: number[]
   learning_deck_order?: number[]
@@ -81,6 +82,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   study_profiles: [],
   active_profile_id: 'preset-standard',
   home_active_tab: 'roadmap',
+  home_view_mode: 'spotlight',
   roadmap_display_mode: 'carousel',
   roadmap_deck_order: [],
   learning_deck_order: [],

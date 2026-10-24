@@ -1243,7 +1243,21 @@ export default function Dashboard() {
 
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false)
   const [isDailyDrawerOpen, setIsDailyDrawerOpen] = useState(false)
-  const [homeViewMode, setHomeViewMode] = useState<'spotlight' | 'grid'>('spotlight')
+  const [homeViewMode, setHomeViewMode] = useState<'spotlight' | 'grid'>((userSettings.home_view_mode || 'spotlight') as any)
+
+  useEffect(() => {
+    if (userSettings?.home_view_mode) {
+      setHomeViewMode(userSettings.home_view_mode as any)
+    }
+  }, [userSettings?.home_view_mode])
+
+  const handleSetHomeViewMode = (mode: 'spotlight' | 'grid') => {
+    setHomeViewMode(mode)
+    updateUserSettings({ home_view_mode: mode })
+    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+      window.navigator.vibrate(8)
+    }
+  }
 
   const [selectedStudyQuiz, setSelectedStudyQuiz] = useState<any | null>(null)
   const [isStudyModalOpen, setIsStudyModalOpen] = useState(false)
@@ -1920,13 +1934,11 @@ export default function Dashboard() {
           if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
             if (diffX < -40) {
               if (homeViewMode === 'spotlight') {
-                setHomeViewMode('grid')
-                if (navigator.vibrate) navigator.vibrate(8)
+                handleSetHomeViewMode('grid')
               }
             } else if (diffX > 40) {
               if (homeViewMode === 'grid') {
-                setHomeViewMode('spotlight')
-                if (navigator.vibrate) navigator.vibrate(8)
+                handleSetHomeViewMode('spotlight')
               }
             }
           }
@@ -1996,7 +2008,7 @@ export default function Dashboard() {
               <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200/70 gap-0.5">
                 <button
                   type="button"
-                  onClick={() => setHomeViewMode('spotlight')}
+                  onClick={() => handleSetHomeViewMode('spotlight')}
                   className={cn(
                     "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer",
                     homeViewMode === 'spotlight' ? "bg-white text-orange-600 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
@@ -2007,7 +2019,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHomeViewMode('grid')}
+                  onClick={() => handleSetHomeViewMode('grid')}
                   className={cn(
                     "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer",
                     homeViewMode === 'grid' ? "bg-white text-orange-600 shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"

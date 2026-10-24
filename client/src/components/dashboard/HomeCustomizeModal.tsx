@@ -38,7 +38,7 @@ export function HomeCustomizeModal({
   const { userSettings, updateUserSettings } = useAppStore()
 
   const [activeTab, setActiveTab] = useState<'decks' | 'display'>('decks')
-  const [displayMode, setDisplayMode] = useState<'carousel' | 'vertical' | 'compact'>('carousel')
+  const [defaultHomeView, setDefaultHomeView] = useState<'spotlight' | 'grid'>((userSettings.home_view_mode || 'spotlight') as any)
   const [studyMode, setStudyMode] = useState<string>(userSettings.quiz_learning_mode || 'fsrs')
   const [practiceMode, setPracticeMode] = useState<string>(userSettings.practice_submode || 'mcq')
   const [orderedLearningDecks, setOrderedLearningDecks] = useState<any[]>([])
@@ -67,7 +67,7 @@ export function HomeCustomizeModal({
   // Initialize state from userSettings and passed decks
   useEffect(() => {
     if (isOpen) {
-      setDisplayMode(userSettings.roadmap_display_mode || 'carousel')
+      setDefaultHomeView((userSettings.home_view_mode || 'spotlight') as any)
       setStudyMode(userSettings.quiz_learning_mode || 'fsrs')
       setPracticeMode(userSettings.practice_submode || 'mcq')
 
@@ -161,7 +161,7 @@ export function HomeCustomizeModal({
 
       await updateUserSettings({
         home_active_tab: 'learning',
-        roadmap_display_mode: displayMode,
+        home_view_mode: defaultHomeView,
         quiz_learning_mode: studyMode as any,
         practice_submode: practiceMode,
         learning_deck_order: learningIds,
@@ -467,15 +467,15 @@ export function HomeCustomizeModal({
                 <div className="space-y-5">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
-                      Home Display Style
+                      Default Home View (Chế độ xem mặc định trên Trang chủ)
                     </label>
                     <div className="space-y-2.5">
-                      {/* 1. Carousel Spotlight */}
+                      {/* 1. Spotlight View */}
                       <div
-                        onClick={() => setDisplayMode('carousel')}
+                        onClick={() => setDefaultHomeView('spotlight')}
                         className={cn(
                           "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
-                          displayMode === 'carousel'
+                          defaultHomeView === 'spotlight'
                             ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
                             : "bg-white border-slate-200 hover:border-slate-300"
                         )}
@@ -486,80 +486,49 @@ export function HomeCustomizeModal({
                           </div>
                           <div>
                             <h4 className="text-xs font-black text-slate-900">
-                              Spotlight Hero Reel (Recommended)
+                              Spotlight View (Recommended)
                             </h4>
                             <p className="text-[10px] font-medium text-slate-500">
-                              Hero Mascot card with motivational cheer quotes, flame streak, and quick flashcard & practice actions
+                              Thẻ học tập trung dạng Hero Mascot, hỗ trợ vuốt chuyển bài đa chiều và các phím tắt học nhanh
                             </p>
                           </div>
                         </div>
                         <div className={cn(
                           "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
-                          displayMode === 'carousel' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
+                          defaultHomeView === 'spotlight' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
                         )}>
-                          {displayMode === 'carousel' && <Check className="w-3 h-3 stroke-[3]" />}
+                          {defaultHomeView === 'spotlight' && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                       </div>
 
-                      {/* 2. Vertical Stack */}
+                      {/* 2. Grid Cards View */}
                       <div
-                        onClick={() => setDisplayMode('vertical')}
+                        onClick={() => setDefaultHomeView('grid')}
                         className={cn(
                           "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
-                          displayMode === 'vertical'
+                          defaultHomeView === 'grid'
                             ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
                             : "bg-white border-slate-200 hover:border-slate-300"
                         )}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-amber-100/70 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0 text-lg">
-                            📜
+                            📑
                           </div>
                           <div>
                             <h4 className="text-xs font-black text-slate-900">
-                              Vertical Cards Stack
+                              Grid Cards View
                             </h4>
                             <p className="text-[10px] font-medium text-slate-500">
-                              Scroll through all your active decks vertically with full action details
+                              Danh sách các bộ thẻ đang học kèm tiến độ chi tiết và bảng điều khiển Bắt đầu học ngay
                             </p>
                           </div>
                         </div>
                         <div className={cn(
                           "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
-                          displayMode === 'vertical' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
+                          defaultHomeView === 'grid' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
                         )}>
-                          {displayMode === 'vertical' && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                      </div>
-
-                      {/* 3. Compact List */}
-                      <div
-                        onClick={() => setDisplayMode('compact')}
-                        className={cn(
-                          "p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
-                          displayMode === 'compact'
-                            ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
-                            : "bg-white border-slate-200 hover:border-slate-300"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0 text-lg">
-                            ⚡
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-slate-900">
-                              Compact Shortcuts List
-                            </h4>
-                            <p className="text-[10px] font-medium text-slate-500">
-                              High-density shortcuts list with 1-click Flashcard & Practice launch buttons
-                            </p>
-                          </div>
-                        </div>
-                        <div className={cn(
-                          "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
-                          displayMode === 'compact' ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
-                        )}>
-                          {displayMode === 'compact' && <Check className="w-3 h-3 stroke-[3]" />}
+                          {defaultHomeView === 'grid' && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                       </div>
                     </div>
