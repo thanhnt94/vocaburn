@@ -37,13 +37,122 @@ const CHEER_QUOTES = [
   "Your brain is absorbing vocabulary at lightning speed! 🧠⚡"
 ]
 
+export function computeDeckData(deck: any, userSettings: any, user: any) {
+  const st = deck?.status || {}
+  const totalCards = Number(st.total_cards || deck?.total_cards || deck?.questions_count || 0)
+  const learnedCards = Number(st.learned_cards || deck?.learned_cards || 0)
+  const unlearnedCards = Math.max(0, totalCards - learnedCards)
+  const dueRemaining = Number(st.review_due_today ?? deck?.review_remaining ?? 0)
+  const streak = Number(st.streak || deck?.streak || 0)
+  const masteredCount = Number(st.mastered_count ?? st.mastered ?? deck?.mastered_count ?? 0)
+  const hasExplicitMastered = masteredCount > 0
+  const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
+  const isMastered = (hasExplicitMastered && masteredCount >= totalCards) || (totalCards > 0 && learnedCards >= totalCards)
+  const estimatedMins = Math.max(2, Math.round(dueRemaining * 0.12))
+  const retentionRate = Math.min(100, Math.max(70, Number(st.retention_rate || 90)))
+
+  const authorName = deck?.creator_name || deck?.creator_username || deck?.creator?.username || user?.username || 'tnhnaht'
+  const createdAtStr = deck?.created_at 
+    ? new Date(deck.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+    : 'Oct 2026'
+  const deckDescription = deck?.description || (
+    deck?.title?.includes('Danh Động Từ') 
+      ? 'Tổng hợp danh động từ N2 thường gặp trong đề thi JLPT kèm ví dụ và câu hỏi luyện tập FSRS.' 
+      : 'Bộ thẻ từ vựng & ngữ pháp tối ưu hóa theo chu kỳ ngắt quãng FSRS v6 giúp ghi nhớ sâu.'
+  )
+
+  const disabledModes = (st.disabled_modes || deck?.practice_settings?.disabled_modes || deck?.disabled_modes || []) as string[]
+  const isPracticeDisabled = Boolean(
+    st.is_practice_disabled ||
+    deck?.is_practice_disabled ||
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice') ||
+    ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m))
+  )
+
+  const rawStudyMode = (
+    deck?.user_study_settings?.learning_mode ||
+    deck?.study_defaults?.learning_mode ||
+    deck?.practice_settings?.default_learning_mode ||
+    deck?.creator_settings?.learning_mode ||
+    userSettings?.quiz_learning_mode ||
+    'fsrs'
+  )
+  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+
+  const studyModeLabel = (() => {
+    switch (activeStudyMode) {
+      case 'skim':
+        return 'Speed Skim'
+      case 'autoplay':
+        return 'AutoPlay'
+      case 'review':
+        return 'FSRS Review'
+      case 'new':
+        return 'Learn New'
+      case 'fsrs':
+      default:
+        return 'FSRS v6'
+    }
+  })()
+
+  const rawPracticeMode = (
+    deck?.practice_settings?.default_mode ||
+    deck?.practice_settings?.active_mode ||
+    userSettings?.practice_submode ||
+    'mcq'
+  )
+  const activePracticeMode = rawPracticeMode || 'mcq'
+
+  const practiceModeLabel = (() => {
+    switch (activePracticeMode) {
+      case 'typing':
+        return 'Typing'
+      case 'listening':
+      case 'listening_mcq':
+        return 'Listening'
+      case 'listening_typing':
+        return 'Listen Typing'
+      case 'roadmap_test':
+        return 'Roadmap Test'
+      case 'mcq':
+      default:
+        return 'MCQ Quiz'
+    }
+  })()
+
+  return {
+    st,
+    totalCards,
+    learnedCards,
+    unlearnedCards,
+    dueRemaining,
+    streak,
+    masteredCount,
+    hasExplicitMastered,
+    pct,
+    isMastered,
+    estimatedMins,
+    retentionRate,
+    authorName,
+    createdAtStr,
+    deckDescription,
+    isPracticeDisabled,
+    activeStudyMode,
+    studyModeLabel,
+    activePracticeMode,
+    practiceModeLabel
+  }
+}
+
 export function DashboardRoadmapSection({
   roadmapDecks,
   selectedRoadmapIdx,
   onSelectRoadmapIdx,
   onOpenStudyModal,
   navigate,
-  onOpenCustomize
+  onOpenCustomize,
+  displayMode
 }: DashboardRoadmapSectionProps) {
   const user = useAppStore(s => s.user)
   const userSettings = useAppStore(s => s.userSettings)
@@ -199,111 +308,359 @@ export function DashboardRoadmapSection({
     )
   }
 
-  // ══════════════ STATS CALCULATION FOR CURRENT DECK ══════════════
-  const st = deck.status || {}
-  const totalCards = Number(st.total_cards || deck.total_cards || deck.questions_count || 0)
-  const learnedCards = Number(st.learned_cards || deck.learned_cards || 0)
-  const unlearnedCards = Math.max(0, totalCards - learnedCards)
-  const dueRemaining = Number(st.review_due_today ?? deck.review_remaining ?? 0)
-  const streak = Number(st.streak || deck.streak || 0)
-  const masteredCount = Number(st.mastered_count ?? st.mastered ?? deck.mastered_count ?? 0)
-  const hasExplicitMastered = masteredCount > 0
-  const pct = totalCards > 0 ? Math.min(100, Math.round((learnedCards / totalCards) * 100)) : 0
-  const isMastered = (hasExplicitMastered && masteredCount >= totalCards) || (totalCards > 0 && learnedCards >= totalCards)
-  const estimatedMins = Math.max(2, Math.round(dueRemaining * 0.12))
-  const retentionRate = Math.min(100, Math.max(70, Number(st.retention_rate || 90)))
+  const effectiveDisplayMode = displayMode || userSettings?.roadmap_display_mode || 'carousel'
 
-  // Author & Creation Info: Prioritize uploader/creator (tnhnaht)
-  const authorName = deck.creator_name || deck.creator_username || deck.creator?.username || user?.username || 'tnhnaht'
-  const createdAtStr = deck.created_at 
-    ? new Date(deck.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
-    : 'Oct 2026'
-  const deckDescription = deck.description || (
-    deck.title?.includes('Danh Động Từ') 
-      ? 'Tổng hợp danh động từ N2 thường gặp trong đề thi JLPT kèm ví dụ và câu hỏi luyện tập FSRS.' 
-      : 'Bộ thẻ từ vựng & ngữ pháp tối ưu hóa theo chu kỳ ngắt quãng FSRS v6 giúp ghi nhớ sâu.'
-  )
+  // Render unified dual actions (Study & Practice) with configured modes
+  const renderDualActions = (targetDeck: any, data: ReturnType<typeof computeDeckData>) => {
+    return (
+      <div className={cn("grid gap-2", data.isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
+        {/* Flashcard Action Group */}
+        <div className="flex items-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 shadow-xs p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
+              navigate(`/flashcard/${targetDeck.deck_id ?? targetDeck.id}/play?mode=${data.activeStudyMode}`)
+            }}
+            className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
+            title={`Start studying with ${data.studyModeLabel}`}
+          >
+            <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+              <Brain className="w-4 h-4 text-white" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
+                Study
+              </span>
+              <span className="text-[9.5px] text-orange-100 font-bold block leading-tight truncate">
+                {data.studyModeLabel}
+              </span>
+            </div>
+          </button>
 
-  // Check if practice quiz disabled
-  const disabledModes = (st.disabled_modes || deck.practice_settings?.disabled_modes || deck.disabled_modes || []) as string[]
-  const isPracticeDisabled = Boolean(
-    st.is_practice_disabled ||
-    deck.is_practice_disabled ||
-    disabledModes.includes('practice') ||
-    disabledModes.includes('all_practice') ||
-    ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m))
-  )
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+              onOpenStudyModal?.(targetDeck, 'flashcard')
+            }}
+            className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
+            title="Quick Study Mode Settings"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Practice Action Group */}
+        {!data.isPracticeDisabled && (
+          <div className="flex items-center rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 shadow-xs p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
+                navigate(`/practice/${targetDeck.deck_id ?? targetDeck.id}/${data.activePracticeMode}`)
+              }}
+              className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
+              title={`Start practice with ${data.practiceModeLabel}`}
+            >
+              <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4 text-white" />
+              </div>
+              <div className="text-left min-w-0">
+                <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
+                  Practice
+                </span>
+                <span className="text-[9.5px] text-teal-100 font-bold block leading-tight truncate">
+                  {data.practiceModeLabel}
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
+                onOpenStudyModal?.(targetDeck, 'practice')
+              }}
+              className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
+              title="Quick Practice Mode Settings"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ══════════════ VIEW MODE 1: VERTICAL CARDS STACK ══════════════
+  if (effectiveDisplayMode === 'vertical') {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col w-full p-2.5 sm:p-3 select-none">
+        {/* Header bar */}
+        <div className="flex items-center justify-between shrink-0 px-0.5 pb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-black">
+              📜
+            </div>
+            <span className="text-xs font-black text-slate-800">
+              Active Decks ({totalDecks})
+            </span>
+          </div>
+          {onOpenCustomize && (
+            <button
+              type="button"
+              onClick={onOpenCustomize}
+              className="text-[11px] font-black text-slate-600 hover:text-orange-600 bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-200 px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            >
+              <SlidersHorizontal className="w-3 h-3 text-orange-500" />
+              <span>Manage Decks</span>
+            </button>
+          )}
+        </div>
+
+        {/* Scrollable list of full deck cards */}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
+          {safeDecks.map((d, index) => {
+            const data = computeDeckData(d, userSettings, user)
+            return (
+              <div
+                key={d.deck_id ?? d.id ?? index}
+                className="bg-white border border-slate-200/90 hover:border-orange-200/90 rounded-3xl p-3.5 shadow-2xs space-y-3 transition-colors"
+              >
+                {/* Card Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                        #{index + 1}
+                      </span>
+                      <Link
+                        to={`/decks/${d.deck_id ?? d.id}`}
+                        className="text-sm font-black text-slate-900 hover:text-orange-600 transition-colors truncate block"
+                      >
+                        {d.title}
+                      </Link>
+                      {d.level && (
+                        <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[9.5px] font-black shrink-0">
+                          {d.level}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold mt-1">
+                      {data.streak > 0 && (
+                        <span className="text-orange-500 flex items-center gap-0.5 font-black">
+                          <Flame className="w-3 h-3 fill-current" />
+                          {data.streak}d streak
+                        </span>
+                      )}
+                      <span>•</span>
+                      <span>{data.learnedCards}/{data.totalCards} cards ({data.pct}%)</span>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={`/decks/${d.deck_id ?? d.id}`}
+                    className="text-[10px] font-black text-slate-500 hover:text-orange-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg flex items-center gap-0.5 shrink-0"
+                  >
+                    <span>Details</span>
+                    <ChevronRight className="w-2.5 h-2.5 stroke-[2.5]" />
+                  </Link>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60 shadow-inner">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 transition-all duration-300"
+                    style={{ width: `${Math.max(data.pct, 3)}%` }}
+                  />
+                </div>
+
+                {/* 3 Truth Stat Pills */}
+                <div className="grid grid-cols-3 gap-1.5 text-center">
+                  <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-1.5">
+                    <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Due Today</span>
+                    <span className={cn("text-xs font-black tabular-nums", data.dueRemaining > 0 ? "text-purple-600" : "text-emerald-600")}>
+                      {data.dueRemaining}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-1.5">
+                    <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">Unlearned</span>
+                    <span className="text-xs font-black text-amber-600 tabular-nums">
+                      {data.unlearnedCards}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-1.5">
+                    <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block">
+                      {data.hasExplicitMastered ? 'Mastered' : 'Learned'}
+                    </span>
+                    <span className="text-xs font-black text-emerald-600 tabular-nums">
+                      {data.hasExplicitMastered ? data.masteredCount : data.learnedCards}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dual Action Buttons */}
+                {renderDualActions(d, data)}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════════ VIEW MODE 2: COMPACT SHORTCUTS LIST ══════════════
+  if (effectiveDisplayMode === 'compact') {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col w-full p-2.5 sm:p-3 select-none">
+        {/* Header bar */}
+        <div className="flex items-center justify-between shrink-0 px-0.5 pb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-black">
+              ⚡
+            </div>
+            <span className="text-xs font-black text-slate-800">
+              Quick Shortcuts ({totalDecks})
+            </span>
+          </div>
+          {onOpenCustomize && (
+            <button
+              type="button"
+              onClick={onOpenCustomize}
+              className="text-[11px] font-black text-slate-600 hover:text-orange-600 bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-200 px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            >
+              <SlidersHorizontal className="w-3 h-3 text-orange-500" />
+              <span>Manage Decks</span>
+            </button>
+          )}
+        </div>
+
+        {/* Scrollable list of compact items */}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200">
+          {safeDecks.map((d, index) => {
+            const data = computeDeckData(d, userSettings, user)
+            return (
+              <div
+                key={d.deck_id ?? d.id ?? index}
+                className="bg-white border border-slate-200/90 hover:border-orange-300 rounded-2xl p-2.5 shadow-2xs space-y-2 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-6 h-6 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                      #{index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <Link
+                        to={`/decks/${d.deck_id ?? d.id}`}
+                        className="text-xs font-black text-slate-900 hover:text-orange-600 transition-colors truncate block"
+                      >
+                        {d.title}
+                      </Link>
+                      <div className="flex items-center gap-2 text-[9.5px] text-slate-400 font-bold mt-0.5">
+                        <span className={cn(
+                          "font-black",
+                          data.dueRemaining > 0 ? "text-purple-600" : "text-emerald-600"
+                        )}>
+                          {data.dueRemaining > 0 ? `${data.dueRemaining} due` : '✓ Caught up'}
+                        </span>
+                        <span>•</span>
+                        <span>{data.learnedCards}/{data.totalCards} ({data.pct}%)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Compact Action Buttons */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
+                        navigate(`/flashcard/${d.deck_id ?? d.id}/play?mode=${data.activeStudyMode}`)
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[11px] font-black flex items-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                      title={`Study: ${data.studyModeLabel}`}
+                    >
+                      <Brain className="w-3 h-3" />
+                      <span>Study</span>
+                    </button>
+
+                    {!data.isPracticeDisabled && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
+                          navigate(`/practice/${d.deck_id ?? d.id}/${data.activePracticeMode}`)
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white text-[11px] font-black flex items-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                        title={`Practice: ${data.practiceModeLabel}`}
+                      >
+                        <Trophy className="w-3 h-3" />
+                        <span>Practice</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(6)
+                        onOpenStudyModal?.(d, 'flashcard')
+                      }}
+                      className="w-7 h-7 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all cursor-pointer"
+                      title="Settings"
+                    >
+                      <SlidersHorizontal className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mini progress line */}
+                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 transition-all duration-300"
+                    style={{ width: `${Math.max(data.pct, 3)}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════════ VIEW MODE 3: SPOTLIGHT HERO REEL (CAROUSEL) ══════════════
+  const deckData = computeDeckData(deck, userSettings, user)
+  const {
+    totalCards,
+    learnedCards,
+    unlearnedCards,
+    dueRemaining,
+    masteredCount,
+    hasExplicitMastered,
+    pct,
+    isMastered,
+    estimatedMins,
+    retentionRate,
+    authorName,
+    createdAtStr,
+    deckDescription
+  } = deckData
 
   // Mascot expression & speech
   let mascotImg = '/mascot/sleepy.png'
   let mascotHeadline = 'Ready to study!'
-  let mascotSubline = "Let's learn new words today."
 
   if (isMastered) {
     mascotImg = '/mascot/celebrating.png'
     mascotHeadline = 'All Mastered! 🎉'
-    mascotSubline = 'Outstanding achievement!'
   } else if (dueRemaining === 0 && learnedCards > 0) {
     mascotImg = '/mascot/celebrating.png'
     mascotHeadline = 'All caught up! ✨'
-    mascotSubline = 'Zero reviews pending today.'
   } else if (dueRemaining > 0) {
     mascotImg = '/mascot/excited.png'
     mascotHeadline = 'Keep your memory burning! 🔥'
-    mascotSubline = 'Review daily to strengthen long-term retention.'
   }
-
-  // Active Study & Practice Modes
-  const rawStudyMode = (
-    deck.user_study_settings?.learning_mode ||
-    deck.study_defaults?.learning_mode ||
-    deck.practice_settings?.default_learning_mode ||
-    deck.creator_settings?.learning_mode ||
-    userSettings?.quiz_learning_mode ||
-    'fsrs'
-  )
-  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
-
-  const studyModeLabel = (() => {
-    switch (activeStudyMode) {
-      case 'skim':
-        return 'Speed Skim'
-      case 'autoplay':
-        return 'AutoPlay'
-      case 'review':
-        return 'FSRS Review'
-      case 'new':
-        return 'Learn New'
-      case 'fsrs':
-      default:
-        return 'FSRS v6'
-    }
-  })()
-
-  const rawPracticeMode = (
-    deck.practice_settings?.default_mode ||
-    deck.practice_settings?.active_mode ||
-    userSettings?.practice_submode ||
-    'mcq'
-  )
-  const activePracticeMode = rawPracticeMode || 'mcq'
-
-  const practiceModeLabel = (() => {
-    switch (activePracticeMode) {
-      case 'typing':
-        return 'Typing'
-      case 'listening':
-      case 'listening_mcq':
-        return 'Listening'
-      case 'listening_typing':
-        return 'Listen Typing'
-      case 'roadmap_test':
-        return 'Roadmap Test'
-      case 'mcq':
-      default:
-        return 'MCQ Quiz'
-    }
-  })()
 
   return (
     <div 
@@ -367,14 +724,26 @@ export function DashboardRoadmapSection({
           )}
         </div>
 
-        {/* Right: Deck Details Link */}
-        <Link 
-          to={`/decks/${deck.deck_id ?? deck.id}`}
-          className="text-[11px] font-black text-orange-600 hover:text-orange-700 bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-200 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-2xs active:scale-95 transition-all shrink-0"
-        >
-          <span>Deck Details</span>
-          <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-        </Link>
+        {/* Right: Deck Details Link & Manage Button */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenCustomize && (
+            <button
+              type="button"
+              onClick={onOpenCustomize}
+              className="p-1 rounded-full bg-white hover:bg-orange-50 border border-slate-200/90 text-slate-500 hover:text-orange-600 shadow-2xs active:scale-90 transition-all cursor-pointer"
+              title="Manage Home Decks & Display Style"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <Link 
+            to={`/decks/${deck.deck_id ?? deck.id}`}
+            className="text-[11px] font-black text-orange-600 hover:text-orange-700 bg-white hover:bg-orange-50 border border-slate-200/90 hover:border-orange-200 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-2xs active:scale-95 transition-all shrink-0"
+          >
+            <span>Deck Details</span>
+            <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+          </Link>
+        </div>
       </div>
 
       {/* ── 2. ANIMATED DECK SLIDE (HERO STAGE + STATS + ACTIONS) ── */}
@@ -714,88 +1083,7 @@ export function DashboardRoadmapSection({
 
           {/* ── 2C. DUAL STUDY ACTIONS (INSTANT PLAY + QUICK MODE POPUP) ── */}
           <div className="shrink-0">
-            <div className={cn("grid gap-2", isPracticeDisabled ? "grid-cols-1" : "grid-cols-2")}>
-              
-              {/* Flashcard Action Group */}
-              <div className="flex items-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 shadow-xs p-1 gap-1">
-                {/* Primary: Study Flashcards Instant Play */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                    navigate(`/flashcard/${deck.deck_id ?? deck.id}/play?mode=${activeStudyMode}`)
-                  }}
-                  className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
-                  title={`Start studying with ${studyModeLabel}`}
-                >
-                  <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                    <Brain className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="text-left min-w-0">
-                    <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
-                      Study
-                    </span>
-                    <span className="text-[9.5px] text-orange-100 font-bold block leading-tight truncate">
-                      {studyModeLabel}
-                    </span>
-                  </div>
-                </button>
-
-                {/* Secondary: Quick Mode Select Popup */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
-                    onOpenStudyModal?.(deck, 'flashcard')
-                  }}
-                  className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
-                  title="Quick Study Mode Settings (FSRS, Skim, AutoPlay...)"
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Practice Action Group */}
-              {!isPracticeDisabled && (
-                <div className="flex items-center rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 shadow-xs p-1 gap-1">
-                  {/* Primary: Practice Quiz Instant Play */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                      navigate(`/practice/${deck.deck_id ?? deck.id}/${activePracticeMode}`)
-                    }}
-                    className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
-                    title={`Start practice with ${practiceModeLabel}`}
-                  >
-                    <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
-                      <Trophy className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
-                        Practice
-                      </span>
-                      <span className="text-[9.5px] text-teal-100 font-bold block leading-tight truncate">
-                        {practiceModeLabel}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* Secondary: Quick Practice Mode Select Popup */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
-                      onOpenStudyModal?.(deck, 'practice')
-                    }}
-                    className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
-                    title="Quick Practice Mode Settings (MCQ, Typing, Listening...)"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
+            {renderDualActions(deck, deckData)}
           </div>
         </motion.div>
       </AnimatePresence>

@@ -39,6 +39,8 @@ export function HomeCustomizeModal({
 
   const [activeTab, setActiveTab] = useState<'decks' | 'display'>('decks')
   const [displayMode, setDisplayMode] = useState<'carousel' | 'vertical' | 'compact'>('carousel')
+  const [studyMode, setStudyMode] = useState<string>(userSettings.quiz_learning_mode || 'fsrs')
+  const [practiceMode, setPracticeMode] = useState<string>(userSettings.practice_submode || 'mcq')
   const [orderedLearningDecks, setOrderedLearningDecks] = useState<any[]>([])
   const [selectedLearningIds, setSelectedLearningIds] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
@@ -66,6 +68,8 @@ export function HomeCustomizeModal({
   useEffect(() => {
     if (isOpen) {
       setDisplayMode(userSettings.roadmap_display_mode || 'carousel')
+      setStudyMode(userSettings.quiz_learning_mode || 'fsrs')
+      setPracticeMode(userSettings.practice_submode || 'mcq')
 
       const lnOrder = (userSettings.learning_deck_order || userSettings.roadmap_deck_order || []).map((x: any) => String(x))
       const hasPriorSelection = Array.isArray(lnOrder) && lnOrder.length > 0
@@ -158,6 +162,8 @@ export function HomeCustomizeModal({
       await updateUserSettings({
         home_active_tab: 'learning',
         roadmap_display_mode: displayMode,
+        quiz_learning_mode: studyMode as any,
+        practice_submode: practiceMode,
         learning_deck_order: learningIds,
         roadmap_deck_order: learningIds
       })
@@ -250,7 +256,7 @@ export function HomeCustomizeModal({
                   )}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Display Style</span>
+                  <span>Display & Modes</span>
                 </button>
               </div>
             </div>
@@ -556,6 +562,136 @@ export function HomeCustomizeModal({
                           {displayMode === 'compact' && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Default Study Mode Selection */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                        Default Study Action (Nút Study)
+                      </label>
+                      <span className="text-[9.5px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                        Chế độ học mặc định
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        {
+                          mode: 'fsrs',
+                          icon: '🧠',
+                          title: 'FSRS v6 Spaced Repetition (Recommended)',
+                          desc: 'Lặp lại ngắt quãng thích ứng với 4 nút đánh giá (Again, Hard, Good, Easy)'
+                        },
+                        {
+                          mode: 'skim',
+                          icon: '⚡',
+                          title: 'Speed Skim',
+                          desc: 'Quét thẻ nhanh 1 chạm / phím Space không áp lực chấm điểm (+3 XP)'
+                        },
+                        {
+                          mode: 'autoplay',
+                          icon: '🎧',
+                          title: 'AutoPlay',
+                          desc: 'Tự động phát âm và lật thẻ rảnh tay theo nhịp độ'
+                        }
+                      ].map(item => (
+                        <div
+                          key={item.mode}
+                          onClick={() => setStudyMode(item.mode)}
+                          className={cn(
+                            "p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
+                            studyMode === item.mode
+                              ? "bg-orange-50/60 border-orange-400 ring-2 ring-orange-200/60"
+                              : "bg-white border-slate-200 hover:border-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-orange-100/70 border border-orange-200 flex items-center justify-center text-orange-600 shrink-0 text-base">
+                              {item.icon}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-slate-900 truncate">
+                                {item.title}
+                              </h4>
+                              <p className="text-[10px] font-medium text-slate-500 line-clamp-1">
+                                {item.desc}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
+                            studyMode === item.mode ? "border-orange-600 bg-orange-600 text-white" : "border-slate-300"
+                          )}>
+                            {studyMode === item.mode && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section 3: Default Practice Mode Selection */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                        Default Practice Action (Nút Practice)
+                      </label>
+                      <span className="text-[9.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                        Dạng bài tập mặc định
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        {
+                          mode: 'mcq',
+                          icon: '🎯',
+                          title: 'Multiple Choice (MCQ Quiz) (Recommended)',
+                          desc: 'Luyện phản xạ nhanh với trắc nghiệm 4 đáp án'
+                        },
+                        {
+                          mode: 'typing',
+                          icon: '⌨️',
+                          title: 'Vocabulary Typing',
+                          desc: 'Gõ từ vựng kiểm tra trí nhớ chính tả chuyên sâu'
+                        },
+                        {
+                          mode: 'listening',
+                          icon: '🔊',
+                          title: 'Listening Test',
+                          desc: 'Nghe phát âm bản xứ và chọn đáp án chính xác'
+                        }
+                      ].map(item => (
+                        <div
+                          key={item.mode}
+                          onClick={() => setPracticeMode(item.mode)}
+                          className={cn(
+                            "p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3",
+                            practiceMode === item.mode
+                              ? "bg-teal-50/60 border-teal-400 ring-2 ring-teal-200/60"
+                              : "bg-white border-slate-200 hover:border-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-teal-100/70 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0 text-base">
+                              {item.icon}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-slate-900 truncate">
+                                {item.title}
+                              </h4>
+                              <p className="text-[10px] font-medium text-slate-500 line-clamp-1">
+                                {item.desc}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border flex items-center justify-center shrink-0",
+                            practiceMode === item.mode ? "border-teal-600 bg-teal-600 text-white" : "border-slate-300"
+                          )}>
+                            {practiceMode === item.mode && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
