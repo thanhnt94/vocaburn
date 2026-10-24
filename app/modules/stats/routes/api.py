@@ -115,7 +115,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         user_settings_map = {row[0]: row[1] for row in res_user_settings.all() if row[1]}
         
         created_decks_data = []
-        for row in res_b.all():
+        for row in b_rows:
             q, count = row
             prog = mastery_map.get(q.id, {"learned": 0, "mastered": 0})
             total_cnt = count or 0
@@ -289,7 +289,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     discover_decks_data = []
 
     # Map Query A results
-    for row in res_a.all():
+    for row in a_rows:
         q, count, is_archived, last_studied_at, last_mastery_review = row
         actual_last_studied = last_studied_at
         if last_mastery_review:
@@ -309,12 +309,12 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     archived_decks_data.sort(key=deck_recency_key, reverse=True)
 
     # Map Query B results
-    for row in res_b.all():
+    for row in b_rows:
         q, count = row
         created_decks_data.append(format_deck_item(q, count))
 
     # Map Query C results
-    for row in res_c.all():
+    for row in c_rows:
         q, count = row
         discover_decks_data.append(format_deck_item(q, count))
 
