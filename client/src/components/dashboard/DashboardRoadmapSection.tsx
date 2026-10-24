@@ -46,6 +46,7 @@ export function DashboardRoadmapSection({
   onOpenCustomize
 }: DashboardRoadmapSectionProps) {
   const user = useAppStore(s => s.user)
+  const userSettings = useAppStore(s => s.userSettings)
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
   const [internalIdx, setInternalIdx] = useState(0)
 
@@ -215,6 +216,58 @@ export function DashboardRoadmapSection({
     mascotHeadline = 'Keep your memory burning! 🔥'
     mascotSubline = 'Review daily to strengthen long-term retention.'
   }
+
+  // Active Study & Practice Modes
+  const rawStudyMode = (
+    deck.user_study_settings?.learning_mode ||
+    deck.study_defaults?.learning_mode ||
+    deck.practice_settings?.default_learning_mode ||
+    deck.creator_settings?.learning_mode ||
+    userSettings?.quiz_learning_mode ||
+    'fsrs'
+  )
+  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+
+  const studyModeLabel = (() => {
+    switch (activeStudyMode) {
+      case 'skim':
+        return 'Speed Skim'
+      case 'autoplay':
+        return 'AutoPlay'
+      case 'review':
+        return 'FSRS Review'
+      case 'new':
+        return 'Learn New'
+      case 'fsrs':
+      default:
+        return 'FSRS v6'
+    }
+  })()
+
+  const rawPracticeMode = (
+    deck.practice_settings?.default_mode ||
+    deck.practice_settings?.active_mode ||
+    userSettings?.practice_submode ||
+    'mcq'
+  )
+  const activePracticeMode = rawPracticeMode || 'mcq'
+
+  const practiceModeLabel = (() => {
+    switch (activePracticeMode) {
+      case 'typing':
+        return 'Typing'
+      case 'listening':
+      case 'listening_mcq':
+        return 'Listening'
+      case 'listening_typing':
+        return 'Listen Typing'
+      case 'roadmap_test':
+        return 'Roadmap Test'
+      case 'mcq':
+      default:
+        return 'MCQ Quiz'
+    }
+  })()
 
   return (
     <div 
@@ -560,10 +613,10 @@ export function DashboardRoadmapSection({
                   type="button"
                   onClick={() => {
                     if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                    navigate(`/flashcard/${deck.deck_id ?? deck.id}/play`)
+                    navigate(`/flashcard/${deck.deck_id ?? deck.id}/play?mode=${activeStudyMode}`)
                   }}
                   className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
-                  title="Start studying with FSRS spaced repetition"
+                  title={`Start studying with ${studyModeLabel}`}
                 >
                   <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                     <Brain className="w-4 h-4 text-white" />
@@ -573,7 +626,7 @@ export function DashboardRoadmapSection({
                       Study
                     </span>
                     <span className="text-[9.5px] text-orange-100 font-bold block leading-tight truncate">
-                      {dueRemaining > 0 ? `${dueRemaining} due` : 'Learn'}
+                      {studyModeLabel}
                     </span>
                   </div>
                 </button>
@@ -586,7 +639,7 @@ export function DashboardRoadmapSection({
                     onOpenStudyModal?.(deck, 'flashcard')
                   }}
                   className="w-8 h-10 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 border border-white/20"
-                  title="Quick Study Mode Settings (FSRS, Leitner, Skim...)"
+                  title="Quick Study Mode Settings (FSRS, Skim, AutoPlay...)"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                 </button>
@@ -600,10 +653,10 @@ export function DashboardRoadmapSection({
                     type="button"
                     onClick={() => {
                       if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                      navigate(`/practice/${deck.deck_id ?? deck.id}`)
+                      navigate(`/practice/${deck.deck_id ?? deck.id}/${activePracticeMode}`)
                     }}
                     className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
-                    title="Start practice quiz"
+                    title={`Start practice with ${practiceModeLabel}`}
                   >
                     <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                       <Trophy className="w-4 h-4 text-white" />
@@ -613,7 +666,7 @@ export function DashboardRoadmapSection({
                         Practice
                       </span>
                       <span className="text-[9.5px] text-teal-100 font-bold block leading-tight truncate">
-                        Quiz
+                        {practiceModeLabel}
                       </span>
                     </div>
                   </button>
