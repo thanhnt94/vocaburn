@@ -1,7 +1,6 @@
 export * from './TimerWidget'
 export * from './SessionLoadingScreen'
 export * from './FsrsCompleteScreen'
-export * from './RoadmapCompleteScreen'
 export * from './StudyConsoleModal'
 export * from './ImageZoomOverlay'
 export * from './FloatingToasts'

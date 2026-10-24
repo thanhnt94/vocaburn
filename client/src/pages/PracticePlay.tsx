@@ -30,15 +30,12 @@ import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
-import { useRoadmapStatus, type PipelineStepStatus } from '@/hooks/useRoadmapStatus'
-import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
-import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
+import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import { FlashcardHeader } from '@/components/flashcard/FlashcardHeader'
 import {
   PracticeMcqCard,
   PracticeTypingCard,
   PracticeListeningCard,
-  PracticeRoadmapTestView,
   PracticeBottomBar
 } from '@/components/practice'
 import { usePracticeAudio, resolveAudioConfig, getCardFieldValue } from '@/hooks/usePracticeAudio'
@@ -287,7 +284,7 @@ export default function PracticePlay() {
   const [searchParams, setSearchParams] = useSearchParams()
   const subCol = searchParams.get('sub_col')
   const subVal = searchParams.get('sub_val')
-  const isRoadmapTestMode = subMode === 'roadmap_test' || subMode === 'roadmap_mcq' || subMode === 'roadmap_typing' || (typeof subMode === 'string' && subMode.startsWith('roadmap_'))
+  const isRoadmapTestMode = false
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, gamify, setUser, setGamify, addXp, userSettings, updateUserSettings } = useAppStore()
@@ -703,28 +700,12 @@ export default function PracticePlay() {
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
 
-  const {
-    status: roadmapStatus,
-    refetchRoadmap,
-    showBanner,
-    dismissBanner,
-    justCompletedStep,
-    isRoadmapActive,
-    isAllDone: isRoadmapAllDone,
-    nextActionUrl,
-    nextActionLabel
-  } = useRoadmapStatus(id)
-  const fetchRoadmapStatus = () => refetchRoadmap()
+  const roadmapStatus: any = null
+  const refetchRoadmap = async () => null
+  const isRoadmapAllDone = false
+  const fetchRoadmapStatus = () => null
   const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard')
-
-  const isStage2AlreadyDone = Boolean(roadmapStatus?.stage_2_done || roadmapStatus?.pipeline?.find((p: any) => p.type === 'mcq' || p.type === 'typing')?.done)
-
-  const shouldShowRoadmapTestSummary = useMemo(() => {
-    if (isRetakingTest) return false;
-    if (isRoadmapTestFinished) return true;
-    if (isRoadmapTestMode && isStage2AlreadyDone) return true;
-    return false;
-  }, [isRetakingTest, isRoadmapTestFinished, isRoadmapTestMode, isStage2AlreadyDone]);
+  const shouldShowRoadmapTestSummary = false
 
   // Practice stats tracking
   const [practiceTotalAnswered, setPracticeTotalAnswered] = useState(0)
@@ -3819,20 +3800,6 @@ export default function PracticePlay() {
     );
   }
 
-  const renderRoadmapTestSummary = () => {
-    return (
-      <PracticeRoadmapTestView
-        session={session}
-        practiceCorrectCount={practiceCorrectCount}
-        roadmapSubmitResult={roadmapSubmitResult}
-        roadmapStatus={roadmapStatus}
-        onNavigateHome={() => navigate('/')}
-        onNavigateUrl={(url) => navigate(url)}
-        onResetTest={handleResetRoadmapTest}
-      />
-    );
-  };
-
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
   return (
@@ -4301,73 +4268,6 @@ export default function PracticePlay() {
               </div>
               
               <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
-                {/* 1. Roadmap Pipeline Progress Card */}
-                {roadmapStatus && roadmapStatus.roadmap_active ? (
-                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black">
-                          🗺️
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800">Lộ Trình Roadmap</h4>
-                          <p className="text-[10px] text-slate-400 font-semibold">
-                            {roadmapStatus.all_done ? '✅ Đã Xong Hôm Nay' : `Bước ${roadmapStatus.current_step_index + 1}/${roadmapStatus.pipeline?.length || 1}`}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={cn(
-                        "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
-                        roadmapStatus.all_done ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
-                      )}>
-                        {roadmapStatus.all_done ? 'Hoàn Thành' : 'Đang Học'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {roadmapStatus.pipeline?.map((st: any, sIdx: number) => {
-                        const isCurrent = sIdx === roadmapStatus.current_step_index && !roadmapStatus.all_done
-                        return (
-                          <div
-                            key={sIdx}
-                            className={cn(
-                              "p-2.5 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all",
-                              st.done ? "bg-emerald-50/60 border-emerald-200 text-emerald-800" :
-                              isCurrent ? "bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/20" :
-                              "bg-slate-50 border-slate-100 text-slate-400 opacity-60"
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black">
-                                {st.done ? '✓' : `${sIdx + 1}.`}
-                              </span>
-                              <span>{st.label}</span>
-                            </div>
-
-                            <div className="text-[10px] font-black">
-                              {st.type === 'new_cards' && `${st.progress?.learned || 0}/${st.daily_count} từ`}
-                              {st.type === 'fsrs_review' && `Còn ${st.progress?.due_count || 0} thẻ`}
-                              {(st.type === 'mcq' || st.type === 'typing') && `${st.progress?.best_score || 0}/${st.pass_threshold}%`}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black">
-                        📚
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-700">Chế Độ Tự Do</h4>
-                        <p className="text-[10px] text-slate-400 font-medium">Bật Lộ trình để tạo pipeline</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* 2. Personal Achievement & Streak Card */}
                 <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
@@ -4625,11 +4525,7 @@ export default function PracticePlay() {
                     resetPracticeSettings={resetPracticeSettings}
                   />
                 ) : mainTab === 'practice' ? (
-                  shouldShowRoadmapTestSummary ? (
-                    renderRoadmapTestSummary()
-                  ) : (
-                    renderPracticeScreen()
-                  )
+                  renderPracticeScreen()
                 ) : (
                   <div className="perspective-1000 w-full h-full flex-1 relative min-h-0">
                     <div
@@ -5175,7 +5071,6 @@ export default function PracticePlay() {
           sessionAnswers={sessionAnswers}
           currentQuestion={currentQuestion}
           currentPracticeData={currentPracticeData}
-          isRoadmapTestMode={isRoadmapTestMode}
           isFlipped={isFlipped}
           hasRated={hasRated}
           justAnswered={justAnswered}
@@ -5233,87 +5128,6 @@ export default function PracticePlay() {
       {/* ✅ SESSION COMPLETE SUMMARY MODAL */}
       <AnimatePresence>
         {isSessionSummaryOpen && (() => {
-          const testResult = roadmapTestResult || roadmapSubmitResult;
-          if (isRoadmapTestMode && testResult) {
-            const passed = testResult.passed;
-            return (
-              <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-slate-900/70 backdrop-blur-md"
-                  onClick={() => setIsSessionSummaryOpen(false)} />
-                <motion.div initial={{ opacity: 0, scale: 0.8, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, y: 30 }} transition={{ type: 'spring', bounce: 0.35 }}
-                  className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden text-center">
-                  
-                  <div className={cn("p-8 flex flex-col items-center text-white bg-gradient-to-br", passed ? "from-emerald-500 to-teal-600" : "from-rose-500 to-pink-600")}>
-                    <div className="text-[9px] font-black uppercase tracking-[0.4em] opacity-80 mb-2">ROADMAP PRACTICE TEST</div>
-                    <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center text-4xl font-black mb-3 border-2 border-white/30">
-                      {passed ? '🏆' : '⚠️'}
-                    </div>
-                    <h2 className="text-xl font-black uppercase">{passed ? 'ĐÃ ĐẠT BÀI KIỂM TRA!' : 'CHƯA ĐẠT NGƯỠNG ĐỖ'}</h2>
-                    <p className="text-sm opacity-90 mt-1 font-semibold">
-                      {passed ? `Chúc mừng! Bạn đạt ${testResult.score}% (Vượt qua ngưỡng ≥${testResult.pass_threshold}%)` : `Bạn đạt ${testResult.score}% (Cần đạt ≥${testResult.pass_threshold}% để tích Streak)`}
-                    </p>
-                  </div>
-
-                  <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center p-3 bg-slate-50 rounded-2xl">
-                        <div className="text-2xl font-black text-slate-800">{testResult.correct_count}/{testResult.total_count}</div>
-                        <div className="text-[9px] font-black text-slate-400 uppercase">Đúng / Tổng</div>
-                      </div>
-                      <div className="text-center p-3 bg-indigo-50 rounded-2xl">
-                        <div className="text-2xl font-black text-indigo-600">{testResult.retention_rate}%</div>
-                        <div className="text-[9px] font-black text-indigo-400 uppercase">Retention Rate</div>
-                      </div>
-                      <div className="text-center p-3 bg-amber-50 rounded-2xl">
-                        <div className="text-2xl font-black text-amber-600">🔥 {testResult.streak}d</div>
-                        <div className="text-[9px] font-black text-amber-400 uppercase">Streak</div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2.5 pt-2">
-                      {!passed ? (
-                        <>
-                          <button onClick={() => {
-                            setIsSessionSummaryOpen(false);
-                            handleResetRoadmapTest();
-                          }}
-                            className="py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all cursor-pointer">
-                            THỬ LẠI BÀI KIỂM TRA 🔄
-                          </button>
-                          <button onClick={() => navigate(`/flashcard/${id}/play?mode=roadmap`)}
-                            className="py-3.5 bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all cursor-pointer">
-                            ÔN LẠI FLASHCARD 🎴
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          {roadmapStatus?.next_action_url && !roadmapStatus?.all_done && (
-                            <button onClick={() => {
-                              setIsSessionSummaryOpen(false);
-                              navigate(roadmapStatus.next_action_url);
-                            }}
-                              className="py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all cursor-pointer">
-                              {roadmapStatus.next_action_label ? `🚀 SANG BƯỚC: ${roadmapStatus.next_action_label} ➔` : '🚀 SANG BƯỚC TIẾP THEO ➔'}
-                            </button>
-                          )}
-                          <button onClick={() => navigate('/')}
-                            className="py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-200 active:scale-95 transition-all cursor-pointer">
-                            VỀ TRANG CHỦ 🏠
-                          </button>
-                          <button onClick={() => navigate(`/decks/${id}`)}
-                            className="py-3 bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all cursor-pointer">
-                            VỀ CHI TIẾT BỘ THẺ 📚
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            );
-          }
           const answeredCount = Object.keys(sessionAnswers).length
           const correctCount = Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
             const q = session.questions[Number(idx)]
@@ -5540,7 +5354,7 @@ export default function PracticePlay() {
           deckInfo: session
         }}
         initialCardSubTab={activeFeedbackTab || 'stats'}
-        onCardSubTabChange={(subTab) => {
+        onCardSubTabChange={(subTab: any) => {
           if (subTab !== 'stats') {
             setActiveFeedbackTab(subTab as any);
           }

@@ -43,7 +43,6 @@ export interface FlashcardDesktopSidebarsProps {
   mainTab: string
   activeGoal: any
   activeMode: string
-  roadmapStatus: any
   leaderboardType: 'xp' | 'streak' | 'questions' | 'time'
   setLeaderboardType: (val: any) => void
   leaderboardTimeFilter: 'today' | 'week' | 'month' | 'all_time'
@@ -106,7 +105,6 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
   mainTab,
   activeGoal,
   activeMode,
-  roadmapStatus,
   leaderboardType,
   setLeaderboardType,
   leaderboardTimeFilter,
@@ -183,56 +181,6 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
           </div>
           
           <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
-            {/* 1. Roadmap Pipeline Progress Card */}
-            {roadmapStatus && roadmapStatus.roadmap_active ? (
-              <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black">
-                      🗺️
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-slate-800">Roadmap Pathway</h4>
-                      <p className="text-[10px] text-slate-400 font-semibold">
-                        {roadmapStatus.all_done ? '✅ Completed Today' : `Step ${roadmapStatus.current_step_index + 1}/${roadmapStatus.pipeline?.length || 1}`}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
-                    roadmapStatus.all_done ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
-                  )}>
-                    {roadmapStatus.all_done ? 'Completed' : 'In Progress'}
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  {roadmapStatus.pipeline?.map((st: any, sIdx: number) => {
-                    const isCurrent = sIdx === roadmapStatus.current_step_index && !roadmapStatus.all_done
-                    return (
-                      <div
-                        key={sIdx}
-                        className={cn(
-                          "p-2.5 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all",
-                          st.done ? "bg-emerald-50/60 border-emerald-200 text-emerald-800" :
-                          isCurrent ? "bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/20" :
-                          "bg-slate-50 border-slate-100 text-slate-400 opacity-60"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[10px] font-black text-slate-400 w-4">{sIdx + 1}.</span>
-                          <span className="truncate">{st.label}</span>
-                        </div>
-                        <span className="text-[10px] opacity-75 shrink-0">
-                          {st.done ? "✓ Done" : `${st.daily_count || 20} cards`}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ) : null}
-
             {/* 2. Mini Leaderboard Widget */}
             <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
               <div className="flex items-center justify-between">

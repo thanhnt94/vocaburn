@@ -45,14 +45,11 @@ import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
-import { useRoadmapStatus, type PipelineStepStatus } from '@/hooks/useRoadmapStatus'
-import { RoadmapFloatingBanner } from '@/components/RoadmapFloatingBanner'
-import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
+import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import {
   TimerWidget,
   SessionLoadingScreen,
   FsrsCompleteScreen,
-  RoadmapCompleteScreen,
   StudyConsoleModal,
   ImageZoomOverlay,
   FloatingToasts,
@@ -81,17 +78,10 @@ export default function FlashcardPlay() {
 
   const [isHeaderSurging, setIsHeaderSurging] = useState(false)
 
-  const {
-    status: roadmapStatus,
-    refetchRoadmap,
-    showBanner,
-    dismissBanner,
-    justCompletedStep,
-    isRoadmapActive,
-    isAllDone: isRoadmapAllDone,
-    nextActionUrl,
-    nextActionLabel
-  } = useRoadmapStatus(id)
+  const roadmapStatus: any = null
+  const refetchRoadmap = async (): Promise<any> => null
+  const nextActionUrl = ''
+  const nextActionLabel = ''
   
   const { userSettings, updateUserSettings } = useAppStore()
   const [session, setSession] = useState<any>(null)
@@ -3896,29 +3886,7 @@ export default function FlashcardPlay() {
     activeMode: effectiveCardMode
   });
 
-  // Roadmap step blocking screen disabled: flashcard sessions flow smoothly without pipeline roadblocks
-  const shouldShowRoadmapStepCompleteScreen = false;
-
-  useEffect(() => {
-    if (shouldShowRoadmapStepCompleteScreen) {
-      confetti({ zIndex: 9999, particleCount: 150, spread: 80, origin: { y: 0.5 } });
-    }
-  }, [shouldShowRoadmapStepCompleteScreen]);
-
   const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
-
-  const renderRoadmapStepCompleteScreen = () => {
-    return (
-      <RoadmapCompleteScreen
-        roadmapStatus={roadmapStatus}
-        nextActionUrl={nextActionUrl}
-        nextActionLabel={nextActionLabel}
-        onNavigate={(url) => navigate(url)}
-        onLearnMoreNew={() => applyLearningMode('new')}
-        onOpenStudyConsole={() => setIsStudyConsoleOpen(true)}
-      />
-    )
-  };
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
     return Boolean(
@@ -4292,7 +4260,6 @@ export default function FlashcardPlay() {
           mainTab={mainTab}
           activeGoal={activeGoal}
           activeMode={activeMode}
-          roadmapStatus={roadmapStatus}
           leaderboardType={leaderboardType}
           setLeaderboardType={setLeaderboardType}
           leaderboardTimeFilter={leaderboardTimeFilter}
@@ -4345,8 +4312,6 @@ export default function FlashcardPlay() {
                 />
               ) : mainTab === 'practice' ? (
                 renderPracticeScreen()
-              ) : shouldShowRoadmapStepCompleteScreen ? (
-                renderRoadmapStepCompleteScreen()
               ) : shouldShowFsrsCompleteScreen ? (
                 renderFsrsCompleteScreen()
               ) : (
@@ -4416,12 +4381,11 @@ export default function FlashcardPlay() {
 
 
       {/* ═══════════ FLY TOOLBAR (Floating Island above footer dock for Practice Mode) ═══════════ */}
-      {!shouldShowRoadmapStepCompleteScreen && mainTab === 'practice' && !practiceNeedsSetup && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && (
+      {mainTab === 'practice' && !practiceNeedsSetup && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && (
         renderFlyToolbar(false)
       )}
 
       <FlashcardActionDock
-        shouldShowRoadmapStepCompleteScreen={shouldShowRoadmapStepCompleteScreen}
         shouldShowFsrsCompleteScreen={shouldShowFsrsCompleteScreen}
         mainTab={mainTab}
         practiceNeedsSetup={practiceNeedsSetup}

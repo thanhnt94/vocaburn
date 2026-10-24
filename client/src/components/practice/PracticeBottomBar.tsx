@@ -19,7 +19,6 @@ export interface PracticeBottomBarProps {
   sessionAnswers: Record<number, number | number[]>
   currentQuestion: Question | null
   currentPracticeData?: PracticeQuestionData | null
-  isRoadmapTestMode: boolean
   isFlipped: boolean
   hasRated: boolean
   justAnswered: boolean
@@ -45,7 +44,6 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
   sessionAnswers,
   currentQuestion,
   currentPracticeData,
-  isRoadmapTestMode,
   isFlipped,
   hasRated,
   justAnswered,
@@ -92,7 +90,6 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
             showFeedback={showFeedback}
             justAnswered={justAnswered}
             hasRated={hasRated}
-            isRoadmapTestMode={isRoadmapTestMode}
             onOpenSettings={onOpenSettings}
             onPlayAudio={onPlayAudio}
             onOpenFeedback={onOpenFeedback}

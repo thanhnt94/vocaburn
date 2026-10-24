@@ -17,7 +17,6 @@ const PracticePlay = lazy(() => import('./pages/PracticePlay'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Stats = lazy(() => import('./pages/Stats'))
 const Settings = lazy(() => import('./pages/Settings'))
-const RoadmapHub = lazy(() => import('./pages/RoadmapHub'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,7 +73,7 @@ function AppContent() {
               <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" replace />} />
               <Route path="/stats" element={isLoggedIn ? <Stats /> : <Navigate to="/login" replace />} />
               <Route path="/settings" element={isLoggedIn ? <Settings /> : <Navigate to="/login" replace />} />
-              <Route path="/roadmap" element={isLoggedIn ? <RoadmapHub /> : <Navigate to="/login" replace />} />
+              <Route path="/roadmap" element={<Navigate to="/" replace />} />
 
               {/* Admin Control Panel */}
               <Route path="/admin/:tab?" element={isLoggedIn && user?.role === 'admin' ? <Admin /> : <Navigate to="/" replace />} />

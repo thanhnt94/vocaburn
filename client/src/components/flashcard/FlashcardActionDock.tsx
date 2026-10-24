@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export interface FlashcardActionDockProps {
-  shouldShowRoadmapStepCompleteScreen: boolean
   shouldShowFsrsCompleteScreen?: boolean
   mainTab: string
   practiceNeedsSetup: boolean
@@ -38,7 +37,6 @@ export interface FlashcardActionDockProps {
 }
 
 export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
-  shouldShowRoadmapStepCompleteScreen,
   shouldShowFsrsCompleteScreen = false,
   mainTab,
   practiceNeedsSetup,
@@ -94,7 +92,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
       onOpenQuickSettings?.()
     }
   }
-  if (shouldShowRoadmapStepCompleteScreen || shouldShowFsrsCompleteScreen) return null
+  if (shouldShowFsrsCompleteScreen) return null
   if (mainTab === 'practice' && practiceNeedsSetup) return null
 
   const hasActionButtons = Boolean(

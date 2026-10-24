@@ -135,8 +135,6 @@ export function DashboardQuickDecksWidget({
         return 'Listening'
       case 'listening_typing':
         return 'Listen Typing'
-      case 'roadmap_test':
-        return 'Roadmap Test'
       case 'mcq':
       default:
         return 'MCQ Quiz'

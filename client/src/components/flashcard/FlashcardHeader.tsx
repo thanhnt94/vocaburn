@@ -1,8 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { StudyHeaderTracker } from '@/components/StudyHeaderTracker'
-import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
+import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 
 export interface FlashcardHeaderProps {
   isHeaderSurging: boolean

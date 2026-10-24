@@ -2,7 +2,15 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Clock, Flame, Trophy, Zap, X, Target, Sparkles, Brain, Gauge, ArrowRightLeft, ArrowUpDown, Shuffle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import type { PipelineStepStatus } from '@/hooks/useRoadmapStatus'
+
+export interface PipelineStepStatus {
+  type: string
+  done: boolean
+  label: string
+  url?: string
+  progress?: Record<string, any>
+  daily_count?: number
+}
 
 export interface StudyHeaderTrackerProps {
   pipeline?: PipelineStepStatus[]

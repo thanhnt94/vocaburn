@@ -60,6 +60,6 @@ export interface Question {
   }
 }
 
-export type LearningMode = 'fsrs' | 'skim' | 'review' | 'speed_skim' | 'new' | 'flip' | 'roadmap'
+export type LearningMode = 'fsrs' | 'skim' | 'review' | 'speed_skim' | 'new' | 'flip'
 export type CardBoxId = 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed'
 export type FilterMapMode = 'all' | CardBoxId

@@ -23,7 +23,7 @@ interface DashboardDailyDrawerProps {
   isOpen: boolean
   onClose: () => void
   navigate: (url: string) => void
-  onSwitchTab?: (tab: 'roadmap' | 'learning') => void
+  onSwitchTab?: (tab: 'learning') => void
 }
 
 const MODE_META: Record<string, { label: string; emoji: string; color: string; badgeBg: string }> = {
@@ -368,8 +368,7 @@ export function DashboardDailyDrawer({
                           onClick={() => {
                             if (navigator.vibrate) navigator.vibrate(6)
                             onClose()
-                            if (onSwitchTab) onSwitchTab('roadmap')
-                            else navigate('/decks')
+                            navigate('/decks')
                           }}
                           className="mt-1.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                         >

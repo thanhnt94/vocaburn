@@ -1,6 +1,6 @@
 import type { Question, Option } from './flashcard'
 
-export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'listening_mcq' | 'listening_typing' | 'roadmap_test' | 'roadmap_mcq' | 'roadmap_typing' | string
+export type PracticeSubMode = 'mcq' | 'typing' | 'listening' | 'listening_mcq' | 'listening_typing' | string
 
 export interface PracticePair {
   q: string
@@ -31,8 +31,6 @@ export interface PracticeSessionData {
   practice_settings?: any
   creator_settings?: any
   deck_type?: string
-  is_roadmap?: boolean
-  roadmap_step?: any
   [key: string]: any
 }
 
@@ -44,14 +42,4 @@ export interface PracticeAnswerContext {
   avgTime: number
   newStreak: number
   xpGained: number
-}
-
-export interface RoadmapTestResult {
-  passed: boolean
-  score: number
-  total: number
-  percent: number
-  pass_threshold?: number
-  time_spent?: number
-  xp_gained?: number
 }

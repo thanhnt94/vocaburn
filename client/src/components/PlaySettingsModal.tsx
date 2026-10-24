@@ -39,7 +39,6 @@ export type PlaySettingsTab = 'mode' | 'gestures' | 'display' | 'audio'
 
 const MODES_LIST = [
   { id: 'fsrs', label: 'Flashcard FSRS', desc: 'Spaced repetition v6', icon: Brain, color: 'text-indigo-600', bg: 'bg-indigo-50/80', border: 'border-indigo-200' },
-  { id: 'roadmap', label: 'Daily Roadmap', desc: 'Step-by-step goals', icon: Route, color: 'text-emerald-600', bg: 'bg-emerald-50/80', border: 'border-emerald-200' },
   { id: 'new', label: 'New Cards', desc: 'Cards never seen before', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50/80', border: 'border-amber-200' },
   { id: 'review', label: 'Review Due', desc: 'Cards due for revision', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50/80', border: 'border-rose-200' },
   { id: 'hardest', label: 'Hardest Cards', desc: 'Frequently forgotten', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/80', border: 'border-purple-200' },
