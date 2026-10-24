@@ -574,10 +574,10 @@ export function DashboardRoadmapSection({
                   </div>
                   <div className="text-left min-w-0">
                     <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
-                      Study Flashcards
+                      Study
                     </span>
                     <span className="text-[9.5px] text-orange-100 font-bold block leading-tight truncate">
-                      {dueRemaining > 0 ? `${dueRemaining} reviews waiting` : 'Review & Learn'}
+                      {dueRemaining > 0 ? `${dueRemaining} due` : 'Learn'}
                     </span>
                   </div>
                 </button>
@@ -614,10 +614,10 @@ export function DashboardRoadmapSection({
                     </div>
                     <div className="text-left min-w-0">
                       <span className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-white block leading-tight truncate">
-                        Practice Quiz
+                        Practice
                       </span>
                       <span className="text-[9.5px] text-teal-100 font-bold block leading-tight truncate">
-                        MCQ, Typing & Tests
+                        Quiz
                       </span>
                     </div>
                   </button>

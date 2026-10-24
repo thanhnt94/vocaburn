@@ -139,9 +139,9 @@ export function DeckActionSheet({
                       <Brain className="w-4 h-4" />
                     </span>
                     <div className="text-left">
-                      <span className="text-xs sm:text-sm font-black block">Study Flashcards</span>
+                      <span className="text-xs sm:text-sm font-black block">Study</span>
                       <span className="text-[10px] text-white/80 font-medium block">
-                        FSRS v6 Spaced Repetition & Roadmap
+                        FSRS v6 Spaced Repetition
                       </span>
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export function DeckActionSheet({
                     </span>
                     <div className="text-left">
                       <span className="text-xs sm:text-sm font-black block text-emerald-900">
-                        Multi-Mode Practice
+                        Practice
                       </span>
                       <span className="text-[10px] text-emerald-700/80 font-medium block">
                         4-choice quiz, typing & audio dictation
