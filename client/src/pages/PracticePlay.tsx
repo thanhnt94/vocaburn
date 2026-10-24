@@ -396,6 +396,9 @@ export default function PracticePlay() {
 
   const speakPracticeQuestionAndAnswer = async () => {
     if (!currentPracticeData) return;
+    const strAudio = String(autoPlayAudio || 'back').toLowerCase();
+    if (strAudio === 'none' || strAudio === 'off') return;
+
     const qText = currentPracticeData.question || '';
     const aText = currentPracticeData.correct_answer || '';
     const qKey = currentPracticeData.question_key || 'front';
@@ -418,12 +421,19 @@ export default function PracticePlay() {
     window.speechSynthesis.cancel();
 
     const segments: { text: string; langCode: string }[] = [];
-    if (qText && qCfg.enabled) segments.push({ text: qText, langCode: qCfg.lang !== 'multi' ? qCfg.lang : detectLang(qText) });
-    if (aText && aCfg.enabled) segments.push({ text: aText, langCode: aCfg.lang !== 'multi' ? aCfg.lang : detectLang(aText) });
+    const shouldPlayQ = strAudio === 'both' || strAudio === 'always';
+    const shouldPlayA = strAudio !== 'none' && strAudio !== 'off';
+
+    if (shouldPlayQ && qText && qCfg.enabled) {
+      segments.push({ text: qText, langCode: qCfg.lang !== 'multi' ? qCfg.lang : detectLang(qText) });
+    }
+    if (shouldPlayA && aText && aCfg.enabled) {
+      segments.push({ text: aText, langCode: aCfg.lang !== 'multi' ? aCfg.lang : detectLang(aText) });
+    }
     
     // Use Edge TTS sequentially
     if (segments.length > 0) {
-      speakEdgeTTSSequentially(segments, 500);
+      speakEdgeTTSSequentially(segments, 400);
     }
   };
 
@@ -6097,8 +6107,6 @@ export default function PracticePlay() {
         setHapticEnabled={setHapticEnabled}
         fontSize={frontFontSize}
         setFontSize={setFrontFontSize}
-        showImages={showImages}
-        setShowImages={setShowImages}
         currentQuestion={currentQuestion}
         currentPracticeData={currentPracticeData}
         canEdit={Boolean(canEdit)}

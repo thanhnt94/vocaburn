@@ -17,9 +17,6 @@ import {
   VolumeX, 
   Music, 
   Zap, 
-  Image, 
-  Eye, 
-  EyeOff, 
   Pencil, 
   Copy, 
   Check, 
@@ -27,7 +24,6 @@ import {
   LogOut, 
   Settings, 
   BookOpen, 
-  CheckCircle,
   FolderTree
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -56,8 +52,6 @@ export interface PracticeQuickControlsSheetProps {
   setHapticEnabled: (val: boolean) => void
   fontSize?: string
   setFontSize?: (val: string) => void
-  showImages?: string | boolean
-  setShowImages?: (val: any) => void
   currentQuestion?: Question | null
   currentPracticeData?: any
   canEdit?: boolean
@@ -93,8 +87,6 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
   setHapticEnabled,
   fontSize = '100%',
   setFontSize,
-  showImages = 'always',
-  setShowImages,
   currentQuestion,
   currentPracticeData,
   canEdit = false,
@@ -111,7 +103,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
 }) => {
   const [copiedQuestion, setCopiedQuestion] = useState(false)
   const [copiedAnswer, setCopiedAnswer] = useState(false)
-  const [quickTab, setQuickTab] = useState<'actions' | 'preferences'>('preferences')
+  const [quickTab, setQuickTab] = useState<'preferences' | 'actions'>('preferences')
   const dragControls = useDragControls()
 
   const handleCopyQuestion = (e: React.MouseEvent) => {
@@ -146,145 +138,12 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
     })
   }
 
-  // Cycle Mode handler
-  const handleCycleMode = () => {
-    const modes: PracticeSubMode[] = ['mcq', 'typing', 'listening_mcq', 'listening_typing']
-    const nextIdx = (modes.indexOf(practiceSubMode) + 1) % modes.length
-    const nextMode = modes[nextIdx]
-    onSelectPracticeMode(nextMode)
-    const labels: Record<PracticeSubMode, string> = {
-      mcq: 'Multiple Choice (MCQ)',
-      typing: 'Typing Recall',
-      listening_mcq: 'Audio MCQ',
-      listening_typing: 'Listening Typing'
-    }
-    showLocalToast?.(`Mode: ${labels[nextMode]}`, 'info')
-  }
-
-  // Cycle Scope handler
-  const handleCycleScope = () => {
-    const scopes: PracticeScope[] = ['all', 'review', 'new', 'learned']
-    const nextIdx = (scopes.indexOf(cardScope) + 1) % scopes.length
-    const nextScope = scopes[nextIdx]
-    onSelectCardScope(nextScope)
-    const labels: Record<PracticeScope, string> = {
-      all: `All Questions (${scopeCounts.all})`,
-      review: `Review Due (${scopeCounts.review})`,
-      new: `New Cards (${scopeCounts.new})`,
-      learned: `Learned Cards (${scopeCounts.learned})`
-    }
-    showLocalToast?.(`Filter: ${labels[nextScope]}`, 'info')
-  }
-
-  // Toggle order handler
-  const handleToggleOrder = () => {
-    const nextVal = !randomEnabled
-    onToggleRandom(nextVal)
-    showLocalToast?.(`Queue Order: ${nextVal ? 'Random Shuffle' : 'Sequential'}`, 'info')
-  }
-
-  // Mode badge metadata
-  const modeMeta = (() => {
-    switch (practiceSubMode) {
-      case 'typing':
-        return {
-          label: 'TYPING',
-          color: 'text-violet-600',
-          container: 'bg-violet-50 border-violet-300 text-violet-700 shadow-2xs',
-          iconBox: 'bg-violet-600 text-white shadow-2xs',
-          icon: <Keyboard className="w-3.5 h-3.5" />,
-          title: 'Mode: Typing Recall (Click to cycle)'
-        }
-      case 'listening_mcq':
-        return {
-          label: 'L-MCQ',
-          color: 'text-sky-600',
-          container: 'bg-sky-50 border-sky-300 text-sky-700 shadow-2xs',
-          iconBox: 'bg-sky-600 text-white shadow-2xs',
-          icon: <Volume2 className="w-3.5 h-3.5" />,
-          title: 'Mode: Audio MCQ (Click to cycle)'
-        }
-      case 'listening_typing':
-        return {
-          label: 'L-TYP',
-          color: 'text-amber-600',
-          container: 'bg-amber-50 border-amber-300 text-amber-700 shadow-2xs',
-          iconBox: 'bg-amber-600 text-white shadow-2xs',
-          icon: <Headphones className="w-3.5 h-3.5" />,
-          title: 'Mode: Listening Typing (Click to cycle)'
-        }
-      case 'mcq':
-      default:
-        return {
-          label: 'MCQ',
-          color: 'text-indigo-600',
-          container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
-          iconBox: 'bg-indigo-600 text-white shadow-2xs',
-          icon: <HelpCircle className="w-3.5 h-3.5" />,
-          title: 'Mode: Multiple Choice (Click to cycle)'
-        }
-    }
+  // Resolved TTS feedback mode: 'none' (OFF) | 'answer' (default) | 'both'
+  const currentTtsFeedback = (() => {
+    if (autoPlayAudio === 'none' || autoPlayAudio === 'off') return 'none'
+    if (autoPlayAudio === 'always' || autoPlayAudio === 'both') return 'both'
+    return 'answer'
   })()
-
-  // Scope badge metadata
-  const scopeMeta = (() => {
-    switch (cardScope) {
-      case 'review':
-        return {
-          label: `DUE • ${scopeCounts.review}`,
-          color: 'text-rose-600',
-          container: 'bg-rose-50 border-rose-300 text-rose-700 shadow-2xs',
-          iconBox: 'bg-rose-600 text-white shadow-2xs',
-          icon: <Clock className="w-3.5 h-3.5" />,
-          title: `Filter: Review Due Only (${scopeCounts.review})`
-        }
-      case 'new':
-        return {
-          label: `NEW • ${scopeCounts.new}`,
-          color: 'text-emerald-600',
-          container: 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs',
-          iconBox: 'bg-emerald-600 text-white shadow-2xs',
-          icon: <Sparkles className="w-3.5 h-3.5" />,
-          title: `Filter: New Cards Only (${scopeCounts.new})`
-        }
-      case 'learned':
-        return {
-          label: `LEARNED • ${scopeCounts.learned}`,
-          color: 'text-purple-600',
-          container: 'bg-purple-50 border-purple-300 text-purple-700 shadow-2xs',
-          iconBox: 'bg-purple-600 text-white shadow-2xs',
-          icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-          title: `Filter: Learned Cards (${scopeCounts.learned})`
-        }
-      case 'all':
-      default:
-        return {
-          label: `ALL • ${scopeCounts.all}`,
-          color: 'text-indigo-600',
-          container: 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs',
-          iconBox: 'bg-indigo-600 text-white shadow-2xs',
-          icon: <Layers className="w-3.5 h-3.5" />,
-          title: `Filter: All Questions (${scopeCounts.all})`
-        }
-    }
-  })()
-
-  // Order badge metadata
-  const orderMeta = randomEnabled
-    ? {
-        label: 'RAND',
-        color: 'text-violet-600',
-        container: 'bg-violet-50 border-violet-300 text-violet-700 shadow-2xs',
-        iconBox: 'bg-violet-600 text-white shadow-2xs',
-        title: 'Queue Order: Random Shuffle'
-      }
-    : {
-        label: 'SEQ',
-        color: 'text-slate-500',
-        container: 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500',
-        iconBox: 'bg-white text-slate-400 border border-slate-200/60',
-        title: 'Queue Order: Sequential Order'
-      }
 
   if (typeof document === 'undefined') return null
 
@@ -322,12 +181,12 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-5 sm:pb-6 flex flex-col gap-2.5 select-none z-10 max-h-[88vh] overflow-y-auto touch-pan-y"
+            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-6 flex flex-col gap-3 select-none z-10 max-h-[88vh] overflow-y-auto touch-pan-y"
           >
             {/* Drag Handle Bar */}
             <div 
               onPointerDown={(e) => dragControls.start(e)}
-              className="w-full flex items-center justify-center pt-0 pb-1.5 -mt-1 cursor-grab active:cursor-grabbing touch-none select-none"
+              className="w-full flex items-center justify-center pt-0 pb-1 -mt-1 cursor-grab active:cursor-grabbing touch-none select-none"
               title="Swipe down to close"
             >
               <div className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-colors shadow-2xs" />
@@ -349,7 +208,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                 </div>
                 <div className="text-left">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Practice Controls</h3>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mode & Filter Preferences</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mode, Scope & Audio Preferences</p>
                 </div>
               </div>
 
@@ -393,83 +252,17 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
               </div>
             </div>
 
-            {/* Top 3-Button Quick Setup Summary (Mode, Filter Scope, Queue Order) */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-100/80 border border-slate-200/80 shadow-2xs">
-              {/* Button 1: Mode Cycle */}
-              <button
-                type="button"
-                onClick={handleCycleMode}
-                className={cn(
-                  "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                  modeMeta.container
-                )}
-                title={modeMeta.title}
-              >
-                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", modeMeta.iconBox)}>
-                  {modeMeta.icon}
-                </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[9.5px] font-bold tracking-tight">Mode</span>
-                  <span className={cn("text-[8.5px] font-black uppercase tracking-wider", modeMeta.color)}>
-                    {modeMeta.label}
-                  </span>
-                </div>
-              </button>
-
-              {/* Button 2: Filter Scope Cycle */}
-              <button
-                type="button"
-                onClick={handleCycleScope}
-                className={cn(
-                  "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                  scopeMeta.container
-                )}
-                title={scopeMeta.title}
-              >
-                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", scopeMeta.iconBox)}>
-                  {scopeMeta.icon}
-                </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[9.5px] font-bold tracking-tight">Filter</span>
-                  <span className={cn("text-[8px] font-black uppercase tracking-tight", scopeMeta.color)}>
-                    {scopeMeta.label}
-                  </span>
-                </div>
-              </button>
-
-              {/* Button 3: Queue Order Toggle */}
-              <button
-                type="button"
-                onClick={handleToggleOrder}
-                className={cn(
-                  "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                  orderMeta.container
-                )}
-                title={orderMeta.title}
-              >
-                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", orderMeta.iconBox)}>
-                  <Shuffle className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className="text-[9.5px] font-bold tracking-tight">Order</span>
-                  <span className={cn("text-[8.5px] font-black uppercase tracking-wider", orderMeta.color)}>
-                    {orderMeta.label}
-                  </span>
-                </div>
-              </button>
-            </div>
-
-            {/* Section 1: Practice Mode Selector (4 Direct Interactive Buttons) */}
+            {/* ── 1. SELECT PRACTICE MODE (Direct 4-Grid, No Duplicates) ── */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 text-left">
                 Select Practice Mode
               </span>
               <div className="grid grid-cols-4 gap-1.5">
                 {[
-                  { id: 'mcq', label: 'MCQ', sub: 'Choice', icon: HelpCircle },
-                  { id: 'typing', label: 'Typing', sub: 'Recall', icon: Keyboard },
-                  { id: 'listening_mcq', label: 'Audio MCQ', sub: 'Listen', icon: Volume2 },
-                  { id: 'listening_typing', label: 'Audio Type', sub: 'Dictate', icon: Headphones },
+                  { id: 'mcq', label: 'MCQ', sub: 'Multiple Choice', icon: HelpCircle },
+                  { id: 'typing', label: 'Typing', sub: 'Type Recall', icon: Keyboard },
+                  { id: 'listening_mcq', label: 'Audio MCQ', sub: 'Listen & Pick', icon: Volume2 },
+                  { id: 'listening_typing', label: 'Audio Type', sub: 'Listen & Type', icon: Headphones },
                 ].map((m) => {
                   const Icon = m.icon
                   const isActive = practiceSubMode === m.id
@@ -479,7 +272,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                       type="button"
                       onClick={() => onSelectPracticeMode(m.id as PracticeSubMode)}
                       className={cn(
-                        "flex flex-col items-center justify-center p-2 rounded-xl border transition-all active:scale-95 cursor-pointer text-center min-h-[54px] gap-1",
+                        "flex flex-col items-center justify-center p-2 rounded-xl border transition-all active:scale-95 cursor-pointer text-center min-h-[58px] gap-1",
                         isActive
                           ? "bg-indigo-600 text-white border-indigo-700 shadow-md font-bold scale-[1.02]"
                           : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/70"
@@ -488,7 +281,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                       <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-indigo-600")} />
                       <div className="flex flex-col items-center leading-none">
                         <span className="text-[10px] font-black">{m.label}</span>
-                        <span className={cn("text-[8px] font-medium opacity-80", isActive ? "text-indigo-100" : "text-slate-400")}>
+                        <span className={cn("text-[8px] font-medium opacity-80 mt-0.5", isActive ? "text-indigo-100" : "text-slate-400")}>
                           {m.sub}
                         </span>
                       </div>
@@ -498,14 +291,14 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
               </div>
             </div>
 
-            {/* Section 2: Card Scope Filter Selector (4 Direct Filter Pills with counts) */}
+            {/* ── 2. FILTER QUESTION SCOPE (4 Direct Pills with Live Counts) ── */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-left">
                   Filter Question Scope
                 </span>
                 <span className="text-[9px] font-bold text-slate-400">
-                  {scopeCounts[cardScope]} active
+                  {scopeCounts[cardScope]} active questions
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1.5">
@@ -539,6 +332,41 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                     </button>
                   )
                 })}
+              </div>
+            </div>
+
+            {/* ── 3. QUEUE ORDER (Direct 2-Segmented Selector) ── */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 text-left">
+                Queue Order & Flow
+              </span>
+              <div className="grid grid-cols-2 gap-1.5 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => onToggleRandom(false)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none",
+                    !randomEnabled
+                      ? "bg-white text-indigo-700 shadow-xs scale-[1.01] font-black"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <ListOrdered className="w-3.5 h-3.5" />
+                  <span>Sequential (Thứ tự)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onToggleRandom(true)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none",
+                    randomEnabled
+                      ? "bg-white text-indigo-700 shadow-xs scale-[1.01] font-black"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <Shuffle className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Random Shuffle (Ngẫu nhiên)</span>
+                </button>
               </div>
             </div>
 
@@ -585,7 +413,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
               </div>
             )}
 
-            {/* Segmented Sub-Tab Switcher (Preferences vs Card Actions) */}
+            {/* ── Segmented Sub-Tab Switcher (Preferences vs Card Actions) ── */}
             <div className="flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200/80 mt-1">
               <button
                 type="button"
@@ -618,34 +446,34 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
             {/* ══════ TAB 1: PREFERENCES ══════ */}
             {quickTab === 'preferences' && (
               <div className="flex flex-col gap-2.5 text-left px-0.5">
-                {/* Audio Pronunciation Playback */}
+                {/* TTS Pronunciation On Answer (Logical Practice Audio) */}
                 <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
                   <div className="flex flex-col text-left">
-                    <span className="text-[11px] font-bold text-slate-800 leading-tight">TTS Pronunciation</span>
-                    <span className="text-[9px] text-slate-400 font-medium">Automatic voice playback</span>
+                    <span className="text-[11px] font-bold text-slate-800 leading-tight">Pronounce on Answer</span>
+                    <span className="text-[9px] text-slate-400 font-medium">Auto-read answer after submitting</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {[
-                      { id: 'none', label: 'OFF' },
-                      { id: 'front', label: 'Q' },
-                      { id: 'back', label: 'A' },
-                      { id: 'always', label: 'BOTH' }
+                      { id: 'none', label: 'OFF', title: 'Do not pronounce after answer' },
+                      { id: 'answer', label: 'ANSWER', title: 'Pronounce correct answer on submit' },
+                      { id: 'both', label: 'BOTH', title: 'Pronounce question & answer on submit' }
                     ].map((opt) => {
-                      const isSelected = autoPlayAudio === opt.id
+                      const isSelected = currentTtsFeedback === opt.id
                       return (
                         <button
                           key={opt.id}
                           type="button"
                           onClick={() => {
                             setAutoPlayAudio(opt.id)
-                            showLocalToast?.(`Audio Autoplay: ${opt.label}`, 'info')
+                            showLocalToast?.(`Pronounce on Answer: ${opt.label}`, 'info')
                           }}
                           className={cn(
-                            "px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer",
+                            "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer",
                             isSelected
                               ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
                               : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
                           )}
+                          title={opt.title}
                         >
                           {opt.label}
                         </button>
@@ -654,12 +482,12 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                   </div>
                 </div>
 
-                {/* Audio Speed */}
+                {/* Audio Playback Speed */}
                 {onChangeAudioSpeed && (
                   <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
                     <div className="flex flex-col text-left">
-                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Audio Speed</span>
-                      <span className="text-[9px] text-slate-400 font-medium">Playback rate for speech</span>
+                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Voice Speed</span>
+                      <span className="text-[9px] text-slate-400 font-medium">Audio pronunciation rate</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {[0.8, 1.0, 1.2, 1.5].map((speed) => {
@@ -670,7 +498,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                             type="button"
                             onClick={() => {
                               onChangeAudioSpeed(speed)
-                              showLocalToast?.(`Audio Speed: ${speed}x`, 'info')
+                              showLocalToast?.(`Voice Speed: ${speed}x`, 'info')
                             }}
                             className={cn(
                               "px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer",
@@ -742,71 +570,43 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                   </button>
                 </div>
 
-                {/* Font Size & Image Display */}
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Font Size */}
-                  {setFontSize && (
-                    <div className="flex flex-col gap-1 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
-                      <span className="text-[10px] font-bold text-slate-600">Font Scale</span>
-                      <div className="flex items-center justify-between gap-1">
-                        {[
-                          { val: '85%', label: 'S' },
-                          { val: '100%', label: 'M' },
-                          { val: '115%', label: 'L' },
-                          { val: '130%', label: 'XL' }
-                        ].map((sz) => {
-                          const isSelected = fontSize === sz.val
-                          return (
-                            <button
-                              key={sz.val}
-                              type="button"
-                              onClick={() => {
-                                setFontSize(sz.val)
-                                showLocalToast?.(`Font Scale: ${sz.label} (${sz.val})`, 'info')
-                              }}
-                              className={cn(
-                                "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer text-center",
-                                isSelected
-                                  ? "bg-indigo-600 text-white shadow-2xs font-black"
-                                  : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
-                              )}
-                            >
-                              {sz.label}
-                            </button>
-                          )
-                        })}
-                      </div>
+                {/* Font Size */}
+                {setFontSize && (
+                  <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <div className="flex flex-col text-left">
+                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Question Font Scale</span>
+                      <span className="text-[9px] text-slate-400 font-medium">Text size for questions</span>
                     </div>
-                  )}
-
-                  {/* Card Images */}
-                  {setShowImages && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextVal = showImages === 'none' ? 'always' : 'none'
-                        setShowImages(nextVal)
-                        showLocalToast?.(`Card Images: ${nextVal === 'always' ? 'Shown' : 'Hidden'}`, 'info')
-                      }}
-                      className={cn(
-                        "flex items-center justify-between p-2 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs h-full",
-                        showImages !== 'none'
-                          ? "bg-emerald-50/70 border-emerald-300 text-emerald-800"
-                          : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", showImages !== 'none' ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>
-                          <Image className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-[11px] font-bold">Images</span>
-                      </div>
-                      <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md", showImages !== 'none' ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600")}>
-                        {showImages !== 'none' ? 'SHOW' : 'HIDE'}
-                      </span>
-                    </button>
-                  )}
-                </div>
+                    <div className="flex items-center gap-1">
+                      {[
+                        { val: '85%', label: 'S' },
+                        { val: '100%', label: 'M' },
+                        { val: '115%', label: 'L' },
+                        { val: '130%', label: 'XL' }
+                      ].map((sz) => {
+                        const isSelected = fontSize === sz.val
+                        return (
+                          <button
+                            key={sz.val}
+                            type="button"
+                            onClick={() => {
+                              setFontSize(sz.val)
+                              showLocalToast?.(`Font Scale: ${sz.label} (${sz.val})`, 'info')
+                            }}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer text-center",
+                              isSelected
+                                ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
+                                : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
+                            )}
+                          >
+                            {sz.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -862,7 +662,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                         "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
                         isIgnored ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-600"
                       )}>
-                        {isIgnored ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        <VolumeX className="w-3.5 h-3.5" />
                       </div>
                       <div className="flex flex-col min-w-0 leading-tight">
                         <span className="text-[11px] font-bold truncate">
