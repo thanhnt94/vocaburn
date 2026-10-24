@@ -212,8 +212,8 @@ export function DashboardRoadmapSection({
     mascotSubline = 'Zero reviews pending today.'
   } else if (dueRemaining > 0) {
     mascotImg = '/mascot/excited.png'
-    mascotHeadline = `${dueRemaining} cards due for review!`
-    mascotSubline = 'Keep your memory strong with FSRS.'
+    mascotHeadline = 'Keep your memory burning! 🔥'
+    mascotSubline = 'Review daily to strengthen long-term retention.'
   }
 
   return (
@@ -390,16 +390,12 @@ export function DashboardRoadmapSection({
 
                 {/* Bottom Row: Milestone Metrics Summary */}
                 <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] font-bold text-slate-600 mt-1.5 px-0.5 relative z-10">
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1.5 text-slate-500 font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    <strong>{hasExplicitMastered ? masteredCount : learnedCards}</strong> {hasExplicitMastered ? 'mastered' : 'learned'}
+                    Overall Mastery Progress
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />
-                    <strong>{dueRemaining}</strong> due today
-                  </span>
-                  <span className="flex items-center gap-1 text-slate-400">
-                    <strong>{totalCards}</strong> total
+                  <span className="flex items-center gap-1 text-slate-700 font-extrabold">
+                    <strong>{hasExplicitMastered ? masteredCount : learnedCards}</strong> / <strong>{totalCards}</strong> cards memorized
                   </span>
                 </div>
               </div>
