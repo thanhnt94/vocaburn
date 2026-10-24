@@ -45,39 +45,43 @@ async def get_deck_columns_overview(deck_id: int, db: AsyncSession = Depends(get
         "back_img": sum(1 for c in cards if (getattr(c, "back_img", None) and str(c.back_img).strip()) or (isinstance(c.others, dict) and c.others.get("back_img") and str(c.others.get("back_img")).strip())),
     }
     
+    from app.modules.deck.utils import clean_col_name
     system_cols = {"front", "back", "front_audio_url", "back_audio_url", "front_audio_content", "back_audio_content", "front_img", "back_img", "audio", "image"}
     dynamic_cols = set()
     
     for c in cards:
         if c.others and isinstance(c.others, dict):
             for k, v in c.others.items():
-                if k not in ("id", "item_id", "order_in_container") and k != "other_content" and k not in system_cols:
-                    dynamic_cols.add(k)
-                    if k not in col_counts:
-                        col_counts[k] = 0
+                k_clean = clean_col_name(k)
+                if (
+                    k_clean 
+                    and not k_clean.startswith("_") 
+                    and not k_clean.startswith("[") 
+                    and k_clean not in ("id", "item_id", "order_in_container", "other_content", "content", "explanation")
+                    and k_clean not in system_cols
+                ):
+                    dynamic_cols.add(k_clean)
+                    if k_clean not in col_counts:
+                        col_counts[k_clean] = 0
                     if v is not None and str(v).strip():
-                        col_counts[k] += 1
+                        col_counts[k_clean] += 1
                         
-    custom_cols = list(deck.practice_settings.get("custom_columns", [])) if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else []
-    for cc in custom_cols:
-        if cc not in system_cols:
-            dynamic_cols.add(cc)
-            if cc not in col_counts:
-                col_counts[cc] = 0
-                
+    custom_cols = [clean_col_name(c) for c in deck.practice_settings.get("custom_columns", [])] if (deck.practice_settings and isinstance(deck.practice_settings, dict)) else []
+    # Keep only custom_cols that actually exist in dynamic_cols
+    custom_cols = [c for c in custom_cols if c in dynamic_cols]
+    
     if deck.practice_settings and isinstance(deck.practice_settings, dict):
         for p in deck.practice_settings.get("ai_prompts", []):
-            col_id = p.get("column") or p.get("id")
-            if col_id and col_id not in system_cols:
-                dynamic_cols.add(col_id)
+            col_id = clean_col_name(p.get("column") or p.get("id"))
+            if col_id and col_id in dynamic_cols:
                 if col_id not in col_counts:
                     col_counts[col_id] = 0
         for ac in deck.practice_settings.get("audio_configs", []):
             for f in (ac.get("data_col"), ac.get("source_col"), ac.get("url_col")):
-                if f and f not in system_cols:
-                    dynamic_cols.add(f)
-                    if f not in col_counts:
-                        col_counts[f] = 0
+                f_clean = clean_col_name(f)
+                if f_clean and f_clean in dynamic_cols:
+                    if f_clean not in col_counts:
+                        col_counts[f_clean] = 0
             
     return {
         "total_cards": total_cards,
@@ -126,20 +130,13 @@ async def get_deck_sub_lessons(
     for c in cards:
         if c.others and isinstance(c.others, dict):
             for k, v in c.others.items():
-                if k not in excluded_cols and not k.startswith("_"):
-                    if k not in col_distinct_map:
-                        col_distinct_map[k] = set()
+                k_clean = clean_col_name(k)
+                if k_clean and k_clean not in excluded_cols and not k_clean.startswith("_") and not k_clean.startswith("["):
+                    if k_clean not in col_distinct_map:
+                        col_distinct_map[k_clean] = set()
                     val_str = str(v).strip() if v is not None else ""
                     if val_str:
-                        col_distinct_map[k].add(val_str)
-
-    # Also discover columns explicitly registered in custom_columns
-    custom_cols = practice_settings.get("custom_columns", [])
-    if isinstance(custom_cols, list):
-        for cc in custom_cols:
-            if cc and isinstance(cc, str) and cc not in excluded_cols and not cc.startswith("_"):
-                if cc not in col_distinct_map:
-                    col_distinct_map[cc] = set()
+                        col_distinct_map[k_clean].add(val_str)
                         
     # Build candidate columns list (prioritizing educational grouping columns)
     def column_priority_key(col_key: str):

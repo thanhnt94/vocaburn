@@ -24,7 +24,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Deck Features"])
 
 from app.modules.deck.services.fsrs_service import build_fsrs_card
-from app.modules.deck.utils import migrate_practice_settings, resolve_effective_study_settings, STUDY_SETTINGS_KEYS
+from app.modules.deck.utils import (
+    migrate_practice_settings, 
+    resolve_effective_study_settings, 
+    STUDY_SETTINGS_KEYS,
+    clean_col_name,
+    reconcile_column_name,
+    reconcile_practice_pairs
+)
 from app.modules.auth.services.user_settings_service import UserSettingsService
 
 @router.get("/{deck_id}/practice-settings")
@@ -44,29 +51,59 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
     )
     user_sett = user_sett_res.scalar_one_or_none()
     
-    # Dynamically extract all available data columns in this deck
+    # Dynamically extract all available data columns from ACTUAL cards in this deck
     from app.modules.deck.models import Flashcard
-    available_cols = {
-        "front", "back", 
-        "front_audio_content", "back_audio_content", 
-        "front_audio_url", "back_audio_url", 
-        "front_img", "back_img"
-    }
+    actual_card_cols = set()
     cards_stmt = select(Flashcard.others).where(Flashcard.deck_id == deck_id)
     res = await db.execute(cards_stmt)
     for others_json in res.scalars():
         if others_json and isinstance(others_json, dict):
             for k in others_json.keys():
-                if k not in ("id", "item_id", "order_in_container") and k != "other_content":
-                    available_cols.add(k)
-    
-    # Also add custom columns from practice_settings
+                if not k or not isinstance(k, str):
+                    continue
+                k_clean = clean_col_name(k)
+                if (
+                    not k_clean
+                    or k_clean.startswith("_") 
+                    or k_clean.startswith("[") 
+                    or k_clean in ("id", "item_id", "order_in_container", "other_content", "audio_url", "url", "static_url", "image_url", "content", "explanation", "options")
+                ):
+                    continue
+                actual_card_cols.add(k_clean)
+
+    # Core system columns + actual card columns only
+    available_cols = {
+        "front", "back", 
+        "front_audio_content", "back_audio_content", 
+        "front_audio_url", "back_audio_url", 
+        "front_img", "back_img"
+    } | actual_card_cols
+
+    # Sanitize custom_columns in deck.practice_settings to remove phantom columns
+    modified_deck_settings = False
     if deck.practice_settings and isinstance(deck.practice_settings, dict):
-        for col in deck.practice_settings.get("custom_columns", []):
-            available_cols.add(col)
+        existing_custom = deck.practice_settings.get("custom_columns")
+        if isinstance(existing_custom, list):
+            cleaned_custom = [clean_col_name(c) for c in existing_custom if clean_col_name(c) in actual_card_cols]
+            if cleaned_custom != existing_custom:
+                deck.practice_settings["custom_columns"] = cleaned_custom
+                modified_deck_settings = True
             
     creator_settings = migrate_practice_settings(deck.practice_settings)
     user_settings = migrate_practice_settings(user_sett.settings) if user_sett else {}
+
+    # Auto-reconcile practice pairs (e.g. map phantom 'nghĩa' -> 'nghĩa tiếng việt', unwrap "['front']" -> 'front')
+    if reconcile_practice_pairs(creator_settings, available_cols):
+        if deck.practice_settings and isinstance(deck.practice_settings, dict):
+            for m in ("mcq", "typing", "listening", "listening_mcq", "listening_typing", "audio_mcq", "audio_typing"):
+                if m in creator_settings:
+                    deck.practice_settings[m] = creator_settings[m]
+            modified_deck_settings = True
+
+    if modified_deck_settings:
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(deck, "practice_settings")
+        await db.commit()
     
     # User settings contain personal roadmap pipeline & roadmap_active toggle,
     # while MCQ, Typing, Listening Q&A pairs are strictly locked to creator defaults.
@@ -74,7 +111,9 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
         **user_settings,
         "mcq": creator_settings.get("mcq", {}),
         "typing": creator_settings.get("typing", {}),
-        "listening": creator_settings.get("listening", {})
+        "listening": creator_settings.get("listening", {}),
+        "listening_mcq": creator_settings.get("listening_mcq", {}),
+        "listening_typing": creator_settings.get("listening_typing", {})
     }
 
     SYSTEM_DEFAULTS = [
@@ -86,13 +125,13 @@ async def get_practice_settings(request: Request, deck_id: int, db: AsyncSession
     
     saved_order = creator_settings.get("column_order", [])
     if saved_order and isinstance(saved_order, list):
-        ordered_cols = [c for c in saved_order if c in available_cols]
-        for c in available_cols:
+        ordered_cols = [clean_col_name(c) for c in saved_order if clean_col_name(c) in available_cols]
+        for c in sorted(list(available_cols)):
             if c not in ordered_cols:
                 ordered_cols.append(c)
     else:
         ordered_cols = [c for c in SYSTEM_DEFAULTS if c in available_cols]
-        for c in available_cols:
+        for c in sorted(list(available_cols)):
             if c not in ordered_cols:
                 ordered_cols.append(c)
 
@@ -217,6 +256,21 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
             merged["sub_lesson_grouping"] = payload["sub_lesson_grouping"]
         if "disabled_modes" in payload:
             merged["disabled_modes"] = payload["disabled_modes"]
+
+        # Collect available columns from actual cards
+        cards_stmt = select(Flashcard.others).where(Flashcard.deck_id == deck_id)
+        res_cards = await db.execute(cards_stmt)
+        actual_card_cols = set()
+        for others_json in res_cards.scalars():
+            if others_json and isinstance(others_json, dict):
+                for k in others_json.keys():
+                    k_clean = clean_col_name(k)
+                    if k_clean and not k_clean.startswith("_") and k_clean not in ("id", "item_id", "order_in_container", "other_content"):
+                        actual_card_cols.add(k_clean)
+        avail = {"front", "back", "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img"} | actual_card_cols
+        reconcile_practice_pairs(merged, avail)
+        if "custom_columns" in merged and isinstance(merged["custom_columns"], list):
+            merged["custom_columns"] = [clean_col_name(c) for c in merged["custom_columns"] if clean_col_name(c) in actual_card_cols]
 
         deck.practice_settings = merged
         flag_modified(deck, "practice_settings")

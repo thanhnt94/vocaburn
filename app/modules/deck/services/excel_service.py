@@ -931,6 +931,52 @@ class ExcelDeckService:
             if "column_formulas" not in metadata["practice_settings"]:
                 metadata["practice_settings"]["column_formulas"] = {}
             metadata["practice_settings"]["column_formulas"].update(deck_column_formulas)
+
+        # Extract actual columns found in cards
+        from app.modules.deck.utils import clean_col_name, reconcile_practice_pairs, reconcile_column_name
+        actual_data_cols = {
+            "front", "back", 
+            "front_audio_content", "back_audio_content", 
+            "front_audio_url", "back_audio_url", 
+            "front_img", "back_img"
+        }
+        for q in questions:
+            if q.get("others") and isinstance(q["others"], dict):
+                for k in q["others"].keys():
+                    if not k or not isinstance(k, str):
+                        continue
+                    k_clean = clean_col_name(k)
+                    if (
+                        not k_clean
+                        or k_clean.startswith("_") 
+                        or k_clean.startswith("[") 
+                        or k_clean in ("id", "item_id", "order_in_container", "other_content", "audio_url", "url", "static_url", "image_url", "content", "explanation", "options")
+                    ):
+                        continue
+                    actual_data_cols.add(k_clean)
+
+        # Reconcile practice settings against actual data columns
+        if "practice_settings" in metadata and isinstance(metadata["practice_settings"], dict):
+            ps = metadata["practice_settings"]
+            reconcile_practice_pairs(ps, actual_data_cols)
+            
+            # Clean custom_columns: keep only columns that actually exist in the data sheet
+            if "custom_columns" in ps and isinstance(ps["custom_columns"], list):
+                ps["custom_columns"] = [
+                    clean_col_name(c) for c in ps["custom_columns"] 
+                    if clean_col_name(c) in actual_data_cols and clean_col_name(c) not in ("front", "back")
+                ]
+            else:
+                ps["custom_columns"] = [
+                    c for c in actual_data_cols 
+                    if c not in ("front", "back", "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img")
+                ]
+
+            # Reconcile sub_lesson_grouping column if set
+            if "sub_lesson_grouping" in ps and isinstance(ps["sub_lesson_grouping"], dict):
+                grp_col = ps["sub_lesson_grouping"].get("column")
+                if grp_col:
+                    ps["sub_lesson_grouping"]["column"] = reconcile_column_name(grp_col, actual_data_cols)
                     
         return metadata, questions
 

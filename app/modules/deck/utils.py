@@ -1,7 +1,148 @@
-from typing import Optional, Any
+from typing import Optional, Any, Union, Set, List, Dict
 import logging
 
 logger = logging.getLogger(__name__)
+
+def clean_col_name(name: Any) -> str:
+    """
+    Cleans up column names:
+    - Unwraps outer brackets '[' ... ']' or '(' ... ')'
+    - Unwraps outer quotes "'" or '"'
+    - Strips whitespace
+    """
+    if name is None:
+        return ""
+    s = str(name).strip()
+    # Handle list or tuple directly
+    if isinstance(name, (list, tuple)):
+        return clean_col_name(name[0]) if name else ""
+    # Unwrap stringified lists or tuples: e.g. "['front']" or "('front')"
+    while (s.startswith("[") and s.endswith("]")) or (s.startswith("(") and s.endswith(")")):
+        s = s[1:-1].strip()
+    while (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        s = s[1:-1].strip()
+    return s.strip()
+
+def reconcile_column_name(target_col: Any, available_cols: Union[Set[str], List[str]]) -> str:
+    """
+    Reconciles a column name (which might be a template placeholder like 'nghĩa',
+    'phiên âm quốc tế (ipa)', or a stringified list like "['front']") against the actual
+    columns available in the deck.
+    """
+    if not target_col:
+        return "front"
+        
+    s = clean_col_name(target_col)
+    if not s:
+        return "front"
+
+    avail_lower = {str(c).strip().lower(): str(c).strip() for c in available_cols if c}
+    s_lower = s.lower()
+
+    # 1. Exact match (case-insensitive)
+    if s_lower in avail_lower:
+        return avail_lower[s_lower]
+
+    # 2. Semantic group mapping
+    # Meaning / Nghĩa
+    if s_lower in ("nghĩa", "nghia", "meaning", "definition", "định nghĩa", "dinh nghia"):
+        # Prioritize exact "nghĩa tiếng việt"
+        for candidate in ("nghĩa tiếng việt", "nghia tieng viet", "tiếng việt", "tieng viet"):
+            if candidate in avail_lower:
+                return avail_lower[candidate]
+        for k_l, orig in avail_lower.items():
+            if "nghĩa" in k_l or "nghia" in k_l:
+                return orig
+        if "back" in avail_lower:
+            return "back"
+        if "explanation" in avail_lower:
+            return "explanation"
+
+    # Pronunciation / IPA
+    if "ipa" in s_lower or "quốc tế" in s_lower or "quoc te" in s_lower:
+        for candidate in ("phiên âm ipa", "phien am ipa", "phiên âm quốc tế (ipa)", "ipa"):
+            if candidate in avail_lower:
+                return avail_lower[candidate]
+        for k_l, orig in avail_lower.items():
+            if "ipa" in k_l:
+                return orig
+
+    # Pronunciation / Vietnamese Reading / Bồi
+    if "tiếng việt" in s_lower or "bồi" in s_lower or "cách đọc" in s_lower or "boi" in s_lower:
+        for candidate in ("cách đọc (bồi tiếng việt)", "cách đọc bồi", "phiên âm tiếng việt", "bồi tiếng việt", "bồi", "cách đọc"):
+            if candidate in avail_lower:
+                return avail_lower[candidate]
+        for k_l, orig in avail_lower.items():
+            if "bồi" in k_l or "cách đọc" in k_l:
+                return orig
+
+    # Word / Front / Term
+    if s_lower in ("từ mới", "tu moi", "từ", "tu", "từ vựng", "tu vung", "term", "word"):
+        for candidate in ("từ mới", "tu moi", "từ vựng", "tu vung", "front"):
+            if candidate in avail_lower:
+                return avail_lower[candidate]
+
+    # Part of speech / Loại từ
+    if s_lower in ("loại từ", "loai tu", "pos", "part of speech"):
+        for candidate in ("loại từ", "loai tu", "pos"):
+            if candidate in avail_lower:
+                return avail_lower[candidate]
+
+    # Substring matching (e.g. "nghĩa" is inside "nghĩa tiếng việt")
+    for k_l, orig in avail_lower.items():
+        if s_lower in k_l and k_l not in ("front", "back", "id", "order_in_container"):
+            return orig
+    for k_l, orig in avail_lower.items():
+        if k_l in s_lower and k_l not in ("front", "back", "id", "order_in_container"):
+            return orig
+
+    # Return original cleaned name
+    return s
+
+def reconcile_practice_pairs(settings_dict: dict, available_cols: Union[Set[str], List[str]]) -> bool:
+    """
+    Traverses active_pairs across practice modes and reconciles every question/answer column
+    against actual available columns. Returns True if any pair was modified.
+    """
+    if not settings_dict or not isinstance(settings_dict, dict):
+        return False
+        
+    modified = False
+    for mode in ("mcq", "typing", "listening", "listening_mcq", "listening_typing", "audio_mcq", "audio_typing"):
+        mode_cfg = settings_dict.get(mode)
+        if not mode_cfg or not isinstance(mode_cfg, dict):
+            continue
+        pairs = mode_cfg.get("active_pairs")
+        if not pairs or not isinstance(pairs, list):
+            continue
+            
+        for pair in pairs:
+            if not isinstance(pair, dict):
+                continue
+            orig_q = pair.get("q") or pair.get("prompt_col") or "front"
+            orig_a = pair.get("a") if pair.get("a") is not None else pair.get("answer_col", "back")
+            
+            rec_q = reconcile_column_name(orig_q, available_cols)
+            if isinstance(orig_a, list):
+                rec_a = [reconcile_column_name(item, available_cols) for item in orig_a]
+                if len(rec_a) == 1:
+                    rec_a = rec_a[0]
+            else:
+                rec_a = clean_col_name(orig_a)
+                if rec_a.startswith("[") or rec_a.endswith("]"):
+                    rec_a = clean_col_name(rec_a)
+                rec_a = reconcile_column_name(rec_a, available_cols)
+                
+            if rec_q != orig_q or rec_a != orig_a:
+                modified = True
+                pair["q"] = rec_q
+                pair["prompt_col"] = rec_q
+                pair["a"] = rec_a
+                pair["answer_col"] = rec_a
+                display_a = "/".join(rec_a) if isinstance(rec_a, list) else str(rec_a)
+                pair["name"] = f"{rec_q} ➜ {display_a}"
+                
+    return modified
 
 def fix_static_urls(val: Any) -> Any:
     """Recursively replaces /static/uploads/ with /uploads/ in strings, dicts, and lists."""

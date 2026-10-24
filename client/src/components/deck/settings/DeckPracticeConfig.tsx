@@ -39,30 +39,84 @@ export interface DeckPracticeConfigProps {
   section?: 'modes' | 'drills'
 }
 
+function cleanCol(name: any): string {
+  if (name === null || name === undefined) return ''
+  let s = String(name).trim()
+  while ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('(') && s.endsWith(')'))) {
+    s = s.slice(1, -1).trim()
+  }
+  while ((s.startsWith("'") && s.endsWith("'")) || (s.startsWith('"') && s.endsWith('"'))) {
+    s = s.slice(1, -1).trim()
+  }
+  return s.trim()
+}
+
+export function reconcileColumn(target: string, available: string[]): string {
+  const cleaned = cleanCol(target)
+  if (!cleaned) return available[0] || 'front'
+  if (available.includes(cleaned)) return cleaned
+  const tLower = cleaned.toLowerCase()
+  const foundExact = available.find(c => c.toLowerCase() === tLower)
+  if (foundExact) return foundExact
+
+  // Meaning / Nghĩa
+  if (tLower === 'nghĩa' || tLower === 'nghia' || tLower.includes('nghĩa') || tLower.includes('mean')) {
+    const vietMeaning = available.find(c => c.toLowerCase().includes('nghĩa') || c.toLowerCase().includes('tiếng việt'))
+    if (vietMeaning) return vietMeaning
+    if (available.includes('back')) return 'back'
+  }
+  // IPA
+  if (tLower.includes('ipa') || tLower.includes('quốc tế')) {
+    const ipa = available.find(c => c.toLowerCase().includes('ipa'))
+    if (ipa) return ipa
+  }
+  // Bồi / Reading
+  if (tLower.includes('bồi') || tLower.includes('cách đọc') || tLower.includes('tiếng việt')) {
+    const boi = available.find(c => c.toLowerCase().includes('bồi') || c.toLowerCase().includes('cách đọc'))
+    if (boi) return boi
+  }
+  // Term / Từ
+  if (tLower.includes('từ') || tLower.includes('word') || tLower.includes('term')) {
+    const tu = available.find(c => c.toLowerCase().includes('từ') || c === 'front')
+    if (tu) return tu
+  }
+
+  // Substring match
+  const sub = available.find(c => c.toLowerCase().includes(tLower) || tLower.includes(c.toLowerCase()))
+  if (sub) return sub
+
+  return available[0] || 'front'
+}
+
 function normalizePair(p: any): QuestionAnswerPair {
   if (!p) return { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }
   if (typeof p === 'string') {
     const parts = p.split(/[-:>]/)
-    const q = (parts[0] || 'front').trim()
-    const a = (parts[1] || 'back').trim()
-    return { q, a, prompt_col: q, answer_col: a, name: p }
+    const q = cleanCol(parts[0] || 'front')
+    const a = cleanCol(parts[1] || 'back')
+    return { q, a, prompt_col: q, answer_col: a, name: `${q} ➜ ${a}` }
   }
-  const q = String(p.q || p.prompt_col || p.question_col || p.question || p.from || p.source || 'front').trim()
+  const q = cleanCol(p.q || p.prompt_col || p.question_col || p.question || p.from || p.source || 'front')
   let a: string | string[]
   const rawA = p.a !== undefined ? p.a : (p.answer_col !== undefined ? p.answer_col : (p.answer || p.to || p.target || 'back'))
   if (Array.isArray(rawA)) {
-    a = rawA.map(x => String(x).trim()).filter(Boolean)
+    a = rawA.map(cleanCol).filter(Boolean)
+    if (a.length === 0) a = 'back'
+    else if (a.length === 1) a = a[0]
   } else if (typeof rawA === 'string' && rawA.includes(',')) {
-    a = rawA.split(',').map(x => x.trim()).filter(Boolean)
+    a = rawA.split(',').map(cleanCol).filter(Boolean)
+    if (a.length === 0) a = 'back'
+    else if (a.length === 1) a = a[0]
   } else {
-    a = String(rawA || 'back').trim()
+    a = cleanCol(rawA || 'back')
   }
+  const displayA = Array.isArray(a) ? a.join(', ') : a
   return {
     q,
     a,
-    name: p.name || `${q} ➜ ${Array.isArray(a) ? a.join(', ') : a}`,
-    prompt_col: p.prompt_col || q,
-    answer_col: p.answer_col || a,
+    name: p.name && !p.name.includes('[') && !p.name.includes("'") ? p.name : `${q} ➜ ${displayA}`,
+    prompt_col: p.prompt_col ? cleanCol(p.prompt_col) : q,
+    answer_col: p.answer_col ? (Array.isArray(p.answer_col) ? p.answer_col.map(cleanCol) : cleanCol(p.answer_col)) : a,
   }
 }
 
@@ -134,39 +188,47 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     staleTime: 30 * 1000,
   })
 
-  // Combine available columns
+  // Verified available columns from server
   const rawAvailableColumns: string[] = practiceSettingsData?.available_columns || [
-    'front', 'back', 'explanation', 'furigana', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url'
+    'front', 'back', 'front_audio_content', 'back_audio_content', 'front_audio_url', 'back_audio_url', 'front_img', 'back_img'
   ]
 
-  const allPairCols: string[] = []
-  const addCols = (val: string | string[] | undefined) => {
-    if (!val) return
-    if (Array.isArray(val)) {
-      val.forEach(v => { if (typeof v === 'string' && v.trim()) allPairCols.push(v.trim()) })
-    } else if (typeof val === 'string' && val.trim()) {
-      if (val.includes(',')) {
-        val.split(',').forEach(v => { if (v.trim()) allPairCols.push(v.trim()) })
-      } else {
-        allPairCols.push(val.trim())
-      }
-    }
-  }
-
-  mcqPairs.forEach(p => { addCols(p.q); addCols(p.a) })
-  typingPairs.forEach(p => { addCols(p.q); addCols(p.a) })
-  listeningMcqPairs.forEach(p => { addCols(p.q); addCols(p.a) })
-  listeningTypingPairs.forEach(p => { addCols(p.q); addCols(p.a) })
-
   const availableColumns: string[] = Array.from(new Set([
-    ...rawAvailableColumns,
-    ...allPairCols,
+    ...rawAvailableColumns.map(cleanCol),
     'front', 'back'
-  ])).filter((c): c is string => typeof c === 'string' && Boolean(c))
+  ])).filter((c): c is string => 
+    typeof c === 'string' && 
+    Boolean(c) && 
+    !c.startsWith('_') && 
+    !c.startsWith('[') && 
+    !c.startsWith('(') &&
+    !c.includes("'") &&
+    !c.includes('"') &&
+    !['id', 'item_id', 'order_in_container', 'other_content'].includes(c)
+  )
 
   useEffect(() => {
     const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
     const studyDefs = practiceSettingsData?.creator_study_defaults || practiceSettingsData?.study_defaults || effectiveSettings?.study_defaults || {}
+
+    const mapAndReconcile = (pair: any) => {
+      const p = normalizePair(pair)
+      if (availableColumns.length > 0) {
+        const recQ = reconcileColumn(p.q, availableColumns)
+        const recA = Array.isArray(p.a)
+          ? p.a.map(aCol => reconcileColumn(aCol, availableColumns))
+          : reconcileColumn(p.a, availableColumns)
+        return {
+          ...p,
+          q: recQ,
+          a: recA,
+          prompt_col: recQ,
+          answer_col: recA,
+          name: `${recQ} ➜ ${Array.isArray(recA) ? recA.join(', ') : recA}`
+        }
+      }
+      return p
+    }
 
     if (effectiveSettings || studyDefs) {
       setDisabledModes(practiceSettingsData?.disabled_modes || effectiveSettings?.disabled_modes || [])
@@ -180,18 +242,22 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       setMcqNumChoices(mcqConfig.num_choices || effectiveSettings?.num_choices || 4)
       const rawMcqPairs = mcqConfig.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawMcqPairs) && rawMcqPairs.length > 0) {
-        setMcqPairs(rawMcqPairs.map(normalizePair))
+        setMcqPairs(rawMcqPairs.map(mapAndReconcile))
       } else {
-        setMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Mặt trước ➜ Mặt sau' }])
+        const defQ = reconcileColumn('front', availableColumns)
+        const defA = reconcileColumn('back', availableColumns)
+        setMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
       }
 
       // Typing
       const typingConfig = effectiveSettings?.typing || {}
       const rawTypingPairs = typingConfig.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawTypingPairs) && rawTypingPairs.length > 0) {
-        setTypingPairs(rawTypingPairs.map(normalizePair))
+        setTypingPairs(rawTypingPairs.map(mapAndReconcile))
       } else {
-        setTypingPairs([{ q: 'back', a: 'front', prompt_col: 'back', answer_col: 'front', name: 'Nghĩa (Đề) ➜ Từ vựng (Gõ)' }])
+        const defQ = reconcileColumn('back', availableColumns)
+        const defA = reconcileColumn('front', availableColumns)
+        setTypingPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
       }
 
       // Listening MCQ
@@ -199,29 +265,35 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       setListeningMcqNumChoices(listeningMcqConfig.num_choices || 4)
       const rawListeningMcqPairs = listeningMcqConfig.active_pairs || effectiveSettings?.listening?.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawListeningMcqPairs) && rawListeningMcqPairs.length > 0) {
-        setListeningMcqPairs(rawListeningMcqPairs.map(normalizePair))
+        setListeningMcqPairs(rawListeningMcqPairs.map(mapAndReconcile))
       } else {
-        setListeningMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', name: 'Nghe phát âm ➜ Chọn nghĩa' }])
+        const defQ = reconcileColumn('front', availableColumns)
+        const defA = reconcileColumn('back', availableColumns)
+        setListeningMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
       }
 
       // Listening Typing
       const listeningTypingConfig = effectiveSettings?.listening_typing || effectiveSettings?.listening || {}
       const rawListeningTypingPairs = listeningTypingConfig.active_pairs || effectiveSettings?.listening?.active_pairs || effectiveSettings?.active_pairs || []
       if (Array.isArray(rawListeningTypingPairs) && rawListeningTypingPairs.length > 0) {
-        setListeningTypingPairs(rawListeningTypingPairs.map(normalizePair))
+        setListeningTypingPairs(rawListeningTypingPairs.map(mapAndReconcile))
       } else {
-        setListeningTypingPairs([{ q: 'front', a: 'front', prompt_col: 'front', answer_col: 'front', name: 'Nghe phát âm ➜ Gõ từ vựng' }])
+        const defQ = reconcileColumn('front', availableColumns)
+        const defA = reconcileColumn('front', availableColumns)
+        setListeningTypingPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
       }
     } else {
-      setMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
-      setTypingPairs([{ q: 'back', a: 'front', prompt_col: 'back', answer_col: 'front' }])
-      setListeningMcqPairs([{ q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }])
-      setListeningTypingPairs([{ q: 'front', a: 'front', prompt_col: 'front', answer_col: 'front' }])
+      const defQ = reconcileColumn('front', availableColumns)
+      const defA = reconcileColumn('back', availableColumns)
+      setMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA }])
+      setTypingPairs([{ q: defA, a: defQ, prompt_col: defA, answer_col: defQ }])
+      setListeningMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA }])
+      setListeningTypingPairs([{ q: defQ, a: defQ, prompt_col: defQ, answer_col: defQ }])
     }
     setTimeout(() => {
       isLoadedRef.current = true
     }, 150)
-  }, [practiceSettingsData, initialSettings])
+  }, [practiceSettingsData, initialSettings, availableColumns.join(',')])
 
   const savePracticeConfig = (overrides?: any, immediate = false) => {
     if (!isLoadedRef.current) return
@@ -822,7 +894,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                               : '1. Question Column (Prompt):'}
                           </label>
                           <select
-                            value={pair.q}
+                            value={availableColumns.includes(pair.q) ? pair.q : reconcileColumn(pair.q, availableColumns)}
                             onChange={(e) => handleUpdatePair(idx, 'q', e.target.value)}
                             className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
                           >
@@ -882,7 +954,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                               2. Target Answer Column:
                             </label>
                             <select
-                              value={typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')}
+                              value={(() => {
+                                const rawVal = typeof pair.a === 'string' ? pair.a : (pair.a[0] || 'back')
+                                return availableColumns.includes(rawVal) ? rawVal : reconcileColumn(rawVal, availableColumns)
+                              })()}
                               onChange={(e) => handleUpdatePair(idx, 'a', e.target.value)}
                               className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
                             >
