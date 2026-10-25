@@ -3809,6 +3809,7 @@ export default function PracticePlay() {
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onPlayAudio={playCardAudio}
           onNext={() => handleNext()}
+          onZoomImage={(url) => setZoomedImage(url)}
           frontFontSize={currentFrontFontSize}
         />
       );

@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { getFrontFontSizeStyle } from '@/components/common/study'
+import { CardImageGallery } from '@/components/common/CardImageGallery'
+import { extractCardImages } from '@/lib/image-utils'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -76,9 +78,17 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     return list
   }, [practiceData.acceptable_answers, correct_answer])
 
-  const questionImg = currentQuestion?.front_img || currentQuestion?.image || currentQuestion?.others?.front_img
   const isImageVisible = showImages !== 'off' && showImages !== 'none' && showImages !== false && showImages !== 'false'
-  const resolvedImg = (questionImg && isImageVisible) ? resolveMediaUrl(questionImg) : null
+  const imageSettings = (currentQuestion as any)?.deck_image_configs
+  const questionImages = useMemo(() => {
+    if (!isImageVisible) return []
+    return extractCardImages(currentQuestion, 'front', imageSettings)
+  }, [currentQuestion, isImageVisible, imageSettings])
+
+  const answerImages = useMemo(() => {
+    if (!isImageVisible) return []
+    return extractCardImages(currentQuestion, 'back', imageSettings)
+  }, [currentQuestion, isImageVisible, imageSettings])
 
   const promptLabel = useMemo(() => {
     const qk = String(question_key || 'front').toLowerCase()
@@ -148,16 +158,14 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
       {/* ── Central Question Stage ── */}
       <div className="my-auto py-6 sm:py-8 flex flex-col items-center justify-center text-center relative z-10 max-w-2xl mx-auto w-full">
-        {/* Optional Question Media Image */}
-        {resolvedImg && (
-          <div className="mb-4 relative group">
-            <img
-              src={resolvedImg}
-              alt="Question illustration"
-              onClick={() => onZoomImage && onZoomImage(resolvedImg)}
-              className="max-h-36 sm:max-h-44 object-contain rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md bg-slate-50/50 p-1 cursor-zoom-in group-hover:opacity-95 transition-all"
-            />
-          </div>
+        {/* Multi-Image Question Gallery */}
+        {questionImages.length > 0 && (
+          <CardImageGallery
+            images={questionImages}
+            onZoom={onZoomImage}
+            maxHeight="max-h-36 sm:max-h-44"
+            className="mb-4"
+          />
         )}
 
         {/* Context Hint / Prompt */}
@@ -295,6 +303,19 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                         <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
                       </span>
                     ))}
+                  </div>
+                )}
+                {/* Answer Explanation Images (Revealed upon answering) */}
+                {answerImages.length > 0 && (
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                      Hình ảnh minh họa đáp án:
+                    </span>
+                    <CardImageGallery
+                      images={answerImages}
+                      onZoom={onZoomImage}
+                      maxHeight="max-h-28 sm:max-h-36"
+                    />
                   </div>
                 )}
               </div>

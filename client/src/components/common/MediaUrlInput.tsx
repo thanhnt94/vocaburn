@@ -16,6 +16,7 @@ import { cn } from '../../lib/utils'
 import { ImageCropModal } from './ImageCropModal'
 import { useAppStore } from '../../store/useAppStore'
 import { useAuthStore } from '../../store/useAuthStore'
+import { splitImageUrls } from '../../lib/image-utils'
 
 export interface MediaUrlInputProps {
   value: string
@@ -164,6 +165,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [isZoomOpen, setIsZoomOpen] = useState(false)
+  const [activeZoomUrl, setActiveZoomUrl] = useState<string>('')
 
   // Staged Image Preview & Crop Modal state
   const [isCropModalOpen, setIsCropModalOpen] = useState(false)
@@ -183,7 +185,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const defaultPlaceholder =
     placeholder ||
     (mediaType === 'image'
-      ? 'Paste URL or Ctrl+V image...'
+      ? 'Dán link ảnh (hỗ trợ nhiều link cách bằng dấu phẩy) hoặc Ctrl+V...'
       : mediaType === 'audio'
       ? 'Paste URL or upload audio...'
       : 'Paste URL or upload media...')
@@ -400,6 +402,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const isAudio =
     mediaType === 'audio' ||
     (mediaType === 'all' && (/\.(mp3|wav|m4a|ogg|aac)$/i.test(value) || value.includes('/static/uploads/tts/') || value.startsWith('central-tts://') || value.includes('/audio/')))
+  const splitUrls = isImage ? splitImageUrls(value) : []
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -534,10 +537,70 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
       )}
 
       {/* Media Preview Section */}
-      {showPreview && value && resolvedUrl && (
+      {showPreview && value && (
         <div className="pt-1">
-          {/* Image Preview */}
-          {isImage && (
+          {/* Multi-Image Preview Gallery */}
+          {isImage && splitUrls.length > 1 && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50/90 px-2 py-0.5 rounded-md border border-indigo-100 flex items-center gap-1.5">
+                  <ImageIcon className="w-3 h-3" />
+                  Đa ảnh: {splitUrls.length} hình ảnh
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium">Bấm ảnh để phóng to, bấm X để gỡ</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {splitUrls.map((rawUrl, idx) => {
+                  const itemResolved = resolveMediaUrl(rawUrl, centralAuthUrl)
+                  return (
+                    <div key={idx} className="relative group">
+                      <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50 flex items-center justify-center shadow-2xs">
+                        <img
+                          src={itemResolved}
+                          alt={`Preview #${idx + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none'
+                          }}
+                        />
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/70 text-white font-black text-[9px] backdrop-blur-xs shadow-xs">
+                          #{idx + 1}
+                        </span>
+                        {/* Hover Action Overlay */}
+                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded-2xl">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveZoomUrl(itemResolved)
+                              setIsZoomOpen(true)
+                            }}
+                            className="p-1.5 rounded-xl bg-black/60 hover:bg-black/90 text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                            title="Phóng to"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const remaining = splitUrls.filter((_, i) => i !== idx)
+                              onChange(remaining.join(', '))
+                            }}
+                            className="p-1.5 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                            title="Gỡ ảnh này"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Single Image Preview */}
+          {isImage && splitUrls.length <= 1 && resolvedUrl && (
             <div className="relative group inline-block">
               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50 flex items-center justify-center shadow-2xs">
                 <img
@@ -552,7 +615,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded-2xl">
                   <button
                     type="button"
-                    onClick={() => setIsZoomOpen(true)}
+                    onClick={() => {
+                      setActiveZoomUrl(resolvedUrl)
+                      setIsZoomOpen(true)
+                    }}
                     className="p-1.5 rounded-xl bg-black/60 hover:bg-black/90 text-white transition-all cursor-pointer shadow-sm active:scale-95"
                     title="Zoom preview"
                   >
@@ -619,7 +685,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
       {isZoomOpen && (
         <div
           onClick={() => setIsZoomOpen(false)}
-          className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -633,7 +699,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
               <X className="w-4 h-4" />
             </button>
             <img
-              src={resolvedUrl}
+              src={activeZoomUrl || resolvedUrl}
               alt="Zoomed preview"
               className="max-w-full max-h-[80vh] object-contain rounded-xl mx-auto"
             />

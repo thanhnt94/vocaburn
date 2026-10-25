@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { Sparkles, Bookmark, Play, Volume2, RotateCcw, Check, X, ArrowRight, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
+import { CardImageGallery } from '@/components/common/CardImageGallery'
+import { extractCardImages } from '@/lib/image-utils'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -24,6 +26,7 @@ export interface PracticeListeningCardProps {
   onToggleStar: (cardId: number) => void
   onPlayAudio: (face?: string, rate?: number) => void
   onNext?: () => void
+  onZoomImage?: (url: string) => void
   frontFontSize?: string
 }
 
@@ -46,12 +49,18 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
   onToggleStar,
   onPlayAudio,
   onNext,
+  onZoomImage,
   frontFontSize = 'M'
 }) => {
   const { question, correct_answer, choices, correct_index, question_key, answer_key, choice_item_ids } = practiceData
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const imageSettings = (currentQuestion as any)?.deck_image_configs
+  const answerImages = useMemo(() => {
+    return extractCardImages(currentQuestion, 'back', imageSettings)
+  }, [currentQuestion, imageSettings])
 
   const isMcq = listeningType === 'mcq' || (Boolean(choices && choices.length > 0) && listeningType !== 'typing')
 
@@ -354,6 +363,20 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Answer Explanation Images (Revealed upon answering) */}
+                {answerImages.length > 0 && (
+                  <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                      Hình ảnh minh họa đáp án:
+                    </span>
+                    <CardImageGallery
+                      images={answerImages}
+                      onZoom={onZoomImage}
+                      maxHeight="max-h-28 sm:max-h-36"
+                    />
                   </div>
                 )}
 

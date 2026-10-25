@@ -16,6 +16,8 @@ import {
 } from '@/lib/flashcard-utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { getFrontFontSizeStyle } from '@/components/common/study'
+import { CardImageGallery } from '@/components/common/CardImageGallery'
+import { extractCardImages } from '@/lib/image-utils'
 
 export interface Flashcard3DCardProps {
   currentQuestion: any
@@ -241,9 +243,14 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     ? (currentQuestion?.options?.find((o: any) => o.is_correct)?.content || currentQuestion?.explanation || currentQuestion?.others?.back || currentQuestion?.back || '')
     : (currentQuestion?.content || '');
 
-  const frontImg = flipSides
+  const imageSettings = (currentQuestion as any)?.deck_image_configs || (currentQuestion as any)?.practice_settings?.image_configs
+  const frontImages = React.useMemo(() => {
+    return extractCardImages(currentQuestion, 'front', imageSettings, flipSides)
+  }, [currentQuestion, imageSettings, flipSides])
+
+  const frontImg = frontImages[0] || (flipSides
     ? (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url)
-    : (currentQuestion?.front_img || currentQuestion?.others?.front_img);
+    : (currentQuestion?.front_img || currentQuestion?.others?.front_img));
 
   // Determine clean back content without duplicate text
   const correctOptionText = currentQuestion?.options?.find((o: any) => o.is_correct)?.content;
@@ -282,9 +289,13 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     }
   }
 
-  const backImg = flipSides
+  const backImages = React.useMemo(() => {
+    return extractCardImages(currentQuestion, 'back', imageSettings, flipSides)
+  }, [currentQuestion, imageSettings, flipSides])
+
+  const backImg = backImages[0] || (flipSides
     ? (currentQuestion?.front_img || currentQuestion?.others?.front_img)
-    : (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url);
+    : (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url));
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
@@ -362,12 +373,11 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 frontValign === 'top' ? "mt-0 mb-auto" : "my-auto",
                 frontHalign === 'center' ? "items-center text-center" : "items-start text-left"
               )}>
-                {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && frontImg && (
-                  <img 
-                    src={resolveMediaUrl(frontImg) || undefined} 
-                    alt="Front Visual" 
-                    className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                    onClick={() => setZoomedImage(resolveMediaUrl(frontImg) || null)}
+                {(showImages as any === 'always' || showImages as any === 'front' || showImages as any === true || showImages as any === 'true') && frontImages.length > 0 && (
+                  <CardImageGallery
+                    images={frontImages}
+                    onZoom={setZoomedImage}
+                    maxHeight="max-h-40 md:max-h-48"
                   />
                 )}
                 <div 
@@ -503,15 +513,12 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                   </div>
                 )}
 
-                {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && backImg && (
-                  <div className="space-y-2 flex justify-center w-full">
-                    <img 
-                      src={resolveMediaUrl(backImg) || undefined} 
-                      alt="Back Visual" 
-                      className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
-                      onClick={() => setZoomedImage(resolveMediaUrl(backImg) || null)}
-                    />
-                  </div>
+                {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && backImages.length > 0 && (
+                  <CardImageGallery
+                    images={backImages}
+                    onZoom={setZoomedImage}
+                    maxHeight="max-h-40 md:max-h-48"
+                  />
                 )}
 
                 {currentQuestion?.mnemonic && (

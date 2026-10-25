@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { getFrontFontSizeStyle } from '@/components/common/study'
+import { CardImageGallery } from '@/components/common/CardImageGallery'
+import { extractCardImages } from '@/lib/image-utils'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -51,9 +53,17 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
 }) => {
   const { question, choices, choice_item_ids, correct_index, question_key, answer_key } = practiceData
 
-  const questionImg = currentQuestion?.front_img || currentQuestion?.image || currentQuestion?.others?.front_img
   const isImageVisible = showImages !== 'off' && showImages !== 'none' && showImages !== false && showImages !== 'false'
-  const resolvedImg = (questionImg && isImageVisible) ? resolveMediaUrl(questionImg) : null
+  const imageSettings = (currentQuestion as any)?.deck_image_configs
+  const questionImages = useMemo(() => {
+    if (!isImageVisible) return []
+    return extractCardImages(currentQuestion, 'front', imageSettings)
+  }, [currentQuestion, isImageVisible, imageSettings])
+
+  const answerImages = useMemo(() => {
+    if (!isImageVisible) return []
+    return extractCardImages(currentQuestion, 'back', imageSettings)
+  }, [currentQuestion, isImageVisible, imageSettings])
 
   const getFontSizeClass = () => {
     switch (frontFontSize) {
@@ -129,15 +139,13 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
 
       {/* ── Central Question Stage ── */}
       <div className="my-auto py-5 sm:py-7 flex flex-col items-center justify-center text-center relative z-10 max-w-2xl mx-auto w-full">
-        {resolvedImg && (
-          <div className="mb-4 relative group">
-            <img
-              src={resolvedImg}
-              alt="Question illustration"
-              onClick={() => onZoomImage && onZoomImage(resolvedImg)}
-              className="max-h-32 sm:max-h-40 object-contain rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md bg-slate-50/50 p-1 cursor-zoom-in group-hover:opacity-95 transition-all"
-            />
-          </div>
+        {questionImages.length > 0 && (
+          <CardImageGallery
+            images={questionImages}
+            onZoom={onZoomImage}
+            maxHeight="max-h-32 sm:max-h-40"
+            className="mb-4"
+          />
         )}
 
         <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-indigo-600/90 dark:text-indigo-400 mb-2">
@@ -229,6 +237,20 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                 </button>
               )
             })}
+          </div>
+        )}
+
+        {/* Answer Explanation Images (Revealed upon answering) */}
+        {answered && answerImages.length > 0 && (
+          <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1 text-center">
+              Hình ảnh minh họa đáp án:
+            </span>
+            <CardImageGallery
+              images={answerImages}
+              onZoom={onZoomImage}
+              maxHeight="max-h-28 sm:max-h-36"
+            />
           </div>
         )}
 

@@ -37,6 +37,7 @@ import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { FSRSActionButtons } from '@/components/FSRSActionButtons'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { splitImageUrls } from '@/lib/image-utils'
 import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
@@ -139,14 +140,18 @@ export default function FlashcardPlay() {
       audioUrlsToPreload.push(...cardAudioUrls);
 
       // Extract image URLs
-      const cardImgUrls = [
-        resolveMediaUrl(q.image),
-        resolveMediaUrl(q.front_img),
-        resolveMediaUrl(q.back_img),
+      const rawImgs = [
+        q.image,
+        q.front_img,
+        q.back_img,
         ...(q.others ? Object.entries(q.others)
             .filter(([k, v]) => (k.includes('img') || k.includes('image') || k.includes('pic')) && typeof v === 'string')
-            .map(([, v]) => resolveMediaUrl(v as string)) : [])
-      ].filter(Boolean) as string[];
+            .map(([, v]) => v as string) : [])
+      ];
+      const cardImgUrls = rawImgs
+        .flatMap(img => splitImageUrls(img))
+        .map(url => resolveMediaUrl(url))
+        .filter(Boolean) as string[];
 
       imgUrlsToPreload.push(...cardImgUrls);
     }

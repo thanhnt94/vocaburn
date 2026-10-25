@@ -13,7 +13,8 @@ import {
   Lock, 
   Database,
   Search,
-  Lightbulb
+  Lightbulb,
+  Image as ImageIcon
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -138,6 +139,62 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     }
   })
 
+  // Current configured multi-image settings
+  const currentImageConfigs = React.useMemo(() => {
+    const saved = practiceSettingsData?.creator_settings?.image_configs 
+      ?? deckData?.practice_settings?.image_configs;
+    return {
+      front_cols: Array.isArray(saved?.front_cols) ? saved.front_cols : ['front_img'],
+      back_cols: Array.isArray(saved?.back_cols) ? saved.back_cols : ['back_img'],
+      auto_split: saved?.auto_split !== false,
+      layout: (saved?.layout || 'grid') as 'grid' | 'carousel' | 'stacked'
+    };
+  }, [practiceSettingsData, deckData]);
+
+  const updateImageConfigsMutation = useMutation({
+    mutationFn: async (updatedConfigs: any) => {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        settings: {
+          image_configs: updatedConfigs
+        }
+      })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.error || 'Không thể lưu cài đặt đa hình ảnh.')
+    }
+  })
+
+  const toggleImageCol = (side: 'front' | 'back', colName: string) => {
+    if (!isOwner) return
+    const key = side === 'front' ? 'front_cols' : 'back_cols'
+    const currentList: string[] = currentImageConfigs[key] || []
+    let updatedList: string[]
+    if (currentList.includes(colName)) {
+      updatedList = currentList.filter(c => c !== colName)
+    } else {
+      updatedList = [...currentList, colName]
+    }
+    updateImageConfigsMutation.mutate({
+      ...currentImageConfigs,
+      [key]: updatedList
+    })
+  }
+
+  const toggleAutoSplit = (enabled: boolean) => {
+    if (!isOwner) return
+    updateImageConfigsMutation.mutate({
+      ...currentImageConfigs,
+      auto_split: enabled
+    })
+  }
+
   const addColumnMutation = useMutation({
     mutationFn: async ({ column_name, isInsight }: { column_name: string; isInsight: boolean }) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/add-column`, { column_name })
@@ -240,6 +297,18 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       ...allAvailableCols.filter(col => !SYSTEM_CORE_COLS.has(col))
     ])
   )
+
+  const selectableImageCols = React.useMemo(() => {
+    const defaultCols = ['front_img', 'back_img', 'image']
+    const combined = Array.from(new Set([...defaultCols, ...dynamicCols]))
+    return combined.sort((a, b) => {
+      const aIsImg = a.toLowerCase().includes('img') || a.toLowerCase().includes('image') || a.toLowerCase().includes('pic')
+      const bIsImg = b.toLowerCase().includes('img') || b.toLowerCase().includes('image') || b.toLowerCase().includes('pic')
+      if (aIsImg && !bIsImg) return -1
+      if (!aIsImg && bIsImg) return 1
+      return 0
+    })
+  }, [dynamicCols])
 
   // Clean formatted input to slug
   const formatSlug = (val: string) => val.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_')
@@ -613,6 +682,134 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
             )
           })}
         </div>
+      </div>
+
+      {/* ── SECTION 2.5: CẤU HÌNH ĐA HÌNH ẢNH (MULTI-IMAGE DISPLAY) ── */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-pink-50 border border-pink-100 text-pink-600 flex items-center justify-center">
+                <ImageIcon className="w-4 h-4" />
+              </span>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                Cấu hình Đa Hình ảnh (Multi-Image Display)
+                <span className="px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200/60 text-pink-700 text-[10px] font-black uppercase tracking-wider">
+                  Mới ✨
+                </span>
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 font-medium mt-1">
+              Hiển thị đồng thời 2 hoặc 3 ảnh trên flashcard (mặt trước / mặt sau) hoặc câu hỏi / câu trả lời trong các chế độ luyện tập (Trắc nghiệm, Gõ từ, Nghe).
+            </p>
+          </div>
+        </div>
+
+        {/* 2 Face Panels */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Front Face / Question Image Columns */}
+          <div className="border border-slate-200/80 rounded-2xl p-4 bg-slate-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-black text-indigo-900 block">
+                  Ảnh Mặt Trước & Câu Hỏi (Front / Question)
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {currentImageConfigs.front_cols.length} cột được chọn
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 font-mono text-[10px] font-black max-w-[160px] truncate">
+                {currentImageConfigs.front_cols.join(', ') || 'Chưa chọn'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {selectableImageCols.map(col => {
+                const isSelected = currentImageConfigs.front_cols.includes(col)
+                const isPrimary = col === 'front_img'
+                return (
+                  <button
+                    key={`front-${col}`}
+                    type="button"
+                    onClick={() => toggleImageCol('front', col)}
+                    disabled={!isOwner || updateImageConfigsMutation.isPending}
+                    className={cn(
+                      "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border active:scale-95",
+                      isSelected
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-white text-slate-600 hover:bg-slate-100 border-slate-200/80"
+                    )}
+                  >
+                    <span className="font-mono text-[11px]">{col}</span>
+                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                    {isPrimary && !isSelected && <span className="text-[9px] text-slate-400">(Mặc định)</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Back Face / Answer Image Columns */}
+          <div className="border border-slate-200/80 rounded-2xl p-4 bg-slate-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-black text-indigo-900 block">
+                  Ảnh Mặt Sau & Đáp Án (Back / Answer)
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {currentImageConfigs.back_cols.length} cột được chọn
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 font-mono text-[10px] font-black max-w-[160px] truncate">
+                {currentImageConfigs.back_cols.join(', ') || 'Chưa chọn'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {selectableImageCols.map(col => {
+                const isSelected = currentImageConfigs.back_cols.includes(col)
+                const isPrimary = col === 'back_img'
+                return (
+                  <button
+                    key={`back-${col}`}
+                    type="button"
+                    onClick={() => toggleImageCol('back', col)}
+                    disabled={!isOwner || updateImageConfigsMutation.isPending}
+                    className={cn(
+                      "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border active:scale-95",
+                      isSelected
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-white text-slate-600 hover:bg-slate-100 border-slate-200/80"
+                    )}
+                  >
+                    <span className="font-mono text-[11px]">{col}</span>
+                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                    {isPrimary && !isSelected && <span className="text-[9px] text-slate-400">(Mặc định)</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Auto-split helper toggle */}
+        <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/70 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={currentImageConfigs.auto_split}
+            onChange={(e) => toggleAutoSplit(e.target.checked)}
+            disabled={!isOwner || updateImageConfigsMutation.isPending}
+            className="w-4 h-4 mt-0.5 rounded border-amber-300 text-amber-500 focus:ring-amber-400 cursor-pointer shrink-0"
+          />
+          <div className="text-xs">
+            <span className="font-black text-amber-900 block">
+              Tự động nhận diện nhiều link ảnh trong cùng một ô dữ liệu
+            </span>
+            <span className="text-slate-500 font-medium leading-relaxed block mt-0.5">
+              Khi dán nhiều đường dẫn ảnh (ngăn cách bằng dấu phẩy <code>,</code> hoặc xuống dòng), hệ thống sẽ tự động tách và hiển thị dưới dạng bộ sưu tập ảnh (gallery 2-3 ảnh) có kèm nút phóng to cho từng ảnh.
+            </span>
+          </div>
+        </label>
       </div>
 
       {/* ── SECTION 3: HƯỚNG DẪN & LIÊN KẾT TÍCH HỢP ── */}

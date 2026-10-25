@@ -217,9 +217,15 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
   }, [allColumns, practiceSettings]);
 
   const imageCols = useMemo(() => {
+    const configuredCols = [
+      ...(practiceSettings?.image_configs?.front_cols || []),
+      ...(practiceSettings?.image_configs?.back_cols || [])
+    ];
     const cols = allColumns.filter(col => 
+      configuredCols.includes(col) ||
       ['front_img', 'back_img', 'image', 'img'].includes(col.toLowerCase()) ||
-      col.toLowerCase().includes('image') || col.toLowerCase().includes('img')
+      col.toLowerCase().includes('image') || col.toLowerCase().includes('img') ||
+      col.toLowerCase().includes('pic') || col.toLowerCase().includes('photo')
     );
     return cols.sort((a, b) => {
       const aIsFront = a.toLowerCase().includes('front') || a.toLowerCase() === 'image' || a.toLowerCase() === 'img';
@@ -228,7 +234,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       if (!aIsFront && bIsFront) return 1;
       return 0;
     });
-  }, [allColumns]);
+  }, [allColumns, practiceSettings]);
 
   const audioCols = useMemo(() => {
     return allColumns.filter(col => 
