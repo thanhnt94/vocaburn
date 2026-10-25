@@ -527,6 +527,12 @@ export default function HybridPlay() {
       choices = shuffledChoices
     }
 
+    const effSettings = session?.creator_settings || session?.practice_settings || {}
+    const modeConfig = effSettings[chosenMode] || effSettings.mcq || {}
+    const activePairs = modeConfig.active_pairs || []
+    const matchingPair = activePairs[0]
+    const pairAudioCol = matchingPair?.audio_col
+
     const practiceObj: PracticeQuestionData = {
       question: questionText,
       choices,
@@ -534,7 +540,8 @@ export default function HybridPlay() {
       correct_answer: correctAns,
       acceptable_answers: [correctAns, correctAns.toLowerCase().trim()],
       question_key: 'front',
-      answer_key: 'back'
+      answer_key: 'back',
+      audio_col: pairAudioCol || 'front'
     }
 
     setCurrentPracticeData(practiceObj)
@@ -579,6 +586,12 @@ export default function HybridPlay() {
       showXpGain(5) // +5 XP per correct active recall
     } else {
       playSfx('wrong')
+    }
+
+    // Auto-play audio on answer if configured
+    const targetAudioCol = currentPracticeData?.audio_col || 'front'
+    if (targetAudioCol !== 'none' && targetAudioCol !== 'off' && targetAudioCol !== 'disabled') {
+      playCardAudio(targetAudioCol)
     }
 
     const updatedCounts = {

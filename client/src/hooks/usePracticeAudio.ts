@@ -22,6 +22,15 @@ export function resolveAudioConfig(
   practiceSettings: any
 ): ResolvedAudioConfig {
   const normFace = String(face || 'front').trim().toLowerCase()
+  if (normFace === 'none' || normFace === 'off' || normFace === 'disabled') {
+    return {
+      dataCol: 'none',
+      sourceCol: '',
+      urlCol: '',
+      lang: 'none',
+      enabled: false,
+    }
+  }
   const audioConfigs = practiceSettings?.audio_configs || []
 
   let matched: any = null
@@ -336,29 +345,16 @@ export function usePracticeAudio({
 
   const speakPracticeQuestionAndAnswer = async () => {
     if (!currentPracticeData) return
-    const qText = currentPracticeData.question || ''
-    const aText = currentPracticeData.correct_answer || ''
-    const qKey = currentPracticeData.question_key || 'front'
+    const configuredAudioCol = currentPracticeData.audio_col
+    if (configuredAudioCol === 'none' || configuredAudioCol === 'off' || configuredAudioCol === 'disabled') {
+      return
+    }
+
     const rawAKey = currentPracticeData.answer_key || 'back'
     const aKey = Array.isArray(rawAKey) ? (rawAKey[0] || 'back') : rawAKey
+    const targetAudioFace = (configuredAudioCol && String(configuredAudioCol).trim()) ? String(configuredAudioCol).trim() : aKey
 
-    const containsJp = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str)
-    const containsVi = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str)
-    const detectLang = (str: string) => containsJp(str) ? 'ja-JP' : (containsVi(str) ? 'vi-VN' : 'en-US')
-
-    const effectiveSettings = practiceSettings || session?.practice_settings || session?.creator_settings || {}
-    const qCfg = resolveAudioConfig(qKey, effectiveSettings)
-    const aCfg = resolveAudioConfig(aKey, effectiveSettings)
-
-    stopAllAudio()
-
-    const segments: { text: string; langCode: string }[] = []
-    if (qText && qCfg.enabled) segments.push({ text: qText, langCode: qCfg.lang !== 'multi' ? qCfg.lang : detectLang(qText) })
-    if (aText && aCfg.enabled) segments.push({ text: aText, langCode: aCfg.lang !== 'multi' ? aCfg.lang : detectLang(aText) })
-
-    if (segments.length > 0) {
-      speakEdgeTTSSequentially(segments, 500)
-    }
+    await playCardAudio(targetAudioFace)
   }
 
   return {

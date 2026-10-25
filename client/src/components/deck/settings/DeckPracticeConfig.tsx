@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   HelpCircle,
   Target,
+  Volume2,
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +31,7 @@ export interface QuestionAnswerPair {
   name?: string
   prompt_col?: string
   answer_col?: string | string[]
+  audio_col?: string
 }
 
 export interface DeckPracticeConfigProps {
@@ -89,12 +91,12 @@ export function reconcileColumn(target: string, available: string[]): string {
 }
 
 function normalizePair(p: any): QuestionAnswerPair {
-  if (!p) return { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back' }
+  if (!p) return { q: 'front', a: 'back', prompt_col: 'front', answer_col: 'back', audio_col: '' }
   if (typeof p === 'string') {
     const parts = p.split(/[-:>]/)
     const q = cleanCol(parts[0] || 'front')
     const a = cleanCol(parts[1] || 'back')
-    return { q, a, prompt_col: q, answer_col: a, name: `${q} ➜ ${a}` }
+    return { q, a, prompt_col: q, answer_col: a, name: `${q} ➜ ${a}`, audio_col: '' }
   }
   const q = cleanCol(p.q || p.prompt_col || p.question_col || p.question || p.from || p.source || 'front')
   let a: string | string[]
@@ -111,12 +113,14 @@ function normalizePair(p: any): QuestionAnswerPair {
     a = cleanCol(rawA || 'back')
   }
   const displayA = Array.isArray(a) ? a.join(', ') : a
+  const audio_col = p.audio_col !== undefined ? String(p.audio_col).trim() : (p.audio_channel || p.audio_target || '')
   return {
     q,
     a,
     name: p.name && !p.name.includes('[') && !p.name.includes("'") ? p.name : `${q} ➜ ${displayA}`,
     prompt_col: p.prompt_col ? cleanCol(p.prompt_col) : q,
     answer_col: p.answer_col ? (Array.isArray(p.answer_col) ? p.answer_col.map(cleanCol) : cleanCol(p.answer_col)) : a,
+    audio_col,
   }
 }
 
@@ -207,6 +211,15 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     !['id', 'item_id', 'order_in_container', 'other_content'].includes(c)
   )
 
+  const effectiveAudioConfigs = (Array.isArray(practiceSettingsData?.creator_settings?.audio_configs) && practiceSettingsData.creator_settings.audio_configs.length > 0)
+    ? practiceSettingsData.creator_settings.audio_configs
+    : (Array.isArray(initialSettings?.audio_configs) && initialSettings.audio_configs.length > 0)
+    ? initialSettings.audio_configs
+    : [
+        { id: 'cfg_front', name: 'Mặt trước', data_col: 'front', source_col: 'front_audio_content', url_col: 'front_audio_url' },
+        { id: 'cfg_back', name: 'Mặt sau', data_col: 'back', source_col: 'back_audio_content', url_col: 'back_audio_url' }
+      ]
+
   useEffect(() => {
     const effectiveSettings = practiceSettingsData?.creator_settings || initialSettings
     const studyDefs = practiceSettingsData?.creator_study_defaults || practiceSettingsData?.study_defaults || effectiveSettings?.study_defaults || {}
@@ -224,6 +237,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
           a: recA,
           prompt_col: recQ,
           answer_col: recA,
+          audio_col: p.audio_col || '',
           name: `${recQ} ➜ ${Array.isArray(recA) ? recA.join(', ') : recA}`
         }
       }
@@ -246,7 +260,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       } else {
         const defQ = reconcileColumn('front', availableColumns)
         const defA = reconcileColumn('back', availableColumns)
-        setMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
+        setMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, audio_col: '', name: `${defQ} ➜ ${defA}` }])
       }
 
       // Typing
@@ -257,7 +271,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       } else {
         const defQ = reconcileColumn('back', availableColumns)
         const defA = reconcileColumn('front', availableColumns)
-        setTypingPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
+        setTypingPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, audio_col: '', name: `${defQ} ➜ ${defA}` }])
       }
 
       // Listening MCQ
@@ -269,7 +283,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       } else {
         const defQ = reconcileColumn('front', availableColumns)
         const defA = reconcileColumn('back', availableColumns)
-        setListeningMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
+        setListeningMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, audio_col: '', name: `${defQ} ➜ ${defA}` }])
       }
 
       // Listening Typing
@@ -280,15 +294,15 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       } else {
         const defQ = reconcileColumn('front', availableColumns)
         const defA = reconcileColumn('front', availableColumns)
-        setListeningTypingPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, name: `${defQ} ➜ ${defA}` }])
+        setListeningTypingPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, audio_col: '', name: `${defQ} ➜ ${defA}` }])
       }
     } else {
       const defQ = reconcileColumn('front', availableColumns)
       const defA = reconcileColumn('back', availableColumns)
-      setMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA }])
-      setTypingPairs([{ q: defA, a: defQ, prompt_col: defA, answer_col: defQ }])
-      setListeningMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA }])
-      setListeningTypingPairs([{ q: defQ, a: defQ, prompt_col: defQ, answer_col: defQ }])
+      setMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, audio_col: '' }])
+      setTypingPairs([{ q: defA, a: defQ, prompt_col: defA, answer_col: defQ, audio_col: '' }])
+      setListeningMcqPairs([{ q: defQ, a: defA, prompt_col: defQ, answer_col: defA, audio_col: '' }])
+      setListeningTypingPairs([{ q: defQ, a: defQ, prompt_col: defQ, answer_col: defQ, audio_col: '' }])
     }
     setTimeout(() => {
       isLoadedRef.current = true
@@ -320,6 +334,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         a: Array.isArray(p.a) ? p.a : [p.a],
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
+        audio_col: p.audio_col || undefined,
       }))
 
       const formattedTypingPairs = effTypingPairs.map((p: any) => ({
@@ -327,6 +342,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         a: Array.isArray(p.a) ? p.a : [p.a],
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
+        audio_col: p.audio_col || undefined,
       }))
 
       const formattedListeningMcqPairs = effListeningMcqPairs.map((p: any) => ({
@@ -334,6 +350,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         a: Array.isArray(p.a) ? p.a : [p.a],
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
+        audio_col: p.audio_col || undefined,
       }))
 
       const formattedListeningTypingPairs = effListeningTypingPairs.map((p: any) => ({
@@ -341,6 +358,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         a: Array.isArray(p.a) ? p.a : [p.a],
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
+        audio_col: p.audio_col || undefined,
       }))
 
       try {
@@ -455,6 +473,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
       {
         q: availableColumns[0] || 'front',
         a: availableColumns[1] || 'back',
+        audio_col: '',
         name: `Pair #${prev.length + 1}`,
       },
     ])
@@ -464,13 +483,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a', value: string | string[]) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col', value: string | string[]) => {
     setCurrentPairs((prev) =>
       prev.map((p, i) => {
         if (i !== index) return p
         const updated = { ...p, [field]: value }
         if (field === 'q') updated.prompt_col = String(value)
         if (field === 'a') updated.answer_col = value
+        if (field === 'audio_col') updated.audio_col = String(value)
         updated.name = `${updated.q} ➜ ${Array.isArray(updated.a) ? updated.a.join(', ') : updated.a}`
         return updated
       })
@@ -969,6 +989,46 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                             </select>
                           </div>
                         )}
+                      </div>
+
+                      {/* Audio to Play on Answer (Phát âm sau khi trả lời) */}
+                      <div className="pt-2.5 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Volume2 className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>3. Audio on Answer (Phát âm sau khi trả lời):</span>
+                          </label>
+                          <span className="text-[9px] font-medium text-slate-400">
+                            Tự động tạo & lưu MP3 nếu chưa có
+                          </span>
+                        </div>
+                        <select
+                          value={pair.audio_col || ''}
+                          onChange={(e) => handleUpdatePair(idx, 'audio_col', e.target.value)}
+                          className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                        >
+                          <option value="">🎯 Theo cột đáp án (Tự động: {Array.isArray(pair.a) ? pair.a.join(', ') : pair.a})</option>
+                          {effectiveAudioConfigs.length > 0 && (
+                            <optgroup label="Cấu hình Audio (Từ Tab Audio)">
+                              {effectiveAudioConfigs.map((cfg: any, cIdx: number) => {
+                                const val = cfg.data_col || cfg.id || `cfg_${cIdx}`
+                                return (
+                                  <option key={cfg.id || cIdx} value={val}>
+                                    🔊 {cfg.name || `Kênh #${cIdx + 1}`} ({cfg.data_col || 'front'})
+                                  </option>
+                                )
+                              })}
+                            </optgroup>
+                          )}
+                          <optgroup label="Tất cả các cột trong Deck">
+                            {availableColumns.map((col) => (
+                              <option key={col} value={col}>
+                                📄 Cột: {col}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <option value="none">🔇 Tắt âm thanh (Không phát sau khi trả lời)</option>
+                        </select>
                       </div>
                     </div>
                   )

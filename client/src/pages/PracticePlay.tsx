@@ -399,42 +399,17 @@ export default function PracticePlay() {
     const strAudio = String(autoPlayAudio || 'back').toLowerCase();
     if (strAudio === 'none' || strAudio === 'off') return;
 
-    const qText = currentPracticeData.question || '';
-    const aText = currentPracticeData.correct_answer || '';
-    const qKey = currentPracticeData.question_key || 'front';
+    // Check pair-specific configured audio column
+    const configuredAudioCol = currentPracticeData.audio_col;
+    if (configuredAudioCol === 'none' || configuredAudioCol === 'off' || configuredAudioCol === 'disabled') {
+      return;
+    }
+
     const rawAKey = currentPracticeData.answer_key || 'back';
     const aKey = Array.isArray(rawAKey) ? (rawAKey[0] || 'back') : rawAKey;
+    const targetAudioFace = (configuredAudioCol && String(configuredAudioCol).trim()) ? String(configuredAudioCol).trim() : aKey;
 
-    const containsJp = (str: string) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
-    const containsVi = (str: string) => /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(str);
-    const detectLang = (str: string) => containsJp(str) ? 'ja-JP' : (containsVi(str) ? 'vi-VN' : 'en-US');
-
-    const effectiveSettings = session?.practice_settings || session?.creator_settings || {};
-    const qCfg = resolveAudioConfig(qKey, effectiveSettings);
-    const aCfg = resolveAudioConfig(aKey, effectiveSettings);
-
-    // Stop any ongoing audio
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
-    }
-    window.speechSynthesis.cancel();
-
-    const segments: { text: string; langCode: string }[] = [];
-    const shouldPlayQ = strAudio === 'both' || strAudio === 'always';
-    const shouldPlayA = strAudio !== 'none' && strAudio !== 'off';
-
-    if (shouldPlayQ && qText && qCfg.enabled) {
-      segments.push({ text: qText, langCode: qCfg.lang !== 'multi' ? qCfg.lang : detectLang(qText) });
-    }
-    if (shouldPlayA && aText && aCfg.enabled) {
-      segments.push({ text: aText, langCode: aCfg.lang !== 'multi' ? aCfg.lang : detectLang(aText) });
-    }
-    
-    // Use Edge TTS sequentially
-    if (segments.length > 0) {
-      speakEdgeTTSSequentially(segments, 400);
-    }
+    await playCardAudio(targetAudioFace);
   };
 
   const [session, setSession] = useState<any>(null)
@@ -718,14 +693,14 @@ export default function PracticePlay() {
   const [practiceNeedsSetup, setPracticeNeedsSetup] = useState(false)
   const [practiceDisabled, setPracticeDisabled] = useState(false)
   const [availableColumns, setAvailableColumns] = useState<string[]>([])
-  const [setupPairs, setSetupPairs] = useState<{ q: string, a: string | string[] }[]>([{ q: 'front', a: 'back' }])
+  const [setupPairs, setSetupPairs] = useState<{ q: string, a: string | string[], audio_col?: string }[]>([{ q: 'front', a: 'back' }])
   const [setupNumChoices, setSetupNumChoices] = useState<number>(4)
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
 
   // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[] }[], num_choices?: number }>>({
+  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[], audio_col?: string }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
     listening_mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
@@ -992,6 +967,7 @@ export default function PracticePlay() {
     const question_key = activePair.q;
     const raw_answer_key = activePair.a;
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'back') : (raw_answer_key || 'back');
+    const audio_col = (activePair as any).audio_col !== undefined ? (activePair as any).audio_col : undefined;
     const num_choices = setupNumChoices || 4;
 
     const questionText = getVal(qObj, question_key);
@@ -1078,7 +1054,8 @@ export default function PracticePlay() {
         correct_index: correct_index !== -1 ? correct_index : 0,
         correct_answer: correctAns,
         question_key,
-        answer_key: primary_answer_key
+        answer_key: primary_answer_key,
+        audio_col: audio_col !== undefined ? audio_col : primary_answer_key
       });
     } else if (subMode === 'typing' || subMode === 'listening' || subMode === 'listening_typing') {
       const rawAnswerKey = activePair.a;
@@ -1116,7 +1093,8 @@ export default function PracticePlay() {
         correct_answer: primary_answer,
         acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
         question_key,
-        answer_key: answer_keys.length > 1 ? answer_keys : (answer_keys[0] || 'front')
+        answer_key: answer_keys.length > 1 ? answer_keys : (answer_keys[0] || 'front'),
+        audio_col: audio_col !== undefined ? audio_col : (answer_keys[0] || 'front')
       });
     }
   };

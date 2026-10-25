@@ -8,6 +8,7 @@ export interface PracticePair {
   name?: string
   prompt_col?: string
   answer_col?: string | string[]
+  audio_col?: string
 }
 
 export interface PracticeQuestionData {
