@@ -3763,10 +3763,14 @@ export default function PracticePlay() {
       );
     }
 
+    const totalDeckCards = session?.questions?.length || 0;
+    const currentFrontFontSize = frontFontSize || 'M';
+
     if (baseMode === 'typing') {
       return (
         <PracticeTypingCard
           currentIndex={currentIndex}
+          totalCards={totalDeckCards}
           currentQuestion={currentQuestion}
           practiceData={practiceData}
           answered={answered}
@@ -3776,6 +3780,10 @@ export default function PracticePlay() {
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onCheckTyping={handleTypingAnswer}
+          onNext={() => handleNext()}
+          onPlayAudio={playCardAudio}
+          onZoomImage={(url) => setZoomedImage(url)}
+          frontFontSize={currentFrontFontSize}
         />
       );
     }
@@ -3785,6 +3793,7 @@ export default function PracticePlay() {
       return (
         <PracticeListeningCard
           currentIndex={currentIndex}
+          totalCards={totalDeckCards}
           currentQuestion={currentQuestion}
           practiceData={practiceData}
           answered={answered}
@@ -3800,6 +3809,8 @@ export default function PracticePlay() {
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onPlayAudio={playCardAudio}
+          onNext={() => handleNext()}
+          frontFontSize={currentFrontFontSize}
         />
       );
     }
@@ -3807,6 +3818,7 @@ export default function PracticePlay() {
     return (
       <PracticeMcqCard
         currentIndex={currentIndex}
+        totalCards={totalDeckCards}
         currentQuestion={currentQuestion}
         practiceData={practiceData}
         answered={answered}
@@ -3817,6 +3829,9 @@ export default function PracticePlay() {
         onPreviewInsight={setPreviewInsightCard}
         sessionQuestions={session?.questions || []}
         onPlayAudio={playCardAudio}
+        onNext={() => handleNext()}
+        onZoomImage={(url) => setZoomedImage(url)}
+        frontFontSize={currentFrontFontSize}
       />
     );
   };

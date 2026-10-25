@@ -58,26 +58,6 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
   const hasAnsweredPractice = showFeedback || practiceAnswers[currentIndex] !== undefined
   const isTypingMode = mainTab === 'practice' && baseMode === 'typing'
 
-  // ── TYPING MODE SINGLE-ROW BAR ──
-  if (isTypingMode) {
-    return (
-      <PracticeTypingInput
-        typingInput={typingInput || ''}
-        setTypingInput={setTypingInput!}
-        onCheckTyping={onCheckTyping!}
-        hasAnsweredPractice={hasAnsweredPractice}
-        currentIndex={currentIndex}
-        isTypingMode={isTypingMode}
-        currentQuestion={currentQuestion}
-        justAnswered={justAnswered}
-        onOpenSettings={onOpenSettings}
-        onPlayAudio={onPlayAudio}
-        onOpenFeedback={onOpenFeedback}
-        onNext={onNext}
-      />
-    )
-  }
-
   return (
     <footer className="relative w-full flex-shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-100/80 dark:border-slate-800 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
       <div className="max-w-2xl mx-auto w-full flex flex-col">
@@ -95,6 +75,9 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
             onOpenFeedback={onOpenFeedback}
             onNext={onNext}
             onFlip={onFlip}
+            isTypingMode={isTypingMode}
+            typingInput={typingInput}
+            onCheckTyping={onCheckTyping}
           />
         )}
 

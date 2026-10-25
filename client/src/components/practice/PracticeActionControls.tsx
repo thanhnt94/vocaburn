@@ -16,6 +16,9 @@ export interface PracticeActionControlsProps {
   onOpenFeedback: () => void;
   onNext: () => void;
   onFlip: () => void;
+  isTypingMode?: boolean;
+  typingInput?: string;
+  onCheckTyping?: () => void;
 }
 
 export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
@@ -30,7 +33,10 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
   onPlayAudio,
   onOpenFeedback,
   onNext,
-  onFlip
+  onFlip,
+  isTypingMode = false,
+  typingInput = '',
+  onCheckTyping
 }) => {
   return (
     <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
@@ -90,6 +96,32 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
             <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
             <ChevronRight className="w-4 h-4" />
           </button>
+        ) : isTypingMode ? (
+          <div className="flex-1 flex gap-2 h-12">
+            <button
+              onClick={() => onNext()}
+              className="w-24 h-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-750 font-black text-xs rounded-2xl flex items-center justify-center gap-1 uppercase tracking-widest active:scale-95 transition-all cursor-pointer"
+            >
+              Skip
+            </button>
+            <button
+              onClick={() => {
+                if (typingInput && typingInput.trim() && onCheckTyping) {
+                  onCheckTyping()
+                }
+              }}
+              disabled={!typingInput || !typingInput.trim()}
+              className={cn(
+                "flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all",
+                typingInput && typingInput.trim()
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/25 active:scale-95 cursor-pointer"
+                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-750 cursor-not-allowed opacity-60"
+              )}
+            >
+              <span>Check</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         ) : (
           <div className="flex-1 flex gap-2 h-12">
             <button
