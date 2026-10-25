@@ -1371,21 +1371,21 @@ export default function Dashboard() {
             <ChevronRight className="w-4 h-4 text-orange-400 group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* Action Button: Chế Độ Học Tập Tổng Hợp (Daily Focus Queue) */}
+          {/* Action Button: Global Focus Review (Daily Focus Queue) */}
           <button
             type="button"
             onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
             className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl transition-all cursor-pointer group shadow-sm border border-orange-400/80"
-            title="Học tập tổng hợp: gộp tất cả thẻ FSRS cần ôn hôm nay"
+            title="Global focus review: all due FSRS cards combined across decks"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs text-white flex items-center justify-center font-black text-sm shadow-2xs shrink-0 group-hover:scale-105 transition-transform">
                 ⚡
               </div>
               <div className="text-left min-w-0">
-                <span className="text-xs font-black block leading-tight truncate">Chế Độ Học Tổng Hợp</span>
+                <span className="text-xs font-black block leading-tight truncate">Global Focus Review</span>
                 <span className="text-[9.5px] font-bold text-amber-100">
-                  {globalFocus ? (globalFocus.total_due > 0 ? `${globalFocus.total_due} thẻ FSRS cần ôn` : 'Đã hoàn tất hôm nay 🎉') : 'Daily Focus Queue'}
+                  {globalFocus ? (globalFocus.total_due > 0 ? `${globalFocus.total_due} FSRS cards due` : 'All completed today 🎉') : 'Daily Focus Queue'}
                 </span>
               </div>
             </div>
