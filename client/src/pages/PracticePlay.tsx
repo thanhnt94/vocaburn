@@ -2013,11 +2013,7 @@ export default function PracticePlay() {
   }
 
   const handleReviewRating = async (rating: number) => {
-    console.log("DEBUG: handleReviewRating called with rating:", rating, "currentIndex:", currentIndex);
-    if (!currentQuestion) {
-      console.log("DEBUG: currentQuestion is null, returning!");
-      return
-    }
+    if (!currentQuestion) return
 
     // Blur any focused element (like FSRS rating buttons) to prevent Space/Enter keys from triggering repeat clicks
     if (document.activeElement && typeof (document.activeElement as any).blur === 'function') {
@@ -3072,7 +3068,6 @@ export default function PracticePlay() {
         // Sort by stability ascending (lowest stability = hardest card first)
         dueCards.sort((a, b) => a.stability - b.stability)
         nextIdx = dueCards[0].idx
-        console.log("DEBUG FSRS: Found due card, choosing index:", nextIdx, "stability:", dueCards[0].stability)
       } else {
         // 2. If no due cards, get the first new card sequentially
         const newCardIdx = questions.findIndex((q: any, idx: number) => {
@@ -3085,9 +3080,6 @@ export default function PracticePlay() {
         
         if (newCardIdx !== -1) {
           nextIdx = newCardIdx
-          console.log("DEBUG FSRS: No due cards, choosing first new card sequentially at index:", nextIdx)
-        } else {
-          console.log("DEBUG FSRS: No due cards and no new cards left.")
         }
       }
     } else if (currentMode === 'sequential') {
@@ -4964,17 +4956,11 @@ export default function PracticePlay() {
 
                         {/* FSRS Buttons Grid (Visible inside card back, hidden after rating until it unlocks) */}
                         {isFlipped && !hasRated && (
-                          <div
-                            className="grid grid-cols-4 gap-1.5 sm:gap-3 mt-4 relative z-[10]"
-                            onClick={(e) => {
-                              console.log("DEBUG CLICK: FSRS Buttons Grid clicked! target:", e.target);
-                            }}
-                          >
+                          <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mt-4 relative z-[10]">
                             {/* AGAIN BUTTON */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log("DEBUG CLICK: AGAIN button clicked!");
                                 handleReviewRating(1);
                               }}
                               className={getButtonClass(0)}
@@ -4989,7 +4975,6 @@ export default function PracticePlay() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log("DEBUG CLICK: HARD button clicked!");
                                 handleReviewRating(2);
                               }}
                               className={getButtonClass(1)}
@@ -5004,7 +4989,6 @@ export default function PracticePlay() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log("DEBUG CLICK: GOOD button clicked!");
                                 handleReviewRating(3);
                               }}
                               className={getButtonClass(2)}
@@ -5019,7 +5003,6 @@ export default function PracticePlay() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log("DEBUG CLICK: EASY button clicked!");
                                 handleReviewRating(4);
                               }}
                               className={getButtonClass(3)}

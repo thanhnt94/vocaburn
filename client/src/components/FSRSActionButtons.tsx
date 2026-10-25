@@ -65,12 +65,7 @@ export const FSRSActionButtons: React.FC<FSRSActionButtonsProps> = ({
   }
 
   return (
-    <div
-      className="grid grid-cols-4 gap-1.5 sm:gap-3 mt-4 relative z-[10]"
-      onClick={(e) => {
-        console.log("DEBUG CLICK: FSRS Buttons Grid clicked! target:", e.target);
-      }}
-    >
+    <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mt-4 relative z-[10]">
       {/* AGAIN BUTTON */}
       <button
         onClick={(e) => {

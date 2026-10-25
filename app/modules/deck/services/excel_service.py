@@ -6,7 +6,10 @@ import json
 import re
 import zipfile
 import html
+import logging
 from app.modules.deck.routes.media_resolver import unresolve_central_url
+
+logger = logging.getLogger(__name__)
 
 # MindStack COLUMN_ALIASES
 COLUMN_ALIASES = {
@@ -216,7 +219,7 @@ def inject_cached_values(excel_bytes: bytes, formula_cached_map: Dict[Tuple[str,
                 zout.writestr(item, content)
         return zout_buf.getvalue()
     except Exception as e:
-        print(f"Error injecting cached formula values: {e}")
+        logger.error(f"Error injecting cached formula values: {e}")
         return excel_bytes
 
 
@@ -228,11 +231,11 @@ class ExcelDeckService:
         Handles both Quiz Format (MCQ) and Flashcard/Vocab Format (front/back).
         """
         try:
-            print(f"DEBUG: Loading Excel file into pandas...")
+            logger.debug("Loading Excel file into pandas...")
             excel_file = pd.ExcelFile(BytesIO(file_content))
-            print(f"DEBUG: Sheet names found: {excel_file.sheet_names}")
+            logger.debug(f"Sheet names found: {excel_file.sheet_names}")
         except Exception as e:
-            print(f"CRITICAL: Excel loading error: {e}")
+            logger.critical(f"Excel loading error: {e}")
             return {}, []
 
         # 1. Parse 'Info' sheet for metadata
@@ -250,7 +253,7 @@ class ExcelDeckService:
         }
         
         if "Info" in excel_file.sheet_names:
-            print("DEBUG: Parsing 'Info' sheet...")
+            logger.debug("Parsing 'Info' sheet...")
             df_info = excel_file.parse("Info")
             # Normalize Info sheet columns
             df_info.columns = [str(c).strip().lower() for c in df_info.columns]
@@ -509,7 +512,7 @@ class ExcelDeckService:
         # 2.1. Dedicated Sheet: Practice
         practice_sheet_name = next((sheet_name_map[s] for s in ('practice', 'practice_modes', 'practice settings', 'luyện tập', 'luyen tap') if s in sheet_name_map), None)
         if practice_sheet_name:
-            print(f"DEBUG: Parsing dedicated '{practice_sheet_name}' sheet...")
+            logger.debug(f"Parsing dedicated '{practice_sheet_name}' sheet...")
             try:
                 df_prac = excel_file.parse(practice_sheet_name)
                 df_prac.columns = [str(c).strip().lower() for c in df_prac.columns]
@@ -630,12 +633,12 @@ class ExcelDeckService:
                     else:
                         metadata["practice_settings"]["audio_mcq"]["active_pairs"] = listening_pairs
             except Exception as e:
-                print(f"DEBUG: Error parsing Practice sheet: {e}")
+                logger.warning(f"Error parsing Practice sheet: {e}")
 
         # 2.2. Dedicated Sheet: AI_Prompts
         ai_sheet_name = next((sheet_name_map[s] for s in ('ai_prompts', 'ai prompts', 'ai_prompt', 'prompts', 'prompt ai', 'ai') if s in sheet_name_map), None)
         if ai_sheet_name:
-            print(f"DEBUG: Parsing dedicated '{ai_sheet_name}' sheet...")
+            logger.debug(f"Parsing dedicated '{ai_sheet_name}' sheet...")
             try:
                 df_ai = excel_file.parse(ai_sheet_name)
                 df_ai.columns = [str(c).strip().lower() for c in df_ai.columns]
@@ -660,12 +663,12 @@ class ExcelDeckService:
                         metadata["practice_settings"] = {}
                     metadata["practice_settings"]["ai_prompts"] = ai_prompts
             except Exception as e:
-                print(f"DEBUG: Error parsing AI_Prompts sheet: {e}")
+                logger.warning(f"Error parsing AI_Prompts sheet: {e}")
 
         # 2.3. Dedicated Sheet: Audio
         audio_sheet_name = next((sheet_name_map[s] for s in ('audio', 'audio_config', 'audio config', 'audio_pairs', 'âm thanh') if s in sheet_name_map), None)
         if audio_sheet_name:
-            print(f"DEBUG: Parsing dedicated '{audio_sheet_name}' sheet...")
+            logger.debug(f"Parsing dedicated '{audio_sheet_name}' sheet...")
             try:
                 df_aud = excel_file.parse(audio_sheet_name)
                 df_aud.columns = [str(c).strip().lower() for c in df_aud.columns]
@@ -734,12 +737,12 @@ class ExcelDeckService:
                 if audio_configs:
                     metadata["practice_settings"]["audio_configs"] = audio_configs
             except Exception as e:
-                print(f"DEBUG: Error parsing Audio sheet: {e}")
+                logger.warning(f"Error parsing Audio sheet: {e}")
 
         # 2.4. Dedicated Sheet: Collaborators
         collab_sheet_name = next((sheet_name_map[s] for s in ('collaborators', 'collaborator', 'cộng tác viên', 'contributors') if s in sheet_name_map), None)
         if collab_sheet_name:
-            print(f"DEBUG: Parsing dedicated '{collab_sheet_name}' sheet...")
+            logger.debug(f"Parsing dedicated '{collab_sheet_name}' sheet...")
             try:
                 df_collab = excel_file.parse(collab_sheet_name)
                 df_collab.columns = [str(c).strip().lower() for c in df_collab.columns]
@@ -752,10 +755,10 @@ class ExcelDeckService:
                 if collabs:
                     metadata["collaborators"] = collabs
             except Exception as e:
-                print(f"DEBUG: Error parsing Collaborators sheet: {e}")
+                logger.warning(f"Error parsing Collaborators sheet: {e}")
         
         try:
-            print(f"DEBUG: Metadata extracted: {metadata.get('title', '')}")
+            logger.debug(f"Metadata extracted: {metadata.get('title', '')}")
         except Exception:
             pass
 
@@ -765,7 +768,7 @@ class ExcelDeckService:
             return metadata, []
             
         sheet_name = "Data_Formula" if "Data_Formula" in excel_file.sheet_names else ("Data" if "Data" in excel_file.sheet_names else excel_file.sheet_names[0])
-        print(f"DEBUG: Parsing '{sheet_name}' sheet...")
+        logger.debug(f"Parsing '{sheet_name}' sheet...")
 
         import openpyxl
         from openpyxl.utils import get_column_letter
@@ -875,7 +878,7 @@ class ExcelDeckService:
 
                 openpyxl_parsed = True
         except Exception as e:
-            print(f"DEBUG: openpyxl extraction warning: {e}, using pandas fallback")
+            logger.warning(f"openpyxl extraction warning: {e}, using pandas fallback")
 
         # Fallback to pandas if openpyxl parsing was not performed
         if not openpyxl_parsed:

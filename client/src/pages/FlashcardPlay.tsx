@@ -1323,11 +1323,7 @@ export default function FlashcardPlay() {
   };
 
   const handleReviewRating = async (rating: number, autoAdvance?: boolean) => {
-    console.log("DEBUG: handleReviewRating called with rating:", rating, "currentIndex:", currentIndex, "autoAdvance:", autoAdvance);
-    if (!currentQuestion) {
-      console.log("DEBUG: currentQuestion is null, returning!");
-      return
-    }
+    if (!currentQuestion) return
     
     // Blur any focused element (like FSRS rating buttons) to prevent Space/Enter keys from triggering repeat clicks
     if (document.activeElement && typeof (document.activeElement as any).blur === 'function') {

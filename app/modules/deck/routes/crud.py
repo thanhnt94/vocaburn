@@ -58,7 +58,7 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
     try:
         import asyncio
         content = await file.read()
-        print(f"DEBUG: Starting ingestion for {file.filename} ({len(content)} bytes)")
+        logger.info(f"Starting ingestion for {file.filename} ({len(content)} bytes)")
         
         # Run synchronous parsing in a thread to avoid blocking the event loop
         file_metadata, cards = await asyncio.to_thread(ExcelDeckService.parse_deck_excel, content)
@@ -69,12 +69,12 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
             try:
                 overrides = json.loads(metadata_override)
                 metadata.update(overrides)
-                print(f"DEBUG: Applied metadata overrides: {overrides}")
+                logger.info(f"Applied metadata overrides: {overrides}")
             except Exception as e:
-                print(f"ERROR: Failed to parse metadata overrides: {e}")
+                logger.error(f"Failed to parse metadata overrides: {e}")
         
         if not cards:
-            print("DEBUG: No valid cards extracted from file.")
+            logger.warning("No valid cards extracted from file.")
             return JSONResponse(status_code=400, content={"error": "No valid flashcards found in Excel file."})
 
         # Use category from metadata
@@ -104,7 +104,7 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
             db_deck.practice_settings = metadata["practice_settings"]
             await db.flush()
         
-        print(f"DEBUG: Deck created ID={db_deck.id}. Adding {len(cards)} cards...")
+        logger.info(f"Deck created ID={db_deck.id}. Adding {len(cards)} cards...")
         
         card_schemas = []
         for c in cards:
@@ -140,7 +140,7 @@ async def upload_deck(request: Request, file: UploadFile = File(...), metadata_o
         db.add(attempt)
         await db.commit()
             
-        print(f"DEBUG: Ingestion successful for {file.filename}")
+        logger.info(f"Ingestion successful for {file.filename}")
         return {
             "status": "ok",
             "message": "Deck import successfully stabilized.",

@@ -83,8 +83,11 @@ function AppContent() {
             </Route>
 
             {/* Fullscreen Dedicated Study Views */}
+            <Route path="/flashcard/:id" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
             <Route path="/flashcard/:id/play" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
+            <Route path="/flashcard/:id/roadmap" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
             <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
+            <Route path="/hybrid/:id" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
             <Route path="/hybrid/:id/play" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
             <Route path="/flashcard/:id/hybrid" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
 
