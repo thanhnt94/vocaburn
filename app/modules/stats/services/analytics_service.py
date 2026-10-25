@@ -653,7 +653,7 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def get_daily_summary(db: AsyncSession, user_id: int, tz_offset: int = -420):
+    async def get_daily_summary(db: AsyncSession, user_id: int, tz_offset: int = 0):
         from app.modules.deck.models import UserDeckGoal, UserDailyProgress
         from app.modules.gamification.models import PointTransaction
         from sqlalchemy.orm import joinedload
@@ -695,20 +695,24 @@ class AnalyticsService:
         active_time_seconds = sum((a.active_time or 0.0) for a in today_answers)
         study_minutes = round(active_time_seconds / 60.0, 1)
 
-        # 2. Distinct new cards learned today (first time answered ever by this user)
-        first_answers_sub = (
-            select(
-                UserAnswer.card_id,
-                func.min(UserAnswer.created_at).label("first_answered_at")
+        # 2. Distinct new cards learned today (cards in today_answers that have no prior answer)
+        today_card_ids = list(set(a.card_id for a in today_answers if a.card_id))
+        if not today_card_ids:
+            new_cards_learned = 0
+        else:
+            prior_cards_stmt = (
+                select(UserAnswer.card_id)
+                .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+                .where(
+                    DeckAttempt.user_id == user_id,
+                    UserAnswer.card_id.in_(today_card_ids),
+                    UserAnswer.created_at < today_start_utc
+                )
+                .distinct()
             )
-            .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
-            .where(DeckAttempt.user_id == user_id)
-            .group_by(UserAnswer.card_id)
-            .having(func.min(UserAnswer.created_at) >= today_start_utc)
-        ).subquery()
-
-        first_answers_res = await db.execute(select(func.count(first_answers_sub.c.card_id)))
-        new_cards_learned = first_answers_res.scalar() or 0
+            prior_res = await db.execute(prior_cards_stmt)
+            prior_card_ids = set(prior_res.scalars().all())
+            new_cards_learned = len(set(today_card_ids) - prior_card_ids)
         cards_reviewed = max(0, total_cards_studied - new_cards_learned)
 
         # 3. Hourly Activity Distribution (0 to 23 hours local time)

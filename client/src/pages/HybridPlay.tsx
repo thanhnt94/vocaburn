@@ -220,6 +220,13 @@ export default function HybridPlay() {
   const currentBatch: Question[] = batches[currentBatchIndex] || []
   const totalQuestions = scopedQuestions.length
 
+  // Boundary clamp if batch_size setting changes total batches
+  useEffect(() => {
+    if (batches.length > 0 && currentBatchIndex >= batches.length) {
+      setCurrentBatchIndex(Math.max(0, batches.length - 1))
+    }
+  }, [batches.length, currentBatchIndex])
+
   // Current Card during Skim Stage
   const currentSkimQuestion: Question | null = currentBatch[skimCardIndex] || null
 
@@ -506,7 +513,8 @@ export default function HybridPlay() {
         })
         .filter((ans: string) => Boolean(ans.trim()) && ans.trim().toLowerCase() !== correctAns.trim().toLowerCase())
 
-      const shuffledOthers = [...otherAnswers].sort(() => 0.5 - Math.random()).slice(0, 3)
+      const uniqueOthers = Array.from(new Set(otherAnswers))
+      const shuffledOthers = [...uniqueOthers].sort(() => 0.5 - Math.random()).slice(0, 3)
       const pool = [correctAns, ...shuffledOthers]
       const shuffledChoices = [...pool].sort(() => 0.5 - Math.random())
       correctIdx = shuffledChoices.indexOf(correctAns)

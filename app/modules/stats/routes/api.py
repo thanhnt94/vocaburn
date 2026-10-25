@@ -41,7 +41,7 @@ async def get_daily_comparison(request: Request, db: AsyncSession = Depends(get_
         return {"error": str(e)}
 
 @router.get("/stats/daily-summary")
-async def get_daily_summary(request: Request, tz_offset: int = -420, db: AsyncSession = Depends(get_db)):
+async def get_daily_summary(request: Request, tz_offset: int = 0, db: AsyncSession = Depends(get_db)):
     user = await AuthService.get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
