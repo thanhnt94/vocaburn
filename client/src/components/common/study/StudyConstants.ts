@@ -313,9 +313,9 @@ export function getFrontFontSizeStyle(scale?: string | number): string {
   if (!scale) return 'clamp(1.75rem, 4.5vw, 2.25rem)'
   const str = String(scale).trim().toLowerCase()
   let percent = 100
-  if (str === 'compact' || str === 'small') percent = 85
-  else if (str === 'normal' || str === 'default') percent = 100
-  else if (str === 'large') percent = 125
+  if (str === 'compact' || str === 'small' || str === 's') percent = 85
+  else if (str === 'normal' || str === 'default' || str === 'm') percent = 100
+  else if (str === 'large' || str === 'l') percent = 125
   else if (str === 'xlarge' || str === 'xl') percent = 150
   else if (str === 'huge') percent = 175
   else if (str === 'massive' || str === 'max') percent = 200

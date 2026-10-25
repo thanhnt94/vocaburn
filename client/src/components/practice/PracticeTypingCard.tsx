@@ -3,6 +3,7 @@ import { Sparkles, Bookmark, Check, X, Volume2, ArrowRight, CornerDownLeft, Imag
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { getFrontFontSizeStyle } from '@/components/common/study'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -22,6 +23,7 @@ export interface PracticeTypingCardProps {
   onPlayAudio?: (face?: string, rate?: number) => void
   onZoomImage?: (url: string) => void
   frontFontSize?: string
+  showImages?: string | boolean
 }
 
 export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
@@ -39,7 +41,8 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   onNext,
   onPlayAudio,
   onZoomImage,
-  frontFontSize = 'M'
+  frontFontSize = 'M',
+  showImages = 'always'
 }) => {
   const { question, correct_answer, question_key, answer_key } = practiceData
   const inputRef = useRef<HTMLInputElement>(null)
@@ -74,16 +77,8 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   }, [practiceData.acceptable_answers, correct_answer])
 
   const questionImg = currentQuestion?.front_img || currentQuestion?.image || currentQuestion?.others?.front_img
-  const resolvedImg = questionImg ? resolveMediaUrl(questionImg) : null
-
-  const getFontSizeClass = () => {
-    switch (frontFontSize) {
-      case 'S': return 'text-2xl sm:text-3xl'
-      case 'L': return 'text-4xl sm:text-5xl lg:text-6xl'
-      case 'XL': return 'text-5xl sm:text-6xl lg:text-7xl'
-      default: return 'text-3xl sm:text-4xl lg:text-5xl'
-    }
-  }
+  const isImageVisible = showImages !== 'off' && showImages !== 'none' && showImages !== false && showImages !== 'false'
+  const resolvedImg = (questionImg && isImageVisible) ? resolveMediaUrl(questionImg) : null
 
   const promptLabel = useMemo(() => {
     const qk = String(question_key || 'front').toLowerCase()
@@ -171,10 +166,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
         </p>
 
         {/* Prominent Question Heading */}
-        <h2 className={cn(
-          "font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight font-sans px-2 selection:bg-amber-200",
-          getFontSizeClass()
-        )}>
+        <h2 
+          className="font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight font-sans px-2 selection:bg-amber-200"
+          style={{ fontSize: getFrontFontSizeStyle(frontFontSize) }}
+        >
           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
         </h2>
       </div>

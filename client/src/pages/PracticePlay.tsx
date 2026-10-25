@@ -3784,6 +3784,7 @@ export default function PracticePlay() {
           onPlayAudio={playCardAudio}
           onZoomImage={(url) => setZoomedImage(url)}
           frontFontSize={currentFrontFontSize}
+          showImages={showImages}
         />
       );
     }
@@ -3832,6 +3833,7 @@ export default function PracticePlay() {
         onNext={() => handleNext()}
         onZoomImage={(url) => setZoomedImage(url)}
         frontFontSize={currentFrontFontSize}
+        showImages={showImages}
       />
     );
   };
@@ -6122,6 +6124,8 @@ export default function PracticePlay() {
         setHapticEnabled={setHapticEnabled}
         fontSize={frontFontSize}
         setFontSize={setFrontFontSize}
+        showImages={showImages}
+        setShowImages={setShowImages}
         currentQuestion={currentQuestion}
         currentPracticeData={currentPracticeData}
         canEdit={Boolean(canEdit)}

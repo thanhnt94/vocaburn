@@ -3,6 +3,7 @@ import { Sparkles, Bookmark, Volume2, Check, X, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { getFrontFontSizeStyle } from '@/components/common/study'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -22,6 +23,7 @@ export interface PracticeMcqCardProps {
   onNext?: () => void
   onZoomImage?: (url: string) => void
   frontFontSize?: string
+  showImages?: string | boolean
 }
 
 const getVal = (card: any, key: string) => {
@@ -44,12 +46,14 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
   onPlayAudio,
   onNext,
   onZoomImage,
-  frontFontSize = 'M'
+  frontFontSize = 'M',
+  showImages = 'always'
 }) => {
   const { question, choices, choice_item_ids, correct_index, question_key, answer_key } = practiceData
 
   const questionImg = currentQuestion?.front_img || currentQuestion?.image || currentQuestion?.others?.front_img
-  const resolvedImg = questionImg ? resolveMediaUrl(questionImg) : null
+  const isImageVisible = showImages !== 'off' && showImages !== 'none' && showImages !== false && showImages !== 'false'
+  const resolvedImg = (questionImg && isImageVisible) ? resolveMediaUrl(questionImg) : null
 
   const getFontSizeClass = () => {
     switch (frontFontSize) {
@@ -140,10 +144,11 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
           {promptLabel}
         </p>
 
-        <h2 className={cn(
-          "font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight font-sans px-2 selection:bg-indigo-200",
-          getFontSizeClass()
-        )}>
+        {/* Prominent Question Heading */}
+        <h2 
+          className="font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight font-sans px-2 selection:bg-indigo-200"
+          style={{ fontSize: getFrontFontSizeStyle(frontFontSize) }}
+        >
           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
         </h2>
       </div>

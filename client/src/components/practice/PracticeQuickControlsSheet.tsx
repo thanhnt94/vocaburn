@@ -24,7 +24,8 @@ import {
   LogOut, 
   Settings, 
   BookOpen, 
-  FolderTree
+  FolderTree,
+  Image as ImageIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Question } from '@/types/flashcard'
@@ -52,6 +53,8 @@ export interface PracticeQuickControlsSheetProps {
   setHapticEnabled: (val: boolean) => void
   fontSize?: string
   setFontSize?: (val: string) => void
+  showImages?: string | boolean
+  setShowImages?: (val: string) => void
   currentQuestion?: Question | null
   currentPracticeData?: any
   canEdit?: boolean
@@ -87,6 +90,8 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
   setHapticEnabled,
   fontSize = '100%',
   setFontSize,
+  showImages = 'always',
+  setShowImages,
   currentQuestion,
   currentPracticeData,
   canEdit = false,
@@ -446,43 +451,209 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
             {/* ══════ TAB 1: PREFERENCES ══════ */}
             {quickTab === 'preferences' && (
               <div className="flex flex-col gap-2.5 text-left px-0.5">
-                {/* TTS Pronunciation On Answer (Logical Practice Audio) */}
+                {/* ── 2x2 Primary Study Toggles Grid ── */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* 1. Auto Read Answer (Audio) */}
+                  {(() => {
+                    const isAudioOn = autoPlayAudio !== 'none' && autoPlayAudio !== 'off'
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = isAudioOn ? 'off' : 'back'
+                          setAutoPlayAudio(nextVal)
+                          showLocalToast?.(`Auto Read Answer: ${!isAudioOn ? 'ON' : 'OFF'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                          isAudioOn
+                            ? "bg-emerald-50/70 border-emerald-300 text-emerald-800"
+                            : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", isAudioOn ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>
+                            {isAudioOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                          </div>
+                          <span className="text-[11px] font-bold truncate">Read Answer</span>
+                        </div>
+                        <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0", isAudioOn ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600")}>
+                          {isAudioOn ? 'ON' : 'OFF'}
+                        </span>
+                      </button>
+                    )
+                  })()}
+
+                  {/* 2. Card Images SHOW / HIDE */}
+                  {(() => {
+                    const isImgShown = showImages !== 'none' && showImages !== 'off' && showImages !== false && showImages !== 'false'
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextVal = isImgShown ? 'off' : 'always'
+                          setShowImages?.(nextVal)
+                          showLocalToast?.(`Card Images: ${!isImgShown ? 'SHOW' : 'HIDE'}`, 'info')
+                        }}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                          isImgShown
+                            ? "bg-emerald-50/70 border-emerald-300 text-emerald-800"
+                            : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", isImgShown ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>
+                            <ImageIcon className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-[11px] font-bold truncate">Images</span>
+                        </div>
+                        <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0", isImgShown ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600")}>
+                          {isImgShown ? 'SHOW' : 'HIDE'}
+                        </span>
+                      </button>
+                    )
+                  })()}
+
+                  {/* 3. Sound SFX */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !sfxEnabled
+                      setSfxEnabled(nextVal)
+                      showLocalToast?.(`Sound Effects: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                    }}
+                    className={cn(
+                      "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                      sfxEnabled
+                        ? "bg-emerald-50/70 border-emerald-300 text-emerald-800"
+                        : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", sfxEnabled ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>
+                        <Music className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-[11px] font-bold truncate">Sound SFX</span>
+                    </div>
+                    <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0", sfxEnabled ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600")}>
+                      {sfxEnabled ? 'ON' : 'OFF'}
+                    </span>
+                  </button>
+
+                  {/* 4. Haptic Vibration */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !hapticEnabled
+                      setHapticEnabled(nextVal)
+                      showLocalToast?.(`Haptic Vibration: ${nextVal ? 'ON' : 'OFF'}`, 'info')
+                    }}
+                    className={cn(
+                      "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                      hapticEnabled
+                        ? "bg-indigo-50/70 border-indigo-300 text-indigo-800"
+                        : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", hapticEnabled ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-500")}>
+                        <Zap className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-[11px] font-bold truncate">Haptic</span>
+                    </div>
+                    <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0", hapticEnabled ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600")}>
+                      {hapticEnabled ? 'ON' : 'OFF'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* ── Queue Order Toggle (Sequential vs Random Shuffle) ── */}
                 <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
-                  <div className="flex flex-col text-left">
-                    <span className="text-[11px] font-bold text-slate-800 leading-tight">Pronounce on Answer</span>
-                    <span className="text-[9px] text-slate-400 font-medium">Auto-read answer after submitting</span>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", randomEnabled ? "bg-amber-500 text-white" : "bg-indigo-600 text-white")}>
+                      {randomEnabled ? <Shuffle className="w-3.5 h-3.5" /> : <ListOrdered className="w-3.5 h-3.5" />}
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Question Order</span>
+                      <span className="text-[9px] text-slate-400 font-medium">{randomEnabled ? 'Randomly shuffled' : 'Sequential original'}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {[
-                      { id: 'none', label: 'OFF', title: 'Do not pronounce after answer' },
-                      { id: 'answer', label: 'ANSWER', title: 'Pronounce correct answer on submit' },
-                      { id: 'both', label: 'BOTH', title: 'Pronounce question & answer on submit' }
-                    ].map((opt) => {
-                      const isSelected = currentTtsFeedback === opt.id
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => {
-                            setAutoPlayAudio(opt.id)
-                            showLocalToast?.(`Pronounce on Answer: ${opt.label}`, 'info')
-                          }}
-                          className={cn(
-                            "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer",
-                            isSelected
-                              ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
-                              : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
-                          )}
-                          title={opt.title}
-                        >
-                          {opt.label}
-                        </button>
-                      )
-                    })}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onToggleRandom(false)
+                        showLocalToast?.('Question Order: Sequential', 'info')
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1",
+                        !randomEnabled
+                          ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
+                          : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
+                      )}
+                    >
+                      <ListOrdered className="w-3 h-3" />
+                      <span>Sequential</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onToggleRandom(true)
+                        showLocalToast?.('Question Order: Random Shuffle 🔀', 'info')
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1",
+                        randomEnabled
+                          ? "bg-amber-500 text-white shadow-2xs font-black scale-105"
+                          : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
+                      )}
+                    >
+                      <Shuffle className="w-3 h-3" />
+                      <span>Shuffle</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Audio Playback Speed */}
+                {/* ── Question Font Scale ── */}
+                {setFontSize && (
+                  <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <div className="flex flex-col text-left">
+                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Question Font Scale</span>
+                      <span className="text-[9px] text-slate-400 font-medium">Text size for questions</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[
+                        { val: '85%', alias: 'S' },
+                        { val: '100%', alias: 'M' },
+                        { val: '125%', alias: 'L' },
+                        { val: '150%', alias: 'XL' }
+                      ].map((sz) => {
+                        const isSelected = fontSize === sz.val || fontSize === sz.alias || (sz.alias === 'M' && (!fontSize || fontSize === 'normal' || fontSize === '100%'))
+                        return (
+                          <button
+                            key={sz.alias}
+                            type="button"
+                            onClick={() => {
+                              setFontSize(sz.val)
+                              showLocalToast?.(`Font Scale: ${sz.alias} (${sz.val})`, 'info')
+                            }}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer text-center",
+                              isSelected
+                                ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
+                                : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
+                            )}
+                          >
+                            {sz.alias}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Audio Playback Speed ── */}
                 {onChangeAudioSpeed && (
                   <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
                     <div className="flex flex-col text-left">
@@ -508,99 +679,6 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                             )}
                           >
                             {speed}x
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* SFX and Haptic Controls */}
-                <div className="grid grid-cols-2 gap-2">
-                  {/* SFX */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !sfxEnabled
-                      setSfxEnabled(nextVal)
-                      showLocalToast?.(`Sound Effects: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                    }}
-                    className={cn(
-                      "flex items-center justify-between p-2 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
-                      sfxEnabled
-                        ? "bg-emerald-50/70 border-emerald-300 text-emerald-800"
-                        : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", sfxEnabled ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>
-                        <Music className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[11px] font-bold">Sound SFX</span>
-                    </div>
-                    <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md", sfxEnabled ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600")}>
-                      {sfxEnabled ? 'ON' : 'OFF'}
-                    </span>
-                  </button>
-
-                  {/* Haptic */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !hapticEnabled
-                      setHapticEnabled(nextVal)
-                      showLocalToast?.(`Haptic Vibration: ${nextVal ? 'ON' : 'OFF'}`, 'info')
-                    }}
-                    className={cn(
-                      "flex items-center justify-between p-2 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
-                      hapticEnabled
-                        ? "bg-indigo-50/70 border-indigo-300 text-indigo-800"
-                        : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", hapticEnabled ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-500")}>
-                        <Zap className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[11px] font-bold">Haptic</span>
-                    </div>
-                    <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md", hapticEnabled ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600")}>
-                      {hapticEnabled ? 'ON' : 'OFF'}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Font Size */}
-                {setFontSize && (
-                  <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
-                    <div className="flex flex-col text-left">
-                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Question Font Scale</span>
-                      <span className="text-[9px] text-slate-400 font-medium">Text size for questions</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {[
-                        { val: '85%', label: 'S' },
-                        { val: '100%', label: 'M' },
-                        { val: '115%', label: 'L' },
-                        { val: '130%', label: 'XL' }
-                      ].map((sz) => {
-                        const isSelected = fontSize === sz.val
-                        return (
-                          <button
-                            key={sz.val}
-                            type="button"
-                            onClick={() => {
-                              setFontSize(sz.val)
-                              showLocalToast?.(`Font Scale: ${sz.label} (${sz.val})`, 'info')
-                            }}
-                            className={cn(
-                              "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer text-center",
-                              isSelected
-                                ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
-                                : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
-                            )}
-                          >
-                            {sz.label}
                           </button>
                         )
                       })}
