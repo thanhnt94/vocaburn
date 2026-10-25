@@ -1,5 +1,6 @@
 import { Activity, Timer } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area } from 'recharts'
+import { cn } from '@/lib/utils'
 
 interface SpeedAccuracyWidgetProps {
   speedAccuracyStats: {
@@ -7,86 +8,103 @@ interface SpeedAccuracyWidgetProps {
     avg_speed_correct: number
     avg_speed_wrong: number
   } | undefined
+  embedded?: boolean
 }
 
-export default function SpeedAccuracyWidget({ speedAccuracyStats }: SpeedAccuracyWidgetProps) {
+export default function SpeedAccuracyWidget({ speedAccuracyStats, embedded = false }: SpeedAccuracyWidgetProps) {
   if (!speedAccuracyStats) return null
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-left">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-left">
       {/* Accuracy vs Speed Bins */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 md:p-7 shadow-sm lg:col-span-2 relative overflow-hidden">
-        <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <Activity className="w-4.5 h-4.5" />
+      <div className={cn(
+        "lg:col-span-2 relative overflow-hidden flex flex-col justify-between",
+        !embedded && "bg-white rounded-3xl border border-slate-200/80 p-5 md:p-6 shadow-sm",
+        embedded && "p-1"
+      )}>
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
+                Speed vs Accuracy Correlation
+              </h4>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">
+                Accuracy percentage across response latency buckets
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Tương Quan Tốc Độ & Độ Chính Xác</h3>
-            <p className="text-[9px] font-bold text-slate-400 mt-1">Độ chính xác theo các khoảng thời gian phản xạ</p>
-          </div>
-        </div>
 
-        <div className="h-[200px] w-full -ml-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={speedAccuracyStats.bins}>
-              <defs>
-                <linearGradient id="speedAccGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 900 }} 
-              />
-              <Area type="monotone" dataKey="accuracy" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#speedAccGrad)" name="Chính xác (%)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="h-[210px] w-full -ml-4 pr-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={speedAccuracyStats.bins}>
+                <defs>
+                  <linearGradient id="speedAccGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} unit="%" />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '10px', fontWeight: 800 }} 
+                />
+                <Area type="monotone" dataKey="accuracy" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#speedAccGrad)" name="Accuracy (%)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
       {/* Solve Velocity */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 md:p-7 shadow-sm flex flex-col justify-between relative overflow-hidden">
-        <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-amber-500 to-orange-500" />
+      <div className={cn(
+        "flex flex-col justify-between relative overflow-hidden",
+        !embedded && "bg-white rounded-3xl border border-slate-200/80 p-5 md:p-6 shadow-sm",
+        embedded && "p-1 border-t lg:border-t-0 lg:border-l border-slate-100 lg:pl-5"
+      )}>
         <div>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-              <Timer className="w-4.5 h-4.5" />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+              <Timer className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">Vận Tốc Phản Xạ</h3>
-              <p className="text-[9px] font-bold text-amber-500 mt-1 uppercase tracking-widest">Thời gian trung bình mỗi câu</p>
+              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
+                Reaction Velocity
+              </h4>
+              <p className="text-[9px] font-bold text-amber-600 mt-1 uppercase tracking-wider">
+                Average latency per response
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-            <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
-              <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider block">Khi làm đúng</span>
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5">
+            <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-2xl">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">When Correct</span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-xl font-black text-emerald-600 leading-none">{speedAccuracyStats.avg_speed_correct}s</span>
+                <span className="text-lg font-black text-emerald-600 leading-none">{speedAccuracyStats.avg_speed_correct}s</span>
               </div>
-              <p className="text-[7.5px] font-medium text-slate-400 mt-1 uppercase">Thời gian phản xạ câu đúng</p>
+              <p className="text-[7.5px] font-medium text-slate-400 mt-1 uppercase">Swift recall speed</p>
             </div>
 
-            <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
-              <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider block">Khi làm sai</span>
+            <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-2xl">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">When Incorrect</span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-xl font-black text-rose-600 leading-none">{speedAccuracyStats.avg_speed_wrong}s</span>
+                <span className="text-lg font-black text-rose-600 leading-none">{speedAccuracyStats.avg_speed_wrong}s</span>
               </div>
-              <p className="text-[7.5px] font-medium text-slate-400 mt-1 uppercase">Thời gian ngập ngừng câu sai</p>
+              <p className="text-[7.5px] font-medium text-slate-400 mt-1 uppercase">Hesitation / lapse latency</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100/40">
+        <div className="mt-3 p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100/40">
           <p className="text-[9px] font-bold text-indigo-700 leading-relaxed">
             {speedAccuracyStats.avg_speed_correct < speedAccuracyStats.avg_speed_wrong ? (
-              "💡 Trí nhớ phản xạ của bạn rất nhanh đối với các từ vựng đã thuộc, thể hiện đường dẫn liên kết não bộ vững chắc!"
+              "💡 Your rapid recall on mastered cards indicates strong neural pathway reinforcement."
             ) : (
-              "💡 Bạn dành thêm một vài giây để suy nghĩ kỹ lưỡng trước khi chọn đáp án đúng. Sự cẩn thận mang lại kết quả cao!"
+              "💡 Thoughtful deliberation before answering helps prevent premature lapses."
             )}
           </p>
         </div>

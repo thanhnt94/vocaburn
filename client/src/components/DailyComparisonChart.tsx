@@ -22,12 +22,13 @@ interface DailyComparisonChartProps {
   data: DailyComparisonDay[] | undefined;
   allTimeAvg?: AllTimeAvg;
   isLoading?: boolean;
+  embedded?: boolean;
 }
 
-export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: DailyComparisonChartProps) {
+export default function DailyComparisonChart({ data, allTimeAvg, isLoading, embedded = false }: DailyComparisonChartProps) {
   if (isLoading || !data) {
     return (
-      <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-[400px]">
+      <div className={embedded ? "flex flex-col items-center justify-center text-center h-[260px]" : "bg-white border border-slate-200/60 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center justify-center text-center h-[400px]"}>
         <TrendingUp className="w-8 h-8 text-slate-350 animate-pulse mb-3" />
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
           Loading comparison chart...
@@ -94,23 +95,23 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
     }
   };
 
-  return (
-    <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-7 shadow-sm flex flex-col gap-5 text-left relative overflow-hidden">
-      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
-      {/* Header section */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-[1rem] bg-orange-50 flex items-center justify-center flex-shrink-0">
-          <TrendingUp className="w-6 h-6 text-orange-500 stroke-[2.5px]" />
+  const chartBody = (
+    <>
+      {!embedded && (
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[1rem] bg-orange-50 flex items-center justify-center flex-shrink-0">
+            <TrendingUp className="w-6 h-6 text-orange-500 stroke-[2.5px]" />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-wide italic leading-tight">
+              Daily Performance
+            </h3>
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400">
+              Comparing study today vs yesterday & {allTimeAvg?.active_days || 0}-day average
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-wide italic leading-tight">
-            Daily Performance
-          </h3>
-          <p className="text-[10px] sm:text-xs font-bold text-slate-400">
-            Comparing study today vs yesterday & {allTimeAvg?.active_days || 0}-day average
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
@@ -309,6 +310,17 @@ export default function DailyComparisonChart({ data, allTimeAvg, isLoading }: Da
           </p>
         )}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="flex flex-col gap-4 text-left">{chartBody}</div>;
+  }
+
+  return (
+    <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-7 shadow-sm flex flex-col gap-5 text-left relative overflow-hidden">
+      <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500" />
+      {chartBody}
     </div>
   );
 }
