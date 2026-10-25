@@ -1,11 +1,15 @@
 import os
 from pydantic_settings import BaseSettings
-# Explicitly load .env from project root
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_ENV_PATH = os.path.join(_PROJECT_ROOT, ".env")
-if os.path.exists(_ENV_PATH):
-    load_dotenv(_ENV_PATH)
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    _ENV_PATH = os.path.join(_PROJECT_ROOT, ".env")
+    if os.path.exists(_ENV_PATH):
+        load_dotenv(_ENV_PATH)
+    else:
+        load_dotenv()
+except ImportError:
+    pass
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Vocaburn"
