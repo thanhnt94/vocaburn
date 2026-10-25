@@ -42,6 +42,7 @@ import {
   PracticeListeningCard
 } from '@/components/practice'
 import { usePracticeAudio } from '@/hooks/usePracticeAudio'
+import { getAudioContext } from '@/lib/audio'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 import {
@@ -235,9 +236,11 @@ export default function HybridPlay() {
   // Web Audio Tone SFX
   const playSfx = (type: 'correct' | 'wrong' | 'flip' | 'complete' | 'batch') => {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-      if (!AudioCtx) return
-      const ctx = new AudioCtx()
+      const ctx = getAudioContext()
+      if (!ctx) return
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {})
+      }
 
       if (type === 'correct') {
         const osc = ctx.createOscillator()

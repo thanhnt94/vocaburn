@@ -464,14 +464,6 @@ export default function FlashcardPlay() {
   
   // ── Engagement State ──
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false)
-  const [currentStatIndex, setCurrentStatIndex] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStatIndex((prev) => (prev + 1) % 4)
-    }, 3500)
-    return () => clearInterval(interval)
-  }, [])
   const [activeGoal, setActiveGoal] = useState<any>(null)
   const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
@@ -801,20 +793,28 @@ export default function FlashcardPlay() {
     }
   }, [currentIndex, isFlipped, currentQuestion?.id, autoPlayAudio, activeMode, flipSides]);
 
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const isDueInFuture = useMemo(() => {
+    if (!currentQuestion || !currentQuestion.fsrs || !currentQuestion.fsrs.due) return false;
+    return parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000 > Date.now();
+  }, [currentQuestion?.id, currentQuestion?.fsrs?.due]);
+
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
   useEffect(() => {
+    // Only run 1s timer when current card is actively locked or in rated countdown
+    const needsTimer = isDueInFuture || (activelyRatedCurrentCard && isFlipped && selectedOption !== null);
+    if (!needsTimer) return;
+
     const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isDueInFuture, activelyRatedCurrentCard, isFlipped, selectedOption]);
 
-
-  const isCardUnlocked = (() => {
+  const isCardUnlocked = useMemo(() => {
     if (!currentQuestion || !currentQuestion.fsrs || !currentQuestion.fsrs.due) return true;
-    // Clock drift safety buffer of 30 seconds
     return parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000 <= currentTime.getTime();
-  })()
+  }, [currentQuestion?.id, currentQuestion?.fsrs?.due, currentTime]);
 
   const dueCardsCount = useMemo(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -822,7 +822,7 @@ export default function FlashcardPlay() {
     const isRoadmapReview = activeMode === 'roadmap' && (urlStep === 'fsrs_review' || roadmapStatus?.pipeline?.[roadmapStatus?.current_step_index || 0]?.type === 'fsrs_review');
     const isFsrsMode = activeMode === 'fsrs' || isRoadmapReview;
     if (!session || !session.questions || !isFsrsMode) return 0;
-    const now = currentTime.getTime();
+    const now = Date.now();
     const currentStep = roadmapStatus?.pipeline?.find((s: any) => s.type === 'fsrs_review');
     const overdueDays = currentStep?.overdue_days 
       ?? (currentStep?.overdue_hours ? Math.max(1, Math.round(currentStep.overdue_hours / 24)) : 1);
@@ -870,7 +870,7 @@ export default function FlashcardPlay() {
       if (hasAnswered && !isDue) return false;
       return isDue;
     }).length;
-  }, [session, activeMode, currentTime, sessionAnswers, roadmapStatus]);
+  }, [session, activeMode, sessionAnswers, roadmapStatus]);
 
   const isSpeedSkimMode = useMemo(() => {
     if (activeMode === 'speed_skim' || activeMode === 'skim') return true;

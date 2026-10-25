@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { memo } from 'react'
 import { Volume2, Star, EyeOff, Eye, Edit2, Trash2, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { registerAudioElement, cancelAllAudio } from '@/lib/audio'
 
 export interface CardData {
   id: number
@@ -33,7 +34,7 @@ export interface DeckCardItemProps {
   onToggleIgnore?: (cardId: number) => void
 }
 
-export function DeckCardItem({
+export const DeckCardItem = memo(function DeckCardItem({
   card,
   index,
   isSelected = false,
@@ -48,7 +49,9 @@ export function DeckCardItem({
   const handlePlayAudio = (e: React.MouseEvent, url?: string | null) => {
     e.stopPropagation()
     if (!url) return
+    cancelAllAudio()
     const audio = new Audio(url)
+    registerAudioElement(audio)
     setIsPlayingAudio(true)
     audio.onended = () => setIsPlayingAudio(false)
     audio.onerror = () => setIsPlayingAudio(false)
@@ -208,6 +211,6 @@ export function DeckCardItem({
       </div>
     </div>
   )
-}
+})
 
 export default DeckCardItem

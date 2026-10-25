@@ -511,8 +511,8 @@ export default function PracticePlay() {
   const [streak, setStreak] = useState(0)
   const [sessionXP, setSessionXP] = useState(0)
   const [initialTotalXP, setInitialTotalXP] = useState(0)
-  const [timeLeft, setTimeLeft] = useState(0)
-  const [sessionStudyTime, setSessionStudyTime] = useState(0)
+  const timeLeftRef = useRef(0)
+  const sessionStudyTimeRef = useRef(0)
   const [initialTodayXP, setInitialTodayXP] = useState(0)
   const [initialTodayTime, setInitialTodayTime] = useState(0)
   const [initialAllTimeTime, setInitialAllTimeTime] = useState(0)
@@ -607,14 +607,6 @@ export default function PracticePlay() {
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false)
   const [roadmapTestResult, setRoadmapTestResult] = useState<any>(null)
   const [isSubmittingRoadmapTest, setIsSubmittingRoadmapTest] = useState(false)
-  const [currentStatIndex, setCurrentStatIndex] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStatIndex((prev) => (prev + 1) % 4)
-    }, 3500)
-    return () => clearInterval(interval)
-  }, [])
   const [xpFloat, setXpFloat] = useState<{ visible: boolean; amount: number }>({ visible: false, amount: 0 })
   const [milestonesHit, setMilestonesHit] = useState<Set<number>>(new Set())
   const [goalToast, setGoalToast] = useState<{
@@ -1201,20 +1193,28 @@ export default function PracticePlay() {
     }
   }, [leaderboardTimeFilter])
 
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const isDueInFuture = useMemo(() => {
+    if (!currentQuestion || !currentQuestion.fsrs || !currentQuestion.fsrs.due) return false;
+    return parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000 > Date.now();
+  }, [currentQuestion?.id, currentQuestion?.fsrs?.due]);
+
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
   useEffect(() => {
+    // Only run 1s timer when current card is actively locked or in feedback countdown
+    const needsTimer = isDueInFuture || showFeedback;
+    if (!needsTimer) return;
+
     const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isDueInFuture, showFeedback]);
 
-
-  const isCardUnlocked = (() => {
+  const isCardUnlocked = useMemo(() => {
     if (!currentQuestion || !currentQuestion.fsrs || !currentQuestion.fsrs.due) return true;
-    // Clock drift safety buffer of 30 seconds
     return parseUTCDate(currentQuestion.fsrs.due).getTime() - 30000 <= currentTime.getTime();
-  })()
+  }, [currentQuestion?.id, currentQuestion?.fsrs?.due, currentTime]);
 
   const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
 
@@ -1384,17 +1384,15 @@ export default function PracticePlay() {
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        // In practice mode, stop when feedback is shown. 
-        // In FSRS mode, stop only when user has actually rated the card.
-        if (mainTab === 'practice') {
-          if (showFeedback) return prev
-        } else {
-          if (hasRated) return prev
-        }
-        setSessionStudyTime(s => s + 1)
-        return prev + 1
-      })
+      // In practice mode, stop when feedback is shown. 
+      // In FSRS mode, stop only when user has actually rated the card.
+      if (mainTab === 'practice') {
+        if (showFeedback) return
+      } else {
+        if (hasRated) return
+      }
+      sessionStudyTimeRef.current += 1
+      timeLeftRef.current += 1
     }, 1000)
     return () => clearInterval(timerRef.current)
   }, [showFeedback, hasRated, mainTab])
@@ -2047,7 +2045,7 @@ export default function PracticePlay() {
     const prevTotal = currentQuestion.stats?.total || 0
     const prevCorrect = currentQuestion.stats?.correct || 0
     const avgTime = currentQuestion.stats?.avg_time || 0
-    const timeTaken = timeLeft
+    const timeTaken = timeLeftRef.current
 
     const prevRatings = Array.isArray(sessionAnswers[currentIndex])
       ? (sessionAnswers[currentIndex] as number[])
@@ -2171,7 +2169,7 @@ export default function PracticePlay() {
               axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, { 
                 mode: subMode,
                 answers: testAnswers,
-                time_spent_seconds: sessionStudyTime
+                time_spent_seconds: sessionStudyTimeRef.current
               })
                 .then(res => {
                   setRoadmapTestResult(res.data);
@@ -2555,7 +2553,7 @@ export default function PracticePlay() {
         is_practice: true,
         practice_mode: practiceSubMode,
         rating: isCorrect ? 3 : 1,
-        time_spent: timeLeft,
+        time_spent: timeLeftRef.current,
         local_date: new Date().toISOString().slice(0, 10),
         session_streak: updatedStreak,
         is_first_ever: isFirstEver
@@ -2758,7 +2756,7 @@ export default function PracticePlay() {
         is_practice: true,
         practice_mode: practiceSubMode,
         rating: isCorrect ? 3 : 1,
-        time_spent: timeLeft,
+        time_spent: timeLeftRef.current,
         local_date: new Date().toISOString().slice(0, 10),
         session_streak: updatedStreak,
         is_first_ever: isFirstEver
@@ -2867,7 +2865,7 @@ export default function PracticePlay() {
       } else {
         setSelectedOption(null)
         setShowFeedback(false)
-        setTimeLeft(0)
+        timeLeftRef.current = 0
       }
     } else {
       // Check if the card is unlocked (clock drift buffered) to reset selectedOption for new reviews
@@ -2889,7 +2887,7 @@ export default function PracticePlay() {
       } else {
         setSelectedOption(null)
         setShowFeedback(false)
-        setTimeLeft(0)
+        timeLeftRef.current = 0
       }
     }
 
@@ -2967,7 +2965,7 @@ export default function PracticePlay() {
         const res = await axios.post(`/api/v1/deck/${id}/roadmap-test-submit`, {
           mode: subMode,
           answers: answersPayload,
-          time_spent_seconds: sessionStudyTime
+          time_spent_seconds: sessionStudyTimeRef.current
         });
 
         setRoadmapSubmitResult(res.data);

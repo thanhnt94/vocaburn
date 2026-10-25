@@ -1,8 +1,19 @@
 import re
+import time
 from sqlalchemy import select
 from app.modules.sso_module.models import SSOConfig
 
+_cached_sso_url = None
+_cached_sso_url_time = 0.0
+
 async def get_sso_server_url(db) -> str:
+    global _cached_sso_url, _cached_sso_url_time
+    now = time.time()
+    if _cached_sso_url is not None and (now - _cached_sso_url_time < 300):
+        return _cached_sso_url
+
+    url_to_cache = ""
+
     # 1. Check Admin settings in DB (SystemConfig: sso_config)
     try:
         from app.modules.admin.interface import AdminInterface
@@ -10,28 +21,32 @@ async def get_sso_server_url(db) -> str:
         if isinstance(admin_cfg, dict) and admin_cfg.get("central_auth_url"):
             url = admin_cfg["central_auth_url"].strip().rstrip("/")
             if url and not url.startswith("http://centralauth.mindstack.local"):
-                return url
+                url_to_cache = url
     except Exception:
         pass
 
     # 2. Check SSOConfig (sso_settings table)
-    try:
-        res = await db.execute(select(SSOConfig))
-        config = res.scalar_one_or_none()
-        if config and config.server_url:
-            url = config.server_url.strip().rstrip("/")
-            if url:
-                return url
-    except Exception:
-        pass
+    if not url_to_cache:
+        try:
+            res = await db.execute(select(SSOConfig))
+            config = res.scalar_one_or_none()
+            if config and config.server_url:
+                url = config.server_url.strip().rstrip("/")
+                if url:
+                    url_to_cache = url
+        except Exception:
+            pass
 
     # 3. Check environment settings
-    from app.core.config import settings
-    env_url = getattr(settings, "CENTRAL_AUTH_URL", "")
-    if env_url:
-        return env_url.strip().rstrip("/")
+    if not url_to_cache:
+        from app.core.config import settings
+        env_url = getattr(settings, "CENTRAL_AUTH_URL", "")
+        if env_url:
+            url_to_cache = env_url.strip().rstrip("/")
 
-    return ""
+    _cached_sso_url = url_to_cache
+    _cached_sso_url_time = now
+    return url_to_cache
 
 def resolve_central_url(url: str, sso_url: str = "") -> str:
     if not url or not isinstance(url, str):
