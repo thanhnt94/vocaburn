@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -185,13 +185,11 @@ export function DashboardRoadmapSection({
   const [mascotCheer, setMascotCheer] = useState<string | null>(null)
   const [mascotOverride, setMascotOverride] = useState<MascotProfile | null>(null)
   const [internalIdx, setInternalIdx] = useState(0)
-  type SwipeDirection = 'left' | 'right' | 'up' | 'down' | 'none'
-  const [swipeDir, setSwipeDir] = useState<SwipeDirection>('left')
+  type SwipeDirection = 'up' | 'down' | 'none'
+  const [swipeDir, setSwipeDir] = useState<SwipeDirection>('up')
 
-  // Touch swipe handling for 2-axis swiping (vertical & horizontal)
-  const touchStartX = useRef<number | null>(null)
+  // Touch swipe handling strictly for vertical axis
   const touchStartY = useRef<number | null>(null)
-  const touchEndX = useRef<number | null>(null)
   const touchEndY = useRef<number | null>(null)
 
   const safeDecks = roadmapDecks || []
@@ -200,21 +198,31 @@ export function DashboardRoadmapSection({
   const safeIdx = totalDecks > 0 ? Math.min(Math.max(0, currentIdx), totalDecks - 1) : 0
   const deck = safeDecks[safeIdx] || null
 
-  const setIndex = (idx: number, dir: SwipeDirection = 'left') => {
+  // Track external index changes (e.g. from header < 1/3 > buttons)
+  const lastSelectedIdxRef = useRef<number>(safeIdx)
+  useEffect(() => {
+    if (selectedRoadmapIdx !== undefined && selectedRoadmapIdx !== lastSelectedIdxRef.current) {
+      setSwipeDir(selectedRoadmapIdx > lastSelectedIdxRef.current ? 'up' : 'down')
+      lastSelectedIdxRef.current = selectedRoadmapIdx
+    }
+  }, [selectedRoadmapIdx])
+
+  const setIndex = (idx: number, dir: SwipeDirection = 'up') => {
     setSwipeDir(dir)
     setInternalIdx(idx)
+    lastSelectedIdxRef.current = idx
     setMascotOverride(null)
     if (onSelectRoadmapIdx) onSelectRoadmapIdx(idx)
   }
 
-  const prevDeck = (dir: SwipeDirection = 'right') => {
+  const prevDeck = (dir: SwipeDirection = 'down') => {
     if (safeIdx > 0) {
       if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
       setIndex(safeIdx - 1, dir)
     }
   }
 
-  const nextDeck = (dir: SwipeDirection = 'left') => {
+  const nextDeck = (dir: SwipeDirection = 'up') => {
     if (safeIdx < totalDecks - 1) {
       if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(8)
       setIndex(safeIdx + 1, dir)
@@ -222,69 +230,40 @@ export function DashboardRoadmapSection({
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX
     touchStartY.current = e.targetTouches[0].clientY
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX
     touchEndY.current = e.targetTouches[0].clientY
   }
 
   const handleTouchEnd = () => {
-    if (
-      touchStartX.current !== null && 
-      touchEndX.current !== null &&
-      touchStartY.current !== null &&
-      touchEndY.current !== null
-    ) {
-      const diffX = touchStartX.current - touchEndX.current
+    if (touchStartY.current !== null && touchEndY.current !== null) {
       const diffY = touchStartY.current - touchEndY.current
-      const threshold = 30
+      const threshold = 35
 
-      if (Math.abs(diffY) > Math.abs(diffX)) {
-        // Vertical swipe gesture
-        if (diffY > threshold && safeIdx < totalDecks - 1) {
-          nextDeck('up')
-        } else if (diffY < -threshold && safeIdx > 0) {
-          prevDeck('down')
-        }
-      } else {
-        // Horizontal swipe gesture
-        if (diffX > threshold && safeIdx < totalDecks - 1) {
-          nextDeck('left')
-        } else if (diffX < -threshold && safeIdx > 0) {
-          prevDeck('right')
-        }
+      if (diffY > threshold && safeIdx < totalDecks - 1) {
+        nextDeck('up')
+      } else if (diffY < -threshold && safeIdx > 0) {
+        prevDeck('down')
       }
     }
-    touchStartX.current = null
-    touchEndX.current = null
     touchStartY.current = null
     touchEndY.current = null
   }
 
-  // Wheel scroll handling (mouse wheel & trackpad swipe in both directions)
+  // Wheel scroll handling strictly along vertical Y axis
   const wheelCooldown = useRef(false)
   const handleWheel = (e: React.WheelEvent) => {
     if (wheelCooldown.current) return
-    const isVertical = Math.abs(e.deltaY) >= Math.abs(e.deltaX)
-    const delta = isVertical ? e.deltaY : e.deltaX
+    const delta = e.deltaY
 
     if (Math.abs(delta) > 18) {
       wheelCooldown.current = true
-      if (isVertical) {
-        if (delta > 0 && safeIdx < totalDecks - 1) {
-          nextDeck('up')
-        } else if (delta < 0 && safeIdx > 0) {
-          prevDeck('down')
-        }
-      } else {
-        if (delta > 0 && safeIdx < totalDecks - 1) {
-          nextDeck('left')
-        } else if (delta < 0 && safeIdx > 0) {
-          prevDeck('right')
-        }
+      if (delta > 0 && safeIdx < totalDecks - 1) {
+        nextDeck('up')
+      } else if (delta < 0 && safeIdx > 0) {
+        prevDeck('down')
       }
       setTimeout(() => {
         wheelCooldown.current = false
@@ -462,7 +441,7 @@ export function DashboardRoadmapSection({
 
   return (
     <div 
-      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none touch-none"
+      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none touch-pan-y"
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -474,44 +453,26 @@ export function DashboardRoadmapSection({
         <motion.div
           key={deck.deck_id ?? deck.id ?? safeIdx}
           custom={swipeDir}
-          drag={true}
-          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-          dragElastic={0.2}
+          drag="y"
+          dragDirectionLock={true}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.25}
           onDragEnd={(_, info) => {
-            const swipeThreshold = 30
+            const swipeThreshold = 35
             const velocityThreshold = 250
-            const isVertical = Math.abs(info.offset.y) > Math.abs(info.offset.x)
-
-            if (isVertical) {
-              // User swiped vertically
-              if (info.offset.y < -swipeThreshold || info.velocity.y < -velocityThreshold) {
-                if (safeIdx < totalDecks - 1) nextDeck('up')
-              } else if (info.offset.y > swipeThreshold || info.velocity.y > velocityThreshold) {
-                if (safeIdx > 0) prevDeck('down')
-              }
-            } else {
-              // User swiped horizontally
-              if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
-                if (safeIdx < totalDecks - 1) nextDeck('left')
-              } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
-                if (safeIdx > 0) prevDeck('right')
-              }
+            if (info.offset.y < -swipeThreshold || info.velocity.y < -velocityThreshold) {
+              if (safeIdx < totalDecks - 1) nextDeck('up')
+            } else if (info.offset.y > swipeThreshold || info.velocity.y > velocityThreshold) {
+              if (safeIdx > 0) prevDeck('down')
             }
           }}
           variants={{
-            enter: (direction: SwipeDirection) => {
-              switch (direction) {
-                case 'up':
-                  return { opacity: 0, y: 36, x: 0, scale: 0.98 }
-                case 'down':
-                  return { opacity: 0, y: -36, x: 0, scale: 0.98 }
-                case 'right':
-                  return { opacity: 0, x: -36, y: 0, scale: 0.98 }
-                case 'left':
-                default:
-                  return { opacity: 0, x: 36, y: 0, scale: 0.98 }
-              }
-            },
+            enter: (direction: SwipeDirection) => ({
+              opacity: 0,
+              y: direction === 'down' ? -40 : 40,
+              x: 0,
+              scale: 0.98
+            }),
             center: {
               opacity: 1,
               x: 0,
@@ -522,48 +483,18 @@ export function DashboardRoadmapSection({
                 ease: [0.25, 1, 0.5, 1]
               }
             },
-            exit: (direction: SwipeDirection) => {
-              switch (direction) {
-                case 'up':
-                  return { 
-                    opacity: 0, 
-                    y: -36, 
-                    x: 0, 
-                    scale: 0.98,
-                    transition: { duration: 0.18, ease: 'easeOut' }
-                  }
-                case 'down':
-                  return { 
-                    opacity: 0, 
-                    y: 36, 
-                    x: 0, 
-                    scale: 0.98,
-                    transition: { duration: 0.18, ease: 'easeOut' }
-                  }
-                case 'right':
-                  return { 
-                    opacity: 0, 
-                    x: 36, 
-                    y: 0, 
-                    scale: 0.98,
-                    transition: { duration: 0.18, ease: 'easeOut' }
-                  }
-                case 'left':
-                default:
-                  return { 
-                    opacity: 0, 
-                    x: -36, 
-                    y: 0, 
-                    scale: 0.98,
-                    transition: { duration: 0.18, ease: 'easeOut' }
-                  }
-              }
-            }
+            exit: (direction: SwipeDirection) => ({
+              opacity: 0,
+              y: direction === 'down' ? 40 : -40,
+              x: 0,
+              scale: 0.98,
+              transition: { duration: 0.18, ease: 'easeOut' }
+            })
           }}
           initial="enter"
           animate="center"
           exit="exit"
-          className="flex-1 flex flex-col justify-between gap-2.5 min-h-0 cursor-grab active:cursor-grabbing touch-none"
+          className="flex-1 flex flex-col justify-between gap-2.5 min-h-0 cursor-grab active:cursor-grabbing touch-pan-y"
         >
           {/* ── 2A. HERO STAGE (FULL-WIDTH TOP PROGRESS + RICH LEFT METRICS + ANCHORED MASCOT) ── */}
           <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between min-h-0">
