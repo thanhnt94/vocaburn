@@ -1,5 +1,6 @@
-import { Globe, Users, BookOpen, Layers, CheckCircle2, Zap, Sparkles, TrendingUp, ShieldCheck, Heart } from 'lucide-react'
+import { Globe, Users, BookOpen, Layers, CheckCircle2, Zap, BrainCircuit, ShieldCheck, Activity, Clock, Cpu, Award } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 export interface GlobalStatsData {
   total_questions: number
@@ -23,174 +24,245 @@ export default function GlobalStatsTab({ globalStats, isLoading }: GlobalStatsTa
     avg_time_per_question: 0
   }
 
-  const milestones = [
-    {
-      label: 'Learner Community',
-      value: stats.total_users.toLocaleString(),
-      sub: 'Active learners striving together',
-      icon: Users,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50 border-indigo-100',
-      tag: 'Community'
-    },
-    {
-      label: 'Open Study Library',
-      value: stats.total_quizzes.toLocaleString(),
-      sub: 'Shared flashcard decks',
-      icon: BookOpen,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50 border-emerald-100',
-      tag: 'Decks'
-    },
-    {
-      label: 'Total Cards & Items',
-      value: stats.total_questions.toLocaleString(),
-      sub: 'Vocabulary & questions created',
-      icon: Layers,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50 border-amber-100',
-      tag: 'Vocabulary'
-    },
-    {
-      label: 'Platform Accuracy',
-      value: `${stats.platform_accuracy}%`,
-      sub: 'System-wide correct answer rate',
-      icon: CheckCircle2,
-      color: 'text-rose-600',
-      bg: 'bg-rose-50 border-rose-100',
-      tag: 'Accuracy'
-    }
-  ]
-
   return (
     <div className="space-y-6 text-left w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
-      {/* 🌍 Inspiring Hero Banner */}
-      <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-950/20 border border-indigo-800/40 relative overflow-hidden">
-        <div className="absolute -right-12 -top-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white shrink-0 backdrop-blur-md">
-              <Globe className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-300 animate-pulse" />
+      {/* 🌐 Top Executive Ecosystem Overview Card */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4 text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Globe className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                  <Heart className="w-3 h-3 fill-emerald-400" /> Collective Knowledge Power
-                </span>
-              </div>
-              <h2 className="text-base sm:text-xl font-black uppercase tracking-wide leading-tight">
-                Conquering Languages Together
+              <h2 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
+                Global Learning Ecosystem
               </h2>
-              <p className="text-xs text-indigo-200/90 mt-1 max-w-2xl leading-relaxed">
-                Every card flip and completed session contributes to the collective progress of the entire Vocaburn community. We learn and grow together!
+              <p className="text-[9px] font-bold text-slate-400 mt-1">
+                Aggregated community learning volume and platform-wide benchmarks
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
-            <div className="text-center px-2">
-              <span className="text-[8px] font-black text-indigo-300 uppercase tracking-widest block">Avg Speed</span>
-              <span className="text-sm sm:text-base font-black text-white">{stats.avg_time_per_question}s / card</span>
+          {/* Operational Status Pill */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 self-start sm:self-auto">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-wider">
+              All Systems Operational · 99.9% Uptime
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Hero KPI Cards (Matching Personal & Leaderboard Style) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 border-t border-slate-100">
+          {/* Total Learners */}
+          <div className="bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-black text-indigo-500 uppercase tracking-wider block">Learners</span>
+              <Users className="w-3.5 h-3.5 text-indigo-400" />
             </div>
-            <div className="w-px h-8 bg-white/20" />
-            <div className="text-center px-2">
-              <span className="text-[8px] font-black text-emerald-300 uppercase tracking-widest block">System</span>
-              <span className="text-xs sm:text-sm font-black text-emerald-400 uppercase">99.9% Uptime</span>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+              {stats.total_users.toLocaleString()} <span className="text-[10px] font-bold text-slate-400">users</span>
             </div>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">Active community members</p>
+          </div>
+
+          {/* Open Study Library */}
+          <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider block">Study Decks</span>
+              <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+              {stats.total_quizzes.toLocaleString()} <span className="text-[10px] font-bold text-slate-400">decks</span>
+            </div>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">Published & curated courses</p>
+          </div>
+
+          {/* Vocabulary Bank */}
+          <div className="bg-amber-50/50 p-3.5 rounded-2xl border border-amber-100/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-black text-amber-600 uppercase tracking-wider block">Cards & Items</span>
+              <Layers className="w-3.5 h-3.5 text-amber-500" />
+            </div>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+              {stats.total_questions.toLocaleString()} <span className="text-[10px] font-bold text-slate-400">cards</span>
+            </div>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">Mastered vocabulary bank</p>
+          </div>
+
+          {/* Platform Accuracy */}
+          <div className="bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-black text-rose-500 uppercase tracking-wider block">Platform Accuracy</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-rose-400" />
+            </div>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+              {stats.platform_accuracy}%
+            </div>
+            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">System-wide correct recall</p>
           </div>
         </div>
       </div>
 
-      {/* 📊 4 Key Platform Milestones */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {milestones.map((item, idx) => {
-          const Icon = item.icon
-          return (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${item.bg} ${item.color} group-hover:scale-105 transition-transform`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
-                  {item.tag}
-                </span>
+      {/* 🚀 Dual Hub: Engine Architecture & Velocity Benchmarks */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-left">
+        {/* Hub 1: FSRS v6 Cognitive Memory Engine */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 md:p-6 shadow-sm relative overflow-hidden flex flex-col justify-between space-y-4">
+          <div>
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <BrainCircuit className="w-4 h-4" />
               </div>
-
-              <div className="space-y-1">
-                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  {item.label}
-                </h4>
-                <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {item.value}
-                </div>
-                <p className="text-[8.5px] font-semibold text-slate-400">
-                  {item.sub}
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
+                  FSRS v6 Memory Engine
+                </h3>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">
+                  Free Spaced Repetition Scheduler with DSR modeling
                 </p>
               </div>
-            </motion.div>
-          )
-        })}
-      </div>
+            </div>
 
-      {/* 🌟 Community Spirit & Platform Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                <Sparkles className="w-4.5 h-4.5" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4">
+              <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Target Rate</span>
+                <div className="text-base font-black text-indigo-600 mt-0.5">90% Retention</div>
+                <p className="text-[7.5px] font-medium text-slate-400 mt-0.5">Optimized memory threshold</p>
               </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                  Consistent Learning Spirit
-                </h3>
-                <p className="text-[9px] font-bold text-slate-400 mt-1">Inspired by thousands of daily practice sessions</p>
+
+              <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Scheduling</span>
+                <div className="text-base font-black text-slate-800 mt-0.5">DSR Model</div>
+                <p className="text-[7.5px] font-medium text-slate-400 mt-0.5">Difficulty, Stability & Recall</p>
+              </div>
+
+              <div className="p-3 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Sync Latency</span>
+                <div className="text-base font-black text-emerald-600 mt-0.5">&lt; 5ms</div>
+                <p className="text-[7.5px] font-medium text-slate-400 mt-0.5">SQLite WAL fast persistence</p>
               </div>
             </div>
 
-            <p className="text-xs font-medium text-slate-600 leading-relaxed">
-              Vocaburn learners maintain active study streaks and utilize the <strong>FSRS v6</strong> spaced repetition algorithm to convert vocabulary into natural reflexes.
+            <p className="text-xs font-medium text-slate-600 leading-relaxed mt-4">
+              Every completed card dynamically updates stability and retrievability parameters. The FSRS algorithm optimizes intervals so you review exactly when forgetting is about to begin, minimizing study fatigue while maximizing retention.
             </p>
           </div>
 
-          <div className="mt-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between text-xs">
-            <span className="font-bold text-slate-500">Shared Goal:</span>
-            <span className="font-black text-indigo-600">100% Long-term Retention 🚀</span>
+          <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100/50 flex items-center justify-between text-[10px]">
+            <span className="font-bold text-indigo-700">Algorithm Status:</span>
+            <span className="font-black text-indigo-900 uppercase tracking-wider">FSRS v6 Active · Zero Overdue Drift</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div className="h-1 absolute top-0 inset-x-0 bg-gradient-to-r from-emerald-500 to-teal-500" />
+        {/* Hub 2: Response Velocity & Efficiency Benchmarks */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 md:p-6 shadow-sm relative overflow-hidden flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <ShieldCheck className="w-4.5 h-4.5" />
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                <Zap className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest italic leading-none">
-                  Study Material Quality
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
+                  Response Velocity Benchmarks
                 </h3>
-                <p className="text-[9px] font-bold text-slate-400 mt-1">High-standard questions & AI pronunciation</p>
+                <p className="text-[9px] font-bold text-slate-400 mt-1">
+                  Global average recall speed and neural reaction latency
+                </p>
               </div>
             </div>
 
-            <p className="text-xs font-medium text-slate-600 leading-relaxed">
-              Platform average accuracy reaches <strong>{stats.platform_accuracy}%</strong> with an average response speed of <strong>{stats.avg_time_per_question}s / card</strong>, highlighting the superior efficiency of Spaced Repetition.
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Platform Avg Speed</span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-black text-amber-600 leading-none">{stats.avg_time_per_question}s</span>
+                  <span className="text-[9px] font-bold text-slate-400">/ card</span>
+                </div>
+                <p className="text-[7.5px] font-medium text-slate-400 mt-1 uppercase">Rapid recognition reflex</p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Global Accuracy</span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-black text-emerald-600 leading-none">{stats.platform_accuracy}%</span>
+                </div>
+                <p className="text-[7.5px] font-medium text-slate-400 mt-1 uppercase">Across all flashcard trials</p>
+              </div>
+            </div>
+
+            {/* Visual Velocity Bar */}
+            <div className="mt-4 p-3 bg-slate-50/60 rounded-2xl border border-slate-100 space-y-2">
+              <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
+                <span className="text-slate-500">Speed Benchmark</span>
+                <span className="text-emerald-600 font-bold">Optimal Reflex Zone (&lt; 4s)</span>
+              </div>
+              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(15, 100 - (stats.avg_time_per_question * 10)))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-100/50 flex items-center justify-between text-[10px]">
+            <span className="font-bold text-amber-700">Efficiency Insight:</span>
+            <span className="font-black text-amber-900">Direct Reflex Activation ⚡</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 🛡️ Section 2: Repository Quality & Ecosystem Standards */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 md:p-6 shadow-sm text-left space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
+              Repository Quality & Ecosystem Standards
+            </h3>
+            <p className="text-[9px] font-bold text-slate-400 mt-1">
+              Curated flashcards, natural audio synthesis, and multi-format drill support
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <div className="p-4 bg-slate-50/60 border border-slate-100 rounded-2xl space-y-1.5">
+            <div className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-600 flex items-center justify-center mb-2">
+              <Cpu className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+              Neural Audio Synthesis
+            </h4>
+            <p className="text-[9px] font-medium text-slate-500 leading-relaxed">
+              Standardized bilingual speech models with precise phonetics and natural pitch intonation for all cards.
             </p>
           </div>
 
-          <div className="mt-5 p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center justify-between text-xs">
-            <span className="font-bold text-emerald-700">Operational Status:</span>
-            <span className="font-black text-emerald-700">Running Smoothly ⚡</span>
+          <div className="p-4 bg-slate-50/60 border border-slate-100 rounded-2xl space-y-1.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100/70 text-emerald-600 flex items-center justify-center mb-2">
+              <Activity className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+              Multi-Modal Drills
+            </h4>
+            <p className="text-[9px] font-medium text-slate-500 leading-relaxed">
+              Comprehensive support for Flashcard FSRS, Multiple Choice, Word Typing, and Listening Comprehension.
+            </p>
+          </div>
+
+          <div className="p-4 bg-slate-50/60 border border-slate-100 rounded-2xl space-y-1.5">
+            <div className="w-7 h-7 rounded-lg bg-amber-100/70 text-amber-600 flex items-center justify-center mb-2">
+              <Award className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+              CentralAuth Integration
+            </h4>
+            <p className="text-[9px] font-medium text-slate-500 leading-relaxed">
+              Unified cross-app SSO authentication, zero localStorage storage, and instant Telegram Bot notification queue.
+            </p>
           </div>
         </div>
       </div>
