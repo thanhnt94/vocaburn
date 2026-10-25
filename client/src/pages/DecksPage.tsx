@@ -67,18 +67,18 @@ export interface DeckTheme {
 }
 
 export const DECK_THEMES: DeckTheme[] = [
-  { icon: BookOpen, gradient: 'from-amber-500 to-orange-500', iconColor: 'text-white', bgLight: 'bg-amber-50', accentColor: '#F59E0B' },
-  { icon: Zap, gradient: 'from-violet-500 to-indigo-600', iconColor: 'text-white', bgLight: 'bg-indigo-50', accentColor: '#6366F1' },
-  { icon: Sparkles, gradient: 'from-rose-500 to-pink-500', iconColor: 'text-white', bgLight: 'bg-rose-50', accentColor: '#EC4899' },
-  { icon: Target, gradient: 'from-emerald-500 to-teal-600', iconColor: 'text-white', bgLight: 'bg-emerald-50', accentColor: '#10B981' },
-  { icon: Flame, gradient: 'from-orange-500 to-red-500', iconColor: 'text-white', bgLight: 'bg-orange-50', accentColor: '#EF4444' },
-  { icon: Compass, gradient: 'from-cyan-500 to-blue-600', iconColor: 'text-white', bgLight: 'bg-cyan-50', accentColor: '#06B6D4' },
-  { icon: Trophy, gradient: 'from-amber-400 to-yellow-600', iconColor: 'text-white', bgLight: 'bg-amber-50', accentColor: '#D97706' },
-  { icon: Globe, gradient: 'from-blue-500 to-indigo-500', iconColor: 'text-white', bgLight: 'bg-blue-50', accentColor: '#3B82F6' },
-  { icon: GraduationCap, gradient: 'from-purple-500 to-indigo-700', iconColor: 'text-white', bgLight: 'bg-purple-50', accentColor: '#8B5CF6' },
-  { icon: Star, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-white', bgLight: 'bg-yellow-50', accentColor: '#F59E0B' },
-  { icon: Award, gradient: 'from-teal-400 to-emerald-600', iconColor: 'text-white', bgLight: 'bg-teal-50', accentColor: '#14B8A6' },
-  { icon: Bookmark, gradient: 'from-pink-500 to-rose-600', iconColor: 'text-white', bgLight: 'bg-pink-50', accentColor: '#F43F5E' }
+  { icon: BookOpen, gradient: 'from-slate-700 to-slate-900', iconColor: 'text-white', bgLight: 'bg-slate-100', accentColor: '#334155' },
+  { icon: Zap, gradient: 'from-indigo-600 to-slate-900', iconColor: 'text-white', bgLight: 'bg-indigo-50', accentColor: '#4F46E5' },
+  { icon: Sparkles, gradient: 'from-amber-600 to-slate-800', iconColor: 'text-white', bgLight: 'bg-amber-50', accentColor: '#D97706' },
+  { icon: Target, gradient: 'from-emerald-600 to-slate-900', iconColor: 'text-white', bgLight: 'bg-emerald-50', accentColor: '#059669' },
+  { icon: Compass, gradient: 'from-blue-600 to-slate-900', iconColor: 'text-white', bgLight: 'bg-blue-50', accentColor: '#2563EB' },
+  { icon: Trophy, gradient: 'from-amber-600 to-amber-800', iconColor: 'text-white', bgLight: 'bg-amber-50', accentColor: '#B45309' },
+  { icon: Globe, gradient: 'from-sky-600 to-indigo-900', iconColor: 'text-white', bgLight: 'bg-sky-50', accentColor: '#0284C7' },
+  { icon: GraduationCap, gradient: 'from-purple-600 to-slate-900', iconColor: 'text-white', bgLight: 'bg-purple-50', accentColor: '#7C3AED' },
+  { icon: Star, gradient: 'from-orange-500 to-slate-800', iconColor: 'text-white', bgLight: 'bg-orange-50', accentColor: '#EA580C' },
+  { icon: Award, gradient: 'from-teal-600 to-slate-900', iconColor: 'text-white', bgLight: 'bg-teal-50', accentColor: '#0D9488' },
+  { icon: Bookmark, gradient: 'from-rose-600 to-slate-900', iconColor: 'text-white', bgLight: 'bg-rose-50', accentColor: '#E11D48' },
+  { icon: Flame, gradient: 'from-orange-600 to-rose-700', iconColor: 'text-white', bgLight: 'bg-orange-50', accentColor: '#C2410C' }
 ]
 
 export function getDeckTheme(quiz: { id: number; title?: string }): DeckTheme {
@@ -412,17 +412,17 @@ export default function DecksPage() {
 
           {/* Row 1: Header Brand, Desktop Tabs, and Quick Actions */}
           <div className={cn("items-center justify-between pt-2 pb-1.5 md:py-2.5", isSearchOpen ? "hidden md:flex" : "flex")}>
-            {/* Left: Warm Branding with Mascot / Orange Badge */}
+            {/* Left: Branding with Clean Slate Squircle & Badge */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shadow-2xs shrink-0">
-                <Layers className="w-5 h-5 stroke-[2.4]" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center shadow-xs shrink-0">
+                <Layers className="w-5 h-5 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
                     Decks Library
                   </h1>
-                  <span className="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/50 border border-orange-200/70 dark:border-orange-800/60 text-orange-700 dark:text-orange-400 text-[10px] font-black shrink-0 leading-none">
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-black shrink-0 leading-none">
                     {activeTab === 'folders' ? filteredFolders.length : filteredData.length}
                   </span>
 
@@ -451,9 +451,8 @@ export default function DecksPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1 leading-none truncate">
-                  <span>{activeTab === 'folders' ? 'Manage your deck collections and study groups' : 'Choose a deck to study'}</span>
-                  <span className="text-amber-500">✨</span>
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 leading-none truncate">
+                  <span>{activeTab === 'folders' ? 'Manage your deck collections and study groups' : 'Choose a deck to study or launch practice drills'}</span>
                 </p>
               </div>
             </div>
@@ -470,29 +469,29 @@ export default function DecksPage() {
                     className={cn(
                       "relative flex items-center gap-2 pb-2 px-0.5 text-sm transition-all select-none cursor-pointer group",
                       isActive 
-                        ? "text-slate-900 font-extrabold" 
-                        : "text-slate-500 hover:text-slate-900 font-semibold"
+                        ? "text-slate-900 dark:text-white font-extrabold" 
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold"
                     )}
                   >
                     <TabIcon className={cn(
                       "w-4.5 h-4.5 transition-colors shrink-0",
                       isActive 
-                        ? "text-orange-500 stroke-[2.4]" 
+                        ? "text-slate-900 dark:text-white stroke-[2.4]" 
                         : "text-slate-400 group-hover:text-slate-600 stroke-[1.8]"
                     )} />
                     <span className="tracking-tight">{tab.label}</span>
                     <span className={cn(
                       "px-2 py-0.5 rounded-full text-[11px] font-black leading-none transition-all",
                       isActive 
-                        ? "bg-orange-500 text-white shadow-xs shadow-orange-500/20" 
-                        : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700"
+                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs" 
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-700"
                     )}>
                       {tab.count}
                     </span>
                     {isActive && (
                       <motion.div
                         layoutId="desktopDecksUnderline"
-                        className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                        className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 dark:bg-white rounded-full"
                         transition={{ type: "spring", stiffness: 450, damping: 32 }}
                       />
                     )}
@@ -511,7 +510,7 @@ export default function DecksPage() {
                   placeholder="Search decks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white hover:border-slate-300 border border-slate-200 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-2xs"
+                  className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:border-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 transition-all shadow-2xs"
                 />
                 {searchQuery && (
                   <button
@@ -529,13 +528,13 @@ export default function DecksPage() {
                   setEditingFolder(null)
                   setIsFolderModalOpen(true)
                 }}
-                className="h-8.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100/90 border border-amber-200 hover:border-amber-300 text-amber-800 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                 title="Manage & Create Folders"
               >
-                <FolderIcon className="w-4 h-4 text-amber-600 fill-amber-500/20" />
-                <span className="font-extrabold text-amber-900">Folder</span>
+                <FolderIcon className="w-4 h-4 text-slate-500 fill-slate-500/20" />
+                <span className="font-extrabold text-slate-800 dark:text-slate-200">Folder</span>
                 {folders.length > 0 && (
-                  <span className="bg-amber-200/90 text-amber-900 px-1.5 py-0.2 rounded-full text-[10px] font-black leading-none">
+                  <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.2 rounded-full text-[10px] font-black leading-none">
                     {folders.length}
                   </span>
                 )}
@@ -544,10 +543,10 @@ export default function DecksPage() {
               {/* New Deck */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8.5 px-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1.5 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                className="h-8.5 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 flex items-center gap-1.5 text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer"
                 title="Create new deck"
               >
-                <Plus className="w-4 h-4 stroke-[3]" />
+                <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>New Deck</span>
               </button>
             </div>
@@ -560,7 +559,7 @@ export default function DecksPage() {
                 className={cn(
                   "h-8.5 w-8.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs",
                   isSearchOpen || searchQuery
-                    ? "bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800/80 text-orange-600 dark:text-orange-400 font-bold"
+                    ? "bg-slate-900 text-white border-slate-900 font-bold"
                     : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750"
                 )}
                 title="Search decks"
@@ -571,10 +570,10 @@ export default function DecksPage() {
               {/* New Deck Primary Action */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="h-8.5 px-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center gap-1 text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                className="h-8.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 flex items-center gap-1 text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer"
                 title="Create new deck"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>New</span>
               </button>
             </div>
@@ -600,13 +599,13 @@ export default function DecksPage() {
                   >
                     <TabIcon className={cn(
                       "w-3.5 h-3.5 shrink-0 transition-colors",
-                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400 dark:text-slate-500"
+                      isActive ? "text-slate-900 dark:text-white stroke-[2.4]" : "text-slate-400 dark:text-slate-500"
                     )} />
                     <span className="truncate text-[10.5px] leading-tight">{shortLabel}</span>
                     <span className={cn(
-                      "px-1 py-0.2 rounded-full text-[9px] font-black leading-none shrink-0",
+                      "px-1.5 py-0.2 rounded-full text-[9px] font-black leading-none shrink-0",
                       isActive 
-                        ? "bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-300 border border-orange-200/70 dark:border-orange-800/60" 
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600" 
                         : "bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                     )}>
                       {tab.count}
@@ -629,14 +628,14 @@ export default function DecksPage() {
                       className={cn(
                         "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
                         activeTag
-                          ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
+                          ? "bg-slate-900 border-slate-900 text-white shadow-xs font-black"
                           : isTagRowOpen
-                          ? "bg-amber-100 border-amber-300 text-amber-900 font-extrabold"
+                          ? "bg-slate-200 border-slate-300 text-slate-900 font-extrabold"
                           : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60"
                       )}
                       title={isTagRowOpen ? "Hide tags bar" : "Filter by tags"}
                     >
-                      <span>{activeTag ? `🏷️ #${activeTag}` : '🏷️ Tags'}</span>
+                      <span>{activeTag ? `#${activeTag}` : 'Tags'}</span>
                       {activeTag ? (
                         <span
                           onClick={(e) => {
@@ -659,9 +658,9 @@ export default function DecksPage() {
                   {/* Status Chips */}
                   {[
                     { id: 'all' as StatusFilter, label: 'All' },
-                    { id: 'learning' as StatusFilter, label: '⚡ In Progress' },
-                    { id: 'unlearned' as StatusFilter, label: '✨ New' },
-                    { id: 'mastered' as StatusFilter, label: '🌟 Mastered' },
+                    { id: 'learning' as StatusFilter, label: 'In Progress' },
+                    { id: 'unlearned' as StatusFilter, label: 'New' },
+                    { id: 'mastered' as StatusFilter, label: 'Mastered' },
                   ].map(st => {
                     const isSelected = statusFilter === st.id
                     return (
@@ -671,8 +670,8 @@ export default function DecksPage() {
                         className={cn(
                           "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none",
                           isSelected
-                            ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20 font-black"
-                            : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                            ? "bg-slate-900 dark:bg-slate-100 border-slate-900 dark:border-slate-100 text-white dark:text-slate-900 shadow-xs font-black"
+                            : "bg-slate-100/80 dark:bg-slate-800/80 md:bg-white md:dark:bg-slate-850 border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 hover:text-slate-900"
                         )}
                       >
                         {st.label}
@@ -1053,12 +1052,12 @@ export default function DecksPage() {
                         </div>
 
                         {/* Card Actions Footer */}
-                        <div className="mt-4 pt-3 border-t border-slate-200/70 flex items-center gap-2">
+                        <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-800 flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => navigate(`/flashcard/folder_${folder.id}`)}
                             disabled={totalCards === 0}
-                            className="flex-1 h-9 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 select-none"
+                            className="flex-1 h-9 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 select-none"
                             title="Study all cards with FSRS Spaced Repetition"
                           >
                             <Play className="w-3.5 h-3.5 fill-current shrink-0" />
@@ -1072,7 +1071,7 @@ export default function DecksPage() {
                             className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 select-none shadow-2xs"
                             title="Practice Quiz with all cards"
                           >
-                            <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                            <Trophy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                             <span>Practice</span>
                           </button>
 
@@ -1108,11 +1107,11 @@ export default function DecksPage() {
               </div>
             )
           ) : filteredData.length === 0 ? (
-            <div className="w-full bg-white border border-slate-200/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-sm my-auto">
-              <div className="w-16 h-16 rounded-3xl bg-orange-50 flex items-center justify-center text-3xl mb-3 shadow-inner">
-                🔍
+            <div className="w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-10 text-center flex flex-col items-center justify-center shadow-xs my-auto">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
+                <Search className="w-6 h-6 stroke-[2]" />
               </div>
-              <h3 className="text-base font-black text-slate-800 tracking-tight mb-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">
                 No matching decks found
               </h3>
               <p className="text-xs text-slate-400 max-w-sm mb-5">
@@ -1121,7 +1120,7 @@ export default function DecksPage() {
               {activeTab === 'discover' && (
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
                 >
                   + Create New Deck
                 </button>
@@ -1158,17 +1157,17 @@ export default function DecksPage() {
                           }
                         }}
                         className={cn(
-                          "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
+                          "group relative rounded-2xl p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
                           isSelected
-                            ? "border-2 border-orange-500 bg-orange-50/20 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/20"
-                            : "bg-white border border-slate-200/90 hover:border-slate-300 shadow-2xs hover:shadow-xs"
+                            ? "border border-slate-900 dark:border-slate-300 bg-slate-50/90 dark:bg-slate-800/80 shadow-xs ring-1 ring-slate-900/10"
+                            : "bg-white dark:bg-slate-900 border border-slate-200/90 hover:border-slate-300 dark:border-slate-800 shadow-2xs hover:shadow-xs"
                         )}
                       >
                         {/* Deck Mascot / Themed Avatar */}
                         <div className="relative shrink-0">
                           <div className={cn(
-                            "w-13 h-13 sm:w-15 sm:h-15 rounded-[18px] flex items-center justify-center overflow-hidden shadow-2xs border-2 border-white",
-                            hasCover ? "bg-slate-100" : cn("bg-gradient-to-tr text-white", deckTheme.gradient)
+                            "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xs border border-black/5 dark:border-white/10",
+                            hasCover ? "bg-slate-100 dark:bg-slate-800" : cn("bg-gradient-to-tr text-white", deckTheme.gradient)
                           )}>
                             {hasCover ? (
                               <img
@@ -1180,7 +1179,7 @@ export default function DecksPage() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <ThemeIcon className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-white drop-shadow-2xs" />
+                              <ThemeIcon className="w-5.5 h-5.5 sm:w-6 sm:h-6 stroke-[2.2] text-white" />
                             )}
                           </div>
                         </div>
@@ -1189,13 +1188,13 @@ export default function DecksPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight truncate">
+                              <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">
                                 {quiz.title}
                               </h4>
                             </div>
 
                             {/* Right Indicator: Quick Archive + Checkmark if selected, subtle Chevron if not */}
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center gap-1 shrink-0">
                               {activeTab === 'my' && (
                                 <button
                                   type="button"
@@ -1205,7 +1204,7 @@ export default function DecksPage() {
                                     archiveMutation.mutate(quiz.id)
                                   }}
                                   disabled={archiveMutation.isPending}
-                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-amber-200"
+                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center justify-center transition-all cursor-pointer opacity-70 group-hover:opacity-100"
                                   title="Archive deck"
                                 >
                                   <Archive className="w-3.5 h-3.5" />
@@ -1221,7 +1220,7 @@ export default function DecksPage() {
                                     archiveMutation.mutate(quiz.id)
                                   }}
                                   disabled={archiveMutation.isPending}
-                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-emerald-200"
+                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center transition-all cursor-pointer opacity-70 group-hover:opacity-100"
                                   title="Restore deck"
                                 >
                                   <RotateCcw className="w-3.5 h-3.5" />
@@ -1229,28 +1228,29 @@ export default function DecksPage() {
                               )}
 
                               {isSelected ? (
-                                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                <div className="w-6 h-6 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-xs shrink-0">
                                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                                 </div>
                               ) : (
-                                <ChevronRight className="w-4.5 h-4.5 text-slate-300 stroke-[2.5] shrink-0" />
+                                <ChevronRight className="w-4 h-4 text-slate-300 stroke-[2] shrink-0" />
                               )}
                             </div>
                           </div>
 
                           {/* Meta Badges: Cards count, creator, compact date */}
-                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-1.5 flex-wrap">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/60 text-slate-700 text-[10px] font-bold">
-                              📚 {quiz.questions_count} cards
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 mt-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                              <BookOpen className="w-3 h-3 text-slate-400" />
+                              <span>{quiz.questions_count} cards</span>
                             </span>
-                            <span className="text-slate-300">•</span>
-                            <span className="text-slate-600 font-bold truncate max-w-[120px]">
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span className="text-slate-500 font-medium truncate max-w-[120px]">
                               @{quiz.creator_name || 'Vocaburn'}
                             </span>
                             {formattedDate && (
                               <>
-                                <span className="text-slate-300">•</span>
-                                <span className="text-slate-400 font-medium text-[10px]">
+                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <span className="text-slate-400 font-normal text-[10px]">
                                   {formattedDate}
                                 </span>
                               </>
@@ -1259,24 +1259,21 @@ export default function DecksPage() {
 
                           {/* Progress Bar (if not in discover tab) */}
                           {activeTab !== 'discover' && (
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <div className={cn(
-                                "flex-1 h-1.5 rounded-full overflow-hidden p-0.5 shadow-inner",
-                                isSelected ? "bg-orange-100" : "bg-slate-100"
-                              )}>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                 <div
                                   className={cn(
                                     "h-full rounded-full transition-all duration-500",
                                     progressPct === 100
-                                      ? "bg-gradient-to-r from-emerald-400 to-teal-500"
-                                      : "bg-gradient-to-r from-orange-400 to-amber-500"
+                                      ? "bg-emerald-500"
+                                      : "bg-slate-900 dark:bg-slate-200"
                                   )}
                                   style={{ width: `${Math.max(progressPct, total > 0 ? 3 : 0)}%` }}
                                 />
                               </div>
                               <span className={cn(
-                                "text-[10.5px] font-black shrink-0 leading-none font-mono",
-                                isSelected ? "text-orange-600" : "text-slate-500"
+                                "text-[10px] font-bold shrink-0 leading-none font-mono",
+                                progressPct === 100 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"
                               )}>
                                 {progressPct}%
                               </span>
@@ -1320,24 +1317,24 @@ export default function DecksPage() {
 
       {/* ═══════════ STRICTLY SINGLE-ROW BOTTOM ACTION DOCK (H-[54PX]) ═══════════ */}
       {selectedDeck && activeTab !== 'folders' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2">
+        <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2.5">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2">
             {activeTab === 'my' && (
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 {/* Study */}
-                <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-gradient-to-r from-[#FF7A00] to-[#FFA100] hover:from-[#f36b00] hover:to-[#ff9100] text-white shadow-md shadow-orange-500/20 transition-all overflow-hidden border-b-[3px] border-[#c44e00]">
+                <div className="flex-1 min-w-0 flex items-center rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 shadow-sm transition-all overflow-hidden">
                   <button
                     onClick={() => handleLaunchDefaultStudy(selectedDeck)}
                     className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
                     title="Launch default study mode"
                   >
                     <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-                    <span className="text-xs font-black truncate">Study</span>
+                    <span className="text-xs font-black tracking-tight truncate">Study</span>
                   </button>
-                  <div className="w-[1px] h-5 bg-white/25 shrink-0" />
+                  <div className="w-[1px] h-5 bg-white/20 dark:bg-slate-900/20 shrink-0" />
                   <button
                     onClick={() => handleStudyTrigger(selectedDeck, 'flashcard')}
-                    className="h-11 px-2.5 hover:bg-white/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                    className="h-11 px-2.5 hover:bg-white/10 dark:hover:bg-black/10 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
                     title="Choose study mode (FSRS, Flip, Review, New)"
                   >
                     <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1346,19 +1343,19 @@ export default function DecksPage() {
 
                 {/* Practice with Dropdown (only when practice is enabled) */}
                 {!isSelectedDeckPracticeDisabled && (
-                  <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white hover:bg-orange-50/30 text-slate-800 border-2 border-orange-100 hover:border-orange-300 shadow-sm transition-all overflow-hidden border-b-[3px] border-orange-200">
+                  <div className="flex-1 min-w-0 flex items-center rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700 shadow-2xs transition-all overflow-hidden">
                     <button
                       onClick={() => navigate(`/practice/${selectedDeck.id}/mcq`)}
                       className="flex-1 h-11 pl-3 pr-2 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] transition-all min-w-0 select-none"
                       title="Launch default Practice (MCQ)"
                     >
-                      <Trophy className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                      <span className="text-xs font-black truncate">Practice</span>
+                      <Trophy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+                      <span className="text-xs font-bold tracking-tight truncate">Practice</span>
                     </button>
-                    <div className="w-[1px] h-5 bg-orange-200 shrink-0" />
+                    <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 shrink-0" />
                     <button
                       onClick={() => handleStudyTrigger(selectedDeck, 'practice')}
-                      className="h-11 px-2.5 hover:bg-orange-100/60 text-slate-600 hover:text-orange-600 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
+                      className="h-11 px-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all shrink-0"
                       title="Choose practice mode (MCQ, Typing, Listening)"
                     >
                       <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1372,16 +1369,16 @@ export default function DecksPage() {
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <button
                   onClick={() => enrollMutation.mutate(selectedDeck.id)}
-                  className="flex-1 h-11 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-[#c44e00] select-none"
+                  className="flex-1 h-11 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
                 >
-                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
                   <span>Add to My Decks</span>
                 </button>
                 <button
                   onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                  className="h-11 px-4 rounded-2xl bg-white hover:bg-orange-50/30 border-2 border-orange-100 hover:border-orange-300 text-slate-800 font-black text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-orange-200 select-none"
+                  className="h-11 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs shadow-2xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
                 >
-                  <Eye className="w-4 h-4 text-orange-500" />
+                  <Eye className="w-4 h-4 text-slate-500" />
                   <span>View Details</span>
                 </button>
               </div>
@@ -1391,14 +1388,14 @@ export default function DecksPage() {
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 <button
                   onClick={() => archiveMutation.mutate(selectedDeck.id)}
-                  className="flex-1 h-11 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-md shadow-slate-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-slate-950 select-none"
+                  className="flex-1 h-11 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
                 >
                   <RotateCcw className="w-4 h-4 stroke-[2.5]" />
                   <span>Restore Deck</span>
                 </button>
                 <button
                   onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                  className="h-11 px-4 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-200 text-slate-800 font-black text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-b-[3px] border-slate-300 select-none"
+                  className="h-11 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs shadow-2xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer select-none"
                 >
                   <Eye className="w-4 h-4 text-slate-500" />
                   <span>View Details</span>
