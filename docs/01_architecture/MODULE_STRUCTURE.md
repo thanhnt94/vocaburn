@@ -114,34 +114,31 @@ client/src/
 │   │   ├── FlashcardQuickControlsSheet.tsx # Bảng Control Center (Haptic, Image 4-states, Font size, Tools)
 │   │   ├── FsrsCompleteScreen.tsx # Màn hình hoàn thành đa ngữ cảnh (FSRS, New, Review)
 │   │   └── FlashcardHeader.tsx # Header học thẻ
-│   ├── stats/                  # 📈 Phân hệ Thống kê & Bảng xếp hạng
-│   │   ├── LeaderboardTab.tsx  # Bảng xếp hạng Esports, podium top 3, bộ lọc XP/Streak/Thời gian
-│   │   ├── PersonalStatsTab.tsx# Thống kê cá nhân, đồng bộ khung thời gian, biểu đồ xu hướng
-│   │   └── GlobalStatsTab.tsx  # Thống kê cộng đồng toàn cầu
+│   ├── stats/                  # 📈 Phân hệ Thống kê & Bảng xếp hạng (Phong cách Apple / Linear Minimalist)
+│   │   ├── LeaderboardTab.tsx  # Bảng xếp hạng tối giản, bục podium Top 3, khung thời gian (today/week/month/all)
+│   │   ├── PersonalStatsTab.tsx# Thống kê cá nhân tinh gọn, metric cards (XP, Streak, Mastered, Accuracy), heatmap lịch
+│   │   └── GlobalStatsTab.tsx  # Thống kê cộng đồng, Server Health & Uptime, Telegram Queue & SSO
 │   ├── StudyHeaderTracker.tsx  # Thanh Live HUD Tracker Bar 3D Flip & Power Surge
 │   ├── CardContributionsModal.tsx # Modal đóng góp & bình luận thẻ
 │   ├── Layout.tsx              # Layout gốc, thanh điều hướng đáy điện thoại (One-Hand Thumb Reachable)
 │   └── MascotCard.tsx          # Card hiển thị Linh vật & đếm ngược mục tiêu
 ├── hooks/                      # Custom React hooks (useAudio, useRoadmapStatus, useSessionStats...)
 ├── lib/                        # Axios client instance, API helper functions, text parser & audio utils
-├── store/                      # Quản lý state toàn cục bằng Zustand (useAppStore.ts, useSettingsStore.ts)
-├── pages/                      # 15 Màn hình chính của ứng dụng
-│   ├── Admin.tsx               # Bảng điều khiển quản trị hệ thống (/admin)
-│   ├── Dashboard.tsx           # Bảng điều khiển chính, lộ trình học, streak & thống kê
-│   ├── DeckDetailPage.tsx      # Màn hình chi tiết bộ thẻ (2 nút học neo cố định đáy màn hình)
-│   ├── DecksPage.tsx           # Trung tâm quản lý tất cả bộ thẻ (/decks)
-│   ├── FlashcardPlay.tsx       # Màn hình học Flashcard FSRS v6 (3D flip card, full-height)
-│   ├── FlashcardRoom.tsx       # Phòng luyện tập nhóm đối kháng (/room/:code)
-│   ├── ImportFlashcard.tsx     # Nhập liệu flashcard từ Excel hoặc văn bản thô
-│   ├── Landing.tsx             # Trang giới thiệu ứng dụng
-│   ├── Login.tsx               # Trang đăng nhập (Auto SSO redirect & form backdoor)
-│   ├── PracticePlay.tsx        # Màn hình luyện tập đa chế độ (MCQ, Typing, Listening, Test)
-│   ├── Profile.tsx             # Trang hồ sơ cá nhân & huy hiệu đạt được
-│   ├── RoadmapHub.tsx          # Trung tâm tổng hợp lộ trình tất cả bộ thẻ (/roadmap)
-│   ├── RoomJoin.tsx            # Tham gia phòng luyện tập đối kháng
-│   ├── Settings.tsx            # Cài đặt tùy chọn cá nhân (đồng bộ DB)
-│   └── Stats.tsx               # Báo cáo thống kê & Biểu đồ phân tích chuyên sâu
-├── App.tsx                     # React Router setup & Route Guards
+├── store/                      # Quản lý state toàn cục bằng Zustand (useAppStore.ts)
+├── pages/                      # 12 Màn hình chính của ứng dụng
+│   ├── Admin.tsx               # Bảng điều khiển quản trị hệ thống (/admin/:tab?)
+│   ├── Dashboard.tsx           # Bảng điều khiển chính, lộ trình học, streak & thống kê (/)
+│   ├── DeckDetailPage.tsx      # Màn hình chi tiết bộ thẻ, 3 tab: overview, cards, settings (/decks/:id)
+│   ├── DecksPage.tsx           # Thư viện quản lý tất cả bộ thẻ (/decks)
+│   ├── FlashcardPlay.tsx       # Màn hình học Flashcard FSRS v6 (/flashcard/:id, /flashcard/:id/play, /flashcard/:id/roadmap)
+│   ├── HybridPlay.tsx          # Màn hình học thẻ kết hợp luyện tập (/hybrid/:id/play, /flashcard/:id/hybrid, /hybrid/:id)
+│   ├── Landing.tsx             # Trang giới thiệu ứng dụng cho khách chưa đăng nhập
+│   ├── Login.tsx               # Trang đăng nhập (Auto SSO redirect & form backdoor ?backdoor=1)
+│   ├── PracticePlay.tsx        # Màn hình luyện tập đa chế độ MCQ, Typing, Listening (/practice/:id/:subMode?)
+│   ├── Profile.tsx             # Trang hồ sơ cá nhân & huy hiệu (/profile)
+│   ├── Settings.tsx            # Cài đặt cấu hình phong cách Apple Grouped Sections (/settings)
+│   └── Stats.tsx               # Báo cáo thống kê chuyên sâu 3 tab (/stats)
+├── App.tsx                     # React Router 6 setup, ErrorBoundary & Toàn bộ Route Guards
 ├── main.tsx                    # React Root Mounting Point
 └── index.css                   # Global Styles & Custom 3D CSS Classes (.perspective-1000...)
 ```

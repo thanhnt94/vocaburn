@@ -9,9 +9,17 @@
 
 ## 🌟 1. Tổng Quan Kiến Trúc (Architecture Overview)
 
-Vocaburn cung cấp hai trụ cột học tập độc lập nhưng tích hợp chặt chẽ:
+Vocaburn cung cấp ba trụ cột học tập độc lập nhưng tích hợp chặt chẽ:
 1. **Flashcard Learning Engine**: Chuyên sâu ghi nhớ dài hạn với thuật toán **FSRS v6**, vòng lặp ôn tập tuần hoàn **Continuous Review**, chế độ nạp từ mới tinh **Learn New Words**, và chế độ đọc lướt tốc độ cao **Speed Skim**.
 2. **Practice Interactive Engine**: Luyện tập phản xạ đa giác quan gồm **4-Choice Quiz (MCQ)**, **Spelling Recall (Typing)**, **Audio Dictation (Listening)** và **Roadmap Daily Test**.
+3. **Hybrid Learning Engine (`HybridPlay.tsx`)**: Chế độ tích hợp thông minh kết hợp nhịp nhàng giữa học thẻ 3D lật mặt và làm bài tập trắc nghiệm/gõ từ xen kẽ, tối ưu độ ghi nhớ tức thì.
+
+### Bảng Định Tuyến Học Tập (Study URL Routing Architecture)
+| Chế độ học | URL Routes Hỗ Trợ | Component | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **Flashcard FSRS / Skim / Rev / New** | `/flashcard/:id`, `/flashcard/:id/play`, `/flashcard/:id/roadmap` | `FlashcardPlay.tsx` | Nhận `?mode=fsrs\|skim\|review\|new&step=...` |
+| **Practice Quiz (MCQ / Typing / Listening)** | `/practice/:id/:subMode?` | `PracticePlay.tsx` | `:subMode` tùy chọn (`mcq`, `typing`, `listening`, `test`, `setting`) |
+| **Hybrid Study (Flashcard + Drill)** | `/hybrid/:id/play`, `/hybrid/:id`, `/flashcard/:id/hybrid` | `HybridPlay.tsx` | Học tích hợp thẻ và câu hỏi phản xạ |
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -28,6 +36,7 @@ Vocaburn cung cấp hai trụ cột học tập độc lập nhưng tích hợp 
 │  • Continuous Review (REV)                • Spelling Recall (Typing)             │
 │  • Learn New Words (NEW)                  • Audio Dictation (Listening)          │
 │  • Speed Skim (SKIM)                      • Roadmap Daily Test                   │
+│  • Hybrid Flashcard + Practice            • Folder-wide Practice                 │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 

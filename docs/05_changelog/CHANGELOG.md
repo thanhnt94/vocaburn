@@ -2,6 +2,30 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-25]
+#### Tái Thiết Kế Stats & Settings theo Chuẩn Apple / Linear Minimalist, Deep System Audit & Khắc Phục Lỗi Điều Hướng Routing
+- **Tái thiết kế toàn diện Phân hệ Stats (`/stats`)**:
+  - `LeaderboardTab.tsx`: Đập đi xây lại toàn bộ bảng xếp hạng Esports màu mè sang phong cách Apple / Linear tối giản. Bổ sung bục podium Top 3 sang trọng, huy hiệu rank đen tuyền sắc nét, chuyển đổi khung thời gian thống nhất (`today`, `week`, `month`, `all`) đồng bộ backend.
+  - `PersonalStatsTab.tsx`: Quy hoạch lại toàn bộ biểu đồ cá nhân dàn trải. Thiết kế cụm metric cards chuẩn chỉ (Tổng XP, Chuỗi ngày học Streak, Thẻ đã thuộc Mastered, Độ chính xác), biểu đồ đóng góp lịch học tập trực quan và phân tích FSRS Stability theo từng chặng.
+  - `GlobalStatsTab.tsx`: Thiết kế lại bảng phân tích cộng đồng toàn cầu, chỉ số sức khỏe máy chủ (Server Health & Uptime), trạng thái queue Telegram Bot và kiến trúc Single Sign-On (CentralAuth SSO).
+- **Tái thiết kế toàn diện Trang Cài Đặt (`/settings`)**:
+  - `Settings.tsx`: Thay thế form dài dòng cũ bằng cấu trúc **Grouped Section phong cách Apple Settings**:
+    - *Tài khoản & Xác thực SSO*: Hiển thị badge quyền hạn, trạng thái kết nối tài khoản CentralAuth SSO và liên kết Telegram Bot `@inmind_auth_bot`.
+    - *Tùy chọn Học tập & FSRS*: Cấu hình thuật toán FSRS v6, giới hạn thẻ mới hàng ngày, thời gian hoãn lật thẻ (front/back delay).
+    - *Âm thanh & Rung phản hồi*: Tùy chỉnh hiệu ứng SFX, Haptic feedback 1 chạm, và tự động phát âm thanh Text-To-Speech.
+    - *Mục tiêu & Nhắc nhở*: Cài đặt thời gian nhắc nhở Telegram Bot hàng ngày và thông báo Streak Guard bảo vệ ngọn lửa học tập trước nửa đêm.
+    - *Vùng Nguy hiểm (Danger Zone)*: Khu vực đăng xuất và đổi mật khẩu bảo mật.
+- **Rà Soát Toàn Diện Hệ Thống (Deep System Audit) & Sửa Lỗi Tồn Đọng**:
+  - **Khắc phục lỗi điều hướng Route nghiêm trọng trong `App.tsx`**:
+    - Đăng ký bổ sung các route học tập `/flashcard/:id`, `/flashcard/:id/roadmap` và `/hybrid/:id`.
+    - Xóa bỏ hiện tượng người dùng bấm nút "Study All" ở Folder hay bấm link lộ trình Telegram roadmap bị chuyển hướng ngược về Dashboard `/` do trước đó chỉ có route bắt buộc đuôi `/play` (`/flashcard/:id/play`).
+  - **Dọn dẹp triệt để Debug Console Logs**:
+    - Loại bỏ các lệnh `console.log("DEBUG...")` rác trong `FlashcardPlay.tsx`, `PracticePlay.tsx` và `FSRSActionButtons.tsx`.
+  - **Chuẩn hóa Logging Backend**:
+    - Thay thế toàn bộ các lệnh `print()` trong `app/modules/deck/routes/crud.py` và `app/modules/deck/services/excel_service.py` sang chuẩn `logging` có cấu trúc (`logger.info`, `logger.debug`, `logger.warning`, `logger.error`).
+  - **Bảo lưu phong cách Decks Library**:
+    - Giữ trọn vẹn phong cách giao diện cam ấm, tươi sáng, 3D nổi bật của `DecksPage.tsx` theo mong muốn và thói quen sử dụng của người dùng.
+
 ### [2026-10-23]
 #### Tinh Gọn Hệ Thống Toàn Diện: Chuẩn Hóa Thuần FSRS v6, Xóa Bỏ Memrise & Phòng Đấu Multiplayer, Phân Rã God-Files Backend
 - **Chuẩn hóa 100% thuật toán FSRS v6**:
