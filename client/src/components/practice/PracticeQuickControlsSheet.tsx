@@ -25,7 +25,8 @@ import {
   Settings, 
   BookOpen, 
   FolderTree,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Type
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Question } from '@/types/flashcard'
@@ -340,40 +341,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
               </div>
             </div>
 
-            {/* ── 3. QUEUE ORDER (Direct 2-Segmented Selector) ── */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 text-left">
-                Queue Order & Flow
-              </span>
-              <div className="grid grid-cols-2 gap-1.5 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => onToggleRandom(false)}
-                  className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none",
-                    !randomEnabled
-                      ? "bg-white text-indigo-700 shadow-xs scale-[1.01] font-black"
-                      : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  <ListOrdered className="w-3.5 h-3.5" />
-                  <span>Sequential (Thứ tự)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onToggleRandom(true)}
-                  className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none",
-                    randomEnabled
-                      ? "bg-white text-indigo-700 shadow-xs scale-[1.01] font-black"
-                      : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  <Shuffle className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Random Shuffle (Ngẫu nhiên)</span>
-                </button>
-              </div>
-            </div>
+
 
             {/* Sub-lesson Filter (if deck has sub-lessons) */}
             {subLessons.length > 0 && onSelectSubLesson && (
@@ -451,7 +419,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
             {/* ══════ TAB 1: PREFERENCES ══════ */}
             {quickTab === 'preferences' && (
               <div className="flex flex-col gap-2.5 text-left px-0.5">
-                {/* ── 2x2 Primary Study Toggles Grid ── */}
+                {/* ── 2x3 Primary Study Toggles Grid ── */}
                 <div className="grid grid-cols-2 gap-2">
                   {/* 1. Auto Read Answer (Audio) */}
                   {(() => {
@@ -515,7 +483,92 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                     )
                   })()}
 
-                  {/* 3. Sound SFX */}
+                  {/* 3. Queue Order (Sequential vs Random Shuffle) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !randomEnabled
+                      onToggleRandom(nextVal)
+                      showLocalToast?.(nextVal ? 'Question Order: Random Shuffle 🔀' : 'Question Order: Sequential 📋', 'info')
+                    }}
+                    className={cn(
+                      "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                      randomEnabled
+                        ? "bg-amber-50/70 border-amber-300 text-amber-800"
+                        : "bg-indigo-50/70 border-indigo-300 text-indigo-800"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={cn(
+                        "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                        randomEnabled ? "bg-amber-500 text-white" : "bg-indigo-600 text-white"
+                      )}>
+                        {randomEnabled ? <Shuffle className="w-3.5 h-3.5" /> : <ListOrdered className="w-3.5 h-3.5" />}
+                      </div>
+                      <span className="text-[11px] font-bold truncate">Queue Order</span>
+                    </div>
+                    <span className={cn(
+                      "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0",
+                      randomEnabled ? "bg-amber-500 text-white" : "bg-indigo-600 text-white"
+                    )}>
+                      {randomEnabled ? 'SHUFFLE' : 'SEQUENT'}
+                    </span>
+                  </button>
+
+                  {/* 4. Font Scale Cycle Toggle */}
+                  {(() => {
+                    const SIZES = [
+                      { val: '85%', alias: 'S' },
+                      { val: '100%', alias: 'M' },
+                      { val: '125%', alias: 'L' },
+                      { val: '150%', alias: 'XL' }
+                    ]
+                    const currentAlias = (() => {
+                      if (fontSize === '85%' || fontSize === 'S' || fontSize === 'small') return 'S'
+                      if (fontSize === '125%' || fontSize === 'L' || fontSize === 'large') return 'L'
+                      if (fontSize === '150%' || fontSize === 'XL' || fontSize === 'xlarge') return 'XL'
+                      return 'M'
+                    })()
+                    const handleCycleFont = () => {
+                      const curIdx = SIZES.findIndex(s => s.alias === currentAlias)
+                      const nextIdx = (curIdx + 1) % SIZES.length
+                      const nextSize = SIZES[nextIdx]
+                      setFontSize?.(nextSize.val)
+                      showLocalToast?.(`Font Scale: ${nextSize.alias} (${nextSize.val})`, 'info')
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={handleCycleFont}
+                        className={cn(
+                          "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                          currentAlias !== 'M'
+                            ? "bg-violet-50/70 border-violet-300 text-violet-800"
+                            : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                        )}
+                        title="Tap to cycle font scale (S -> M -> L -> XL)"
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className={cn(
+                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                            currentAlias !== 'M' ? "bg-violet-600 text-white" : "bg-slate-200 text-slate-600 font-bold"
+                          )}>
+                            <Type className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-[11px] font-bold truncate">Font Scale</span>
+                        </div>
+                        <span className={cn(
+                          "text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0",
+                          currentAlias !== 'M' ? "bg-violet-600 text-white" : "bg-slate-200 text-slate-600"
+                        )}>
+                          {currentAlias} ({SIZES.find(s => s.alias === currentAlias)?.val || '100%'})
+                        </span>
+                      </button>
+                    )
+                  })()}
+
+                  {/* 5. Sound SFX */}
                   <button
                     type="button"
                     onClick={() => {
@@ -541,7 +594,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                     </span>
                   </button>
 
-                  {/* 4. Haptic Vibration */}
+                  {/* 6. Haptic Vibration */}
                   <button
                     type="button"
                     onClick={() => {
@@ -568,59 +621,12 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                   </button>
                 </div>
 
-                {/* ── Queue Order Toggle (Sequential vs Random Shuffle) ── */}
-                <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", randomEnabled ? "bg-amber-500 text-white" : "bg-indigo-600 text-white")}>
-                      {randomEnabled ? <Shuffle className="w-3.5 h-3.5" /> : <ListOrdered className="w-3.5 h-3.5" />}
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Question Order</span>
-                      <span className="text-[9px] text-slate-400 font-medium">{randomEnabled ? 'Randomly shuffled' : 'Sequential original'}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onToggleRandom(false)
-                        showLocalToast?.('Question Order: Sequential', 'info')
-                      }}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1",
-                        !randomEnabled
-                          ? "bg-indigo-600 text-white shadow-2xs font-black scale-105"
-                          : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
-                      )}
-                    >
-                      <ListOrdered className="w-3 h-3" />
-                      <span>Sequential</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onToggleRandom(true)
-                        showLocalToast?.('Question Order: Random Shuffle 🔀', 'info')
-                      }}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1",
-                        randomEnabled
-                          ? "bg-amber-500 text-white shadow-2xs font-black scale-105"
-                          : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60"
-                      )}
-                    >
-                      <Shuffle className="w-3 h-3" />
-                      <span>Shuffle</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* ── Question Font Scale ── */}
+                {/* ── Direct Font Scale Selector (Optional Quick Pick) ── */}
                 {setFontSize && (
                   <div className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70">
-                    <div className="flex flex-col text-left">
-                      <span className="text-[11px] font-bold text-slate-800 leading-tight">Question Font Scale</span>
-                      <span className="text-[9px] text-slate-400 font-medium">Text size for questions</span>
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <Type className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-[11px] font-bold text-slate-700 leading-tight">Quick Font Scale</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {[
