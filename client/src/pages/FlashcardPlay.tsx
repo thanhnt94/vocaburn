@@ -68,6 +68,8 @@ import {
 } from '@/components/flashcard'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useCardAI } from '@/hooks/useCardAI'
+import { useFlashcardGestures } from '@/hooks/useFlashcardGestures'
+import { useFlashcardKeyboard } from '@/hooks/useFlashcardKeyboard'
 
 export default function FlashcardPlay() {
   const { id, mode, subMode } = useParams()
@@ -654,15 +656,6 @@ export default function FlashcardPlay() {
   const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
 
-  const cardDragControls = useAnimationControls()
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
-  const [activeDragGrade, setActiveDragGrade] = useState<{
-    direction: 'again' | 'hard' | 'good' | 'easy' | 'next' | 'undo';
-    grade: number;
-    label: string;
-    color: string;
-  } | null>(null)
-  const [isFlyingOut, setIsFlyingOut] = useState(false)
   const [isFlyToolbarOpen, setIsFlyToolbarOpen] = useState(false)
   const [isAutoAdvance, setIsAutoAdvance] = useState(false)
   const [autoNextSec, setAutoNextSec] = useState<number | null>(null)
@@ -683,12 +676,6 @@ export default function FlashcardPlay() {
       setIsAutoAdvance(Boolean(quickLearnEnabled))
     }
   }, [quickLearnEnabled])
-  useEffect(() => {
-    setDragOffset({ x: 0, y: 0 })
-    setActiveDragGrade(null)
-    setIsFlyingOut(false)
-    cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 })
-  }, [currentIndex, isFlipped])
 
   const backScrollRef = useRef<HTMLDivElement>(null)
   const [hasBackOverflow, setHasBackOverflow] = useState(false)
@@ -919,6 +906,39 @@ export default function FlashcardPlay() {
   }, [saveGeneralSettings, showLocalToast]);
 
   const hasRated = activelyRatedCurrentCard || (sessionAnswers[currentIndex] !== undefined && !isCardUnlocked)
+
+  const isNonRatingMode = isSpeedSkimMode || activeMode === 'flip';
+  const canDragSkim = Boolean(swipeToRate && !isSelectMode && isFlipped && isNonRatingMode);
+  const canDragRate = Boolean(swipeToRate && !isSelectMode && isFlipped && !hasRated && !isNonRatingMode && activeMode !== 'autoplay');
+  const canDragPostRate = Boolean(swipeToRate && !isSelectMode && hasRated && !isNonRatingMode && activeMode !== 'autoplay');
+  const isCardDraggable = canDragRate || canDragPostRate || canDragSkim;
+
+  const {
+    cardDragControls,
+    dragOffset,
+    setDragOffset,
+    activeDragGrade,
+    setActiveDragGrade,
+    isFlyingOut,
+    setIsFlyingOut,
+    resetDragState,
+    handleCardDrag,
+    handleCardDragEnd
+  } = useFlashcardGestures({
+    isSelectMode,
+    isCardDraggable,
+    isNonRatingMode,
+    hasRated: Boolean(hasRated),
+    effectiveAutoAdvance: Boolean(effectiveAutoAdvance),
+    onRate: (grade: number, autoAdvance?: boolean) => handleReviewRating(grade, autoAdvance),
+    onNext: () => handleNext(),
+    onUndo: () => handleUndoRating(),
+    onFlipBack: () => setIsFlipped(false)
+  });
+
+  useEffect(() => {
+    resetDragState();
+  }, [currentIndex, isFlipped, resetDragState]);
 
   const getFilteredCount = (mode: string) => {
     if (!session?.questions) return 0;
@@ -1838,271 +1858,6 @@ export default function FlashcardPlay() {
     }
   }
 
-  const isNonRatingMode = isSpeedSkimMode || activeMode === 'flip';
-  const canDragSkim = swipeToRate && !isSelectMode && isFlipped && isNonRatingMode && !isFlyingOut;
-  const canDragRate = swipeToRate && !isSelectMode && isFlipped && !hasRated && !isNonRatingMode && activeMode !== 'autoplay' && !isFlyingOut;
-  const canDragPostRate = swipeToRate && !isSelectMode && hasRated && !isNonRatingMode && activeMode !== 'autoplay' && !isFlyingOut;
-  const isCardDraggable = canDragRate || canDragPostRate || canDragSkim;
-
-  const handleCardDrag = (
-    _event: MouseEvent | TouchEvent | PointerEvent,
-    info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
-  ) => {
-    if (isSelectMode || !isCardDraggable) return;
-    const dx = info.offset.x;
-    const dy = info.offset.y;
-    setDragOffset({ x: dx, y: dy });
-
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-    const dist = Math.hypot(dx, dy);
-
-    // ════════ SKIM / FLIP MODE GESTURES: Right = NEXT CARD, Left = FLIP BACK ════════
-    if (isNonRatingMode) {
-      if (absX < 40 || absY > absX * 0.7) {
-        setActiveDragGrade(null);
-        return;
-      }
-      if (dx > 0) {
-        setActiveDragGrade({ direction: 'next', grade: 0, label: 'NEXT CARD', color: 'emerald' });
-      } else {
-        setActiveDragGrade({ direction: 'undo', grade: 0, label: 'FLIP BACK', color: 'amber' });
-      }
-      return;
-    }
-
-    // ════════ POST-RATING GESTURES: Right = NEXT CARD, Left = UNDO ════════
-    if (hasRated) {
-      if (absX < 40 || absY > absX * 0.7) {
-        setActiveDragGrade(null);
-        return;
-      }
-      if (dx > 0) {
-        setActiveDragGrade({ direction: 'next', grade: 0, label: 'NEXT CARD', color: 'emerald' });
-      } else {
-        setActiveDragGrade({ direction: 'undo', grade: 0, label: 'UNDO', color: 'amber' });
-      }
-      return;
-    }
-
-    // ════════ UNRATED CARD: 4-Way Compass Swipe ════════
-    // Left=Again (1), Down=Hard (2), Right=Good (3), Up=Easy (4)
-    if (dist < 35) {
-      setActiveDragGrade(null);
-    } else if (absX > absY) {
-      if (dx < 0) {
-        setActiveDragGrade({ direction: 'again', grade: 1, label: 'AGAIN', color: 'rose' });
-      } else {
-        setActiveDragGrade({ direction: 'good', grade: 3, label: 'GOOD', color: 'indigo' });
-      }
-    } else {
-      if (dy > 0) {
-        setActiveDragGrade({ direction: 'hard', grade: 2, label: 'HARD', color: 'amber' });
-      } else {
-        setActiveDragGrade({ direction: 'easy', grade: 4, label: 'EASY', color: 'emerald' });
-      }
-    }
-  };
-
-  const handleCardDragEnd = (
-    _event: MouseEvent | TouchEvent | PointerEvent,
-    info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
-  ) => {
-    if (!isCardDraggable || !activeDragGrade) {
-      cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
-      setDragOffset({ x: 0, y: 0 });
-      setActiveDragGrade(null);
-      return;
-    }
-
-    const dx = info.offset.x;
-    const dy = info.offset.y;
-    const vx = info.velocity.x;
-    const vy = info.velocity.y;
-    const dir = activeDragGrade.direction;
-
-    // ════════ POST-RATING / SKIM COMMITMENT ════════
-    if (hasRated || isNonRatingMode) {
-      // If movement was largely vertical (scrolling), cancel swipe commitment
-      if (Math.abs(dy) > Math.abs(dx) * 0.7) {
-        cardDragControls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 500, damping: 32 } }).catch(() => {});
-        setDragOffset({ x: 0, y: 0 });
-        setActiveDragGrade(null);
-        return;
-      }
-
-      if (dir === 'next') {
-        const isCommitted = (dx >= 55 && vx >= -60 && Math.abs(dx) > Math.abs(dy) * 1.2) || (dx >= 30 && vx > 200 && Math.abs(dx) > Math.abs(dy) * 1.4);
-        if (isCommitted) {
-          setIsFlyingOut(true);
-          const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
-          const targetX = screenW * 1.35;
-          const targetY = (dy || 0) * 1.5;
-          const targetRotate = Math.max(18, Math.min(35, (dx * 0.12) || 25));
-
-          setActiveDragGrade(null);
-          setDragOffset({ x: 0, y: 0 });
-
-          // Play flyout animation safely (fire-and-forget, never hang on promise)
-          try {
-            cardDragControls.start({
-              x: targetX,
-              y: targetY,
-              opacity: 0,
-              rotate: targetRotate,
-              transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] }
-            }).catch(() => {});
-          } catch (e) {}
-
-          // Advance to next card via timer (guaranteed execution regardless of Framer Motion gesture state)
-          setTimeout(() => {
-            handleNext();
-          }, 160);
-
-          // Absolute failsafe: after 450ms, ensure the card state is never stuck off-screen or invisible
-          setTimeout(() => {
-            setIsFlyingOut(false);
-            try {
-              cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-            } catch (e) {}
-          }, 450);
-
-          return;
-        }
-      } else if (dir === 'undo') {
-        const isCommitted = (dx <= -55 && vx <= 60 && Math.abs(dx) > Math.abs(dy) * 1.2) || (dx <= -30 && vx < -200 && Math.abs(dx) > Math.abs(dy) * 1.4);
-        if (isCommitted) {
-          setActiveDragGrade(null);
-          setDragOffset({ x: 0, y: 0 });
-          cardDragControls.start({
-            x: 0,
-            y: 0,
-            rotate: 0,
-            transition: { type: 'spring', stiffness: 500, damping: 32 }
-          }).catch(() => {});
-          if (isNonRatingMode) {
-            setIsFlipped(false);
-          } else {
-            handleUndoRating();
-          }
-          return;
-        }
-      }
-
-      // Not committed: smooth spring back to center
-      cardDragControls.start({
-        x: 0,
-        y: 0,
-        rotate: 0,
-        transition: { type: 'spring', stiffness: 500, damping: 32 }
-      }).catch(() => {});
-      setDragOffset({ x: 0, y: 0 });
-      setActiveDragGrade(null);
-      return;
-    }
-
-    // ════════ UNRATED CARD COMMITMENT ════════
-    // Responsive commitment check:
-    // If user dragged at least 55px in direction, or flicked fast outward: commit!
-    let isCommitted = false;
-    if (dir === 'good') {
-      isCommitted = (dx >= 55 && vx >= -60) || (dx >= 25 && vx > 200);
-    } else if (dir === 'again') {
-      isCommitted = (dx <= -55 && vx <= 60) || (dx <= -25 && vx < -200);
-    } else if (dir === 'hard') {
-      isCommitted = (dy >= 55 && vy >= -60) || (dy >= 25 && vy > 200);
-    } else if (dir === 'easy') {
-      isCommitted = (dy <= -55 && vy <= 60) || (dy <= -25 && vy < -200);
-    }
-
-    if (isCommitted) {
-      const targetGrade = activeDragGrade.grade;
-
-      if (effectiveAutoAdvance) {
-        setIsFlyingOut(true);
-
-        // Organic Tinder-like diagonal flyout trajectory:
-        let targetX = 0;
-        let targetY = 0;
-        let targetRotate = 0;
-
-        const screenW = typeof window !== 'undefined' ? window.innerWidth : 450;
-        const screenH = typeof window !== 'undefined' ? window.innerHeight : 800;
-
-        if (dir === 'good') {
-          targetX = screenW * 1.35;
-          targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
-          targetRotate = Math.max(18, Math.min(35, (dx * 0.12) || 25));
-        } else if (dir === 'again') {
-          targetX = -screenW * 1.35;
-          targetY = (dy || 0) * 1.6 + (dy >= 0 ? 30 : -30);
-          targetRotate = -Math.max(18, Math.min(35, (Math.abs(dx) * 0.12) || 25));
-        } else if (dir === 'hard') {
-          targetY = screenH * 0.95;
-          targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
-          targetRotate = dx >= 0 ? 12 : -12;
-        } else if (dir === 'easy') {
-          targetY = -screenH * 0.95;
-          targetX = (dx || 0) * 1.5 + (dx >= 0 ? 40 : -40);
-          targetRotate = dx >= 0 ? -12 : 12;
-        }
-
-        // Clear the stamp badge & offset
-        setActiveDragGrade(null);
-        setDragOffset({ x: 0, y: 0 });
-
-        // Play flyout animation safely (fire-and-forget, will never reject or crash!)
-        try {
-          cardDragControls.start({
-            x: targetX,
-            y: targetY,
-            opacity: 0,
-            rotate: targetRotate,
-            transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
-          }).catch(() => {});
-        } catch (e) {}
-
-        // Immediately submit rating! This marks selectedOption (removing the 4 buttons)
-        // and triggers handleNext to load the next question at the end of the flyout!
-        handleReviewRating(targetGrade, true);
-
-        // Absolute failsafe: ensure card is never stuck off-screen
-        setTimeout(() => {
-          setIsFlyingOut(false);
-          try {
-            cardDragControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-          } catch (e) {}
-        }, 500);
-      } else {
-        // Auto Next is OFF:
-        // Do NOT fly out off-screen. Animate card back to center and submit rating without auto-advancing
-        setIsFlyingOut(false);
-        setActiveDragGrade(null);
-        setDragOffset({ x: 0, y: 0 });
-        cardDragControls.start({
-          x: 0,
-          y: 0,
-          rotate: 0,
-          opacity: 1,
-          transition: { type: 'spring', stiffness: 500, damping: 32 }
-        }).catch(() => {});
-
-        // Submit rating with autoAdvance = false (stays on back face, showing rated state & Next Card button)
-        handleReviewRating(targetGrade, false);
-      }
-    } else {
-      // Cancelled or dragged lightly: smooth spring back to center
-      cardDragControls.start({
-        x: 0,
-        y: 0,
-        rotate: 0,
-        transition: { type: 'spring', stiffness: 500, damping: 32 }
-      }).catch(() => {});
-      setDragOffset({ x: 0, y: 0 });
-      setActiveDragGrade(null);
-    }
-  };
-
   const handleUndoRating = async () => {
     if (autoAdvanceTimerRef.current) {
       clearTimeout(autoAdvanceTimerRef.current);
@@ -2969,153 +2724,39 @@ export default function FlashcardPlay() {
   };
 
   // ── Desktop Keyboard Navigation Shortcuts ──
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore when user is typing in an input, textarea, or contentEditable
-      const target = e.target as HTMLElement;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      // Ignore when modals or drawers are open
-      if (
-        isFeedbackOpen ||
-        isMapOpen ||
-        isStatsOpen ||
-        isEditModalOpen ||
-        isQuitModalOpen ||
-        isSessionSummaryOpen ||
-        isSettingsModalOpen
-      ) {
-        return;
-      }
-
-      // AutoPlay mode pause/resume shortcut (KeyP or Space when in autoplay)
-      if (activeMode === 'autoplay' && (e.code === 'KeyP' || e.code === 'Space')) {
-        e.preventDefault();
-        setIsAutoPlayPaused(prev => !prev);
-        return;
-      }
-
-      // Escape or Backspace: Flip back to front face if currently flipped
-      if (e.code === 'Escape' || e.code === 'Backspace') {
-        if (isFlipped && !hasRated && activeMode !== 'practice') {
-          e.preventDefault();
-          setIsFlipped(false);
-          return;
-        }
-      }
-
-      // Space or Enter:
-      // If card is not flipped -> flip it
-      // If card is flipped & has rated -> go to next card
-      if (e.code === 'Space' || e.code === 'Enter') {
-        e.preventDefault();
-        if (!isFlipped) {
-          setIsFlipped(true);
-          setShowFeedback(true);
-          setJustAnswered(true);
-        } else if (hasRated || activeMode === 'flip' || isSpeedSkimMode) {
-          handleNext();
-        }
-        return;
-      }
-
-      // Number keys 1, 2, 3, 4 for FSRS Rating when flipped
-      if (isFlipped && !hasRated && activeMode !== 'flip' && !isSpeedSkimMode && activeMode !== 'autoplay') {
-        if (e.code === 'Digit1' || e.code === 'Numpad1') {
-          e.preventDefault();
-          handleReviewRating(1);
-          return;
-        }
-        if (e.code === 'Digit2' || e.code === 'Numpad2') {
-          e.preventDefault();
-          handleReviewRating(2);
-          return;
-        }
-        if (e.code === 'Digit3' || e.code === 'Numpad3') {
-          e.preventDefault();
-          handleReviewRating(3);
-          return;
-        }
-        if (e.code === 'Digit4' || e.code === 'Numpad4') {
-          e.preventDefault();
-          handleReviewRating(4);
-          return;
-        }
-      }
-
-      // Key R: Replay audio
-      if (e.code === 'KeyR') {
-        e.preventDefault();
-        if (isFlipped) {
-          playCardAudio('back');
-        } else {
-          playCardAudio('front');
-        }
-        return;
-      }
-
-      // Key Z: Undo last rating
-      if ((e.code === 'KeyZ' || (e.ctrlKey && e.code === 'KeyZ')) && activelyRatedCurrentCard) {
-        e.preventDefault();
-        handleUndoRating();
-        return;
-      }
-
-      // Key S: Star question
-      if (e.code === 'KeyS') {
-        e.preventDefault();
-        handleStarQuestion();
-        return;
-      }
-
-      // Key H: Show Hint
-      if (e.code === 'KeyH') {
-        e.preventDefault();
-        handleToggleHint();
-        return;
-      }
-
-      // ArrowLeft: Prev card (in autoplay)
-      if (e.code === 'ArrowLeft' && activeMode === 'autoplay') {
-        e.preventDefault();
-        handlePrev();
-        return;
-      }
-
-      // ArrowRight: Next card (if rated or flip mode or speed_skim or autoplay)
-      if (e.code === 'ArrowRight' && (hasRated || activeMode === 'flip' || isSpeedSkimMode || activeMode === 'autoplay')) {
-        e.preventDefault();
-        handleNext();
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [
-    isFlipped,
-    hasRated,
+  useFlashcardKeyboard({
+    isModalOpen: Boolean(
+      isFeedbackOpen ||
+      isMapOpen ||
+      isStatsOpen ||
+      isEditModalOpen ||
+      isQuitModalOpen ||
+      isSessionSummaryOpen ||
+      isSettingsModalOpen
+    ),
     activeMode,
+    isFlipped,
+    hasRated: Boolean(hasRated),
     isSpeedSkimMode,
     activelyRatedCurrentCard,
-    currentQuestion,
-    isFeedbackOpen,
-    isMapOpen,
-    isStatsOpen,
-    isEditModalOpen,
-    isQuitModalOpen,
-    isSessionSummaryOpen,
-    isSettingsModalOpen
-  ]);
+    toggleAutoPlayPause: () => setIsAutoPlayPaused(prev => !prev),
+    onFlip: () => {
+      setIsFlipped(true);
+      setShowFeedback(true);
+      setJustAnswered(true);
+    },
+    onFlipBack: () => setIsFlipped(false),
+    onNext: handleNext,
+    onPrev: handlePrev,
+    onRate: handleReviewRating,
+    onReplayAudio: () => {
+      if (isFlipped) playCardAudio('back');
+      else playCardAudio('front');
+    },
+    onUndo: handleUndoRating,
+    onToggleStar: handleStarQuestion,
+    onToggleHint: handleToggleHint
+  });
 
   const openEditModal = () => {
     if (!currentQuestion) return

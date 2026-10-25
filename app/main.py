@@ -155,17 +155,27 @@ async def serve_sw():
         sw_path = os.path.join(BASE_DIR, "..", "client", "public", "sw.js")
     if os.path.exists(sw_path):
         from fastapi.responses import FileResponse
-        return FileResponse(sw_path, media_type="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+        return FileResponse(
+            sw_path, 
+            media_type="application/javascript", 
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Service-Worker-Allowed": "/"
+            }
+        )
     raise HTTPException(status_code=404, detail="Service worker file not found")
 
 @app.get("/")
 @app.get("/login")
 @app.get("/dashboard")
+@app.get("/decks")
+@app.get("/decks/{path:path}")
 @app.get("/library")
 @app.get("/library/{path:path}")
 @app.get("/quiz/{path:path}")
 @app.get("/flashcard/{path:path}")
 @app.get("/practice/{path:path}")
+@app.get("/hybrid/{path:path}")
 @app.get("/profile")
 @app.get("/stats")
 @app.get("/settings")
@@ -204,6 +214,21 @@ async def catch_all_spa(request: Request, full_path: str):
     # Ignore API or static requests that reach here to return 404 JSON
     if full_path.startswith("api/") or full_path.startswith("static/") or full_path.startswith("uploads/") or full_path.startswith("mascot/"):
         raise HTTPException(status_code=404, detail="Not Found")
+    
+    # Check if a public/root asset exists in DIST_DIR (e.g. manifest.json, manifest.webmanifest, pwa icons, favicon)
+    asset_file = os.path.join(DIST_DIR, full_path)
+    if os.path.isfile(asset_file):
+        from fastapi.responses import FileResponse
+        content_type = None
+        if full_path.endswith(".json") or full_path.endswith(".webmanifest"):
+            content_type = "application/manifest+json"
+        elif full_path.endswith(".png"):
+            content_type = "image/png"
+        elif full_path.endswith(".ico"):
+            content_type = "image/x-icon"
+        elif full_path.endswith(".svg"):
+            content_type = "image/svg+xml"
+        return FileResponse(asset_file, media_type=content_type)
     
     spa_index = os.path.join(DIST_DIR, "index.html")
     if os.path.exists(spa_index):

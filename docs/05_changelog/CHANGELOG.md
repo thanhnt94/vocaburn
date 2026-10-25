@@ -2,6 +2,24 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-26]
+#### Nâng Cấp Bảo Mật VPS, Triển Khai PWA Di Động & Phân Rã God-Components Frontend (FlashcardPlay & PracticePlay)
+- **1. Phân Rã & Tinh Gọn God-Components Frontend (`FlashcardPlay.tsx` & `PracticePlay.tsx`)**:
+  - **`useFlashcardGestures.ts`**: Bóc tách toàn bộ bộ tính toán cử chỉ kéo vuốt thẻ 4 hướng (compass swipe-to-rate: Again/Hard/Good/Easy), tính toán ngưỡng cam kết động (dynamic velocity & drag commitment), và hiệu ứng văng thẻ Tinder-style flyout trajectory.
+  - **`useFlashcardKeyboard.ts`**: Bóc tách toàn bộ phím tắt máy tính (FSRS 1-4, Space/Enter lật thẻ, R phát âm, Z hoàn tác điểm số, S gắn sao, H gợi ý, phím mũi tên điều hướng).
+  - **Deduplication**: Chuyển giao các hàm tiện ích (`parseUTCDate`, `formatRelativeTime`, `formatOverdueTime`, `getFSRSIntervals`, `getMapTitleInfo`) vào `@/lib/flashcard-utils`, giảm thiểu hàng trăm dòng mã trùng lặp trong cả 2 màn hình học tập chính.
+  - Đảm bảo 100% Type Safety qua `tsc --noEmit` với 0 lỗi phát sinh.
+- **2. Khắc Phục Lỗ Hổng Bảo Mật & SECRET_KEY VPS Production**:
+  - Tự động sinh khóa bí mật ngẫu nhiên mã hóa mạnh 64-hex ký tự (`secrets.token_hex(32)`) và ghi vào file cấu hình môi trường `/var/www/Vocaburn/.env` trên máy chủ VPS.
+  - Cập nhật `app/core/config.py` để nạp chính xác `SECRET_KEY` từ biến môi trường của hệ điều hành và tệp `.env`.
+  - Bổ sung tài liệu mẫu `.env.example` cho các môi trường triển khai tiếp theo.
+  - Triệt tiêu dứt điểm cảnh báo an ninh `⚠️ SECURITY WARNING: SECRET_KEY is set to default placeholder` trong log runtime Gunicorn.
+- **3. Triển Khai Hoàn Hảo Ứng Dụng Web Lũy Tiến PWA (Progressive Web App)**:
+  - Cung cấp `manifest.webmanifest` & `manifest.json` đầy đủ metadata, cấu hình hiển thị `standalone` (toàn màn hình không thanh URL trình duyệt), màu nền theme `#0f172a`, icon Vocaburn chất lượng cao và app shortcuts vào các chế độ học tập.
+  - Xây dựng Service Worker (`sw.js`) chuyên dụng với chiến lược stale-while-revalidate để cache app shell tĩnh (HTML, CSS, JS, logo mascot) giúp ứng dụng phản hồi siêu tốc kể cả khi mạng chập chờn.
+  - Bổ sung thẻ `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent` và icon Apple touch icon đem lại trải nghiệm mượt mà như app native trên iOS Safari.
+  - Thiết lập FastAPI headers `Service-Worker-Allowed: /` và `Cache-Control: no-cache` cho các tệp PWA.
+
 ### [2026-10-25]
 #### Tái Thiết Kế Stats & Settings theo Chuẩn Apple / Linear Minimalist, Deep System Audit & Khắc Phục Lỗi Điều Hướng Routing
 - **Tái thiết kế toàn diện Phân hệ Stats (`/stats`)**:

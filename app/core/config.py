@@ -1,7 +1,10 @@
 import os
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
-
+# Explicitly load .env from project root
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ENV_PATH = os.path.join(_PROJECT_ROOT, ".env")
+if os.path.exists(_ENV_PATH):
+    load_dotenv(_ENV_PATH)
 load_dotenv()
 
 class Settings(BaseSettings):
