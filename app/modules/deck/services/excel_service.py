@@ -531,6 +531,8 @@ class ExcelDeckService:
                     mode = str(row.get("mode", "")).strip().lower()
                     q_col = str(row.get("question_column") or row.get("question") or row.get("cột câu hỏi") or row.get("q", "")).strip()
                     a_col = str(row.get("answer_column") or row.get("answer") or row.get("cột đáp án") or row.get("a", "")).strip()
+                    audio_col_raw = row.get("audio_column") or row.get("audio_col") or row.get("cột âm thanh") or row.get("audio_target") or row.get("audio", "")
+                    audio_col = str(audio_col_raw).strip() if pd.notna(audio_col_raw) and str(audio_col_raw).strip().lower() != "nan" else ""
                     num_c = row.get("num_choices") or row.get("choices") or row.get("số lựa chọn")
                     enabled_raw = row.get("enabled") if "enabled" in row else row.get("kích hoạt", True)
 
@@ -558,6 +560,7 @@ class ExcelDeckService:
                             "a": a_col,
                             "prompt_col": q_col,
                             "answer_col": a_col,
+                            "audio_col": audio_col,
                             "name": f"{q_col} ➜ {a_col}"
                         })
                         metadata["practice_settings"]["mcq"]["num_choices"] = num_choices
@@ -570,6 +573,7 @@ class ExcelDeckService:
                                 "a": a_targets,
                                 "prompt_col": q_col,
                                 "answer_col": a_targets,
+                                "audio_col": audio_col,
                                 "name": f"{q_col} ➜ {'/'.join(a_targets)}"
                             })
                         else:
@@ -578,6 +582,7 @@ class ExcelDeckService:
                                 "a": a_col,
                                 "prompt_col": q_col,
                                 "answer_col": a_col,
+                                "audio_col": audio_col,
                                 "name": f"{q_col} ➜ {a_col}"
                             })
                     elif mode in ("listening", "nghe", "listen", "audio_mcq", "listening_mcq"):
@@ -586,6 +591,7 @@ class ExcelDeckService:
                             "a": a_col,
                             "prompt_col": q_col,
                             "answer_col": a_col,
+                            "audio_col": audio_col,
                             "name": f"{q_col} ➜ {a_col}"
                         })
                         metadata["practice_settings"]["listening"]["num_choices"] = num_choices
@@ -599,6 +605,7 @@ class ExcelDeckService:
                                 "a": a_targets,
                                 "prompt_col": q_col,
                                 "answer_col": a_targets,
+                                "audio_col": audio_col,
                                 "name": f"{q_col} ➜ {'/'.join(a_targets)}"
                             })
                         else:
@@ -607,6 +614,7 @@ class ExcelDeckService:
                                 "a": a_col,
                                 "prompt_col": q_col,
                                 "answer_col": a_col,
+                                "audio_col": audio_col,
                                 "name": f"{q_col} ➜ {a_col}"
                             })
 
@@ -667,6 +675,10 @@ class ExcelDeckService:
                     name = str(row.get("config_name") or row.get("name") or row.get("tên cấu hình") or "Audio").strip()
                     src_col = str(row.get("source_text_column") or row.get("source_col") or row.get("text_col") or row.get("cột văn bản nguồn") or "").strip()
                     url_col = str(row.get("target_audio_url_column") or row.get("url_col") or row.get("audio_url_col") or row.get("cột url audio") or "").strip()
+                    data_col_raw = row.get("data_column") or row.get("data_col") or row.get("cột dữ liệu") or row.get("cột mặt thẻ") or ""
+                    data_col = str(data_col_raw).strip() if pd.notna(data_col_raw) and str(data_col_raw).strip().lower() != "nan" else ""
+                    if not data_col:
+                        data_col = "front" if "front" in src_col.lower() else ("back" if "back" in src_col.lower() else src_col)
                     lang = str(row.get("language_or_voice") or row.get("lang") or row.get("voice") or row.get("ngôn ngữ") or "multi").strip()
                     enabled_raw = row.get("enabled") if "enabled" in row else row.get("kích hoạt", True)
 
@@ -680,6 +692,7 @@ class ExcelDeckService:
                         enabled = str(enabled_raw).strip().lower() not in ("false", "0", "no", "n", "tắt")
 
                     audio_pairs.append({
+                        "data_col": data_col,
                         "text_col": src_col,
                         "audio_content_col": src_col,
                         "audio_url_col": url_col,
@@ -689,6 +702,7 @@ class ExcelDeckService:
                     audio_configs.append({
                         "id": cfg_id,
                         "name": name,
+                        "data_col": data_col,
                         "source_col": src_col,
                         "url_col": url_col,
                         "lang": lang,
@@ -1065,11 +1079,13 @@ class ExcelDeckService:
                 if isinstance(p, dict):
                     q = p.get("q") or p.get("prompt_col", "")
                     a = p.get("a") or p.get("answer_col", "")
+                    aud_c = p.get("audio_col", "")
                     if q and a:
                         practice_rows.append({
                             "Mode": "mcq",
                             "Question_Column": q,
                             "Answer_Column": a,
+                            "Audio_Column": aud_c,
                             "Num_Choices": mcq_choices,
                             "Enabled": "TRUE",
                             "Description": "Multiple Choice Quiz"
@@ -1083,11 +1099,13 @@ class ExcelDeckService:
                     if isinstance(p, dict):
                         q = p.get("q") or p.get("prompt_col", "")
                         a = p.get("a") or p.get("answer_col", "")
+                        aud_c = p.get("audio_col", "")
                         if q and a:
                             practice_rows.append({
                                 "Mode": "mcq",
                                 "Question_Column": q,
                                 "Answer_Column": a,
+                                "Audio_Column": aud_c,
                                 "Num_Choices": root_choices,
                                 "Enabled": "TRUE",
                                 "Description": "Multiple Choice Quiz"
@@ -1101,6 +1119,7 @@ class ExcelDeckService:
                 if isinstance(p, dict):
                     q = p.get("q") or p.get("prompt_col", "")
                     a = p.get("a") or p.get("answer_col", "")
+                    aud_c = p.get("audio_col", "")
                     if isinstance(a, list):
                         a_str = ", ".join([str(x).strip() for x in a if str(x).strip()])
                     else:
@@ -1110,6 +1129,7 @@ class ExcelDeckService:
                             "Mode": "typing",
                             "Question_Column": q,
                             "Answer_Column": a_str,
+                            "Audio_Column": aud_c,
                             "Num_Choices": "",
                             "Enabled": "TRUE",
                             "Description": "Typing Practice"
@@ -1124,17 +1144,19 @@ class ExcelDeckService:
                 if isinstance(p, dict):
                     q = p.get("q") or p.get("prompt_col", "")
                     a = p.get("a") or p.get("answer_col", "")
+                    aud_c = p.get("audio_col", "")
                     if q and a:
                         practice_rows.append({
                             "Mode": "listening",
                             "Question_Column": q,
                             "Answer_Column": a,
+                            "Audio_Column": aud_c,
                             "Num_Choices": listening_choices,
                             "Enabled": "TRUE",
                             "Description": "Listening Practice"
                         })
                         
-        practice_cols = ["Mode", "Question_Column", "Answer_Column", "Num_Choices", "Enabled", "Description"]
+        practice_cols = ["Mode", "Question_Column", "Answer_Column", "Audio_Column", "Num_Choices", "Enabled", "Description"]
         df_practice = pd.DataFrame(practice_rows, columns=practice_cols) if practice_rows else pd.DataFrame(columns=practice_cols)
         
         # 3. Prepare AI_Prompts sheet rows
@@ -1185,6 +1207,7 @@ class ExcelDeckService:
                 if isinstance(ac, dict):
                     audio_rows.append({
                         "Config_Name": ac.get("name") or "Audio",
+                        "Data_Column": ac.get("data_col") or "front",
                         "Source_Text_Column": ac.get("source_col") or ac.get("text_col", ""),
                         "Target_Audio_URL_Column": ac.get("url_col") or ac.get("audio_url_col", ""),
                         "Language_Or_Voice": ac.get("lang") or ac.get("voice", "multi"),
@@ -1199,6 +1222,7 @@ class ExcelDeckService:
                     lang = ap.get("lang", "multi")
                     audio_rows.append({
                         "Config_Name": f"TTS_{src}",
+                        "Data_Column": ap.get("data_col") or src,
                         "Source_Text_Column": src,
                         "Target_Audio_URL_Column": url_col,
                         "Language_Or_Voice": lang,
@@ -1211,6 +1235,7 @@ class ExcelDeckService:
         if isinstance(front_cfg, dict) and not any("front" in r["Config_Name"].lower() for r in audio_rows):
             audio_rows.append({
                 "Config_Name": "Front Audio",
+                "Data_Column": front_cfg.get("data_col", "front"),
                 "Source_Text_Column": front_cfg.get("audio_content_col") or front_cfg.get("source_col", "front"),
                 "Target_Audio_URL_Column": front_cfg.get("audio_url_col", "front_audio_url"),
                 "Language_Or_Voice": front_cfg.get("lang") or front_cfg.get("voice", "ja-JP"),
@@ -1221,6 +1246,7 @@ class ExcelDeckService:
         if isinstance(back_cfg, dict) and not any("back" in r["Config_Name"].lower() for r in audio_rows):
             audio_rows.append({
                 "Config_Name": "Back Audio",
+                "Data_Column": back_cfg.get("data_col", "back"),
                 "Source_Text_Column": back_cfg.get("audio_content_col") or back_cfg.get("source_col", "back"),
                 "Target_Audio_URL_Column": back_cfg.get("audio_url_col", "back_audio_url"),
                 "Language_Or_Voice": back_cfg.get("lang") or back_cfg.get("voice", "vi-VN"),
@@ -1228,7 +1254,7 @@ class ExcelDeckService:
                 "Enabled": "TRUE" if back_cfg.get("enabled", True) else "FALSE"
             })
             
-        audio_cols = ["Config_Name", "Source_Text_Column", "Target_Audio_URL_Column", "Language_Or_Voice", "Speech_Rate", "Enabled"]
+        audio_cols = ["Config_Name", "Data_Column", "Source_Text_Column", "Target_Audio_URL_Column", "Language_Or_Voice", "Speech_Rate", "Enabled"]
         df_audio = pd.DataFrame(audio_rows, columns=audio_cols) if audio_rows else pd.DataFrame(columns=audio_cols)
         
         # 5. Prepare Collaborators sheet rows

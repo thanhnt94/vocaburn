@@ -313,7 +313,7 @@ export default function PracticePlay() {
     window.speechSynthesis.cancel();
 
     const qAny = currentQuestion as any;
-    const effectiveSettings = session?.practice_settings || session?.creator_settings || {};
+    const effectiveSettings = session?.practice_settings || session?.creator_settings || modeSettings || {};
     const cfg = resolveAudioConfig(face, effectiveSettings);
 
     if (!cfg.enabled) {
@@ -346,7 +346,7 @@ export default function PracticePlay() {
     }
 
     // Lazily generate audio only if missing
-    if (!audioUrl && currentQuestion.id && script && script.trim()) {
+    if (!audioUrl && currentQuestion.id) {
       try {
         console.log(`[CLIENT TTS] Audio link missing. Requesting TTS generation for question ${currentQuestion.id} (${face})...`);
         const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${encodeURIComponent(face)}`);

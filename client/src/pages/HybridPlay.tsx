@@ -589,7 +589,10 @@ export default function HybridPlay() {
     }
 
     // Auto-play audio on answer if configured
-    const targetAudioCol = currentPracticeData?.audio_col || 'front'
+    const rawAKey = currentPracticeData?.answer_key || 'front'
+    const aKey = Array.isArray(rawAKey) ? (rawAKey[0] || 'front') : rawAKey
+    const configuredAudioCol = currentPracticeData?.audio_col
+    const targetAudioCol = (configuredAudioCol && String(configuredAudioCol).trim()) ? String(configuredAudioCol).trim() : aKey
     if (targetAudioCol !== 'none' && targetAudioCol !== 'off' && targetAudioCol !== 'disabled') {
       playCardAudio(targetAudioCol)
     }

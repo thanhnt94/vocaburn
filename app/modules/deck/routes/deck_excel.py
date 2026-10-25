@@ -437,11 +437,28 @@ async def import_text_update(request: Request, deck_id: int, data: dict, db: Asy
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 async def generate_single_card_audio_helper(c, face: str, force: bool, db: AsyncSession) -> Optional[str]:
+    # Ensure c.others is a dictionary if serialized as string
+    if isinstance(c.others, str):
+        try:
+            c.others = json.loads(c.others)
+        except Exception:
+            c.others = {}
+    elif c.others is None:
+        c.others = {}
+
     # Select text based on face and deck audio_configs
     text = ""
     target_url_col = ""
     norm_face = (face or "front").strip().lower()
-    is_custom = norm_face not in ("front", "back")
+    clean_base_face = norm_face
+    if clean_base_face.endswith("_audio_url"):
+        clean_base_face = clean_base_face[:-10]
+    elif clean_base_face.endswith("_audio_content"):
+        clean_base_face = clean_base_face[:-14]
+    elif clean_base_face == "audio":
+        clean_base_face = "front"
+
+    is_custom = clean_base_face not in ("front", "back")
 
     from app.modules.deck.models import FlashcardDeck
     deck_res = await db.execute(select(FlashcardDeck).where(FlashcardDeck.id == c.deck_id))
@@ -462,21 +479,21 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             # 1. Match by data_col FIRST (this is the display column selected by user)
             matched_cfg = next((
                 cfg for cfg in audio_configs
-                if str(cfg.get("data_col") or "").strip().lower() == norm_face
+                if str(cfg.get("data_col") or "").strip().lower() in (norm_face, clean_base_face)
             ), None)
             # 2. Match by source_col
             if not matched_cfg:
                 matched_cfg = next((
                     cfg for cfg in audio_configs
-                    if str(cfg.get("source_col") or "").strip().lower() == norm_face
-                    or str(cfg.get("audio_content_col") or "").strip().lower() == norm_face
+                    if str(cfg.get("source_col") or "").strip().lower() in (norm_face, clean_base_face)
+                    or str(cfg.get("audio_content_col") or "").strip().lower() in (norm_face, clean_base_face)
                 ), None)
             # 3. Match by url_col
             if not matched_cfg:
                 matched_cfg = next((
                     cfg for cfg in audio_configs
-                    if str(cfg.get("url_col") or "").strip().lower() == norm_face
-                    or str(cfg.get("audio_url_col") or "").strip().lower() == norm_face
+                    if str(cfg.get("url_col") or "").strip().lower() in (norm_face, f"{clean_base_face}_audio_url")
+                    or str(cfg.get("audio_url_col") or "").strip().lower() in (norm_face, f"{clean_base_face}_audio_url")
                 ), None)
             # 4. Match by id
             if not matched_cfg:
@@ -486,9 +503,9 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                 ), None)
             # Fallbacks for standard front/back
             if not matched_cfg:
-                if norm_face == "front" and len(audio_configs) > 0:
+                if clean_base_face == "front" and len(audio_configs) > 0:
                     matched_cfg = audio_configs[0]
-                elif norm_face == "back" and len(audio_configs) > 1:
+                elif clean_base_face == "back" and len(audio_configs) > 1:
                     matched_cfg = audio_configs[1]
 
         if matched_cfg:
@@ -497,7 +514,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             target_url_col = matched_cfg.get("url_col") or matched_cfg.get("audio_url_col")
         else:
             if not is_custom:
-                cfg_key = "front_audio_config" if norm_face == "front" else "back_audio_config"
+                cfg_key = "front_audio_config" if clean_base_face == "front" else "back_audio_config"
                 cfg = ps.get(cfg_key, {})
                 if isinstance(cfg, dict):
                     target_lang = cfg.get("lang")
@@ -507,7 +524,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                 pairs = ps.get("audio_pairs", [])
                 pair = next((
                     p for p in pairs
-                    if str(p.get("text_col") or p.get("data_col") or "").strip().lower() == norm_face
+                    if str(p.get("text_col") or p.get("data_col") or "").strip().lower() in (norm_face, clean_base_face)
                 ), None)
                 if pair:
                     target_lang = pair.get("lang")
@@ -523,12 +540,12 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
 
     # Fallback default target_url_col
     if not target_url_col:
-        if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+        if clean_base_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
             target_url_col = "front_audio_url"
-        elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+        elif clean_base_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
             target_url_col = "back_audio_url"
         else:
-            target_url_col = f"{face}_audio_url"
+            target_url_col = f"{clean_base_face}_audio_url"
 
     # ── STEP 1: CHECK IF AUDIO URL ALREADY EXISTS (CACHE-FIRST) ──
     # If not force and card already has an audio link for this column, NEVER regenerate!
@@ -551,14 +568,14 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
 
         # 3. Check front / back standard fields
         if not existing_url:
-            if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+            if clean_base_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
                 if c.audio and str(c.audio).strip():
                     existing_url = str(c.audio).strip()
                 elif hasattr(c, "front_audio_url") and c.front_audio_url and str(c.front_audio_url).strip():
                     existing_url = str(c.front_audio_url).strip()
                 elif c.others and isinstance(c.others, dict) and c.others.get("front_audio_url"):
                     existing_url = str(c.others.get("front_audio_url")).strip()
-            elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+            elif clean_base_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
                 if hasattr(c, "back_audio_url") and c.back_audio_url and str(c.back_audio_url).strip():
                     existing_url = str(c.back_audio_url).strip()
                 elif c.others and isinstance(c.others, dict) and c.others.get("back_audio_url"):
@@ -609,7 +626,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             text = c.back_audio_content or (c.others.get("back_audio_content") if c.others and isinstance(c.others, dict) else None) or c.explanation
         elif c.others and isinstance(c.others, dict):
             for k, v in c.others.items():
-                if str(k).strip().lower() == norm_face and v and str(v).strip():
+                if str(k).strip().lower() in (norm_face, clean_base_face) and v and str(v).strip():
                     text = str(v).strip()
                     break
         if not text and hasattr(c, face):
@@ -630,9 +647,9 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
     folder_path = os.path.join(settings.VOCABURN_STORAGE_DIR, str(c.deck_id), "audio")
 
     if not is_custom:
-        filename = f"{c.id}_front.mp3" if norm_face == "front" else f"{c.id}_back.mp3"
+        filename = f"{c.id}_front.mp3" if clean_base_face == "front" else f"{c.id}_back.mp3"
     else:
-        safe_face = re.sub(r'[^a-zA-Z0-9_-]', '_', face)
+        safe_face = re.sub(r'[^a-zA-Z0-9_-]', '_', clean_base_face)
         filename = f"{c.id}_{safe_face}.mp3"
 
     physical_path = os.path.join(folder_path, filename)
@@ -644,9 +661,10 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
             c.others = {}
         if target_url_col:
             c.others[target_url_col] = url
-        if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+        if clean_base_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
             c.audio = url
-        elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+            c.front_audio_url = url
+        elif clean_base_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
             c.back_audio_url = url
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(c, "others")
@@ -698,9 +716,10 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
                         c.others = {}
                     if target_url_col:
                         c.others[target_url_col] = central_ref
-                    if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+                    if clean_base_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
                         c.audio = central_ref
-                    elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+                        c.front_audio_url = central_ref
+                    elif clean_base_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
                         c.back_audio_url = central_ref
 
                     from sqlalchemy.orm.attributes import flag_modified
@@ -736,9 +755,10 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
         c.others = {}
     if target_url_col:
         c.others[target_url_col] = url
-    if norm_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
+    if clean_base_face == "front" or (matched_cfg and matched_cfg.get("data_col") == "front"):
         c.audio = url
-    elif norm_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
+        c.front_audio_url = url
+    elif clean_base_face == "back" or (matched_cfg and matched_cfg.get("data_col") == "back"):
         c.back_audio_url = url
 
     from sqlalchemy.orm.attributes import flag_modified

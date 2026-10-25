@@ -31,6 +31,7 @@ async def generate_card_audio(card_id: int, request: Request, face: str = "front
     if not c:
         return JSONResponse(status_code=404, content={"error": "Card not found"})
         
+    from .deck_excel import generate_single_card_audio_helper
     url = await generate_single_card_audio_helper(c, face, force, db)
     if not url:
         return JSONResponse(status_code=500, content={"error": "Failed to generate audio"})

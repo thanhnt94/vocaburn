@@ -31,24 +31,40 @@ export function resolveAudioConfig(
       enabled: false,
     }
   }
+
+  // Normalize column alias if face is directly an audio URL or content field
+  let baseFace = normFace
+  if (baseFace.endsWith('_audio_url')) {
+    baseFace = baseFace.slice(0, -10)
+  } else if (baseFace.endsWith('_audio_content')) {
+    baseFace = baseFace.slice(0, -14)
+  } else if (baseFace === 'audio') {
+    baseFace = 'front'
+  }
+
   const audioConfigs = practiceSettings?.audio_configs || []
 
   let matched: any = null
 
   if (Array.isArray(audioConfigs) && audioConfigs.length > 0) {
     // 1. Direct match by display column (data_col) - highest priority
-    matched = audioConfigs.find((c: any) => String(c.data_col || '').trim().toLowerCase() === normFace)
+    matched = audioConfigs.find((c: any) => {
+      const dCol = String(c.data_col || '').trim().toLowerCase()
+      return dCol === normFace || dCol === baseFace
+    })
     // 2. Match by reading column (source_col)
     if (!matched) {
-      matched = audioConfigs.find((c: any) =>
-        String(c.source_col || c.audio_content_col || '').trim().toLowerCase() === normFace
-      )
+      matched = audioConfigs.find((c: any) => {
+        const sCol = String(c.source_col || c.audio_content_col || '').trim().toLowerCase()
+        return sCol === normFace || sCol === baseFace
+      })
     }
     // 3. Match by URL column (url_col)
     if (!matched) {
-      matched = audioConfigs.find((c: any) =>
-        String(c.url_col || c.audio_url_col || '').trim().toLowerCase() === normFace
-      )
+      matched = audioConfigs.find((c: any) => {
+        const uCol = String(c.url_col || c.audio_url_col || '').trim().toLowerCase()
+        return uCol === normFace || uCol === `${baseFace}_audio_url`
+      })
     }
     // 4. Match by config id
     if (!matched) {
@@ -56,26 +72,27 @@ export function resolveAudioConfig(
     }
     // Standard front / back fallbacks
     if (!matched) {
-      if (normFace === 'front' && audioConfigs.length > 0) {
+      if (baseFace === 'front' && audioConfigs.length > 0) {
         matched = audioConfigs.find((c: any) => String(c.data_col || '').trim().toLowerCase() === 'front') || audioConfigs[0]
-      } else if (normFace === 'back' && audioConfigs.length > 1) {
+      } else if (baseFace === 'back' && audioConfigs.length > 1) {
         matched = audioConfigs.find((c: any) => String(c.data_col || '').trim().toLowerCase() === 'back') || audioConfigs[1]
       }
     }
   }
 
   if (matched) {
+    const defaultUrlCol = baseFace === 'back' ? 'back_audio_url' : (baseFace === 'front' ? 'front_audio_url' : `${baseFace}_audio_url`)
     return {
-      dataCol: matched.data_col || face,
-      sourceCol: matched.source_col || matched.audio_content_col || face,
-      urlCol: matched.url_col || matched.audio_url_col || (face === 'back' ? 'back_audio_url' : 'front_audio_url'),
+      dataCol: matched.data_col || baseFace,
+      sourceCol: matched.source_col || matched.audio_content_col || (baseFace === 'back' ? 'back_audio_content' : (baseFace === 'front' ? 'front_audio_content' : baseFace)),
+      urlCol: matched.url_col || matched.audio_url_col || defaultUrlCol,
       lang: matched.lang || 'multi',
       enabled: matched.enabled !== false && matched.lang !== 'none',
     }
   }
 
   // 2. Legacy / standard front_audio_config & back_audio_config
-  if (normFace === 'front' && practiceSettings?.front_audio_config) {
+  if (baseFace === 'front' && practiceSettings?.front_audio_config) {
     const fc = practiceSettings.front_audio_config
     return {
       dataCol: fc.data_col || 'front',
@@ -85,7 +102,7 @@ export function resolveAudioConfig(
       enabled: fc.lang !== 'none',
     }
   }
-  if (normFace === 'back' && practiceSettings?.back_audio_config) {
+  if (baseFace === 'back' && practiceSettings?.back_audio_config) {
     const bc = practiceSettings.back_audio_config
     return {
       dataCol: bc.data_col || 'back',
@@ -98,25 +115,27 @@ export function resolveAudioConfig(
 
   // 3. Legacy audio_pairs
   const pairs = practiceSettings?.audio_pairs || []
-  const pair = pairs.find((p: any) =>
-    String(p.data_col || p.text_col || '').trim().toLowerCase() === normFace
-  )
+  const pair = pairs.find((p: any) => {
+    const pCol = String(p.data_col || p.text_col || '').trim().toLowerCase()
+    return pCol === normFace || pCol === baseFace
+  })
   if (pair) {
     return {
-      dataCol: pair.data_col || pair.text_col || face,
-      sourceCol: pair.audio_content_col || pair.text_col || face,
-      urlCol: pair.audio_url_col || (face === 'back' ? 'back_audio_url' : 'front_audio_url'),
+      dataCol: pair.data_col || pair.text_col || baseFace,
+      sourceCol: pair.audio_content_col || pair.text_col || baseFace,
+      urlCol: pair.audio_url_col || (baseFace === 'back' ? 'back_audio_url' : 'front_audio_url'),
       lang: pair.lang || 'multi',
       enabled: pair.lang !== 'none',
     }
   }
 
   // 4. Default fallback
-  const isBack = normFace === 'back'
+  const isBack = baseFace === 'back'
+  const isFront = baseFace === 'front'
   return {
-    dataCol: face,
-    sourceCol: isBack ? 'back_audio_content' : (face === 'front' ? 'front_audio_content' : face),
-    urlCol: isBack ? 'back_audio_url' : (face === 'front' ? 'front_audio_url' : `${face}_audio_url`),
+    dataCol: baseFace,
+    sourceCol: isBack ? 'back_audio_content' : (isFront ? 'front_audio_content' : baseFace),
+    urlCol: isBack ? 'back_audio_url' : (isFront ? 'front_audio_url' : `${baseFace}_audio_url`),
     lang: 'multi',
     enabled: true,
   }
@@ -127,21 +146,49 @@ export function resolveAudioConfig(
  */
 export function getCardFieldValue(card: any, colKey: string): string {
   if (!card || !colKey) return ''
-  const val = card[colKey]
+  const lowerKey = colKey.trim().toLowerCase()
+
+  // 1. Direct property match
+  const val = card[colKey] !== undefined ? card[colKey] : (card[lowerKey] !== undefined ? card[lowerKey] : undefined)
   if (val !== undefined && val !== null && String(val).trim()) {
     return String(val).trim()
   }
-  if (card.others && typeof card.others === 'object') {
-    if (card.others[colKey] !== undefined && card.others[colKey] !== null && String(card.others[colKey]).trim()) {
-      return String(card.others[colKey]).trim()
+
+  // Standard front / back / content / explanation aliases
+  if (lowerKey === 'front' && card.content) {
+    return String(card.content).trim()
+  }
+  if (lowerKey === 'content' && card.front) {
+    return String(card.front).trim()
+  }
+  if (lowerKey === 'back' && card.explanation) {
+    return String(card.explanation).trim()
+  }
+  if (lowerKey === 'explanation' && card.back) {
+    return String(card.back).trim()
+  }
+
+  // 2. Others object lookup (handling both object and JSON string)
+  let othersObj = card.others
+  if (typeof othersObj === 'string') {
+    try {
+      othersObj = JSON.parse(othersObj)
+    } catch (e) {
+      othersObj = null
     }
-    const lowerKey = colKey.trim().toLowerCase()
-    for (const [k, v] of Object.entries(card.others)) {
+  }
+
+  if (othersObj && typeof othersObj === 'object') {
+    if (othersObj[colKey] !== undefined && othersObj[colKey] !== null && String(othersObj[colKey]).trim()) {
+      return String(othersObj[colKey]).trim()
+    }
+    for (const [k, v] of Object.entries(othersObj)) {
       if (k.trim().toLowerCase() === lowerKey && v !== undefined && v !== null && String(v).trim()) {
         return String(v).trim()
       }
     }
   }
+
   return ''
 }
 
@@ -239,7 +286,8 @@ export function usePracticeAudio({
     }
 
     // ── STEP 3: GENERATE AUDIO IF LINK IS MISSING ──
-    if (!audioUrl && currentQuestion.id && script && script.trim()) {
+    // Call backend on-demand generation if URL is missing and card exists
+    if (!audioUrl && currentQuestion.id) {
       setIsLoadingAudio(true)
       const genKey = `${targetQuestionId}_${face}`
       let genPromise = inFlightGenMapRef.current.get(genKey)
