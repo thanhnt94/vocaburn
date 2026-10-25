@@ -49,10 +49,10 @@ class AnalyticsService:
         }
 
     @staticmethod
-    def get_timezone_boundaries(time_filter: str, tz_offset: int = -420):
+    def get_timezone_boundaries(time_filter: str, tz_offset: int = 0):
         """
         Returns (utc_start_datetime, local_start_date) based on user's timezone offset in minutes.
-        - tz_offset = -420 for UTC+7 (Vietnam).
+        - tz_offset = 0 for UTC+0.
         """
         from datetime import datetime, timedelta
         now_utc = datetime.utcnow()
@@ -72,7 +72,7 @@ class AnalyticsService:
         return utc_start, local_start.date()
 
     @staticmethod
-    async def get_user_detailed_stats(db: AsyncSession, user_id: int, time_filter: str = "all_time", tz_offset: int = -420):
+    async def get_user_detailed_stats(db: AsyncSession, user_id: int, time_filter: str = "all_time", tz_offset: int = 0):
         user_stats = await AnalyticsService._get_user_stats_internal(db, user_id, time_filter, tz_offset)
         global_stats = await AnalyticsService.get_global_stats(db)
         
@@ -82,7 +82,7 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def _get_user_stats_internal(db: AsyncSession, user_id: int, time_filter: str = "all_time", tz_offset: int = -420):
+    async def _get_user_stats_internal(db: AsyncSession, user_id: int, time_filter: str = "all_time", tz_offset: int = 0):
         today = datetime.utcnow().date()
         start_date = today - timedelta(days=29)
         
@@ -238,7 +238,7 @@ class AnalyticsService:
         }
 
     @staticmethod
-    async def get_leaderboard(db: AsyncSession, current_user_id: int, time_filter: str = "all_time", tz_offset: int = -420):
+    async def get_leaderboard(db: AsyncSession, current_user_id: int, time_filter: str = "all_time", tz_offset: int = 0):
         # Calculate date boundaries in UTC and user local timezone
         start_datetime, local_start_date = AnalyticsService.get_timezone_boundaries(time_filter, tz_offset)
         local_start_datetime = datetime.combine(local_start_date, datetime.min.time()) if local_start_date else None

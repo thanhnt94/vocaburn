@@ -191,7 +191,7 @@ class DeckService:
         return deck
 
     @staticmethod
-    async def get_today_review(db: AsyncSession, user_id: int, tz_offset: int = -420):
+    async def get_today_review(db: AsyncSession, user_id: int, tz_offset: int = 0):
         import math
         from datetime import datetime, timedelta
         from sqlalchemy import select, func, or_

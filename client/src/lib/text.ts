@@ -1,3 +1,4 @@
+const MAX_BBCODE_CACHE = 1000;
 const bbcodeCache = new Map<string, string>();
 
 export const parseBBCodeToHtml = (text: string): string => {
@@ -26,6 +27,12 @@ export const parseBBCodeToHtml = (text: string): string => {
   // Furigana (Anki-style: Kanji[Furigana] -> <ruby>Kanji<rt>Furigana</rt></ruby>)
   html = html.replace(/([\u4e00-\u9fff\u3400-\u4dbf\u3005][\u4e00-\u9fff\u3400-\u4dbf\u3005\u3040-\u309f\u30a0-\u30ff]*)\[([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
   
+  if (bbcodeCache.size >= MAX_BBCODE_CACHE) {
+    const firstKey = bbcodeCache.keys().next().value;
+    if (firstKey !== undefined) {
+      bbcodeCache.delete(firstKey);
+    }
+  }
   bbcodeCache.set(text, html);
   return html;
 };

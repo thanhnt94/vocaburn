@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import axios from 'axios'
 import { speakWithEdgeTTS, speakEdgeTTSSequentially, registerAudioElement, cancelAllAudio, unlockAudio } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -177,6 +177,13 @@ export function usePracticeAudio({
     setIsLoadingAudio(false)
     setIsPlayingAudio(false)
   }
+
+  // Cleanup audio playback when component unmounts
+  useEffect(() => {
+    return () => {
+      stopAllAudio()
+    }
+  }, [])
 
   const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
     if (!currentQuestion) return

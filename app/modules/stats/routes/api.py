@@ -60,11 +60,11 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id_int = user.id
     
-    tz_offset = request.query_params.get("tz_offset", -420)
+    tz_offset = request.query_params.get("tz_offset", 0)
     try:
         tz_offset = int(tz_offset)
     except (ValueError, TypeError):
-        tz_offset = -420
+        tz_offset = 0
     
     from sqlalchemy import func, case, or_
     from sqlalchemy.orm import selectinload

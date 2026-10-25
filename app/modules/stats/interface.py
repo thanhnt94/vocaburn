@@ -22,7 +22,7 @@ class StatsInterface:
                 local_dt = datetime.utcnow().date()
         else:
             if tz_offset is None:
-                tz_offset = -420
+                tz_offset = 0
             now_utc = datetime.utcnow()
             now_local = now_utc - timedelta(minutes=tz_offset)
             local_dt = now_local.date()
@@ -86,7 +86,7 @@ class StatsInterface:
                 local_dt = datetime.utcnow().date()
         else:
             if tz_offset is None:
-                tz_offset = -420
+                tz_offset = 0
             now_utc = datetime.utcnow()
             now_local = now_utc - timedelta(minutes=tz_offset)
             local_dt = now_local.date()

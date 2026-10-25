@@ -377,11 +377,11 @@ async def get_daily_challenges(
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id = current_user.id
 
-    tz_offset = request.query_params.get("tz_offset", -420)
+    tz_offset = request.query_params.get("tz_offset", 0)
     try:
         tz_offset = int(tz_offset)
     except (ValueError, TypeError):
-        tz_offset = -420
+        tz_offset = 0
 
     activity_date = (datetime.utcnow() - timedelta(minutes=tz_offset)).date()
     today_str = activity_date.isoformat()
@@ -570,11 +570,11 @@ async def get_shop_status(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_id = current_user.id
 
-    tz_offset = request.query_params.get("tz_offset", -420)
+    tz_offset = request.query_params.get("tz_offset", 0)
     try:
         tz_offset = int(tz_offset)
     except (ValueError, TypeError):
-        tz_offset = -420
+        tz_offset = 0
 
     stats = await GamificationInterface.get_user_stats(db, user_id, tz_offset=tz_offset)
     return {

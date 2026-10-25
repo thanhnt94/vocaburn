@@ -114,11 +114,17 @@ export const registerAudioElement = (audio: HTMLAudioElement) => {
   activeAudioElement = audio;
 };
 
+let cachedCorrectAudio: HTMLAudioElement | null = null;
+let cachedIncorrectAudio: HTMLAudioElement | null = null;
+
 export const playCorrectSound = () => {
   try {
-    const audio = new Audio(`${import.meta.env.BASE_URL}sounds/correct.mp3`);
-    audio.volume = 0.4;
-    audio.play().catch(e => console.log("SFX autoplay blocked:", e));
+    if (!cachedCorrectAudio) {
+      cachedCorrectAudio = new Audio(`${import.meta.env.BASE_URL}sounds/correct.mp3`);
+      cachedCorrectAudio.volume = 0.4;
+    }
+    cachedCorrectAudio.currentTime = 0;
+    cachedCorrectAudio.play().catch(e => console.log("SFX autoplay blocked:", e));
   } catch (e) {
     console.error("Audio SFX failed:", e);
   }
@@ -126,9 +132,12 @@ export const playCorrectSound = () => {
 
 export const playIncorrectSound = () => {
   try {
-    const audio = new Audio(`${import.meta.env.BASE_URL}sounds/incorrect.mp3`);
-    audio.volume = 0.4;
-    audio.play().catch(e => console.log("SFX autoplay blocked:", e));
+    if (!cachedIncorrectAudio) {
+      cachedIncorrectAudio = new Audio(`${import.meta.env.BASE_URL}sounds/incorrect.mp3`);
+      cachedIncorrectAudio.volume = 0.4;
+    }
+    cachedIncorrectAudio.currentTime = 0;
+    cachedIncorrectAudio.play().catch(e => console.log("SFX autoplay blocked:", e));
   } catch (e) {
     console.error("Audio SFX failed:", e);
   }

@@ -67,9 +67,9 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
         try:
             tz_offset = int(tz_offset)
         except (ValueError, TypeError):
-            tz_offset = -420
+            tz_offset = 0
     else:
-        tz_offset = -420
+        tz_offset = 0
 
     if local_date:
         today_str = str(local_date)[:10]
@@ -579,9 +579,9 @@ async def undo_answer(request: Request, data: dict, db: AsyncSession = Depends(g
         try:
             tz_offset = int(tz_offset)
         except (ValueError, TypeError):
-            tz_offset = -420
+            tz_offset = 0
     else:
-        tz_offset = -420
+        tz_offset = 0
 
     local_date = data.get("local_date")
     if local_date:

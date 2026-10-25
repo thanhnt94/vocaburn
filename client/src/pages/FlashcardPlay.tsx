@@ -626,6 +626,13 @@ export default function FlashcardPlay() {
     cancelAllAudio();
   }, [currentIndex]);
 
+  // Cleanup audio playback on component unmount
+  useEffect(() => {
+    return () => {
+      cancelAllAudio();
+    };
+  }, []);
+
   const fetchRoadmapStatus = () => refetchRoadmap();
 
   const activeBottomTab = isMapOpen ? 'map' : (isFeedbackOpen ? 'stats' : 'flashcard');

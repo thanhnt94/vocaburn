@@ -63,7 +63,7 @@ class GamificationInterface:
         return {"level_down": False, "current_level": 1, "current_xp": 0}
 
     @staticmethod
-    async def calculate_pure_activity_streak(db: AsyncSession, user_id: int, tz_offset: int = -420) -> int:
+    async def calculate_pure_activity_streak(db: AsyncSession, user_id: int, tz_offset: int = 0) -> int:
         from app.modules.deck.models import UserAnswer, DeckAttempt
         from app.modules.stats.models import UserDailyStats
 
@@ -136,7 +136,7 @@ class GamificationInterface:
         return streak
 
     @staticmethod
-    async def check_and_auto_freeze(db: AsyncSession, user_id: int, tz_offset: int = -420):
+    async def check_and_auto_freeze(db: AsyncSession, user_id: int, tz_offset: int = 0):
         """Auto-consume a streak freeze if yesterday was missed and user has freeze cards."""
         from app.modules.stats.models import UserDailyStats
         now_local = datetime.utcnow() - timedelta(minutes=tz_offset)
@@ -181,7 +181,7 @@ class GamificationInterface:
         return False
 
     @staticmethod
-    async def award_daily_reward_points(db: AsyncSession, user_id: int, questions_today: int, activity_date: Optional[date] = None, tz_offset: int = -420):
+    async def award_daily_reward_points(db: AsyncSession, user_id: int, questions_today: int, activity_date: Optional[date] = None, tz_offset: int = 0):
         """Award +1 point for 100% daily target (20 cards) and +1 point for 200% target (40 cards)."""
         if questions_today < 20:
             return
@@ -250,7 +250,7 @@ class GamificationInterface:
         }
 
     @staticmethod
-    async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None, tz_offset: int = -420):
+    async def update_streak(db: AsyncSession, user_id: int, local_date_str: Optional[str] = None, tz_offset: int = 0):
         activity_date = None
         if local_date_str:
             try: activity_date = date.fromisoformat(local_date_str[:10])
@@ -314,7 +314,7 @@ class GamificationInterface:
         return user_stats.streak_count
 
     @staticmethod
-    async def get_user_stats(db: AsyncSession, user_id: int, tz_offset: int = -420):
+    async def get_user_stats(db: AsyncSession, user_id: int, tz_offset: int = 0):
         from .models import UserBadge
         streak_val = await GamificationInterface.update_streak(db, user_id, tz_offset=tz_offset)
         result = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))

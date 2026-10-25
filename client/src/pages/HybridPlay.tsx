@@ -42,7 +42,7 @@ import {
   PracticeListeningCard
 } from '@/components/practice'
 import { usePracticeAudio } from '@/hooks/usePracticeAudio'
-import { getAudioContext } from '@/lib/audio'
+import { getAudioContext, cancelAllAudio } from '@/lib/audio'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 import {
@@ -176,13 +176,19 @@ export default function HybridPlay() {
     setTimeout(() => setXpFloat(null), 1400)
   }
 
-  // Timer loop
+  // Update elapsed time only when session reaches completion screen
   useEffect(() => {
-    const timer = setInterval(() => {
+    if (stage === 'complete') {
       setElapsedTime(Math.floor((Date.now() - sessionStartTime) / 1000))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [sessionStartTime])
+    }
+  }, [stage, sessionStartTime])
+
+  // Cleanup audio playback when leaving Hybrid session
+  useEffect(() => {
+    return () => {
+      cancelAllAudio()
+    }
+  }, [])
 
   // Filtered Cards according to Scope & Order
   const scopedQuestions: Question[] = useMemo(() => {

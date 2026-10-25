@@ -1130,6 +1130,18 @@ export default function PracticePlay() {
   }, [currentIndex, mainTab, practiceSubMode, session, setupPairs, setupNumChoices]);
 
   const timerRef = useRef<any>(null)
+  const aiPollRef = useRef<any>(null)
+
+  // Cleanup audio and background polling timers on component unmount
+  useEffect(() => {
+    return () => {
+      cancelAllAudio();
+      if (aiPollRef.current) {
+        clearInterval(aiPollRef.current);
+        aiPollRef.current = null;
+      }
+    };
+  }, []);
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   currentQuestionIdRef.current = currentQuestion?.id || null
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
@@ -3360,7 +3372,11 @@ export default function PracticePlay() {
         // Polling loop
         let attempts = 0
         const maxAttempts = 45 // 90 seconds total (45 * 2) - Gemini can be slow under load
-        const poll = setInterval(async () => {
+        if (aiPollRef.current) {
+          clearInterval(aiPollRef.current)
+          aiPollRef.current = null
+        }
+        aiPollRef.current = setInterval(async () => {
           attempts++
           try {
             // Append cache buster to completely bypass browser and proxy caching
@@ -3391,13 +3407,19 @@ export default function PracticePlay() {
                   return { ...prev, questions: newQs }
                 })
                 setIsAskingAI(false)
-                clearInterval(poll)
+                if (aiPollRef.current) {
+                  clearInterval(aiPollRef.current)
+                  aiPollRef.current = null
+                }
               }
             }
           } catch (e) { }
 
           if (attempts >= maxAttempts) {
-            clearInterval(poll)
+            if (aiPollRef.current) {
+              clearInterval(aiPollRef.current)
+              aiPollRef.current = null
+            }
             setIsAskingAI(false)
           }
         }, 2000)
