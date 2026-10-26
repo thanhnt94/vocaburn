@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react'
-import { Sparkles, Bookmark, Play, Volume2, RotateCcw, Check, X, ArrowRight, CornerDownLeft } from 'lucide-react'
+import { Sparkles, Bookmark, Play, Volume2, RotateCcw, Check, X, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
@@ -273,16 +273,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
               </div>
             )}
 
-            {answered && onNext && (
-              <button
-                type="button"
-                onClick={onNext}
-                className="w-full h-13 sm:h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-wider shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer animate-in fade-in slide-in-from-bottom-2 duration-300"
-              >
-                <span>Tiếp tục câu tiếp theo</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
+
           </div>
         ) : (
           /* Dictation Typing */
@@ -380,16 +371,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                   </div>
                 )}
 
-                {onNext && (
-                  <button
-                    type="button"
-                    onClick={onNext}
-                    className="w-full h-13 sm:h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-wider shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Tiếp tục câu tiếp theo</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
+
               </div>
             )}
           </div>

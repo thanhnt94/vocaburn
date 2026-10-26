@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react'
-import { Sparkles, Bookmark, Check, X, Volume2, ArrowRight, CornerDownLeft, Image as ImageIcon } from 'lucide-react'
+import { Sparkles, Bookmark, Check, X, Volume2, CornerDownLeft, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -321,17 +321,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
               </div>
             )}
 
-            {/* Next Continue CTA Button */}
-            {onNext && (
-              <button
-                type="button"
-                onClick={onNext}
-                className="w-full h-13 sm:h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 font-black text-sm uppercase tracking-wider shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Tiếp tục câu tiếp theo</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
+
           </div>
         )}
       </div>
