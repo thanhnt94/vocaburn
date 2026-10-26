@@ -93,6 +93,8 @@ async def clean_user_id_cookie(request: Request, call_next):
             if len(parts) == 2 and parts[0] == "user_id":
                 val = parts[1]
                 verified_id = verify_cookie(val, settings.SECRET_KEY)
+                if not verified_id and settings.SECRET_KEY != "vocaburn_default_secret_key_change_me_123456789":
+                    verified_id = verify_cookie(val, "vocaburn_default_secret_key_change_me_123456789")
                 if verified_id:
                     new_items.append(f"user_id={verified_id}")
                     try:

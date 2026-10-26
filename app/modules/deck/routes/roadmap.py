@@ -857,49 +857,93 @@ async def get_pipeline_history(request: Request, deck_id: int, db: AsyncSession 
 @router.post("/{deck_id}/reset-progress")
 async def reset_deck_progress(request: Request, deck_id: int, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)
+    if not user_id:
+        return JSONResponse(status_code=401, content={"error": "Please sign in to reset progress"})
     
     deck = await DeckService.get_deck_by_id(db, deck_id)
     if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
         
-    from app.modules.deck.models import Flashcard, UserCardMastery, UserPracticeStats, DeckSession, DeckAttempt, UserAnswer
+    from app.modules.deck.models import (
+        Flashcard, UserCardMastery, UserPracticeStats, DeckSession, 
+        DeckAttempt, UserAnswer, UserDeckGoal, UserDailyProgress, RoadmapPipelineHistory
+    )
     from sqlalchemy import delete
     
-    # 1. Get all card_ids for this deck
-    card_ids_res = await db.execute(select(Flashcard.id).where(Flashcard.deck_id == deck_id))
-    card_ids = list(card_ids_res.scalars().all())
-    
-    if card_ids:
-        # 2. Delete UserCardMastery for this user & cards in deck
+    try:
+        # Use subqueries to avoid huge parameter lists and identity map overhead
+        card_id_subq = select(Flashcard.id).where(Flashcard.deck_id == deck_id)
+        attempt_id_subq = select(DeckAttempt.id).where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.deck_id == deck_id
+        )
+        goal_id_subq = select(UserDeckGoal.id).where(
+            UserDeckGoal.user_id == user_id,
+            UserDeckGoal.deck_id == deck_id
+        )
+        
+        # 1. Delete UserCardMastery for this user & cards in deck
         await db.execute(
             delete(UserCardMastery).where(
                 UserCardMastery.user_id == user_id,
-                UserCardMastery.card_id.in_(card_ids)
-            )
+                UserCardMastery.card_id.in_(card_id_subq)
+            ).execution_options(synchronize_session=False)
         )
         
-        # 3. Delete UserPracticeStats for this user & cards in deck
+        # 2. Delete UserPracticeStats for this user & cards in deck
         await db.execute(
             delete(UserPracticeStats).where(
                 UserPracticeStats.user_id == user_id,
-                UserPracticeStats.card_id.in_(card_ids)
-            )
+                UserPracticeStats.card_id.in_(card_id_subq)
+            ).execution_options(synchronize_session=False)
         )
         
-        # 4. Delete DeckAttempt and UserAnswer for this user & deck
-        attempt_ids_res = await db.execute(
-            select(DeckAttempt.id).where(
-                DeckAttempt.user_id == user_id,
-                DeckAttempt.deck_id == deck_id
-            )
+        # 3. Delete UserAnswer and DeckAttempt for this user & deck
+        await db.execute(
+            delete(UserAnswer).where(
+                UserAnswer.attempt_id.in_(attempt_id_subq)
+            ).execution_options(synchronize_session=False)
         )
-        attempt_ids = list(attempt_ids_res.scalars().all())
-        if attempt_ids:
-            await db.execute(delete(UserAnswer).where(UserAnswer.attempt_id.in_(attempt_ids)))
-            await db.execute(delete(DeckAttempt).where(DeckAttempt.id.in_(attempt_ids)))
-            
-    await db.commit()
-    return {"status": "ok", "message": "Deck progress reset successfully"}
+        await db.execute(
+            delete(DeckAttempt).where(
+                DeckAttempt.id.in_(attempt_id_subq)
+            ).execution_options(synchronize_session=False)
+        )
+        
+        # 4. Delete active deck sessions for this user & deck
+        await db.execute(
+            delete(DeckSession).where(
+                DeckSession.user_id == user_id,
+                DeckSession.deck_id == deck_id
+            ).execution_options(synchronize_session=False)
+        )
+        
+        # 5. Delete daily progress and deck goals
+        await db.execute(
+            delete(UserDailyProgress).where(
+                UserDailyProgress.goal_id.in_(goal_id_subq)
+            ).execution_options(synchronize_session=False)
+        )
+        await db.execute(
+            delete(UserDeckGoal).where(
+                UserDeckGoal.id.in_(goal_id_subq)
+            ).execution_options(synchronize_session=False)
+        )
+        
+        # 6. Delete RoadmapPipelineHistory for this user & deck
+        await db.execute(
+            delete(RoadmapPipelineHistory).where(
+                RoadmapPipelineHistory.user_id == user_id,
+                RoadmapPipelineHistory.deck_id == deck_id
+            ).execution_options(synchronize_session=False)
+        )
+        
+        await db.commit()
+        return {"status": "ok", "message": "Deck progress reset successfully"}
+    except Exception as e:
+        await db.rollback()
+        logger.exception(f"Error resetting deck progress for deck {deck_id}: {e}")
+        return JSONResponse(status_code=500, content={"error": f"Failed to reset deck progress: {str(e)}"})
 
 
 @router.get("/{deck_id}/roadmap-test-questions")

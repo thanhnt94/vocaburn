@@ -10,6 +10,7 @@ from app.modules.auth.services.auth_service import AuthService
 from app.modules.deck.services.excel_service import ExcelDeckService
 from app.modules.deck.services.deck_service import DeckService
 from app.modules.deck.services.ai_service import ai_service
+from app.modules.deck.utils import clean_col_name, reconcile_column_name
 from app.modules.deck.schemas import DeckSchema, CardSchema
 from app.modules.deck.models import UserDeckSettings, FlashcardDeck, Flashcard
 from app.modules.deck.services.mcq_engine import MCQEngine
@@ -184,17 +185,16 @@ async def get_deck_sub_lessons(
     groups = []
     if active_col:
         mastery_map = {}
-        if user_id:
-            card_ids = [c.id for c in cards]
-            if card_ids:
-                m_res = await db.execute(
-                    select(UserCardMastery).where(
-                        UserCardMastery.user_id == user_id,
-                        UserCardMastery.card_id.in_(card_ids)
-                    )
+        if user_id and total_cards > 0:
+            card_id_subq = select(Flashcard.id).where(Flashcard.deck_id == deck_id)
+            m_res = await db.execute(
+                select(UserCardMastery).where(
+                    UserCardMastery.user_id == user_id,
+                    UserCardMastery.card_id.in_(card_id_subq)
                 )
-                for m in m_res.scalars().all():
-                    mastery_map[m.card_id] = m
+            )
+            for m in m_res.scalars().all():
+                mastery_map[m.card_id] = m
 
         now_utc = datetime.utcnow()
         group_cards_map = {}
