@@ -43,6 +43,8 @@ import {
 } from '@/components/practice'
 import { usePracticeAudio } from '@/hooks/usePracticeAudio'
 import { getAudioContext, cancelAllAudio } from '@/lib/audio'
+import { getVal } from '@/lib/practice-utils'
+import { selectDistractors } from '@/lib/distractor'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 import {
@@ -125,6 +127,7 @@ export default function HybridPlay() {
 
   // ── Session State ──
   const [session, setSession] = useState<any>(null)
+  const [deckPracticeSettings, setDeckPracticeSettings] = useState<any>(null)
   const [rawQuestions, setRawQuestions] = useState<Question[]>([])
   const [masteredCardIds, setMasteredCardIds] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -319,9 +322,17 @@ export default function HybridPlay() {
           return
         }
 
-        // Parse hybrid settings from user_settings or creator_settings
-        const userSet = settingsRes.data?.user_settings?.hybrid || quizRes.data.user_settings?.hybrid || {}
-        const creatorSet = settingsRes.data?.creator_settings?.hybrid || quizRes.data.practice_settings?.hybrid || {}
+        // Parse practice settings from user_settings or creator_settings
+        const creatorPracticeSettings = settingsRes.data?.creator_settings || quizRes.data.practice_settings || {}
+        const userPracticeSettings = settingsRes.data?.user_settings || quizRes.data.user_settings || {}
+        setDeckPracticeSettings({
+          creator_settings: creatorPracticeSettings,
+          user_settings: userPracticeSettings,
+          practice_settings: creatorPracticeSettings
+        })
+
+        const userSet = userPracticeSettings?.hybrid || quizRes.data.user_settings?.hybrid || {}
+        const creatorSet = creatorPracticeSettings?.hybrid || quizRes.data.practice_settings?.hybrid || {}
         const mergedSettings: HybridSettings = {
           batch_size: Number(userSet.batch_size || creatorSet.batch_size || DEFAULT_HYBRID_SETTINGS.batch_size),
           required_correct: Number(userSet.required_correct || creatorSet.required_correct || DEFAULT_HYBRID_SETTINGS.required_correct),
@@ -357,7 +368,13 @@ export default function HybridPlay() {
           }
         }
 
-        setSession({ ...quizRes.data, questions })
+        setSession({
+          ...quizRes.data,
+          questions,
+          creator_settings: creatorPracticeSettings,
+          user_settings: userPracticeSettings,
+          practice_settings: creatorPracticeSettings
+        })
         setIsLoading(false)
       } catch (err) {
         console.error('Failed to load hybrid session', err)
@@ -475,11 +492,10 @@ export default function HybridPlay() {
 
   // ── 5. Generate Practice Question Data ──
   const generatePracticeForDrillCard = (q: Question) => {
-    if (!q || !scopedQuestions) return
+    if (!q || !rawQuestions || rawQuestions.length === 0) return
 
-    const qAny = q as any
-    const questionText = q.content || qAny.front || q.others?.front || 'Vocabulary Item'
-    const correctAns = q.explanation || qAny.back || q.others?.back || (q.options?.find(o => o.is_correct)?.content) || ''
+    const effPractice = deckPracticeSettings?.creator_settings || session?.creator_settings || session?.practice_settings || {}
+    const effUser = deckPracticeSettings?.user_settings || session?.user_settings || {}
 
     const hasAudio = Boolean(
       q.audio ||
@@ -502,49 +518,160 @@ export default function HybridPlay() {
     const chosenMode = allowed[Math.floor(Math.random() * allowed.length)] as 'mcq' | 'typing' | 'listening'
     setDrillSubMode(chosenMode)
 
-    // Build MCQ choices
-    let choices: string[] = []
-    let correctIdx = 0
+    // Resolve mode configuration and active pairs
+    const modeConfig = effUser[chosenMode] || effPractice[chosenMode] || effUser.mcq || effPractice.mcq || {}
+    const num_choices = modeConfig.num_choices || effUser.mcq?.num_choices || effPractice.mcq?.num_choices || 4
 
-    if (q.options && Array.isArray(q.options) && q.options.length >= 2) {
-      choices = q.options.map((o: any) => o.content)
-      const foundIdx = q.options.findIndex((o: any) => o.is_correct)
-      correctIdx = foundIdx !== -1 ? foundIdx : 0
+    let activePairs = modeConfig.active_pairs
+    if (!Array.isArray(activePairs) || activePairs.length === 0) {
+      if (chosenMode === 'typing') {
+        activePairs = [{ q: 'nghĩa', a: ['front', 'từ vựng', 'cách đọc'] }]
+      } else {
+        activePairs = [{ q: 'front', a: 'nghĩa' }]
+      }
+    }
+
+    // Pick a random active pair
+    const activePair = activePairs[Math.floor(Math.random() * activePairs.length)]
+    const question_key = activePair.q || (chosenMode === 'typing' ? 'nghĩa' : 'front')
+    const raw_answer_key = activePair.a || (chosenMode === 'typing' ? ['front', 'từ vựng', 'cách đọc'] : 'nghĩa')
+    const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'front') : (raw_answer_key || 'nghĩa')
+    const audio_col = activePair.audio_col || (chosenMode === 'listening' ? 'front' : undefined)
+
+    const questionText = getVal(q, question_key) || q.content || (q as any).front || 'Vocabulary Item'
+    const correctAns = getVal(q, primary_answer_key) || q.explanation || (q as any).back || ''
+
+    if (chosenMode === 'mcq' || chosenMode === 'listening') {
+      const poolSource = rawQuestions.length >= 10 ? rawQuestions : (scopedQuestions.length > 0 ? scopedQuestions : rawQuestions)
+      
+      // Build candidate distractor pool
+      const distractor_pool: any[] = []
+      const pool = [...poolSource].sort(() => 0.5 - Math.random())
+
+      for (const other of pool) {
+        if (distractor_pool.length >= 30) break
+        if (other.id !== q.id) {
+          const d_val = getVal(other, primary_answer_key)
+          const d_q_val = getVal(other, question_key)
+          const d_front = getVal(other, 'front')
+          const d_back = getVal(other, 'back')
+          if (d_val && d_val.toLowerCase() !== 'nan' && d_val.trim().toLowerCase() !== correctAns.trim().toLowerCase()) {
+            distractor_pool.push({
+              text: d_val,
+              q_text: d_q_val,
+              front: d_front,
+              back: d_back,
+              id: other.id,
+              card: other,
+              type: (other.others && typeof other.others === 'object' ? (other.others.type || other.others.pos || '') : '')
+            })
+          }
+        }
+      }
+
+      const item_front = getVal(q, 'front')
+      const item_back = getVal(q, 'back')
+      const correct_item_data = {
+        text: correctAns,
+        q_text: questionText,
+        front: item_front,
+        back: item_back,
+        id: q.id,
+        card: q,
+        type: (q.others && typeof q.others === 'object' ? (q.others.type || q.others.pos || '') : '')
+      }
+
+      const needed = num_choices - 1
+      const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed)
+
+      // Fallback if selectDistractors filtered out too many candidates
+      const selectedIds = new Set(selectedDistractors.map(d => d.id))
+      const combinedChoices = [...selectedDistractors]
+      for (const cand of distractor_pool) {
+        if (combinedChoices.length >= needed) break
+        if (!selectedIds.has(cand.id) && cand.text.trim().toLowerCase() !== correctAns.trim().toLowerCase()) {
+          combinedChoices.push(cand)
+          selectedIds.add(cand.id)
+        }
+      }
+
+      // Assemble choices
+      const choices_data = ([correct_item_data] as any[]).concat(combinedChoices)
+      for (let i = choices_data.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const temp = choices_data[i]
+        choices_data[i] = choices_data[j]
+        choices_data[j] = temp
+      }
+
+      const choices = choices_data.map(c => c.text)
+      const choice_item_ids = choices_data.map(c => c.id)
+      const correctIdx = choices.indexOf(correctAns)
+
+      const practiceObj: PracticeQuestionData = {
+        question: questionText,
+        choices,
+        choices_data,
+        choice_item_ids,
+        correct_index: correctIdx !== -1 ? correctIdx : 0,
+        correct_answer: correctAns,
+        acceptable_answers: [correctAns, correctAns.toLowerCase().trim()],
+        question_key,
+        answer_key: primary_answer_key,
+        audio_col: audio_col || 'front'
+      }
+
+      setCurrentPracticeData(practiceObj)
     } else {
-      const otherAnswers = scopedQuestions
-        .filter((item: Question) => item.id !== q.id)
-        .map((item: Question) => {
-          const itemAny = item as any
-          return item.explanation || itemAny.back || item.others?.back || ''
-        })
-        .filter((ans: string) => Boolean(ans.trim()) && ans.trim().toLowerCase() !== correctAns.trim().toLowerCase())
+      // ── Typing Recall ──
+      const answer_keys: string[] = Array.isArray(raw_answer_key)
+        ? raw_answer_key
+        : (typeof raw_answer_key === 'string' && raw_answer_key.includes(',')
+            ? raw_answer_key.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [typeof raw_answer_key === 'string' ? raw_answer_key : 'front'])
 
-      const uniqueOthers = Array.from(new Set(otherAnswers))
-      const shuffledOthers = [...uniqueOthers].sort(() => 0.5 - Math.random()).slice(0, 3)
-      const pool = [correctAns, ...shuffledOthers]
-      const shuffledChoices = [...pool].sort(() => 0.5 - Math.random())
-      correctIdx = shuffledChoices.indexOf(correctAns)
-      choices = shuffledChoices
+      const acceptable_answers: string[] = []
+      const acceptableAnswersIncludes = (val: string) => {
+        const valNorm = val.toLowerCase().replace(/[〜~]/g, '').trim()
+        return acceptable_answers.some(a => a.toLowerCase().replace(/[〜~]/g, '').trim() === valNorm)
+      }
+
+      const addAnswer = (v: string) => {
+        if (!v) return
+        if (v.includes('|')) {
+          v.split('|').forEach(part => {
+            const clean = part.trim()
+            if (clean && !acceptableAnswersIncludes(clean)) acceptable_answers.push(clean)
+          })
+        } else {
+          const clean = v.trim()
+          if (clean && !acceptableAnswersIncludes(clean)) acceptable_answers.push(clean)
+        }
+      }
+
+      for (const aKey of answer_keys) {
+        const val = getVal(q, aKey)
+        if (val) addAnswer(val)
+      }
+      if (correctAns) {
+        addAnswer(correctAns)
+      }
+
+      const primary_answer = acceptable_answers[0] || correctAns || getVal(q, 'front') || q.content || ''
+
+      const practiceObj: PracticeQuestionData = {
+        question: questionText,
+        choices: [],
+        correct_index: 0,
+        correct_answer: primary_answer,
+        acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
+        question_key,
+        answer_key: answer_keys.length > 1 ? answer_keys : (answer_keys[0] || 'front'),
+        audio_col: audio_col !== undefined ? audio_col : (answer_keys[0] || 'front')
+      }
+
+      setCurrentPracticeData(practiceObj)
     }
-
-    const effSettings = session?.creator_settings || session?.practice_settings || {}
-    const modeConfig = effSettings[chosenMode] || effSettings.mcq || {}
-    const activePairs = modeConfig.active_pairs || []
-    const matchingPair = activePairs[0]
-    const pairAudioCol = matchingPair?.audio_col
-
-    const practiceObj: PracticeQuestionData = {
-      question: questionText,
-      choices,
-      correct_index: correctIdx,
-      correct_answer: correctAns,
-      acceptable_answers: [correctAns, correctAns.toLowerCase().trim()],
-      question_key: 'front',
-      answer_key: 'back',
-      audio_col: pairAudioCol || 'front'
-    }
-
-    setCurrentPracticeData(practiceObj)
   }
 
   // ── 6. Handle Drill Answer (MCQ) ──
@@ -560,10 +687,29 @@ export default function HybridPlay() {
   // ── 7. Handle Drill Answer (Typing) ──
   const handleCheckTyping = () => {
     if (answered || !currentPracticeData || !drillActiveCard) return
-    const input = typingInput.trim().toLowerCase()
-    const correct = (currentPracticeData.correct_answer || '').trim().toLowerCase()
-    const acceptable = (currentPracticeData.acceptable_answers || [correct]).map(a => a.toLowerCase().trim())
-    const isCorrect = input === correct || acceptable.includes(input)
+    const cleanInput = typingInput.trim().toLowerCase().replace(/[〜~]/g, '')
+    const rawAnswers = (currentPracticeData.acceptable_answers && currentPracticeData.acceptable_answers.length > 0)
+      ? currentPracticeData.acceptable_answers
+      : [currentPracticeData.correct_answer || '']
+
+    const acceptableAnswers: string[] = []
+    rawAnswers.forEach(ans => {
+      if (!ans) return
+      if (ans.includes('|')) {
+        ans.split('|').forEach(p => {
+          const c = p.trim()
+          if (c && !acceptableAnswers.includes(c)) acceptableAnswers.push(c)
+        })
+      } else if (ans.trim() && !acceptableAnswers.includes(ans.trim())) {
+        acceptableAnswers.push(ans.trim())
+      }
+    })
+
+    const isCorrect = acceptableAnswers.some((ans: string) => {
+      if (!ans) return false
+      const cleanAns = ans.replace(/<[^<]+?>/g, '').trim().toLowerCase().replace(/[〜~]/g, '')
+      return cleanInput === cleanAns
+    })
 
     setTypingFeedback({ checked: true, isCorrect })
     setAnswered(true)
@@ -905,7 +1051,7 @@ export default function HybridPlay() {
                     onSelectOption={handleSelectOption}
                     onPreviewInsight={() => {}}
                     sessionQuestions={scopedQuestions}
-                    onPlayAudio={() => playCardAudio('front')}
+                    onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                   />
                 )}
 
@@ -921,6 +1067,7 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onCheckTyping={handleCheckTyping}
+                    onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                   />
                 )}
 
@@ -935,7 +1082,7 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onSelectOption={handleSelectOption}
-                    onPlayAudio={() => playCardAudio('front')}
+                    onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                   />
                 )}
               </div>
