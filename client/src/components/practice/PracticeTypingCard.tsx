@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react'
-import { Sparkles, Bookmark, Check, X, Volume2, CornerDownLeft, Image as ImageIcon } from 'lucide-react'
+import { Sparkles, Bookmark, Check, X, Volume2, CornerDownLeft, Image as ImageIcon, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -21,6 +21,7 @@ export interface PracticeTypingCardProps {
   starredCards: Record<number, boolean>
   onToggleStar: (cardId: number) => void
   onCheckTyping: () => void
+  onPreviewInsight?: (card: Question) => void
   onNext?: () => void
   onPlayAudio?: (face?: string, rate?: number) => void
   onZoomImage?: (url: string) => void
@@ -40,6 +41,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   starredCards,
   onToggleStar,
   onCheckTyping,
+  onPreviewInsight,
   onNext,
   onPlayAudio,
   onZoomImage,
@@ -87,8 +89,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
   const answerImages = useMemo(() => {
     if (!isImageVisible) return []
-    return extractCardImages(currentQuestion, 'back', imageSettings)
-  }, [currentQuestion, isImageVisible, imageSettings])
+    const backImgs = extractCardImages(currentQuestion, 'back', imageSettings)
+    const questionUrls = new Set(questionImages)
+    return backImgs.filter(url => !questionUrls.has(url))
+  }, [currentQuestion, isImageVisible, imageSettings, questionImages])
 
   const promptLabel = useMemo(() => {
     const qk = String(question_key || 'front').toLowerCase()
@@ -128,6 +132,20 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
         {/* Right Action Icons */}
         <div className="flex items-center gap-1">
+          {onPreviewInsight && currentQuestion && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPreviewInsight(currentQuestion)
+              }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
+              title="Xem thông tin chi tiết / Giải thích"
+            >
+              <Lightbulb className="w-4 h-4 fill-amber-400/20" />
+            </button>
+          )}
+
           {onPlayAudio && (
             <button
               type="button"

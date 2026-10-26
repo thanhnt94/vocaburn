@@ -48,6 +48,14 @@ export function FlashcardModeModal({
       color: 'hover:border-indigo-500/40 hover:bg-indigo-50/15'
     },
     { 
+      mode: 'hybrid', 
+      icon: '🔥', 
+      title: 'Hybrid Recall (Batch Drill)', 
+      desc: '5-card preview then active recall drill test (+5 XP)',
+      badge: 'Interactive',
+      color: 'hover:border-rose-500/40 hover:bg-rose-50/15'
+    },
+    { 
       mode: 'skim', 
       icon: '⚡', 
       title: 'Speed Skim', 
@@ -74,7 +82,11 @@ export function FlashcardModeModal({
     })
 
     const filterParam = cardFilter !== 'all' ? `&scope=${cardFilter}&filter=${cardFilter}` : ''
-    navigate(`/flashcard/${deck.id}/play?mode=${modeKey}&order=${cardOrder}${filterParam}`)
+    if (modeKey === 'hybrid') {
+      navigate(`/hybrid/${deck.id}/play?order=${cardOrder}${filterParam}`)
+    } else {
+      navigate(`/flashcard/${deck.id}/play?mode=${modeKey}&order=${cardOrder}${filterParam}`)
+    }
   }
 
   return (

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Sparkles, Bookmark, Volume2, Check, X } from 'lucide-react'
+import { Sparkles, Bookmark, Volume2, Check, X, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -62,8 +62,10 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
 
   const answerImages = useMemo(() => {
     if (!isImageVisible) return []
-    return extractCardImages(currentQuestion, 'back', imageSettings)
-  }, [currentQuestion, isImageVisible, imageSettings])
+    const backImgs = extractCardImages(currentQuestion, 'back', imageSettings)
+    const questionUrls = new Set(questionImages)
+    return backImgs.filter(url => !questionUrls.has(url))
+  }, [currentQuestion, isImageVisible, imageSettings, questionImages])
 
   const getFontSizeClass = () => {
     switch (frontFontSize) {
@@ -109,6 +111,20 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
+          {onPreviewInsight && currentQuestion && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPreviewInsight(currentQuestion)
+              }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
+              title="Xem thông tin chi tiết / Giải thích"
+            >
+              <Lightbulb className="w-4 h-4 fill-amber-400/20" />
+            </button>
+          )}
+
           {onPlayAudio && (
             <button
               type="button"

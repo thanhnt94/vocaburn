@@ -32,7 +32,7 @@ export function DeckQuickStudyLauncher({
       </div>
 
       {/* Core Flashcard Learn Modes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 mb-3">
         {/* 1. FSRS Spaced Repetition */}
         {!disabledModes.includes('fsrs') && (
           <Link
@@ -54,7 +54,30 @@ export function DeckQuickStudyLauncher({
           </Link>
         )}
 
-        {/* 2. Speed Skim */}
+        {/* 2. Hybrid Recall (Batch Drill) */}
+        {!disabledModes.includes('hybrid') && (
+          <Link
+            to={`/hybrid/${deckId}/play`}
+            className="group relative p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white shadow-md shadow-rose-200/50 active:scale-[0.98] transition-all overflow-hidden flex flex-col justify-between"
+          >
+            <div className="flex items-start justify-between mb-2 sm:mb-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white text-base sm:text-lg shrink-0 group-hover:scale-110 transition-transform">
+                🔥
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-white/20 text-white">
+                +5 XP
+              </span>
+            </div>
+            <div>
+              <span className="text-xs sm:text-sm font-black tracking-tight block">Hybrid Recall</span>
+              <p className="text-[10px] sm:text-[11px] text-rose-100 font-medium mt-0.5 line-clamp-1">
+                Preview & active drill
+              </p>
+            </div>
+          </Link>
+        )}
+
+        {/* 3. Speed Skim */}
         {!disabledModes.includes('skim') && (
           <Link
             to={`/flashcard/${deckId}/play?mode=skim`}
@@ -76,7 +99,6 @@ export function DeckQuickStudyLauncher({
             </div>
           </Link>
         )}
-
       </div>
 
       {/* Practice Tests Row */}

@@ -30,7 +30,11 @@ import {
   ListOrdered,
   Eye,
   AlertCircle,
-  FileQuestion
+  FileQuestion,
+  AlignLeft,
+  AlignCenter,
+  Type,
+  Lightbulb
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -42,6 +46,8 @@ import {
   PracticeListeningCard
 } from '@/components/practice'
 import { usePracticeAudio } from '@/hooks/usePracticeAudio'
+import { usePlaySettings } from '@/hooks/usePlaySettings'
+import LearningInsightsModal from '@/components/LearningInsightsModal'
 import { getAudioContext, cancelAllAudio } from '@/lib/audio'
 import { getVal } from '@/lib/practice-utils'
 import { selectDistractors } from '@/lib/distractor'
@@ -131,6 +137,10 @@ export default function HybridPlay() {
   const [rawQuestions, setRawQuestions] = useState<Question[]>([])
   const [masteredCardIds, setMasteredCardIds] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+
+  // ── Study Display & Audio Settings (Inherited from Deck/User defaults) ──
+  const playSettings = usePlaySettings(id || '')
+  const [previewInsightCard, setPreviewInsightCard] = useState<Question | null>(null)
 
   // ── Hybrid Configuration (Stored in User Deck Settings) ──
   const [hybridSettings, setHybridSettings] = useState<HybridSettings>(DEFAULT_HYBRID_SETTINGS)
@@ -248,6 +258,29 @@ export default function HybridPlay() {
     session,
     currentQuestion: activeQuestionForAudio || null
   })
+
+  // ── Skim Stage Autoplay Audio (Front on card show, Back on flip) ──
+  useEffect(() => {
+    if (stage === 'skim' && currentSkimQuestion) {
+      if (playSettings.autoPlayAudio === 'always' || playSettings.autoPlayAudio === 'front') {
+        const timer = setTimeout(() => {
+          playCardAudio('front')
+        }, 200)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [stage, skimCardIndex, currentSkimQuestion?.id, playSettings.autoPlayAudio])
+
+  useEffect(() => {
+    if (stage === 'skim' && currentSkimQuestion && isFlipped) {
+      if (playSettings.autoPlayAudio === 'always' || playSettings.autoPlayAudio === 'back') {
+        const timer = setTimeout(() => {
+          playCardAudio('back')
+        }, 150)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [isFlipped, stage, currentSkimQuestion?.id, playSettings.autoPlayAudio])
 
   // Web Audio Tone SFX
   const playSfx = (type: 'correct' | 'wrong' | 'flip' | 'complete' | 'batch') => {
@@ -406,6 +439,18 @@ export default function HybridPlay() {
             hybrid: newSettings
           }
         })
+      }
+      // Save display & audio preferences alongside hybrid settings
+      try {
+        await playSettings.saveGeneralSettings({
+          autoplay_audio: playSettings.autoPlayAudio,
+          front_halign: playSettings.frontHalign,
+          back_halign: playSettings.backHalign,
+          front_font_size: playSettings.frontFontSize,
+          back_font_size: playSettings.backFontSize
+        })
+      } catch (e) {
+        console.warn('Failed to save general display settings', e)
       }
       setHybridSettings(newSettings)
       setIsSettingsOpen(false)
@@ -884,21 +929,6 @@ export default function HybridPlay() {
           </div>
         </div>
 
-        {/* Center: Stage Indicator Pill */}
-        <div className="flex items-center gap-2">
-          {stage === 'skim' ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 font-black text-[11px] shadow-2xs">
-              <Layers className="w-3.5 h-3.5 text-amber-600" />
-              <span>PHASE 1: SKIM PREVIEW ({skimCardIndex + 1}/{currentBatch.length})</span>
-            </div>
-          ) : stage === 'drill' ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-700 font-black text-[11px] shadow-2xs animate-pulse">
-              <Target className="w-3.5 h-3.5 text-rose-500" />
-              <span>PHASE 2: RECALL DRILL ({passedCardsInBatchCount}/{currentBatch.length} PASSED)</span>
-            </div>
-          ) : null}
-        </div>
-
         {/* Right: Settings & Stats */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Quick Settings Gear */}
@@ -952,11 +982,13 @@ export default function HybridPlay() {
                 setIsFlipped={setIsFlipped}
                 isSelectMode={false}
                 effectiveCardFlipTrigger="card_click"
-                frontValign="center"
-                frontHalign="center"
-                backValign="center"
-                backHalign="center"
-                showImages={true}
+                frontValign={playSettings.frontValign || 'center'}
+                frontHalign={playSettings.frontHalign || 'left'}
+                frontFontSize={playSettings.frontFontSize || '100%'}
+                backValign={playSettings.backValign || 'center'}
+                backHalign={playSettings.backHalign || 'left'}
+                backFontSize={playSettings.backFontSize || '100%'}
+                showImages={playSettings.showImages || 'always'}
                 setZoomedImage={() => {}}
                 effectiveShowFsrs={false} // Clean skim view without FSRS pressure
                 selectedOption={null}
@@ -1049,9 +1081,11 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onSelectOption={handleSelectOption}
-                    onPreviewInsight={() => {}}
+                    onPreviewInsight={(card) => setPreviewInsightCard(card || drillActiveCard)}
                     sessionQuestions={scopedQuestions}
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
+                    frontFontSize={playSettings.frontFontSize}
+                    showImages={playSettings.showImages}
                   />
                 )}
 
@@ -1067,7 +1101,10 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onCheckTyping={handleCheckTyping}
+                    onPreviewInsight={(card) => setPreviewInsightCard(card || drillActiveCard)}
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
+                    frontFontSize={playSettings.frontFontSize}
+                    showImages={playSettings.showImages}
                   />
                 )}
 
@@ -1489,6 +1526,126 @@ export default function HybridPlay() {
                     })}
                   </div>
                 </div>
+
+                {/* 6. Display & Alignment Settings */}
+                <div className="pt-2 border-t border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Card Display & Audio Pacing</span>
+                    </span>
+                  </div>
+
+                  {/* Audio Autoplay */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                      AutoPlay Audio (Tự động đọc âm thanh)
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'none', label: 'Off' },
+                        { id: 'front', label: 'Front' },
+                        { id: 'back', label: 'Back' },
+                        { id: 'always', label: 'Always' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => playSettings.setAutoPlayAudio(opt.id as any)}
+                          className={cn(
+                            "py-1.5 px-2 rounded-xl text-[11px] font-black border transition-all cursor-pointer text-center",
+                            playSettings.autoPlayAudio === opt.id
+                              ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-2xs"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Horizontal Alignment */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        Front Align (Mặt trước)
+                      </label>
+                      <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-xl">
+                        {(['left', 'center'] as const).map(align => (
+                          <button
+                            key={align}
+                            type="button"
+                            onClick={() => playSettings.setFrontHalign(align)}
+                            className={cn(
+                              "py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer capitalize",
+                              playSettings.frontHalign === align
+                                ? "bg-white text-indigo-600 shadow-2xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {align}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        Back Align (Mặt sau)
+                      </label>
+                      <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-xl">
+                        {(['left', 'center'] as const).map(align => (
+                          <button
+                            key={align}
+                            type="button"
+                            onClick={() => playSettings.setBackHalign(align)}
+                            className={cn(
+                              "py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer capitalize",
+                              playSettings.backHalign === align
+                                ? "bg-white text-indigo-600 shadow-2xs"
+                                : "text-slate-500 hover:text-slate-800"
+                            )}
+                          >
+                            {align}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Font Size Scale */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                      Font Size (Cỡ chữ hiển thị)
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { id: '80%', label: 'Small (80%)' },
+                        { id: '100%', label: 'Normal (100%)' },
+                        { id: '120%', label: 'Large (120%)' },
+                        { id: '140%', label: 'Huge (140%)' },
+                      ].map(sz => (
+                        <button
+                          key={sz.id}
+                          type="button"
+                          onClick={() => {
+                            playSettings.setFrontFontSize(sz.id)
+                            playSettings.setBackFontSize(sz.id)
+                          }}
+                          className={cn(
+                            "py-1.5 px-1 rounded-xl text-[10px] font-black border transition-all cursor-pointer text-center",
+                            playSettings.frontFontSize === sz.id
+                              ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-2xs"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          )}
+                        >
+                          {sz.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -1518,6 +1675,15 @@ export default function HybridPlay() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Learning Insights Modal when clicking 💡 lightbulb */}
+      <LearningInsightsModal
+        card={previewInsightCard}
+        onClose={() => setPreviewInsightCard(null)}
+        allQuestions={scopedQuestions}
+        onSelectCard={(c) => setPreviewInsightCard(c)}
+        insightsColumns={(session as any)?.practice_settings?.insights_columns || (session as any)?.creator_settings?.insights_columns}
+      />
     </div>
   )
 }
