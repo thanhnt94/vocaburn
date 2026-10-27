@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import axios from 'axios'
@@ -75,7 +75,7 @@ export interface HybridSettings {
 export const DEFAULT_HYBRID_SETTINGS: HybridSettings = {
   batch_size: 5,
   required_correct: 2,
-  scope: 'new',
+  scope: 'all',
   order: 'sequential',
   allowed_practices: ['mcq', 'typing', 'listening']
 }
@@ -129,6 +129,9 @@ const SessionLoadingScreen = () => (
 export default function HybridPlay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const urlScope = (searchParams.get('scope') || searchParams.get('filter')) as HybridScope | null
+  const urlOrder = searchParams.get('order') as HybridOrder | null
   const { user, gamify, addXp } = useAppStore()
 
   // ── Session State ──
@@ -206,12 +209,22 @@ export default function HybridPlay() {
   // Filtered Cards according to Scope & Order
   const scopedQuestions: Question[] = useMemo(() => {
     if (!rawQuestions || rawQuestions.length === 0) return []
-    const filtered = filterCardsByScope(
+    let filtered = filterCardsByScope(
       rawQuestions,
       hybridSettings.scope,
       hybridSettings.required_correct,
       masteredCardIds
     )
+
+    // Fail-Safe: If selected scope yielded 0 cards but deck has cards, fallback to 'all' so study never breaks
+    if (filtered.length === 0 && rawQuestions.length > 0 && hybridSettings.scope !== 'all') {
+      filtered = filterCardsByScope(
+        rawQuestions,
+        'all',
+        hybridSettings.required_correct,
+        masteredCardIds
+      )
+    }
 
     if (hybridSettings.order === 'random') {
       const copy = [...filtered]
@@ -366,11 +379,32 @@ export default function HybridPlay() {
 
         const userSet = userPracticeSettings?.hybrid || quizRes.data.user_settings?.hybrid || {}
         const creatorSet = creatorPracticeSettings?.hybrid || quizRes.data.practice_settings?.hybrid || {}
+
+        // Resolve requested scope with query parameter priority
+        let chosenScope: HybridScope = (urlScope as HybridScope) || (userSet.scope as HybridScope) || (creatorSet.scope as HybridScope) || DEFAULT_HYBRID_SETTINGS.scope
+        const reqCorrect = Number(userSet.required_correct || creatorSet.required_correct || DEFAULT_HYBRID_SETTINGS.required_correct)
+
+        // Pre-populate mastered cards from drill stats
+        const preMastered = new Set<number>()
+        questions.forEach(q => {
+          if ((q.practice_summary?.drill_correct ?? 0) >= reqCorrect) {
+            preMastered.add(q.id)
+          }
+        })
+        setMasteredCardIds(preMastered)
+
+        // Check if chosen scope has cards; if 0 cards, fallback to 'all' so the session never displays 0 cards
+        const checkFiltered = filterCardsByScope(questions, chosenScope, reqCorrect, preMastered)
+        if (checkFiltered.length === 0 && questions.length > 0 && chosenScope !== 'all') {
+          console.warn(`[HybridPlay] Chosen scope '${chosenScope}' has 0 cards. Auto-switching to 'all'.`)
+          chosenScope = 'all'
+        }
+
         const mergedSettings: HybridSettings = {
           batch_size: Number(userSet.batch_size || creatorSet.batch_size || DEFAULT_HYBRID_SETTINGS.batch_size),
-          required_correct: Number(userSet.required_correct || creatorSet.required_correct || DEFAULT_HYBRID_SETTINGS.required_correct),
-          scope: (userSet.scope || creatorSet.scope || DEFAULT_HYBRID_SETTINGS.scope) as HybridScope,
-          order: (userSet.order || creatorSet.order || DEFAULT_HYBRID_SETTINGS.order) as HybridOrder,
+          required_correct: reqCorrect,
+          scope: chosenScope,
+          order: (urlOrder as HybridOrder) || (userSet.order || creatorSet.order || DEFAULT_HYBRID_SETTINGS.order) as HybridOrder,
           allowed_practices: Array.isArray(userSet.allowed_practices) && userSet.allowed_practices.length > 0
             ? userSet.allowed_practices
             : (Array.isArray(creatorSet.allowed_practices) && creatorSet.allowed_practices.length > 0
@@ -378,15 +412,6 @@ export default function HybridPlay() {
                 : DEFAULT_HYBRID_SETTINGS.allowed_practices)
         }
         setHybridSettings(mergedSettings)
-
-        // Pre-populate mastered cards from drill stats
-        const preMastered = new Set<number>()
-        questions.forEach(q => {
-          if ((q.practice_summary?.drill_correct ?? 0) >= mergedSettings.required_correct) {
-            preMastered.add(q.id)
-          }
-        })
-        setMasteredCardIds(preMastered)
 
         // Smart Sequential Cursor: automatically position at first unmastered card batch
         if (mergedSettings.order === 'sequential') {
@@ -952,7 +977,35 @@ export default function HybridPlay() {
       {/* ═══════════ MAIN CONTENT AREA ═══════════ */}
       <main className="flex-1 min-h-0 flex w-full max-w-4xl mx-auto flex-col justify-center items-center px-3 sm:px-6 py-2 overflow-hidden relative">
         <AnimatePresence mode="wait">
-          {stage === 'skim' && currentSkimQuestion ? (
+          {scopedQuestions.length === 0 ? (
+            /* ──────────────── EMPTY SCOPE FALLBACK ──────────────── */
+            <motion.div
+              key="empty_scope"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-white rounded-3xl border border-slate-100 p-8 shadow-2xl text-center flex flex-col items-center"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-500 border border-amber-200/60 flex items-center justify-center mb-4 shadow-sm">
+                <Layers className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800">No Cards in Scope</h3>
+              <p className="text-xs text-slate-500 mt-2 mb-6 leading-relaxed">
+                There are no cards in this deck matching scope <span className="font-bold text-rose-600">"{hybridSettings.scope.toUpperCase()}"</span>. All cards may already be drilled or in FSRS review.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const newSettings = { ...hybridSettings, scope: 'all' as HybridScope }
+                  setHybridSettings(newSettings)
+                  handleSaveSettings(newSettings, false)
+                }}
+                className="w-full py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-md shadow-rose-200 cursor-pointer active:scale-95"
+              >
+                Switch Scope to "All Cards" ({rawQuestions.length} Cards)
+              </button>
+            </motion.div>
+          ) : stage === 'skim' && currentSkimQuestion ? (
             /* ──────────────── STAGE A: SKIM PREVIEW ──────────────── */
             <motion.div
               key={`skim-${currentBatchIndex}-${skimCardIndex}`}
@@ -1167,7 +1220,7 @@ export default function HybridPlay() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
-          ) : (
+          ) : stage === 'complete' ? (
             /* ──────────────── STAGE D: COMPLETE SESSION ──────────────── */
             <motion.div
               key="complete"
@@ -1224,12 +1277,17 @@ export default function HybridPlay() {
                 </button>
               </div>
             </motion.div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-8 text-slate-400">
+              <div className="w-8 h-8 rounded-full border-2 border-rose-200 border-t-rose-600 animate-spin mb-2" />
+              <span className="text-xs font-bold">Loading cards...</span>
+            </div>
           )}
         </AnimatePresence>
       </main>
 
       {/* ═══════════ DOCKED BOTTOM SEGMENTED CONTROLS ═══════════ */}
-      {stage === 'skim' && (
+      {scopedQuestions.length > 0 && stage === 'skim' && currentSkimQuestion && (
         <footer className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg">
           <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
             {/* Prev Skim Card */}
@@ -1288,7 +1346,7 @@ export default function HybridPlay() {
         </footer>
       )}
 
-      {stage === 'drill' && (
+      {scopedQuestions.length > 0 && stage === 'drill' && drillActiveCard && (
         <footer className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg">
           <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
             <span className="text-[11px] font-black text-slate-400">

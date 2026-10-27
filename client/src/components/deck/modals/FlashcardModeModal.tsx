@@ -81,7 +81,7 @@ export function FlashcardModeModal({
       random_enabled: isRandom
     })
 
-    const filterParam = cardFilter !== 'all' ? `&scope=${cardFilter}&filter=${cardFilter}` : ''
+    const filterParam = cardFilter !== 'all' ? `&scope=${cardFilter}&filter=${cardFilter}` : '&scope=all'
     if (modeKey === 'hybrid') {
       navigate(`/hybrid/${deck.id}/play?order=${cardOrder}${filterParam}`)
     } else {
