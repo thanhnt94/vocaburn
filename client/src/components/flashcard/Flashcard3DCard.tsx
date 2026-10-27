@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye, Lightbulb } from 'lucide-react'
+import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye, Lightbulb, Volume2, Sliders, RefreshCw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -61,6 +61,10 @@ export interface Flashcard3DCardProps {
   isFlyingOut?: boolean
   flipSides?: boolean
   handleOpenCardHub?: (tab?: 'stats' | 'insight' | 'note' | 'community') => void
+  onTriggerPlayAudio?: () => void
+  isLoadingAudio?: boolean
+  isPlayingAudio?: boolean
+  onOpenQuickSettings?: () => void
 }
 
 export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
@@ -101,10 +105,13 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   setShowAbsoluteFirst,
   showAbsoluteLast,
   setShowAbsoluteLast,
-  renderFlyToolbarNode,
   activeMode,
   handleNext,
-  handleOpenCardHub
+  handleOpenCardHub,
+  onTriggerPlayAudio,
+  isLoadingAudio,
+  isPlayingAudio,
+  onOpenQuickSettings
 }) => {
   useEffect(() => {
     if (cardDragControls && !isFlyingOut) {
@@ -775,6 +782,54 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 </div>
               );
             })()}
+
+            {/* ── FLOATING ACTION OVERLAY (Fly Button on Back Face) ── */}
+            {/* Positioned absolute so it hovers above the card without taking up vertical layout space */}
+            {onTriggerPlayAudio && (!hasRated || selectedOption === null) && (
+              <div 
+                className="absolute bottom-3.5 right-3.5 z-30 flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all hover:shadow-lg pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 1. Play Pronunciation (Audio) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTriggerPlayAudio();
+                  }}
+                  className={cn(
+                    "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
+                    isPlayingAudio
+                      ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
+                      : isLoadingAudio
+                      ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                      : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
+                  )}
+                  title={isLoadingAudio ? "Generating audio..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
+                >
+                  {isLoadingAudio ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                  ) : (
+                    <Volume2 className={cn("w-4 h-4 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
+                  )}
+                </button>
+
+                {/* 2. Menu / Quick Controls */}
+                <div className="w-[1px] h-4 bg-slate-200/80" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenQuickSettings) onOpenQuickSettings();
+                    else setIsFlyToolbarOpen(true);
+                  }}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
+                  title="Quick Controls & Settings"
+                >
+                  <Sliders className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

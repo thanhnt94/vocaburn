@@ -267,7 +267,7 @@ export default function HybridPlay() {
     ? currentSkimQuestion
     : drillActiveCard
 
-  const { playCardAudio } = usePracticeAudio({
+  const { playCardAudio, isLoadingAudio, isPlayingAudio } = usePracticeAudio({
     session,
     currentQuestion: activeQuestionForAudio || null
   })
@@ -1085,6 +1085,13 @@ export default function HybridPlay() {
                   setStarredCards(prev => ({ ...prev, [currentSkimQuestion.id]: !prev[currentSkimQuestion.id] }))
                 }}
                 activeMode="hybrid_skim"
+                onTriggerPlayAudio={() => {
+                  const targetFace = isFlipped ? 'back' : 'front';
+                  playCardAudio(targetFace);
+                }}
+                isLoadingAudio={isLoadingAudio}
+                isPlayingAudio={isPlayingAudio}
+                onOpenQuickSettings={() => setIsSettingsOpen(true)}
               />
             </motion.div>
           ) : stage === 'drill' && drillActiveCard ? (

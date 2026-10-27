@@ -432,15 +432,15 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
-                  {/* If card was rated, show Undo ONLY (DO NOT show duplicate Back button) */}
+                  {/* If card was rated, show Undo ONLY (icon-only, DO NOT show duplicate Back button) */}
                   {activelyRatedCurrentCard && hasRated ? (
                     <button
                       onClick={handleUndoRating}
-                      className="h-full px-3.5 sm:px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
+                      className="h-full px-3 sm:px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
                       title="Undo Rating"
+                      aria-label="Undo Rating"
                     >
-                      <Undo2 className="w-3.5 h-3.5" />
-                      <span>Undo</span>
+                      <Undo2 className="w-4 h-4 text-slate-600" />
                     </button>
                   ) : (
                     /* Flip Back button (only shown when unrated in skim/flip mode) */

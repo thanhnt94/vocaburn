@@ -3964,6 +3964,15 @@ export default function FlashcardPlay() {
                   activeMode={effectiveCardMode}
                   handleNext={handleNext}
                   handleOpenCardHub={handleOpenCardHub}
+                  onTriggerPlayAudio={() => {
+                    const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
+                    playCardAudio(targetFace);
+                  }}
+                  isLoadingAudio={isLoadingAudio}
+                  isPlayingAudio={isPlayingAudio}
+                  onOpenQuickSettings={() => {
+                    setIsFlyToolbarOpen(true);
+                  }}
                 />
               )}
             </motion.div>
