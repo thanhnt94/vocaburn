@@ -869,6 +869,8 @@ export default function PracticePlay() {
       if (correctAns) {
         addAnswer(correctAns);
       }
+      const cardRomaji = getVal(qObj, 'romaji') || getVal(qObj, 'romanji');
+      if (cardRomaji) addAnswer(cardRomaji);
       const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
 
       setCurrentPracticeData({
@@ -2434,7 +2436,21 @@ export default function PracticePlay() {
   const handleTypingAnswer = async () => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
 
-    const cleanInput = typingInput.trim().toLowerCase();
+    const normalizeAnswer = (str: string) => {
+      return str
+        .replace(/<[^<]+?>/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[〜~]/g, '')
+        .replace(/[ōóòỏõọ]/g, 'o')
+        .replace(/[ūúùủũụ]/g, 'u')
+        .replace(/[āáàảãạ]/g, 'a')
+        .replace(/[ēéèẻẽẹ]/g, 'e')
+        .replace(/[īíìỉĩị]/g, 'i')
+        .trim();
+    };
+
+    const cleanInput = normalizeAnswer(typingInput);
     const rawAnswers: string[] = (currentPracticeData.acceptable_answers && currentPracticeData.acceptable_answers.length > 0)
       ? currentPracticeData.acceptable_answers
       : [currentPracticeData.correct_answer || ''];
@@ -2454,8 +2470,7 @@ export default function PracticePlay() {
 
     const isCorrect = acceptableAnswers.some((ans: string) => {
       if (!ans) return false;
-      const cleanAns = ans.replace(/<[^<]+?>/g, '').trim().toLowerCase();
-      return cleanInput === cleanAns;
+      return cleanInput === normalizeAnswer(ans);
     });
 
     const updatedTotalAnswered = practiceTotalAnswered + 1;

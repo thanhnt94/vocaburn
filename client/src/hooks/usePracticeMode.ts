@@ -260,6 +260,8 @@ export function usePracticeMode(
       if (correctAns) {
         addAnswer(correctAns);
       }
+      const cardRomaji = getVal(qObj, 'romaji') || getVal(qObj, 'romanji');
+      if (cardRomaji) addAnswer(cardRomaji);
       const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
 
       setCurrentPracticeData({

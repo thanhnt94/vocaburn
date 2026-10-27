@@ -595,7 +595,7 @@ export default function HybridPlay() {
     let activePairs = modeConfig.active_pairs
     if (!Array.isArray(activePairs) || activePairs.length === 0) {
       if (chosenMode === 'typing') {
-        activePairs = [{ q: 'nghĩa', a: ['front', 'từ vựng', 'cách đọc'] }]
+        activePairs = [{ q: 'nghĩa', a: ['front', 'từ vựng', 'cách đọc', 'romaji', 'romanji'] }]
       } else {
         activePairs = [{ q: 'front', a: 'nghĩa' }]
       }
@@ -604,7 +604,7 @@ export default function HybridPlay() {
     // Pick a random active pair
     const activePair = activePairs[Math.floor(Math.random() * activePairs.length)]
     const question_key = activePair.q || (chosenMode === 'typing' ? 'nghĩa' : 'front')
-    const raw_answer_key = activePair.a || (chosenMode === 'typing' ? ['front', 'từ vựng', 'cách đọc'] : 'nghĩa')
+    const raw_answer_key = activePair.a || (chosenMode === 'typing' ? ['front', 'từ vựng', 'cách đọc', 'romaji', 'romanji'] : 'nghĩa')
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'front') : (raw_answer_key || 'nghĩa')
     const audio_col = activePair.audio_col || (chosenMode === 'listening' ? 'front' : undefined)
 
@@ -727,6 +727,10 @@ export default function HybridPlay() {
         addAnswer(correctAns)
       }
 
+      // Automatically include card romaji / romanji if available
+      const cardRomaji = getVal(q, 'romaji') || getVal(q, 'romanji')
+      if (cardRomaji) addAnswer(cardRomaji)
+
       const primary_answer = acceptable_answers[0] || correctAns || getVal(q, 'front') || q.content || ''
 
       const practiceObj: PracticeQuestionData = {
@@ -757,7 +761,21 @@ export default function HybridPlay() {
   // ── 7. Handle Drill Answer (Typing) ──
   const handleCheckTyping = () => {
     if (answered || !currentPracticeData || !drillActiveCard) return
-    const cleanInput = typingInput.trim().toLowerCase().replace(/[〜~]/g, '')
+    const normalizeAnswer = (str: string) => {
+      return str
+        .replace(/<[^<]+?>/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[〜~]/g, '')
+        .replace(/[ōóòỏõọ]/g, 'o')
+        .replace(/[ūúùủũụ]/g, 'u')
+        .replace(/[āáàảãạ]/g, 'a')
+        .replace(/[ēéèẻẽẹ]/g, 'e')
+        .replace(/[īíìỉĩị]/g, 'i')
+        .trim()
+    }
+
+    const cleanInput = normalizeAnswer(typingInput)
     const rawAnswers = (currentPracticeData.acceptable_answers && currentPracticeData.acceptable_answers.length > 0)
       ? currentPracticeData.acceptable_answers
       : [currentPracticeData.correct_answer || '']
@@ -777,8 +795,7 @@ export default function HybridPlay() {
 
     const isCorrect = acceptableAnswers.some((ans: string) => {
       if (!ans) return false
-      const cleanAns = ans.replace(/<[^<]+?>/g, '').trim().toLowerCase().replace(/[〜~]/g, '')
-      return cleanInput === cleanAns
+      return cleanInput === normalizeAnswer(ans)
     })
 
     setTypingFeedback({ checked: true, isCorrect })
