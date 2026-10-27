@@ -3573,6 +3573,7 @@ export default function PracticePlay() {
           onZoomImage={(url) => setZoomedImage(url)}
           frontFontSize={currentFrontFontSize}
           showImages={showImages}
+          onPreviewInsight={setPreviewInsightCard}
         />
       );
     }

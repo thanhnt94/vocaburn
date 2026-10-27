@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, ChevronRight } from 'lucide-react'
+import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, Flame, ChevronRight } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +29,15 @@ export function PracticeModeModal({
   const disabledModes = deck.practice_settings?.disabled_modes || []
 
   const practiceModes = [
+    {
+      mode: 'hybrid',
+      icon: Flame,
+      iconColor: 'text-rose-600 bg-rose-50 border-rose-100',
+      hoverColor: 'hover:border-rose-500/40 hover:bg-rose-50/15',
+      title: 'Hybrid Recall (Batch Drill)',
+      desc: 'Skim preview + active recall drill test (+5 XP)',
+      badge: 'Interactive'
+    },
     {
       mode: 'mcq',
       icon: LayoutGrid,
@@ -60,6 +69,10 @@ export function PracticeModeModal({
 
   const handleSelect = (mode: string) => {
     onClose()
+    if (mode === 'hybrid') {
+      navigate(`/hybrid/${deck.id}/play`)
+      return
+    }
     updateUserSettings({ practice_submode: mode as any })
     if (onSelectMode) {
       onSelectMode(mode)

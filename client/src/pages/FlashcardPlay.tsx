@@ -3987,11 +3987,6 @@ export default function FlashcardPlay() {
       </main>
 
 
-      {/* ═══════════ FLY TOOLBAR (Floating Island above footer dock for Practice Mode) ═══════════ */}
-      {mainTab === 'practice' && !practiceNeedsSetup && (activeBottomTab === 'flashcard' || !isFeedbackOpen) && !isMapOpen && !isStatsOpen && (
-        renderFlyToolbar(false)
-      )}
-
       <FlashcardActionDock
         shouldShowFsrsCompleteScreen={shouldShowFsrsCompleteScreen}
         mainTab={mainTab}
@@ -4034,6 +4029,12 @@ export default function FlashcardPlay() {
         onOpenQuickSettings={() => {
           setIsFlyToolbarOpen(true);
         }}
+        onTriggerPlayAudio={() => {
+          const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
+          playCardAudio(targetFace);
+        }}
+        isLoadingAudio={isLoadingAudio}
+        isPlayingAudio={isPlayingAudio}
         getFSRSIntervals={getFSRSIntervals}
       />
 

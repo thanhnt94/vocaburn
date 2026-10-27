@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye } from 'lucide-react'
+import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye, Lightbulb } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -55,7 +55,7 @@ export interface Flashcard3DCardProps {
   setShowAbsoluteFirst: React.Dispatch<React.SetStateAction<boolean>>
   showAbsoluteLast: boolean
   setShowAbsoluteLast: React.Dispatch<React.SetStateAction<boolean>>
-  renderFlyToolbarNode: (isCardSlot: boolean) => React.ReactNode
+  renderFlyToolbarNode?: (isCardSlot: boolean) => React.ReactNode
   activeMode?: string
   handleNext?: () => void
   isFlyingOut?: boolean
@@ -200,7 +200,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           </button>
         </div>
 
-        {/* Right Cluster: Mastery Status Pill + Star Bookmark */}
+        {/* Right Cluster: Mastery Status Pill + Lightbulb Insights + Star Bookmark */}
         <div className="flex items-center gap-1.5 shrink-0">
           {currentQuestion && (
             <div 
@@ -213,6 +213,19 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             >
               {getMasteryPill(currentQuestion)}
             </div>
+          )}
+          {currentQuestion && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenCardHub?.('insight');
+              }}
+              className="w-7 sm:w-7.5 h-7 sm:h-7.5 flex items-center justify-center rounded-xl border border-amber-200/80 bg-amber-50/80 hover:bg-amber-100 text-amber-500 hover:text-amber-600 transition-all active:scale-90 shadow-2xs cursor-pointer"
+              title="Card Insights & Mnemonics (💡)"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-400/30" />
+            </button>
           )}
           {currentQuestion && (
             <button
@@ -408,13 +421,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                     {parseBBCodeToHtml(frontText)}
                   </ReactMarkdown>
                 </div>
-              </div>
-            </div>
-
-            {/* Bottom Slot on FRONT Face */}
-            <div className="mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center">
-              <div className="shrink-0 pl-1 z-30">
-                {renderFlyToolbarNode(true)}
               </div>
             </div>
           </div>
@@ -740,43 +746,31 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 }
               }
 
+              if (!isCardRated) return null;
+
               return (
                 <div className={cn(
-                  "mt-2 shrink-0 relative w-full h-[46px] select-none flex items-center rounded-full border transition-all duration-300",
-                  isCardRated
-                    ? cn(
-                        selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-                        selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
-                        selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
-                        "bg-emerald-50 border-emerald-200 text-emerald-700"
-                      )
-                    : "border-transparent bg-transparent"
+                  "mt-2 shrink-0 relative w-full h-[42px] select-none flex items-center justify-center rounded-full border transition-all duration-300 px-3",
+                  selectedOption === 0 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+                  selectedOption === 1 ? "bg-amber-50 border-amber-200 text-amber-700" :
+                  selectedOption === 2 ? "bg-indigo-50 border-indigo-200 text-indigo-700" :
+                  "bg-emerald-50 border-emerald-200 text-emerald-700"
                 )}>
-                  {/* Left: Audio + Setting buttons */}
-                  <div className="shrink-0 pl-1 z-30">
-                    {renderFlyToolbarNode(true)}
-                  </div>
-
-                  {/* Remaining space: Centered unlock countdown banner (Clickable to advance to Next Card) */}
-                  <div className="flex-1 min-w-0 flex items-center justify-center pr-3 pl-1">
-                    {isCardRated && (
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNext?.();
-                        }}
-                        className="flex items-center justify-center gap-1.5 text-center min-w-0 truncate cursor-pointer hover:opacity-90 active:scale-98 transition-all group"
-                        title="Click or Swipe Right to Next Card"
-                      >
-                        <span className="text-xs sm:text-sm font-black tracking-wide shrink-0">
-                          ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
-                        </span>
-                        <span className="opacity-80 text-[11px] sm:text-xs font-semibold truncate">
-                          — Unlocks in {countdownStr} ⏳
-                        </span>
-                        <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </div>
-                    )}
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNext?.();
+                    }}
+                    className="flex items-center justify-center gap-1.5 text-center min-w-0 truncate cursor-pointer hover:opacity-90 active:scale-98 transition-all group"
+                    title="Click or Swipe Right to Next Card"
+                  >
+                    <span className="text-xs sm:text-sm font-black tracking-wide shrink-0">
+                      ✓ {selectedOption === 0 ? "AGAIN" : selectedOption === 1 ? "HARD" : selectedOption === 2 ? "GOOD" : "EASY"}
+                    </span>
+                    <span className="opacity-80 text-[11px] sm:text-xs font-semibold truncate">
+                      — Unlocks in {countdownStr} ⏳
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
                   </div>
                 </div>
               );
