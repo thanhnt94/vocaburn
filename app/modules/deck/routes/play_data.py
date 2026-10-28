@@ -314,10 +314,7 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
     user_today_time = today_time_res.scalar() or 0
     user_all_time_time = all_time_time_res.scalar() or 0
     
-    from fsrs import Scheduler
-    scheduler = Scheduler(enable_fuzzing=False)
-    new_card_template = build_fsrs_card(None, now_utc)
-    default_new_intervals = estimate_intervals(scheduler, new_card_template, now_utc)
+    default_new_intervals = {1: "1m", 2: "5m", 3: "10m", 4: "4d"}
     
     cards_list = []
     for c, m in selected_items:
@@ -331,9 +328,13 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
         is_new = (m is None) or (m_state == 0 and m_last_review is None)
         if is_new:
             intervals = default_new_intervals
+        elif m_stability and m_stability > 0:
+            hard_days = max(1, round(m_stability * 1.2))
+            good_days = max(2, round(m_stability * 2.5))
+            easy_days = max(4, round(m_stability * 4.0))
+            intervals = {1: "10m", 2: f"{hard_days}d", 3: f"{good_days}d", 4: f"{easy_days}d"}
         else:
-            fsrs_card = build_fsrs_card(m, now_utc)
-            intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
+            intervals = default_new_intervals
             
         r_times = review_times_map.get(c.id)
         first_learned = r_times[0] if r_times else None
@@ -385,7 +386,6 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
         "user_all_time_time": user_all_time_time,
         "practice_needs_setup": False,
         "practice_disabled": False,
-        "cards": cards_list,
         "questions": cards_list
     }
 
@@ -394,6 +394,8 @@ async def get_deck_play_data(
     request: Request,
     deck_id: int,
     mode: Optional[str] = None,
+    scope: Optional[str] = Query(None),
+    limit: Optional[int] = Query(None),
     lightweight: Optional[bool] = None,
     sub_col: Optional[str] = Query(None),
     sub_val: Optional[str] = Query(None),
@@ -468,8 +470,7 @@ async def get_deck_play_data(
             "instruction": deck.instruction,
             "category_id": deck.category_id,
             "creator_id": deck.creator_id,
-            "cards": cards_list,
-            "questions": cards_list,
+                "questions": cards_list,
             "sub_group": {
                 "column": sub_col,
                 "value": sub_val,
@@ -556,16 +557,49 @@ async def get_deck_play_data(
         mastery_res = await db.execute(mastery_stmt)
         mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
 
-        from app.modules.deck.models import UserPracticeStats
-        p_stats_stmt = select(UserPracticeStats).where(
-            UserPracticeStats.user_id == user_id,
-            UserPracticeStats.card_id.in_(card_ids)
-        )
-        p_stats_res = await db.execute(p_stats_stmt)
-        for ps in p_stats_res.scalars().all():
-            if ps.card_id not in practice_records:
-                practice_records[ps.card_id] = []
-            practice_records[ps.card_id].append(ps)
+        # Server-side Scope Filtering & Slicing for fast mobile loading
+        if scope in ("due", "review"):
+            now_utc_naive = datetime.utcnow()
+            def is_card_due(c):
+                m = mastery_records.get(c.id)
+                if not m or m.is_ignored:
+                    return False
+                if m.state == 0 and not m.last_review:
+                    return False
+                if m.due:
+                    return m.due <= now_utc_naive
+                return m.state > 0
+            source_cards = [c for c in source_cards if is_card_due(c)]
+        elif scope == "new":
+            def is_card_new(c):
+                m = mastery_records.get(c.id)
+                if m and m.is_ignored:
+                    return False
+                return (m is None) or (m.state == 0 and m.last_review is None)
+            source_cards = [c for c in source_cards if is_card_new(c)]
+        elif scope == "hard":
+            def is_card_hard(c):
+                m = mastery_records.get(c.id)
+                if not m or m.is_ignored:
+                    return False
+                return (m.difficulty and m.difficulty >= 6.0) or (m.lapses and m.lapses > 0) or m.is_starred
+            source_cards = [c for c in source_cards if is_card_hard(c)]
+
+        if limit and limit > 0:
+            source_cards = source_cards[:limit]
+
+        active_card_ids = [c.id for c in source_cards]
+        if active_card_ids:
+            from app.modules.deck.models import UserPracticeStats
+            p_stats_stmt = select(UserPracticeStats).where(
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.card_id.in_(active_card_ids)
+            )
+            p_stats_res = await db.execute(p_stats_stmt)
+            for ps in p_stats_res.scalars().all():
+                if ps.card_id not in practice_records:
+                    practice_records[ps.card_id] = []
+                practice_records[ps.card_id].append(ps)
 
     # Check settings if practice mode
     practice_needs_setup = False
@@ -620,14 +654,8 @@ async def get_deck_play_data(
                 "others": fix_static_urls(c.others)
             })
     else:
-        from fsrs import Card, Scheduler, Rating, State
-        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
-        
         # Predefined static default intervals for new cards (Zero CPU cost)
         default_new_intervals = {1: "1m", 2: "5m", 3: "10m", 4: "4d"}
-        
-        # Instantiate scheduler once only if needed for review cards
-        scheduler = None
         
         for idx, c in enumerate(source_cards):
             m = mastery_records.get(c.id)
@@ -644,11 +672,18 @@ async def get_deck_play_data(
             
             if is_new:
                 intervals = default_new_intervals
+            elif m_stability and m_stability > 0:
+                hard_days = max(1, round(m_stability * 1.2))
+                good_days = max(2, round(m_stability * 2.5))
+                easy_days = max(4, round(m_stability * 4.0))
+                intervals = {
+                    1: "10m",
+                    2: f"{hard_days}d",
+                    3: f"{good_days}d",
+                    4: f"{easy_days}d"
+                }
             else:
-                if scheduler is None:
-                    scheduler = Scheduler(enable_fuzzing=False)
-                fsrs_card = build_fsrs_card(m, now_utc)
-                intervals = estimate_intervals(scheduler, fsrs_card, now_utc)
+                intervals = default_new_intervals
                         
             card_p_stats = practice_records.get(c.id, [])
             total_attempts = sum((ps.correct_count or 0) + (ps.wrong_count or 0) for ps in card_p_stats)
@@ -725,7 +760,6 @@ async def get_deck_play_data(
         "has_mcq_setup": check_has_mcq_setup(deck.practice_settings),
         "practice_needs_setup": practice_needs_setup,
         "practice_disabled": not check_has_practice_setup(deck.practice_settings),
-        "cards": cards_list,
         "questions": cards_list, # compatibility
         "practice_settings": deck.practice_settings,
         "user_settings": user_sett.settings if user_sett else None,

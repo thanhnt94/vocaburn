@@ -106,10 +106,13 @@ async def get_deck_sub_lessons(
     from app.modules.deck.models import Flashcard, UserCardMastery
     import re
     
-    # 1. Fetch cards for this deck
-    res = await db.execute(select(Flashcard).where(Flashcard.deck_id == deck_id))
-    cards = res.scalars().all()
-    total_cards = len(cards)
+    # 1. Fetch lightweight cards (id, others, question_type) instead of heavy ORM objects
+    res = await db.execute(
+        select(Flashcard.id, Flashcard.others, Flashcard.question_type)
+        .where(Flashcard.deck_id == deck_id)
+    )
+    raw_cards = res.all()
+    total_cards = len(raw_cards)
     
     # 2. Extract practice_settings configuration
     practice_settings = deck.practice_settings or {}
@@ -128,9 +131,9 @@ async def get_deck_sub_lessons(
     }
     
     col_distinct_map = {}
-    for c in cards:
-        if c.others and isinstance(c.others, dict):
-            for k, v in c.others.items():
+    for c_id, c_others, c_qtype in raw_cards:
+        if c_others and isinstance(c_others, dict):
+            for k, v in c_others.items():
                 k_clean = clean_col_name(k)
                 if k_clean and k_clean not in excluded_cols and not k_clean.startswith("_") and not k_clean.startswith("["):
                     if k_clean not in col_distinct_map:
@@ -165,7 +168,7 @@ async def get_deck_sub_lessons(
         })
             
     # Also add question_type if deck has multiple question types
-    q_types = set(str(c.question_type).strip() for c in cards if c.question_type)
+    q_types = set(str(c_qtype).strip() for _, _, c_qtype in raw_cards if c_qtype)
     if len(q_types) > 1:
         available_columns.append({
             "column": "question_type",
@@ -188,28 +191,39 @@ async def get_deck_sub_lessons(
         if user_id and total_cards > 0:
             card_id_subq = select(Flashcard.id).where(Flashcard.deck_id == deck_id)
             m_res = await db.execute(
-                select(UserCardMastery).where(
+                select(
+                    UserCardMastery.card_id,
+                    UserCardMastery.state,
+                    UserCardMastery.last_review,
+                    UserCardMastery.box_level,
+                    UserCardMastery.due
+                ).where(
                     UserCardMastery.user_id == user_id,
                     UserCardMastery.card_id.in_(card_id_subq)
                 )
             )
-            for m in m_res.scalars().all():
-                mastery_map[m.card_id] = m
+            for m_row in m_res.all():
+                mastery_map[m_row[0]] = {
+                    "state": m_row[1],
+                    "last_review": m_row[2],
+                    "box_level": m_row[3],
+                    "due": m_row[4]
+                }
 
         now_utc = datetime.utcnow()
         group_cards_map = {}
 
-        for c in cards:
+        for c_id, c_others, c_qtype in raw_cards:
             c_val = ""
-            if c.others and isinstance(c.others, dict):
-                c_val = str(c.others.get(active_col, "") or "").strip()
-            elif hasattr(c, active_col):
-                c_val = str(getattr(c, active_col) or "").strip()
+            if c_others and isinstance(c_others, dict):
+                c_val = str(c_others.get(active_col, "") or "").strip()
+            elif active_col == "question_type":
+                c_val = str(c_qtype or "").strip()
                 
             group_key = c_val if c_val else "__empty__"
             if group_key not in group_cards_map:
                 group_cards_map[group_key] = []
-            group_cards_map[group_key].append(c)
+            group_cards_map[group_key].append(c_id)
 
         def natural_sort_key(s):
             return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
@@ -230,16 +244,16 @@ async def get_deck_sub_lessons(
             new_cnt = 0
             due_cnt = 0
             
-            for gc in g_cards:
-                m = mastery_map.get(gc.id)
-                if not m or (m.state == 0 and not m.last_review):
+            for gc_id in g_cards:
+                m = mastery_map.get(gc_id)
+                if not m or (m["state"] == 0 and not m["last_review"]):
                     new_cnt += 1
-                elif m.state == 2 or m.box_level == 5:
+                elif m["state"] == 2 or m["box_level"] == 5:
                     mastered_cnt += 1
                 else:
                     learning_cnt += 1
                     
-                if m and m.due and m.due <= now_utc:
+                if m and m["due"] and m["due"] <= now_utc:
                     due_cnt += 1
 
             pct = round((mastered_cnt / g_total) * 100) if g_total > 0 else 0

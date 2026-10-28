@@ -1029,19 +1029,35 @@ export default function FlashcardPlay() {
             ? `/api/v1/folder/${folderId}/play-data${modeParam}`
             : `/api/v1/deck/${id}/play-data${modeParam}`
 
-      if (subCol && subVal !== null) {
-        const delimiter = fetchUrl.includes('?') ? '&' : '?'
-        fetchUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
-      }
-      const quizRes = await axios.get(fetchUrl)
-      let questions = quizRes.data.questions || []
-
       // Apply Target Card Scope & Intelligent Interleaving
       const urlScope = currentSearchParams.get('scope') || currentSearchParams.get('filter') || cardScope || 'all'
       const initialOrder = currentSearchParams.get('order') || (userSettings?.random_enabled ? 'random' : 'sequential')
       const isRandom = isGlobalFocus || initialOrder === 'random'
       const rawMode = currentSearchParams.get('mode') || activeMode || 'fsrs'
       const isFsrsMode = rawMode === 'fsrs' || rawMode === 'review' || rawMode === 'new'
+
+      if (subCol && subVal !== null) {
+        const delimiter = fetchUrl.includes('?') ? '&' : '?'
+        fetchUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
+      }
+
+      // Optimization: pass scope & mode to backend to slice study session directly on server
+      if (!isPractice && !isFolder && !isGlobalFocus && id !== 'quick') {
+        const delimiter = fetchUrl.includes('?') ? '&' : '?'
+        const extraParams: string[] = []
+        if (urlScope && urlScope !== 'all') {
+          extraParams.push(`scope=${encodeURIComponent(urlScope)}`)
+        }
+        if (rawMode) {
+          extraParams.push(`mode=${encodeURIComponent(rawMode)}`)
+        }
+        if (extraParams.length > 0) {
+          fetchUrl += `${delimiter}${extraParams.join('&')}`
+        }
+      }
+
+      const quizRes = await axios.get(fetchUrl)
+      let questions = quizRes.data.questions || quizRes.data.cards || []
 
       const shuffleCards = (arr: any[]) => {
         const copy = [...arr]

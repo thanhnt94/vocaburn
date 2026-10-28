@@ -1077,7 +1077,59 @@ export default function HybridPlay() {
                 setShowAbsoluteFirst={() => {}}
                 showAbsoluteLast={false}
                 setShowAbsoluteLast={() => {}}
-                renderFlyToolbarNode={() => null}
+                renderFlyToolbarNode={() => (
+                  <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const targetFace = isFlipped ? 'back' : 'front';
+                        playCardAudio(targetFace);
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
+                        isPlayingAudio
+                          ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
+                          : isLoadingAudio
+                          ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                          : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
+                      )}
+                      title="Play Pronunciation (Audio)"
+                    >
+                      {isLoadingAudio ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                      ) : (
+                        <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewInsightCard(currentSkimQuestion);
+                      }}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
+                      title="View Card Insights & Explanation"
+                    >
+                      <Lightbulb className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                    </button>
+
+                    <div className="w-[1px] h-3 bg-slate-200/80" />
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsSettingsOpen(true);
+                      }}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
+                      title="Quick Controls & Settings"
+                    >
+                      <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                    </button>
+                  </div>
+                )}
                 setIsFlyToolbarOpen={() => {}}
                 setShowFeedback={() => {}}
                 setJustAnswered={() => {}}
