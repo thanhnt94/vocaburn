@@ -22,7 +22,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
       queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
       setTimeout(() => setStatusMessage(null), 5000)
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Không thể thực hiện tác vụ tự động')
+      alert(e?.response?.data?.error || 'Unable to execute studio automation task')
     } finally {
       setLoadingAction(null)
     }
@@ -33,10 +33,10 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">
-            Công Cụ AI & Tự Động Hóa (Studio Tools)
+            Studio AI & Automation Tools
           </h3>
           <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-            Sinh dữ liệu hàng loạt cho toàn bộ thẻ từ vựng trong bộ
+            Bulk generate content for all cards in this deck
           </p>
         </div>
       </div>
@@ -56,10 +56,10 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
               <span className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs">
                 <Sparkles className="w-3.5 h-3.5" />
               </span>
-              <span className="text-xs font-black text-purple-950">Giải Thích Gemini AI</span>
+              <span className="text-xs font-black text-purple-950">Gemini AI Explanations</span>
             </div>
             <p className="text-[10px] text-purple-800/80 font-medium leading-relaxed">
-              Tự động phân tích ngữ pháp, từ loại, sắc thái nghĩa và ví dụ câu cho từng thẻ.
+              Automatically analyze grammar, nuances, and bilingual example sentences for every card.
             </p>
           </div>
 
@@ -68,7 +68,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
               triggerAction(
                 'generate-all-ai',
                 'ai',
-                'Đã kích hoạt sinh giải thích Gemini AI chạy trong nền!'
+                'Gemini AI explanation background queue started!'
               )
             }
             disabled={loadingAction !== null}
@@ -79,7 +79,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
             ) : (
               <Wand2 className="w-3.5 h-3.5" />
             )}
-            <span>Sinh AI Toàn Bộ</span>
+            <span>Generate AI for All</span>
           </button>
         </div>
 
@@ -90,10 +90,10 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
               <span className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs">
                 <Volume2 className="w-3.5 h-3.5" />
               </span>
-              <span className="text-xs font-black text-sky-950">Phát Âm Chuẩn TTS</span>
+              <span className="text-xs font-black text-sky-950">Standard TTS Audio</span>
             </div>
             <p className="text-[10px] text-sky-800/80 font-medium leading-relaxed">
-              Tạo tệp âm thanh giọng đọc chuẩn cho mặt trước và mặt sau các thẻ từ vựng.
+              Generate high-quality native audio pronunciation for front and back cards.
             </p>
           </div>
 
@@ -102,7 +102,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
               triggerAction(
                 'generate-all-audio',
                 'audio',
-                'Đã kích hoạt tạo âm thanh TTS hàng loạt!'
+                'Bulk TTS audio generation queue started!'
               )
             }
             disabled={loadingAction !== null}
@@ -113,7 +113,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
             ) : (
               <Volume2 className="w-3.5 h-3.5" />
             )}
-            <span>Sinh Audio TTS</span>
+            <span>Generate TTS Audio</span>
           </button>
         </div>
 
@@ -124,10 +124,10 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
               <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">
                 あ
               </span>
-              <span className="text-xs font-black text-emerald-950">Furigana Ruby Tiếng Nhật</span>
+              <span className="text-xs font-black text-emerald-950">Japanese Ruby Furigana</span>
             </div>
             <p className="text-[10px] text-emerald-800/80 font-medium leading-relaxed">
-              Tự động đính kèm phiên âm cách đọc Hiragana trên đầu các chữ Hán tự Kanji.
+              Automatically add Hiragana furigana annotations above Kanji characters.
             </p>
           </div>
 
@@ -136,7 +136,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
               triggerAction(
                 'generate-all-furigana',
                 'furigana',
-                'Đã kích hoạt sinh Furigana cho toàn bộ thẻ!'
+                'Bulk Furigana generation queue started!'
               )
             }
             disabled={loadingAction !== null}
@@ -147,7 +147,7 @@ export function DeckAutomationTools({ deckId }: DeckAutomationToolsProps) {
             ) : (
               <Wand2 className="w-3.5 h-3.5" />
             )}
-            <span>Sinh Furigana</span>
+            <span>Generate Furigana</span>
           </button>
         </div>
       </div>

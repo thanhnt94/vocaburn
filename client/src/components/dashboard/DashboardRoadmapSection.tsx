@@ -85,8 +85,8 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
     : 'Oct 2026'
   const deckDescription = deck?.description || (
     deck?.title?.includes('Danh Động Từ') 
-      ? 'Tổng hợp danh động từ N2 thường gặp trong đề thi JLPT kèm ví dụ và câu hỏi luyện tập FSRS.' 
-      : 'Bộ thẻ từ vựng & ngữ pháp tối ưu hóa theo chu kỳ ngắt quãng FSRS v6 giúp ghi nhớ sâu.'
+      ? 'Comprehensive N2 verbal nouns for the JLPT exam with rich examples and FSRS practice.' 
+      : 'Intelligent flashcard deck optimized with FSRS v6 spaced repetition for deep memory retention.'
   )
 
   const disabledModes = (st.disabled_modes || deck?.practice_settings?.disabled_modes || deck?.disabled_modes || []) as string[]

@@ -34,27 +34,27 @@ interface ColumnOverviewResponse {
 }
 
 const CORE_SYSTEM_COLUMNS = [
-  { name: 'front', label: 'Mặt trước (Câu hỏi / Từ vựng chính)', desc: 'Trường dữ liệu bắt buộc hiển thị ở mặt trước flashcard', locked: true },
-  { name: 'back', label: 'Mặt sau (Đáp án / Nghĩa chính)', desc: 'Trường dữ liệu bắt buộc hiển thị ở mặt sau flashcard', locked: true },
-  { name: 'front_audio_url', label: 'Audio mặt trước (URL)', desc: 'Đường dẫn file âm thanh phát ở mặt trước', locked: false },
-  { name: 'back_audio_url', label: 'Audio mặt sau (URL)', desc: 'Đường dẫn file âm thanh phát ở mặt sau', locked: false },
-  { name: 'front_audio_content', label: 'Kịch bản đọc mặt trước', desc: 'Văn bản nguồn dùng để sinh giọng đọc TTS cho mặt trước', locked: false },
-  { name: 'back_audio_content', label: 'Kịch bản đọc mặt sau', desc: 'Văn bản nguồn dùng để sinh giọng đọc TTS cho mặt sau', locked: false },
-  { name: 'front_img', label: 'Hình ảnh mặt trước (URL)', desc: 'Đường dẫn ảnh minh họa mặt trước', locked: false },
-  { name: 'back_img', label: 'Hình ảnh mặt sau (URL)', desc: 'Đường dẫn ảnh minh họa mặt sau', locked: false },
+  { name: 'front', label: 'Front (Question / Main Term)', desc: 'Mandatory field displayed on the front of flashcards', locked: true },
+  { name: 'back', label: 'Back (Answer / Main Meaning)', desc: 'Mandatory field displayed on the back of flashcards', locked: true },
+  { name: 'front_audio_url', label: 'Front Audio (URL)', desc: 'Audio file link played on the front face', locked: false },
+  { name: 'back_audio_url', label: 'Back Audio (URL)', desc: 'Audio file link played on the back face', locked: false },
+  { name: 'front_audio_content', label: 'Front TTS Reading Script', desc: 'Source text used for generating TTS voice on front', locked: false },
+  { name: 'back_audio_content', label: 'Back TTS Reading Script', desc: 'Source text used for generating TTS voice on back', locked: false },
+  { name: 'front_img', label: 'Front Image (URL)', desc: 'Image link displayed on the front face', locked: false },
+  { name: 'back_img', label: 'Back Image (URL)', desc: 'Image link displayed on the back face', locked: false },
 ]
 
 const POPULAR_COLUMN_SUGGESTIONS = [
-  { name: 'furigana', label: 'Furigana / Phiên âm' },
-  { name: 'example', label: 'Câu ví dụ (Example)' },
-  { name: 'example_vi', label: 'Dịch nghĩa ví dụ (Example VI)' },
-  { name: 'kanji', label: 'Chữ Hán (Kanji)' },
-  { name: 'romaji', label: 'Phiên âm La-tinh (Romaji)' },
-  { name: 'grammar', label: 'Ngữ pháp liên quan' },
-  { name: 'synonyms', label: 'Từ đồng nghĩa' },
-  { name: 'antonyms', label: 'Từ trái nghĩa' },
-  { name: 'collocation', label: 'Cụm từ đi kèm' },
-  { name: 'notes', label: 'Ghi chú thêm' },
+  { name: 'furigana', label: 'Furigana / Phonetics' },
+  { name: 'example', label: 'Example Sentence' },
+  { name: 'example_vi', label: 'Example Meaning / Translation' },
+  { name: 'kanji', label: 'Kanji Characters' },
+  { name: 'romaji', label: 'Romaji Transcription' },
+  { name: 'grammar', label: 'Related Grammar' },
+  { name: 'synonyms', label: 'Synonyms' },
+  { name: 'antonyms', label: 'Antonyms' },
+  { name: 'collocation', label: 'Collocations' },
+  { name: 'notes', label: 'Additional Notes' },
 ]
 
 export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = false }: DeckColumnSettingsProps) {
@@ -135,7 +135,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || 'Không thể lưu cài đặt cột giải thích.')
+      setErrorMsg(err.response?.data?.error || 'Failed to save insight column settings.')
     }
   })
 
@@ -167,7 +167,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || 'Không thể lưu cài đặt đa hình ảnh.')
+      setErrorMsg(err.response?.data?.error || 'Failed to save multi-image settings.')
     }
   })
 
@@ -220,7 +220,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       setErrorMsg(null)
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || 'Không thể thêm cột. Vui lòng thử lại.')
+      setErrorMsg(err.response?.data?.error || 'Failed to add column. Please try again.')
     }
   })
 
@@ -248,7 +248,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       setErrorMsg(null)
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || 'Không thể đổi tên cột. Vui lòng thử lại.')
+      setErrorMsg(err.response?.data?.error || 'Failed to rename column. Please try again.')
     }
   })
 
@@ -275,7 +275,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       setErrorMsg(null)
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || 'Không thể xóa cột. Vui lòng thử lại.')
+      setErrorMsg(err.response?.data?.error || 'Failed to delete column. Please try again.')
     }
   })
 
@@ -317,7 +317,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     e.preventDefault()
     const clean = formatSlug(newColumnName)
     if (!clean) {
-      setErrorMsg('Vui lòng nhập tên cột hợp lệ')
+      setErrorMsg('Please enter a valid column name')
       return
     }
     addColumnMutation.mutate({ column_name: clean, isInsight: newColIsInsight })
@@ -326,7 +326,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
   const handleRenameColumn = (oldName: string) => {
     const clean = formatSlug(renameValue)
     if (!clean) {
-      setErrorMsg('Vui lòng nhập tên cột mới hợp lệ')
+      setErrorMsg('Please enter a valid new column name')
       return
     }
     if (clean === oldName) {
@@ -352,13 +352,13 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                Quản lý Cột & Dữ liệu Thẻ
+                Manage Columns & Card Data
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200/60 text-indigo-700 text-xs font-black">
-                  {dynamicCols.length + 8} cột
+                  {dynamicCols.length + 8} columns
                 </span>
               </h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Thêm cột tùy biến, thiết lập cột hiển thị trong tab Trợ lý Giải thích hoặc quản lý các trường thông tin thẻ.
+                Add custom columns, configure fields for the Learning Insights Assistant, and manage deck fields.
               </p>
             </div>
           </div>
@@ -375,7 +375,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Thêm cột mới</span>
+              <span>Add New Column</span>
             </button>
           )}
         </div>
@@ -392,16 +392,16 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
         )}
       </div>
 
-      {/* ── SECTION 1: CỘT TÙY BIẾN & MỞ RỘNG (CUSTOM COLUMNS) ── */}
+      {/* ── SECTION 1: CUSTOM DATA COLUMNS ── */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
               <Database className="w-4 h-4 text-orange-500" />
-              Cột Dữ liệu Mở rộng ({dynamicCols.length})
+              Custom Data Columns ({dynamicCols.length})
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Các cột riêng của bộ thẻ phục vụ AI sinh tự động, luyện tập hoặc hiển thị trong tab Trợ lý Giải thích & Ghi nhớ.
+              Custom deck fields for AI generation, practice quizzes, and the Learning Insights Assistant.
             </p>
           </div>
 
@@ -410,7 +410,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm cột..."
+              placeholder="Search columns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full h-9 pl-9 pr-3 text-xs bg-slate-50 border border-slate-200/80 rounded-xl focus:bg-white focus:border-orange-500 outline-none transition-all"
@@ -423,9 +423,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
             <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-400 mb-3">
               <Columns3 className="w-6 h-6" />
             </div>
-            <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Chưa có cột tùy biến nào</h4>
+            <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">No Custom Columns Yet</h4>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Bộ thẻ hiện chỉ có các cột cơ bản. Bạn có thể bấm "Thêm cột mới" để tạo thêm ví dụ, chữ Hán, ngữ pháp...
+              This deck only has core system columns. Click "Add New Column" to create custom fields for examples, Kanji, grammar...
             </p>
             {isOwner && (
               <button
@@ -436,7 +436,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                 }}
                 className="mt-4 px-4 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-black transition-all cursor-pointer"
               >
-                + Thêm cột đầu tiên
+                + Add First Column
               </button>
             )}
           </div>
@@ -466,7 +466,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                             type="text"
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
-                            placeholder="Tên cột mới..."
+                            placeholder="New column name..."
                             className="h-8 px-2.5 text-xs font-mono font-bold bg-white border-2 border-orange-500 rounded-lg outline-none w-full"
                             autoFocus
                             onKeyDown={(e) => {
@@ -478,14 +478,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                             onClick={() => handleRenameColumn(colName)}
                             disabled={renameColumnMutation.isPending}
                             className="w-8 h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-xs"
-                            title="Lưu tên mới"
+                            title="Save new name"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setEditingColumn(null)}
                             className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center shrink-0 cursor-pointer"
-                            title="Hủy"
+                            title="Cancel"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -508,14 +508,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                             setErrorMsg(null)
                           }}
                           className="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:border-orange-500 hover:text-orange-600 text-slate-400 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                          title="Đổi tên cột"
+                          title="Rename column"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteConfirmCol(colName)}
                           className="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:border-rose-500 hover:text-rose-600 text-slate-400 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                          title="Xóa cột"
+                          title="Delete column"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -545,12 +545,12 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                         isInsightCol ? "text-amber-800 font-extrabold" : "text-slate-500"
                       )}>
                         <Lightbulb className={cn("w-3.5 h-3.5", isInsightCol ? "text-amber-500 fill-amber-500" : "text-slate-400")} />
-                        Cột giải thích & ghi nhớ (Trợ lý)
+                        Learning Insights Assistant
                       </span>
                     </label>
                     {isInsightCol && (
                       <span className="px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
-                        ✨ Trợ lý bật
+                        ✨ Insights On
                       </span>
                     )}
                   </div>
@@ -558,9 +558,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                   {/* Data completeness progress */}
                   <div className="space-y-1 pt-1">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-400">Dữ liệu hoàn thiện:</span>
+                      <span className="font-semibold text-slate-400">Data completion:</span>
                       <span className="font-bold text-slate-700">
-                        {count.toLocaleString()} / {totalCards.toLocaleString()} thẻ ({pct}%)
+                        {count.toLocaleString()} / {totalCards.toLocaleString()} cards ({pct}%)
                       </span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
@@ -580,15 +580,15 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
         )}
       </div>
 
-      {/* ── SECTION 2: CỘT HỆ THỐNG MẶC ĐỊNH (CORE SYSTEM COLUMNS) ── */}
+      {/* ── SECTION 2: CORE SYSTEM COLUMNS ── */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
         <div className="pb-2 border-b border-slate-100">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
             <Lock className="w-4 h-4 text-indigo-600" />
-            Cột Hệ thống Mặc định (Core Columns)
+            Core System Columns
           </h3>
           <p className="text-xs text-slate-400 font-medium mt-0.5">
-            Các trường cốt lõi được hệ thống quản lý để phục vụ phát âm thanh, hiển thị thẻ và hình ảnh.
+            Core fields managed by the system for audio pronunciation, card display, and imagery.
           </p>
         </div>
 
@@ -617,7 +617,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                       </span>
                       {col.locked && (
                         <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/60 text-[9px] font-black uppercase">
-                          Bắt buộc
+                          Required
                         </span>
                       )}
                     </div>
@@ -649,12 +649,12 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                         isInsightCol ? "text-amber-800 font-extrabold" : "text-slate-500"
                       )}>
                         <Lightbulb className={cn("w-3.5 h-3.5", isInsightCol ? "text-amber-500 fill-amber-500" : "text-slate-400")} />
-                        Cột giải thích & ghi nhớ (Trợ lý)
+                        Learning Insights Assistant
                       </span>
                     </label>
                     {isInsightCol && (
                       <span className="px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
-                        ✨ Trợ lý bật
+                        ✨ Insights On
                       </span>
                     )}
                   </div>
@@ -663,9 +663,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                 {/* Progress */}
                 <div className="space-y-1 pt-1 border-t border-slate-100/80">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-semibold text-slate-400">Đã điền:</span>
+                    <span className="font-semibold text-slate-400">Filled:</span>
                     <span className="font-bold text-slate-600">
-                      {count.toLocaleString()} / {totalCards.toLocaleString()} thẻ ({pct}%)
+                      {count.toLocaleString()} / {totalCards.toLocaleString()} cards ({pct}%)
                     </span>
                   </div>
                   <div className="w-full h-1 bg-slate-200/70 rounded-full overflow-hidden">
@@ -684,7 +684,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
         </div>
       </div>
 
-      {/* ── SECTION 2.5: CẤU HÌNH ĐA HÌNH ẢNH (MULTI-IMAGE DISPLAY) ── */}
+      {/* ── SECTION 2.5: MULTI-IMAGE CONFIGURATION ── */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
@@ -693,14 +693,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                 <ImageIcon className="w-4 h-4" />
               </span>
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                Cấu hình Đa Hình ảnh (Multi-Image Display)
+                Multi-Image Display Configuration
                 <span className="px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200/60 text-pink-700 text-[10px] font-black uppercase tracking-wider">
-                  Mới ✨
+                  New ✨
                 </span>
               </h3>
             </div>
             <p className="text-xs text-slate-400 font-medium mt-1">
-              Hiển thị đồng thời 2 hoặc 3 ảnh trên flashcard (mặt trước / mặt sau) hoặc câu hỏi / câu trả lời trong các chế độ luyện tập (Trắc nghiệm, Gõ từ, Nghe).
+              Display 2 or 3 images simultaneously on flashcards (front/back) or practice quizzes (MCQ, Typing, Listening).
             </p>
           </div>
         </div>
@@ -712,14 +712,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-black text-indigo-900 block">
-                  Ảnh Mặt Trước & Câu Hỏi (Front / Question)
+                  Front Face & Question Images (Front / Question)
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {currentImageConfigs.front_cols.length} cột được chọn
+                  {currentImageConfigs.front_cols.length} columns selected
                 </span>
               </div>
               <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 font-mono text-[10px] font-black max-w-[160px] truncate">
-                {currentImageConfigs.front_cols.join(', ') || 'Chưa chọn'}
+                {currentImageConfigs.front_cols.join(', ') || 'None selected'}
               </span>
             </div>
 
@@ -742,7 +742,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                   >
                     <span className="font-mono text-[11px]">{col}</span>
                     {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                    {isPrimary && !isSelected && <span className="text-[9px] text-slate-400">(Mặc định)</span>}
+                    {isPrimary && !isSelected && <span className="text-[9px] text-slate-400">(Default)</span>}
                   </button>
                 )
               })}
@@ -754,14 +754,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-black text-indigo-900 block">
-                  Ảnh Mặt Sau & Đáp Án (Back / Answer)
+                  Back Face & Answer Images (Back / Answer)
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {currentImageConfigs.back_cols.length} cột được chọn
+                  {currentImageConfigs.back_cols.length} columns selected
                 </span>
               </div>
               <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 font-mono text-[10px] font-black max-w-[160px] truncate">
-                {currentImageConfigs.back_cols.join(', ') || 'Chưa chọn'}
+                {currentImageConfigs.back_cols.join(', ') || 'None selected'}
               </span>
             </div>
 
@@ -784,7 +784,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                   >
                     <span className="font-mono text-[11px]">{col}</span>
                     {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                    {isPrimary && !isSelected && <span className="text-[9px] text-slate-400">(Mặc định)</span>}
+                    {isPrimary && !isSelected && <span className="text-[9px] text-slate-400">(Default)</span>}
                   </button>
                 )
               })}
@@ -803,38 +803,38 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
           />
           <div className="text-xs">
             <span className="font-black text-amber-900 block">
-              Tự động nhận diện nhiều link ảnh trong cùng một ô dữ liệu
+              Automatically detect multiple image URLs in a single data cell
             </span>
             <span className="text-slate-500 font-medium leading-relaxed block mt-0.5">
-              Khi dán nhiều đường dẫn ảnh (ngăn cách bằng dấu phẩy <code>,</code> hoặc xuống dòng), hệ thống sẽ tự động tách và hiển thị dưới dạng bộ sưu tập ảnh (gallery 2-3 ảnh) có kèm nút phóng to cho từng ảnh.
+              When pasting multiple image URLs (separated by commas <code>,</code> or line breaks), the system automatically splits and renders them in an interactive image gallery with zoom controls.
             </span>
           </div>
         </label>
       </div>
 
-      {/* ── SECTION 3: HƯỚNG DẪN & LIÊN KẾT TÍCH HỢP ── */}
+      {/* ── SECTION 3: TIPS & INTEGRATIONS ── */}
       <div className="bg-gradient-to-br from-indigo-50/60 via-purple-50/40 to-slate-50 border border-indigo-100/80 rounded-3xl p-5 sm:p-6 text-xs text-slate-600 space-y-3">
         <h4 className="font-black text-indigo-950 text-sm flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-indigo-600" />
-          Mẹo sử dụng Cột trong Vocaburn
+          Pro Tips for Using Columns in Vocaburn
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
           <div className="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-indigo-100/60 shadow-2xs">
-            <span className="font-black text-amber-600 block mb-1">💡 Trợ lý Giải thích & Ghi nhớ</span>
+            <span className="font-black text-amber-600 block mb-1">💡 Learning Insights Assistant</span>
             <p className="text-slate-500 leading-relaxed text-[11px]">
-              Tích chọn <strong>Cột giải thích</strong> để hiển thị trường dữ liệu này trong tab Trợ lý khi người dùng học thẻ.
+              Toggle <strong>Learning Insights</strong> to show this field in the Insights drawer during flashcard study.
             </p>
           </div>
           <div className="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-indigo-100/60 shadow-2xs">
-            <span className="font-black text-indigo-600 block mb-1">✨ Tích hợp AI Prompt</span>
+            <span className="font-black text-indigo-600 block mb-1">✨ AI Prompt Studio Integration</span>
             <p className="text-slate-500 leading-relaxed text-[11px]">
-              Vào tab <strong>AI Prompt</strong> để thiết lập kịch bản AI tự động điền nội dung hàng loạt vào cột mới tạo.
+              Head to the <strong>AI Prompt</strong> tab to configure AI prompts that bulk populate this new column.
             </p>
           </div>
           <div className="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-indigo-100/60 shadow-2xs">
-            <span className="font-black text-sky-600 block mb-1">🎙️ Tạo Audio TTS</span>
+            <span className="font-black text-sky-600 block mb-1">🎙️ Native Audio TTS Generator</span>
             <p className="text-slate-500 leading-relaxed text-[11px]">
-              Vào tab <strong>Audio TTS</strong> để chọn cột làm nguồn đọc hoặc đích lưu URL âm thanh riêng biệt.
+              Head to the <strong>Audio TTS</strong> tab to use this column as a reading source or audio URL destination.
             </p>
           </div>
         </div>
@@ -868,8 +868,8 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                     <Plus className="w-5 h-5 stroke-[2.5]" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">Thêm Cột Dữ Liệu Mới</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Tạo thêm trường thông tin cho các thẻ</p>
+                    <h3 className="text-sm font-black text-slate-900">Add New Data Column</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">Create custom fields for vocabulary cards</p>
                   </div>
                 </div>
                 <button
@@ -883,19 +883,19 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
               <form onSubmit={handleAddColumn} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 block mb-1.5">
-                    Tên cột (Slug / Snake_case) <span className="text-rose-500">*</span>
+                    Column Name (Slug / Snake_case) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={newColumnName}
                     onChange={(e) => setNewColumnName(e.target.value)}
-                    placeholder="Ví dụ: example_vi, kanji, grammar..."
+                    placeholder="e.g. example_en, kanji, grammar..."
                     className="w-full h-11 px-3.5 font-mono text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 outline-none transition-all"
                     autoFocus
                   />
                   {newColumnName && (
                     <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                      Mã định danh cột: <strong className="text-orange-600">{formatSlug(newColumnName)}</strong>
+                      Column identifier: <strong className="text-orange-600">{formatSlug(newColumnName)}</strong>
                     </p>
                   )}
                 </div>
@@ -911,16 +911,16 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                   <div className="text-xs">
                     <span className="font-black text-amber-900 flex items-center gap-1">
                       <Lightbulb className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      Đặt làm Cột Giải thích & Ghi nhớ
+                      Set as Learning Insights Field
                     </span>
-                    <span className="text-[11px] text-amber-700 font-medium">Hiển thị trong tab Trợ lý Giải thích khi học và ôn luyện thẻ</span>
+                    <span className="text-[11px] text-amber-700 font-medium">Display inside the Learning Insights Assistant during study</span>
                   </div>
                 </label>
 
                 {/* Gợi ý cột phổ biến */}
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    Hoặc chọn nhanh gợi ý:
+                    Or pick from popular suggestions:
                   </label>
                   <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                     {POPULAR_COLUMN_SUGGESTIONS.filter(s => !dynamicCols.includes(s.name)).map(sug => (
@@ -943,14 +943,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                     onClick={() => setIsAddModalOpen(false)}
                     className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
                   >
-                    Hủy bỏ
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!newColumnName.trim() || addColumnMutation.isPending}
                     className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-black shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                   >
-                    {addColumnMutation.isPending ? 'Đang tạo...' : 'Tạo cột ngay'}
+                    {addColumnMutation.isPending ? 'Creating...' : 'Create Column'}
                   </button>
                 </div>
               </form>
@@ -973,9 +973,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900">Xóa cột "{deleteConfirmCol}"?</h3>
+                <h3 className="text-base font-black text-slate-900">Delete column "{deleteConfirmCol}"?</h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Hành động này sẽ xóa dữ liệu của cột <strong>{deleteConfirmCol}</strong> trên tất cả <strong>{totalCards.toLocaleString()}</strong> thẻ bài trong bộ thẻ này. Hành động không thể hoàn tác!
+                  This will permanently delete data in column <strong>{deleteConfirmCol}</strong> across all <strong>{totalCards.toLocaleString()}</strong> cards in this deck. This action cannot be undone!
                 </p>
               </div>
 
@@ -985,7 +985,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                   onClick={() => setDeleteConfirmCol(null)}
                   className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
                 >
-                  Hủy bỏ
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -993,7 +993,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                   disabled={deleteColumnMutation.isPending}
                   className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-black shadow-md shadow-rose-600/20 active:scale-95 transition-all cursor-pointer"
                 >
-                  {deleteColumnMutation.isPending ? 'Đang xóa...' : 'Xác nhận xóa'}
+                  {deleteColumnMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
                 </button>
               </div>
             </motion.div>

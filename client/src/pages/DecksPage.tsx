@@ -311,11 +311,24 @@ export default function DecksPage() {
 
   const isSelectedDeckPracticeDisabled = useMemo(() => {
     if (!selectedDeck) return false
+    const d = selectedDeck as any
+    if (d.practice_disabled || d.has_practice_setup === false) return true
+
     const ps = selectedDeck.practice_settings || {}
     const disabled = (ps.disabled_modes || []) as string[]
+    if (disabled.includes('practice') || disabled.includes('all_practice')) return true
+
+    // Check if any active pairs exist in practice settings
+    const mcqPairs = ps.mcq?.active_pairs || ps.active_pairs || []
+    const typingPairs = ps.typing?.active_pairs || []
+    const listeningPairs = ps.listening?.active_pairs || []
+    const hasAnyPairs = (Array.isArray(mcqPairs) && mcqPairs.length > 0) ||
+                        (Array.isArray(typingPairs) && typingPairs.length > 0) ||
+                        (Array.isArray(listeningPairs) && listeningPairs.length > 0)
+
+    if (!hasAnyPairs) return true
+
     return (
-      disabled.includes('practice') ||
-      disabled.includes('all_practice') ||
       ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every((m: string) => disabled.includes(m)) ||
       (['mcq', 'typing'].every((m: string) => disabled.includes(m)))
     )

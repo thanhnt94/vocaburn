@@ -60,7 +60,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
         if (onPurchaseSuccess) onPurchaseSuccess()
       }
     } catch (err: any) {
-      const errMsg = err.response?.data?.detail || "Không thể mua Thẻ Cứu Streak lúc này."
+      const errMsg = err.response?.data?.detail || "Unable to purchase Streak Freeze at this time."
       setFeedback({ type: 'error', message: errMsg })
     } finally {
       setIsBuying(false)
@@ -87,12 +87,12 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
               </div>
               <div>
                 <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
-                  Cửa Hàng Vật Phẩm
+                  Rewards Shop
                   <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Bảo Vệ Streak
+                    Streak Protection
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400">Tích lũy điểm thưởng để đổi Thẻ Cứu Chuỗi</p>
+                <p className="text-xs text-slate-400">Accumulate reward points to redeem Streak Freeze cards</p>
               </div>
             </div>
             <button
@@ -111,10 +111,10 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
                   <Zap className="w-5 h-5 fill-amber-400" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/80">Điểm Thưởng Đang Có</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/80">Available Reward Points</span>
                   <div className="text-2xl font-black text-amber-300 tracking-tight flex items-baseline gap-1">
                     {isLoading ? '...' : streakPoints}
-                    <span className="text-xs font-normal text-amber-200/60">⚡ Điểm</span>
+                    <span className="text-xs font-normal text-amber-200/60">⚡ Pts</span>
                   </div>
                 </div>
               </div>
@@ -126,10 +126,10 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
                   <Shield className="w-5 h-5 fill-sky-400/30" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-300/80">Kho Cứu Streak</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-300/80">Streak Freeze Vault</span>
                   <div className="text-2xl font-black text-sky-300 tracking-tight flex items-baseline gap-1">
                     {isLoading ? '...' : `${freezeCount}/2`}
-                    <span className="text-xs font-normal text-sky-200/60">Thẻ</span>
+                    <span className="text-xs font-normal text-sky-200/60">Cards</span>
                   </div>
                 </div>
               </div>
@@ -159,22 +159,22 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                    Thẻ Cứu Streak (Streak Freeze)
+                    Streak Freeze Card
                     {freezeCount >= 2 && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-normal">
-                        Đã Đầy Kho
+                        Vault Full
                       </span>
                     )}
                   </h4>
                   <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Tự động giữ nguyên chuỗi Streak nếu bạn quên học 1 ngày. Tối đa lưu 2 thẻ.
+                    Automatically preserves your streak if you miss a study day. Stores up to 2 cards.
                   </p>
                   <div className="flex items-center gap-1.5 mt-2">
                     <span className="text-xs font-black text-amber-400 flex items-center gap-1">
-                      <Zap className="w-3.5 h-3.5 fill-amber-400" /> 10 Điểm
+                      <Zap className="w-3.5 h-3.5 fill-amber-400" /> 10 Pts
                     </span>
                     <span className="text-slate-600 text-xs">•</span>
-                    <span className="text-[11px] text-slate-400">Bảo vệ 1 ngày quên học</span>
+                    <span className="text-[11px] text-slate-400">Protects 1 missed day</span>
                   </div>
                 </div>
               </div>
@@ -191,16 +191,16 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
                 }`}
               >
                 {isBuying ? (
-                  <span className="animate-pulse">Đang Đổi...</span>
+                  <span className="animate-pulse">Redeeming...</span>
                 ) : freezeCount >= 2 ? (
                   <>
-                    <Lock className="w-3.5 h-3.5" /> Đã Đầy Kho
+                    <Lock className="w-3.5 h-3.5" /> Vault Full
                   </>
                 ) : streakPoints < 10 ? (
-                  <>Cần 10 ⚡</>
+                  <>Requires 10 ⚡</>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 fill-slate-950" /> Đổi Thẻ (10 ⚡)
+                    <Sparkles className="w-3.5 h-3.5 fill-slate-950" /> Redeem Freeze (10 ⚡)
                   </>
                 )}
               </button>
@@ -211,12 +211,12 @@ export const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchas
           <div className="px-6 py-4 bg-slate-950/60 border-t border-slate-800/80 mt-2">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-300 mb-2">
               <Info className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Quy Tắc Tích Điểm & Cứu Chuỗi</span>
+              <span>Reward Rules & Streak Protection</span>
             </div>
             <ul className="space-y-1.5 text-[11px] text-slate-400 pl-6 list-disc">
-              <li>Hoàn thành <strong>100% mục tiêu học tập ngày</strong> (20 thẻ): <strong>+1 ⚡ Điểm Thưởng</strong>.</li>
-              <li>Học vượt <strong>200% mục tiêu ngày</strong> (40 thẻ): Thưởng thêm <strong>+1 ⚡ Điểm Thưởng</strong>.</li>
-              <li>Tự động bảo vệ chuỗi Streak khi ngắt học 1 ngày (tối đa 2 ngày liên tiếp).</li>
+              <li>Complete <strong>100% of daily study target</strong> (20 cards): <strong>+1 ⚡ Reward Point</strong>.</li>
+              <li>Exceed <strong>200% of daily target</strong> (40 cards): Bonus <strong>+1 ⚡ Reward Point</strong>.</li>
+              <li>Automatically preserves your streak when you miss a study day (up to 2 days).</li>
             </ul>
           </div>
         </motion.div>

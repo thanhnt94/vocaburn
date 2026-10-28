@@ -57,24 +57,24 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
       await axios.post(`/api/v1/deck/${deckId}/collaborators`, { user_id: userId })
       setSearchQuery('')
       setSearchResults([])
-      setMessage({ type: 'success', text: 'Đã thêm cộng tác viên thành công!' })
+      setMessage({ type: 'success', text: 'Collaborator successfully added!' })
       setTimeout(() => setMessage(null), 4000)
       fetchCollaborators()
     } catch (e: any) {
-      setMessage({ type: 'error', text: e?.response?.data?.error || 'Không thể thêm cộng tác viên' })
+      setMessage({ type: 'error', text: e?.response?.data?.error || 'Unable to add collaborator' })
       setTimeout(() => setMessage(null), 5000)
     }
   }
 
   const handleRemoveCollaborator = async (collabUserId: number, username: string) => {
-    if (!window.confirm(`Gỡ quyền cộng tác viên của tài khoản @${username}?`)) return
+    if (!window.confirm(`Remove collaborator access for @${username}?`)) return
     try {
       await axios.delete(`/api/v1/deck/${deckId}/collaborators/${collabUserId}`)
-      setMessage({ type: 'success', text: `Đã gỡ quyền cộng tác viên của @${username}` })
+      setMessage({ type: 'success', text: `Removed collaborator access for @${username}` })
       setTimeout(() => setMessage(null), 4000)
       fetchCollaborators()
     } catch (e: any) {
-      setMessage({ type: 'error', text: e?.response?.data?.error || 'Không thể gỡ cộng tác viên' })
+      setMessage({ type: 'error', text: e?.response?.data?.error || 'Unable to remove collaborator' })
       setTimeout(() => setMessage(null), 5000)
     }
   }
@@ -82,17 +82,17 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
   const handleTransferOwnership = async (newOwnerId: number, username: string) => {
     if (
       !window.confirm(
-        `Bạn có chắc chắn muốn chuyển nhượng toàn quyền sở hữu bộ thẻ này cho @${username}? Thao tác này không thể hoàn tác!`
+        `Are you sure you want to transfer deck ownership to @${username}? This action cannot be undone!`
       )
     )
       return
 
     try {
       await axios.post(`/api/v1/deck/${deckId}/transfer-ownership`, { user_id: newOwnerId })
-      alert('Đã chuyển nhượng quyền sở hữu thành công!')
+      alert('Ownership successfully transferred!')
       window.location.reload()
     } catch (e: any) {
-      setMessage({ type: 'error', text: e?.response?.data?.error || 'Chuyển quyền sở hữu thất bại' })
+      setMessage({ type: 'error', text: e?.response?.data?.error || 'Failed to transfer ownership' })
       setTimeout(() => setMessage(null), 5000)
     }
   }
@@ -107,13 +107,13 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-              Quản lý Cộng Tác Viên (Collaborators)
+              Manage Collaborators
               <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200/60 text-blue-700 text-xs font-black">
-                {collaborators.length} thành viên
+                {collaborators.length} members
               </span>
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Phân quyền chỉnh sửa bộ thẻ cho các thành viên khác cùng đóng góp và xây dựng từ vựng.
+              Grant editing permissions to other members to collaborate on vocabulary building.
             </p>
           </div>
         </div>
@@ -144,10 +144,10 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
           <div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
               <UserPlus className="w-4 h-4 text-blue-600" />
-              Thêm Cộng Tác Viên Mới
+              Add New Collaborator
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Tìm kiếm tài khoản thành viên trong hệ thống theo username hoặc email.
+              Search for members in the system by username or email.
             </p>
           </div>
 
@@ -155,7 +155,7 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Nhập tên đăng nhập hoặc email thành viên..."
+              placeholder="Enter username or email..."
               value={searchQuery}
               onChange={(e) => handleSearchUsers(e.target.value)}
               className="w-full h-11 pl-10 pr-4 text-xs font-medium bg-slate-50 border border-slate-200/80 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all"
@@ -190,7 +190,7 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
 
                       {isAlready ? (
                         <span className="text-[11px] font-bold text-slate-400 px-3 py-1 bg-slate-200/60 rounded-lg">
-                          Đã thêm
+                          Added
                         </span>
                       ) : (
                         <button
@@ -199,7 +199,7 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
                           className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
-                          <span>Thêm</span>
+                          <span>Add</span>
                         </button>
                       )}
                     </div>
@@ -217,10 +217,10 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
           <div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              Danh Sách Cộng Tác Viên Hiện Tại ({collaborators.length})
+              Current Collaborators ({collaborators.length})
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Những thành viên có quyền thêm, sửa thẻ từ và cập nhật nội dung bộ thẻ.
+              Members with permission to add, edit, and update deck content.
             </p>
           </div>
         </div>
@@ -230,9 +230,9 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
             <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-400 mb-3">
               <Users className="w-6 h-6" />
             </div>
-            <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Chưa có cộng tác viên nào</h4>
+            <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">No collaborators yet</h4>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Bộ thẻ này hiện chỉ do bạn quản lý. Bạn có thể tìm kiếm thành viên ở trên để thêm cộng tác viên cùng chỉnh sửa.
+              This deck is currently managed only by you. Use the search above to add collaborators.
             </p>
           </div>
         ) : (
@@ -251,7 +251,7 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
                       @{collab.username}
                     </span>
                     <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 inline-block mt-0.5">
-                      {collab.role || 'Cộng tác viên'}
+                      {collab.role || 'Collaborator'}
                     </span>
                   </div>
                 </div>
@@ -262,16 +262,16 @@ export function DeckCollaboratorsSettings({ deckId, isOwner = true }: DeckCollab
                       type="button"
                       onClick={() => handleTransferOwnership(collab.user_id, collab.username)}
                       className="px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-amber-500 hover:text-amber-600 text-slate-500 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-                      title="Chuyển nhượng toàn quyền sở hữu"
+                      title="Transfer full deck ownership"
                     >
                       <ArrowRightLeft className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Nhượng quyền</span>
+                      <span className="hidden sm:inline">Transfer</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleRemoveCollaborator(collab.user_id, collab.username)}
                       className="w-8 h-8 rounded-xl bg-white border border-slate-200 hover:border-rose-500 hover:text-rose-600 text-slate-400 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                      title="Gỡ quyền"
+                      title="Remove access"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

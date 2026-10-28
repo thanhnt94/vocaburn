@@ -185,7 +185,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
   const defaultPlaceholder =
     placeholder ||
     (mediaType === 'image'
-      ? 'Dán link ảnh (hỗ trợ nhiều link cách bằng dấu phẩy) hoặc Ctrl+V...'
+      ? 'Paste image links (comma-separated) or Ctrl+V...'
       : mediaType === 'audio'
       ? 'Paste URL or upload audio...'
       : 'Paste URL or upload media...')
@@ -545,9 +545,9 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50/90 px-2 py-0.5 rounded-md border border-indigo-100 flex items-center gap-1.5">
                   <ImageIcon className="w-3 h-3" />
-                  Đa ảnh: {splitUrls.length} hình ảnh
+                  Multi-image: {splitUrls.length} images
                 </span>
-                <span className="text-[9px] text-slate-400 font-medium">Bấm ảnh để phóng to, bấm X để gỡ</span>
+                <span className="text-[9px] text-slate-400 font-medium">Click image to zoom, click X to remove</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {splitUrls.map((rawUrl, idx) => {
@@ -575,7 +575,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
                               setIsZoomOpen(true)
                             }}
                             className="p-1.5 rounded-xl bg-black/60 hover:bg-black/90 text-white transition-all cursor-pointer shadow-sm active:scale-95"
-                            title="Phóng to"
+                            title="Zoom image"
                           >
                             <Maximize2 className="w-3.5 h-3.5" />
                           </button>
@@ -586,7 +586,7 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
                               onChange(remaining.join(', '))
                             }}
                             className="p-1.5 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white transition-all cursor-pointer shadow-sm active:scale-95"
-                            title="Gỡ ảnh này"
+                            title="Remove this image"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>

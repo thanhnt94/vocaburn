@@ -72,6 +72,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
     from app.modules.auth.models import User
     from app.modules.gamification.interface import GamificationInterface
     from app.modules.notification.interface import NotificationInterface
+    from app.modules.deck.utils import check_has_practice_setup
 
     # Query B: Created Decks (creator_id == user_id_int)
     query_b = select(
@@ -129,6 +130,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             pipeline = settings_data.get("pipeline", [])
             has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
 
+            has_practice = check_has_practice_setup(q.practice_settings)
             deck_dict = {
                 "id": q.id,
                 "title": q.title,
@@ -142,6 +144,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
                 "is_creator": (q.creator_id == user_id_int or user.role == "admin" or getattr(user, "is_admin", False) or user_id_int == 1),
                 "is_public": q.is_public,
                 "practice_settings": q.practice_settings or {},
+                "has_practice_setup": has_practice,
+                "practice_disabled": not has_practice,
                 "has_roadmap": has_roadmap,
                 "learned_count": learned_cnt,
                 "mastered_count": mastered_cnt,
@@ -262,6 +266,7 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
         pipeline = settings_data.get("pipeline", [])
         has_roadmap = bool(settings_data.get("roadmap_active", False) and isinstance(pipeline, list) and len(pipeline) > 0)
 
+        has_practice = check_has_practice_setup(q.practice_settings)
         return {
             "id": q.id,
             "title": q.title,
@@ -275,6 +280,8 @@ async def get_dashboard_data(request: Request, only_created: bool = False, db: A
             "is_creator": (q.creator_id == user_id_int or user.role == "admin" or getattr(user, "is_admin", False) or user_id_int == 1),
             "is_public": q.is_public,
             "practice_settings": q.practice_settings or {},
+            "has_practice_setup": has_practice,
+            "practice_disabled": not has_practice,
             "has_roadmap": has_roadmap,
             "learned_count": learned_cnt,
             "mastered_count": mastered_cnt,

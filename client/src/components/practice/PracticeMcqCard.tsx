@@ -79,12 +79,12 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
   const promptLabel = useMemo(() => {
     const qk = String(question_key || 'front').toLowerCase()
     if (qk.includes('nghĩa') || qk.includes('meaning') || qk.includes('vi')) {
-      return 'CHỌN TỪ VỰNG TIẾNG NHẬT TƯƠNG ỨNG'
+      return 'CHOOSE THE MATCHING JAPANESE TERM'
     }
     if (qk.includes('front') || qk.includes('word') || qk.includes('kanji')) {
-      return 'CHỌN Ý NGHĨA CHÍNH XÁC'
+      return 'CHOOSE THE CORRECT MEANING'
     }
-    return 'CHỌN ĐÁP ÁN ĐÚNG NHẤT'
+    return 'CHOOSE THE BEST ANSWER'
   }, [question_key])
 
   return (
@@ -119,7 +119,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                 onPreviewInsight(currentQuestion)
               }}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-              title="Xem thông tin chi tiết / Giải thích"
+              title="View details & explanations"
             >
               <Lightbulb className="w-4 h-4 fill-amber-400/20" />
             </button>
@@ -133,7 +133,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                 onPlayAudio(question_key || 'front')
               }}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all active:scale-95 cursor-pointer"
-              title="Phát âm câu hỏi"
+              title="Pronounce question"
             >
               <Volume2 className="w-4 h-4" />
             </button>
@@ -146,7 +146,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
               if (currentQuestion?.id) onToggleStar(currentQuestion.id)
             }}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-            title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Bỏ đánh dấu" : "Đánh dấu câu hỏi"}
+            title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Unstar question" : "Star question"}
           >
             <Bookmark className={cn("w-4 h-4 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-slate-400")} />
           </button>
@@ -260,7 +260,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
         {answered && answerImages.length > 0 && (
           <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1 text-center">
-              Hình ảnh minh họa đáp án:
+              Answer illustration:
             </span>
             <CardImageGallery
               images={answerImages}

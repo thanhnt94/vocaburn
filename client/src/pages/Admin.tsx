@@ -47,8 +47,8 @@ const CardListSelector = ({
     <div className="mt-6 border border-white/5 rounded-3xl p-6 bg-slate-900/50 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h4 className="text-sm font-black uppercase tracking-wider text-slate-400">Chọn Thẻ Để Đồng Bộ ({selectedIds.length}/{cards.length} thẻ được chọn)</h4>
-          <p className="text-[10px] text-slate-500 mt-0.5">Tích chọn các thẻ bạn muốn chạy tạo mới/đồng bộ.</p>
+          <h4 className="text-sm font-black uppercase tracking-wider text-slate-400">Select Cards to Sync ({selectedIds.length}/{cards.length} selected)</h4>
+          <p className="text-[10px] text-slate-500 mt-0.5">Select cards you want to generate or synchronize.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button 
@@ -56,21 +56,21 @@ const CardListSelector = ({
             onClick={selectAll} 
             className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-wider rounded-xl text-slate-300 active:scale-95 transition-all"
           >
-            Tất Cả
+            All
           </button>
           <button 
             type="button"
             onClick={selectMissingOnly} 
             className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-[9px] font-black uppercase tracking-wider rounded-xl text-indigo-400 active:scale-95 transition-all"
           >
-            Chỉ Thẻ Thiếu
+            Missing Only
           </button>
           <button 
             type="button"
             onClick={deselectAll} 
             className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-wider rounded-xl text-slate-300 active:scale-95 transition-all"
           >
-            Bỏ Chọn
+            Deselect All
           </button>
         </div>
       </div>
@@ -78,7 +78,7 @@ const CardListSelector = ({
       <div className="relative">
         <input 
           type="text"
-          placeholder="Tìm kiếm thẻ..."
+          placeholder="Search cards..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-[#0d1321]/60 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
@@ -87,7 +87,7 @@ const CardListSelector = ({
 
       <div className="max-h-[300px] overflow-y-auto custom-scrollbar border border-white/5 rounded-2xl divide-y divide-white/5 bg-[#0d1321]/40 pr-1">
         {filteredCards.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500 font-bold">Không tìm thấy thẻ nào</div>
+          <div className="p-8 text-center text-xs text-slate-500 font-bold">No cards found</div>
         ) : (
           filteredCards.map((c) => {
             const isSelected = selectedIds.includes(c.id);
@@ -107,9 +107,9 @@ const CardListSelector = ({
                 <div className="flex-1 font-bold text-slate-300 truncate min-w-0">{c.content}</div>
                 <div className="shrink-0">
                   {c.missing ? (
-                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">Thiếu</span>
+                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">Missing</span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Đã Có</span>
+                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>
                   )}
                 </div>
               </div>
@@ -307,12 +307,12 @@ export default function Admin() {
         target_field: selectedTtsTargetField,
         card_ids: selectedTtsCardIds
       });
-      setSuccessMsg("Đã bắt đầu hàng đợi sinh âm thanh tự động ngầm cho bộ bài!");
+      setSuccessMsg("Background audio generation queue started!");
       setTimeout(() => {
         handleCheckTTSStatus(selectedDeckId);
       }, 2000);
     } catch (e) {
-      setErrorMsg("Không thể khởi động hàng đợi âm thanh.");
+      setErrorMsg("Failed to start audio generation queue.");
     } finally {
       setIsStartingTTS(false);
     }
@@ -391,12 +391,12 @@ export default function Admin() {
         target_field: selectedFuriganaTargetField,
         card_ids: selectedFuriganaCardIds
       });
-      setSuccessMsg(`Đã bắt đầu xử lý rắc Furigana hàng loạt cho trường '${selectedFuriganaTargetField}'!`);
+      setSuccessMsg(`Bulk Furigana generation started for field '${selectedFuriganaTargetField}'!`);
       setTimeout(() => {
         handleCheckFuriganaBatchStatus(selectedDeckId, selectedFuriganaSourceField, selectedFuriganaTargetField);
       }, 1500);
     } catch (e) {
-      setErrorMsg("Không thể khởi động tiến trình rắc Furigana hàng loạt.");
+      setErrorMsg("Failed to start bulk Furigana process.");
     } finally {
       setIsStartingFurigana(false);
     }
@@ -414,12 +414,12 @@ export default function Admin() {
         force: false,
         card_ids: selectedImageCardIds
       });
-      setSuccessMsg(`Đã bắt đầu hàng đợi tìm & tải ảnh hàng loạt cho trường '${selectedImageTargetField}'!`);
+      setSuccessMsg(`Bulk image search & download queue started for field '${selectedImageTargetField}'!`);
       setTimeout(() => {
         handleCheckImageBatchStatus(selectedDeckId, selectedImageTargetField);
       }, 2000);
     } catch (e) {
-      setErrorMsg("Không thể khởi động hàng đợi tìm ảnh hàng loạt.");
+      setErrorMsg("Failed to start bulk image queue.");
     } finally {
       setIsStartingImageBatch(false);
     }
@@ -481,12 +481,12 @@ export default function Admin() {
         force: false,
         card_ids: selectedAICardIds
       });
-      setSuccessMsg(`Đã bắt đầu hàng đợi sinh AI cho trường '${selectedAIBatchField}' của bộ thẻ!`);
+      setSuccessMsg(`Bulk AI generation queue started for field '${selectedAIBatchField}'!`);
       setTimeout(() => {
         handleCheckAIBatchStatus(selectedDeckId);
       }, 2000);
     } catch (e) {
-      setErrorMsg("Không thể khởi động hàng đợi sinh AI.");
+      setErrorMsg("Failed to start bulk AI generation queue.");
     } finally {
       setIsStartingAIBatch(false);
     }
@@ -1407,14 +1407,14 @@ export default function Admin() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-2xl font-bold mb-2">Batch TTS Audio Generation</h3>
-                  <p className="text-gray-400 text-sm">Tạo âm thanh đọc từ vựng hàng loạt cho cả bộ thẻ qua CentralAuth.</p>
+                  <p className="text-gray-400 text-sm">Bulk TTS audio generation for the entire deck via CentralAuth.</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Select Deck */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chọn bộ thẻ</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Deck</label>
                       <select
                         value={selectedDeckId}
                         onChange={(e) => {
@@ -1428,7 +1428,7 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
+                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Select Deck --</option>
                         {adminDecks.map((deck) => (
                           <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
                             {deck.title} (ID: {deck.id})
@@ -1439,7 +1439,7 @@ export default function Admin() {
 
                     {/* Select Source Text Field */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột chứa Nội dung (Source)</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Source Content Column (Source)</label>
                       <select
                         value={selectedTtsSourceField}
                         onChange={(e) => {
@@ -1451,10 +1451,10 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
-                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
-                        <option value="front_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_content (Nội dung đọc mặt trước)</option>
-                        <option value="back_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_content (Nội dung đọc mặt sau)</option>
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Front (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Back (Definition)</option>
+                        <option value="front_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_content (Front TTS content)</option>
+                        <option value="back_audio_content" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_content (Back TTS content)</option>
                         {selectedDeckCustomCols.map((c: string) => (
                           <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                         ))}
@@ -1463,7 +1463,7 @@ export default function Admin() {
 
                     {/* Select Target Audio Field */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột lưu URL Audio (Target)</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Target Audio URL Column (Target)</label>
                       <select
                         value={selectedTtsTargetField}
                         onChange={(e) => {
@@ -1475,8 +1475,8 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_url (Audio mặt trước)</option>
-                        <option value="back_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_url (Audio mặt sau)</option>
+                        <option value="front_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_audio_url (Front Audio URL)</option>
+                        <option value="back_audio_url" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_audio_url (Back Audio URL)</option>
                         {selectedDeckCustomCols.map((c: string) => (
                           <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                         ))}
@@ -1519,7 +1519,7 @@ export default function Admin() {
 
                   {ttsStatus && (
                     <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed">
-                      💡 Có {ttsStatus.missing_audio_cards} thẻ chưa có file âm thanh. Bạn đã chọn {selectedTtsCardIds.length} thẻ để đồng bộ.
+                      💡 {ttsStatus.missing_audio_cards} cards lack audio files. You selected {selectedTtsCardIds.length} cards to synchronize.
                     </div>
                   )}
 
@@ -1630,7 +1630,7 @@ export default function Admin() {
                           )}
                           {aiBatchStatus && (
                             <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed mt-4">
-                              💡 Có {aiBatchStatus.missing_ai_cards} thẻ chưa có nội dung AI '{fieldLabel}'. Bạn đã chọn {selectedAICardIds.length} thẻ để đồng bộ.
+                              💡 {aiBatchStatus.missing_ai_cards} cards lack AI content '{fieldLabel}'. You selected {selectedAICardIds.length} cards to synchronize.
                             </div>
                           )}
                         </>
@@ -1659,14 +1659,14 @@ export default function Admin() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-2xl font-bold mb-2">Batch Image Search & Download</h3>
-                  <p className="text-gray-400 text-sm">Tìm kiếm và tải ảnh minh họa hàng loạt cho cả bộ thẻ qua CentralAuth.</p>
+                  <p className="text-gray-400 text-sm">Bulk image search and download for the entire deck via CentralAuth.</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Select Deck */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chọn bộ thẻ</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Deck</label>
                       <select
                         value={selectedDeckId}
                         onChange={(e) => {
@@ -1680,7 +1680,7 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
+                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Select Deck --</option>
                         {adminDecks.map((deck) => (
                           <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
                             {deck.title} (ID: {deck.id})
@@ -1691,14 +1691,14 @@ export default function Admin() {
 
                     {/* Select Source Keyword Field */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột chứa Từ khóa (Source)</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Keyword Column (Source)</label>
                       <select
                         value={selectedImageSourceField}
                         onChange={(e) => setSelectedImageSourceField(e.target.value)}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
-                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Front (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Back (Definition)</option>
                         {selectedDeckCustomCols.map((c: string) => (
                           <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                         ))}
@@ -1707,7 +1707,7 @@ export default function Admin() {
 
                     {/* Select Target Image Field */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột lưu URL Ảnh (Target)</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Image URL Column (Target)</label>
                       <select
                         value={selectedImageTargetField}
                         onChange={(e) => {
@@ -1719,8 +1719,8 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_img (Ảnh mặt trước)</option>
-                        <option value="back_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_img (Ảnh mặt sau)</option>
+                        <option value="front_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">front_img (Front Image)</option>
+                        <option value="back_img" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">back_img (Back Image)</option>
                         {selectedDeckCustomCols.map((c: string) => (
                           <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                         ))}
@@ -1730,7 +1730,7 @@ export default function Admin() {
 
                   {/* Status Panel */}
                   <div className="bg-white/[0.01] border border-white/5 p-5 rounded-xl">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Trạng thái ảnh bộ thẻ</h4>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Deck Image Status</h4>
                     
                     {isFetchingImageBatchStatus ? (
                       <div className="py-4 flex flex-col items-center justify-center gap-2">
@@ -1741,11 +1741,11 @@ export default function Admin() {
                       <>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] font-black text-gray-500 uppercase">Tổng số thẻ</p>
+                            <p className="text-[9px] font-black text-gray-500 uppercase">Total Cards</p>
                             <p className="text-xl font-black text-white mt-1">{imageBatchStatus.total_cards}</p>
                           </div>
                           <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] font-black text-indigo-500 uppercase">Thẻ thiếu ảnh ở cột '{selectedImageTargetField}'</p>
+                            <p className="text-[9px] font-black text-indigo-500 uppercase">Cards missing image in column '{selectedImageTargetField}'</p>
                             <p className="text-xl font-black text-indigo-500 mt-1">{imageBatchStatus.missing_image_cards}</p>
                           </div>
                         </div>
@@ -1758,12 +1758,12 @@ export default function Admin() {
                         )}
                         {imageBatchStatus && (
                           <div className="flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl text-xs text-indigo-300 font-bold leading-relaxed mt-4">
-                            💡 Có {imageBatchStatus.missing_image_cards} thẻ chưa có ảnh ở cột '{selectedImageTargetField}'. Bạn đã chọn {selectedImageCardIds.length} thẻ để đồng bộ.
+                            💡 {imageBatchStatus.missing_image_cards} cards lack images in column '{selectedImageTargetField}'. You selected {selectedImageCardIds.length} cards to synchronize.
                           </div>
                         )}
                       </>
                     ) : (
-                      <p className="text-xs text-gray-500">Chọn bộ thẻ ở trên để quét tình trạng ảnh minh họa.</p>
+                      <p className="text-xs text-gray-500">Select a deck above to scan image status.</p>
                     )}
                   </div>
 
@@ -1786,14 +1786,14 @@ export default function Admin() {
               <div className="flex flex-col gap-6">
                 <div>
                   <h3 className="text-2xl font-bold mb-2">🎌 Batch Furigana Generation</h3>
-                  <p className="text-gray-400 text-sm">Tự động rắc Furigana (Kanji[Furigana]) cho toàn bộ chữ tiếng Nhật trong bộ thẻ mà không tốn phí.</p>
+                  <p className="text-gray-400 text-sm">Automatically annotate Japanese Kanji with Furigana (Kanji[Furigana]) across all deck cards.</p>
                 </div>
 
                 <div className="space-y-5 bg-[#0d1321]/50 border border-white/5 p-6 rounded-2xl">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Select Deck */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chọn bộ thẻ</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Deck</label>
                       <select
                         value={selectedDeckId}
                         onChange={(e) => {
@@ -1807,7 +1807,7 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Chọn bộ thẻ --</option>
+                        <option value="" style={{ color: '#94a3b8', backgroundColor: '#0d1321' }}>-- Select Deck --</option>
                         {adminDecks.map((deck) => (
                           <option key={deck.id} value={deck.id.toString()} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">
                             {deck.title} (ID: {deck.id})
@@ -1818,7 +1818,7 @@ export default function Admin() {
 
                     {/* Select Source Field */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột gốc (Source)</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Source Column (Source)</label>
                       <select
                         value={selectedFuriganaSourceField}
                         onChange={(e) => {
@@ -1830,8 +1830,8 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
-                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Front (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Back (Definition)</option>
                         {selectedDeckCustomCols.map((c: string) => (
                           <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                         ))}
@@ -1840,7 +1840,7 @@ export default function Admin() {
 
                     {/* Select Target Field */}
                     <div className="flex flex-col">
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cột lưu kết quả (Target)</label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Target Column (Target)</label>
                       <select
                         value={selectedFuriganaTargetField}
                         onChange={(e) => {
@@ -1852,8 +1852,8 @@ export default function Admin() {
                         }}
                         className="w-full bg-[#0d1321] border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:border-indigo-500 transition-all text-sm cursor-pointer"
                       >
-                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Trước (Word)</option>
-                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Mặt Sau (Definition)</option>
+                        <option value="front" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Front (Word)</option>
+                        <option value="back" style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">Back (Definition)</option>
                         {selectedDeckCustomCols.map((c: string) => (
                           <option key={c} value={c} style={{ color: '#ffffff', backgroundColor: '#0d1321' }} className="font-semibold">{c}</option>
                         ))}
@@ -1863,7 +1863,7 @@ export default function Admin() {
 
                   {/* Status Panel */}
                   <div className="bg-white/[0.01] border border-white/5 p-5 rounded-xl">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Trạng thái rắc Furigana bộ thẻ</h4>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Deck Furigana Status</h4>
                     
                     {isFetchingFuriganaStatus ? (
                       <div className="py-4 flex flex-col items-center justify-center gap-2">
@@ -1874,11 +1874,11 @@ export default function Admin() {
                       <>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] font-black text-gray-500 uppercase">Tổng số thẻ</p>
+                            <p className="text-[9px] font-black text-gray-500 uppercase">Total Cards</p>
                             <p className="text-xl font-black text-white mt-1">{furiganaStatus.total_cards}</p>
                           </div>
                           <div className="bg-[#0d1321] border border-white/5 p-4 rounded-xl">
-                            <p className="text-[9px] font-black text-amber-500 uppercase">Thẻ chưa có Furigana ở cột '{selectedFuriganaTargetField}'</p>
+                            <p className="text-[9px] font-black text-amber-500 uppercase">Cards missing Furigana in column '{selectedFuriganaTargetField}'</p>
                             <p className="text-xl font-black text-amber-500 mt-1">{furiganaStatus.missing_furigana_cards}</p>
                           </div>
                         </div>
@@ -1891,12 +1891,12 @@ export default function Admin() {
                         )}
                         {furiganaStatus && (
                           <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-xs text-amber-300 font-bold leading-relaxed mt-4">
-                            💡 Có {furiganaStatus.missing_furigana_cards} thẻ thiếu Furigana. Bạn đã chọn {selectedFuriganaCardIds.length} thẻ để xử lý.
+                            💡 {furiganaStatus.missing_furigana_cards} cards lack Furigana. You selected {selectedFuriganaCardIds.length} cards to process.
                           </div>
                         )}
                       </>
                     ) : (
-                      <p className="text-xs text-gray-500">Chọn bộ thẻ ở trên để quét tình trạng Furigana.</p>
+                      <p className="text-xs text-gray-500">Select a deck above to scan Furigana status.</p>
                     )}
                   </div>
 
@@ -1907,7 +1907,7 @@ export default function Admin() {
                       disabled={isFetchingFuriganaStatus || !selectedDeckId || !furiganaStatus || selectedFuriganaCardIds.length === 0 || isStartingFurigana}
                       className="px-6 py-3.5 rounded-xl font-bold bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all text-sm flex items-center gap-2 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                     >
-                      {isStartingFurigana ? 'Processing...' : 'Bắt đầu rắc Furigana'}
+                      {isStartingFurigana ? 'Processing...' : 'Start Furigana Annotation'}
                     </button>
                   </div>
                 </div>

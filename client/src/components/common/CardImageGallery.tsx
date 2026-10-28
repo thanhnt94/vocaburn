@@ -57,7 +57,7 @@ export const CardImageGallery: React.FC<CardImageGalleryProps> = ({
                 onZoom(url)
               }}
               className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md cursor-pointer"
-              title="Phóng to ảnh"
+              title="Zoom image"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
@@ -100,7 +100,7 @@ export const CardImageGallery: React.FC<CardImageGalleryProps> = ({
                     onZoom(url)
                   }}
                   className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md cursor-pointer"
-                  title="Phóng to ảnh"
+                  title="Zoom image"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                 </button>
@@ -223,7 +223,7 @@ export const CardImageGallery: React.FC<CardImageGalleryProps> = ({
                 onClick={() => onZoom && onZoom(url)}
                 className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center text-white font-black text-sm rounded-xl cursor-pointer hover:bg-slate-950/80 transition-colors"
               >
-                +{validImages.length - 4} ảnh khác
+                +{validImages.length - 4} more
               </div>
             )}
             {onZoom && (

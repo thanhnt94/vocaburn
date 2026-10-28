@@ -81,9 +81,9 @@ export function formatRelativeTime(dateStr: string | null | undefined): { relati
 }
 
 export function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full: string; overdue: boolean; severe: boolean } {
-  if (!dueIsoStr) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false }
+  if (!dueIsoStr) return { relative: 'none', full: 'No due date', overdue: false, severe: false }
   const d = parseUTCDate(dueIsoStr)
-  if (isNaN(d.getTime())) return { relative: 'none', full: 'Chưa có hạn ôn', overdue: false, severe: false }
+  if (isNaN(d.getTime())) return { relative: 'none', full: 'No due date', overdue: false, severe: false }
 
   const now = new Date()
   const diffMs = now.getTime() - d.getTime()
@@ -93,10 +93,10 @@ export function formatOverdueTime(dueIsoStr?: string | null): { relative: string
   const yearStr = d.getFullYear()
   const hourStr = String(d.getHours()).padStart(2, '0')
   const minStr = String(d.getMinutes()).padStart(2, '0')
-  const full = `Hạn ôn: ${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}`
+  const full = `Due: ${yearStr}-${monthStr}-${dayStr} ${hourStr}:${minStr}`
 
   if (diffMs <= 0) {
-    return { relative: 'Đúng hạn', full, overdue: false, severe: false }
+    return { relative: 'On track', full, overdue: false, severe: false }
   }
 
   const diffSec = Math.floor(diffMs / 1000)
@@ -119,7 +119,7 @@ export function formatOverdueTime(dueIsoStr?: string | null): { relative: string
     relative = `${diffMin}m`
     severe = false
   } else {
-    relative = 'Vừa đến'
+    relative = 'Just due'
     severe = false
   }
 

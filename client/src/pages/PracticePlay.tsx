@@ -1570,7 +1570,7 @@ export default function PracticePlay() {
       }
     } catch (e: any) {
       if (e?.response?.data?.error === 'stage_1_not_done') {
-        alert(e.response.data.message || "Bạn chưa hoàn thành Bước 1 học từ mới!");
+        alert(e.response.data.message || "You have not completed Step 1: Learn New Words yet!");
         navigate(`/decks/${id}?tab=roadmap`);
         return;
       }
@@ -1832,10 +1832,10 @@ export default function PracticePlay() {
       if (sfxEnabled) playCorrectSound()
       const confettiColors = streak >= 5 ? ['#f59e0b', '#ef4444', '#f97316'] : ['#6366f1', '#a855f7', '#ec4899']
       confetti({ zIndex: 9999, particleCount: streak >= 5 ? 250 : 150, spread: streak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
-      if (alreadyRated) setBadgeMessage("Chính xác! 🎯")
+      if (alreadyRated) setBadgeMessage("Correct! 🎯")
     } else {
       if (sfxEnabled) playIncorrectSound()
-      if (alreadyRated) setBadgeMessage("Cố lên nhé! 💪")
+      if (alreadyRated) setBadgeMessage("Keep going! 💪")
     }
     
     if (alreadyRated) {
@@ -2284,7 +2284,7 @@ export default function PracticePlay() {
       setStreak(updatedStreak);
 
       confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 } });
-      setBadgeMessage("Chính xác! 🎯");
+      setBadgeMessage("Correct! 🎯");
 
       // Trigger 10-streak milestone celebration in practice mode
       if (updatedStreak === 10) {
@@ -2309,7 +2309,7 @@ export default function PracticePlay() {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
       setStreak(0);
-      setBadgeMessage("Chưa chính xác! 😅");
+      setBadgeMessage("Incorrect! 😅");
     }
 
     setBadgeVisible(true);
@@ -2500,12 +2500,12 @@ export default function PracticePlay() {
       setStreak(updatedStreak);
 
       confetti({ zIndex: 9999, particleCount: 100, spread: 60, origin: { y: 0.6 } });
-      setBadgeMessage("Xuất sắc! ⌨️");
+      setBadgeMessage("Excellent! ⌨️");
     } else {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
       setStreak(0);
-      setBadgeMessage("Nhầm một chút rồi! 💪");
+      setBadgeMessage("Almost there! 💪");
     }
 
     setBadgeVisible(true);
@@ -3499,16 +3499,16 @@ export default function PracticePlay() {
 
           <div className="space-y-2">
             <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">
-              Chế độ luyện tập chưa mở
+              Practice Mode Not Configured
             </h2>
             <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm mx-auto">
-              Chủ sở hữu bộ thẻ chưa cấu hình thiết lập luyện tập (MCQ, Gõ từ, Nghe) cho bộ thẻ này. Chỉ chủ sở hữu mới có quyền kích hoạt chế độ luyện tập.
+              The deck owner has not configured practice modes (MCQ, Typing, Listening) for this deck yet. Only the deck owner or collaborators can activate practice mode.
             </p>
           </div>
 
           <div className="pt-2">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-wider">
-              <span>Hỏi-Đáp chưa được thiết lập</span>
+              <span>Practice Not Configured</span>
             </div>
           </div>
         </div>
@@ -3523,7 +3523,7 @@ export default function PracticePlay() {
     if (!currentQuestion || !practiceData) {
       return (
         <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
-          Chưa có câu hỏi luyện tập nào sẵn sàng...
+          No practice questions ready...
         </div>
       );
     }
@@ -3537,15 +3537,15 @@ export default function PracticePlay() {
           <div className="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center text-amber-500 mb-2">
             <Sliders className="w-8 h-8 animate-pulse" />
           </div>
-          <h3 className="text-lg font-black text-slate-800">Chưa thiết lập Cặp cột Hỏi-Đáp</h3>
+          <h3 className="text-lg font-black text-slate-800">Question-Answer Pairs Not Configured</h3>
           <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-            Hệ thống chưa tìm thấy dữ liệu Hỏi-Đáp phù hợp. Vui lòng thiết lập Cặp cột câu hỏi để bắt đầu luyện tập nhé!
+            No suitable question-answer data found. Please configure question-answer column pairs to start practice mode!
           </p>
           <button 
             onClick={() => navigate(`/practice/${id}/setting`)}
             className="flex-1 py-4 px-6 bg-slate-50 hover:bg-slate-100 text-slate-700 font-black text-[13px] rounded-2xl transition-all shadow-sm border border-slate-200 flex items-center justify-center gap-2"
           >
-            <span>Thiết lập Cấu hình ⚙️</span>
+            <span>Configure Practice ⚙️</span>
           </button>
         </div>
       );
@@ -4005,7 +4005,7 @@ export default function PracticePlay() {
         const rawPipeline: PipelineStepStatus[] = roadmapStatus?.pipeline || [
           {
             type: 'mcq' as any,
-            label: 'Trắc Nghiệm MCQ',
+            label: 'Multiple Choice MCQ',
             daily_count: session?.questions?.length || 15,
             done: false,
             url: `/practice/${id}/mcq`,
@@ -4166,10 +4166,10 @@ export default function PracticePlay() {
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-slate-700">
-                        Bảng xếp hạng {leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'câu hỏi' : 'chính xác'}
+                        Leaderboard ({leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'Questions' : 'Accuracy'})
                       </h4>
                       <p className="text-[10px] text-slate-400 font-medium">
-                        Đua top {leaderboardTimeFilter === 'today' ? 'hôm nay' : leaderboardTimeFilter === 'week' ? 'tuần này' : leaderboardTimeFilter === 'month' ? 'tháng này' : 'mọi lúc'}
+                        Top ranking ({leaderboardTimeFilter === 'today' ? 'today' : leaderboardTimeFilter === 'week' ? 'this week' : leaderboardTimeFilter === 'month' ? 'this month' : 'all time'})
                       </p>
                     </div>
                   </div>
@@ -4205,14 +4205,14 @@ export default function PracticePlay() {
                             : "text-slate-400 hover:text-slate-700"
                         )}
                       >
-                        {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : filter === 'month' ? 'Tháng này' : 'Tất cả'}
+                        {filter === 'today' ? 'Today' : filter === 'week' ? 'This Week' : filter === 'month' ? 'This Month' : 'All Time'}
                       </button>
                     ))}
                   </div>
 
                   {/* Mini Leaderboard List */}
                   {isLeaderboardLoading ? (
-                    <p className="text-[10px] text-slate-400 text-center py-4 font-bold animate-pulse">Đang tải bảng xếp hạng...</p>
+                    <p className="text-[10px] text-slate-400 text-center py-4 font-bold animate-pulse">Loading leaderboard...</p>
                   ) : xpLeaderboard.list && xpLeaderboard.list.length > 0 ? (
                     <div className="space-y-1.5 py-1">
                       {xpLeaderboard.list.slice(0, 3).map((u: any, idx: number) => {
@@ -4277,7 +4277,7 @@ export default function PracticePlay() {
                       })()}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 text-center py-2">Chưa có dữ liệu xếp hạng nào.</p>
+                    <p className="text-[10px] text-slate-400 text-center py-2">No leaderboard data yet.</p>
                   )}
 
                   <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/50">
@@ -4290,14 +4290,14 @@ export default function PracticePlay() {
                 {/* 4. Session Quick Stats */}
                 <div className="bg-slate-100/50 p-4 rounded-[1.75rem] border border-slate-100 space-y-3">
                   <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    <span>Phiên học hiện tại</span>
+                    <span>Current Session</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
                       <span className="block font-black text-slate-700">
                         {mainTab === 'practice' ? Object.keys(practiceAnswers).length : Object.keys(sessionAnswers).length}
                       </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">Đã làm</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Answered</span>
                     </div>
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-emerald-600">
                       <span className="block font-black">
@@ -4321,7 +4321,7 @@ export default function PracticePlay() {
                           }).length
                         )}
                       </span>
-                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Đúng</span>
+                      <span className="text-[8px] font-bold text-emerald-400 uppercase">Correct</span>
                     </div>
                     <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm text-rose-600">
                       <span className="block font-black">
@@ -5072,7 +5072,7 @@ export default function PracticePlay() {
               <button 
                 onClick={() => setIsMapOpen(false)} 
                 className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-                title="Quay lại thẻ học"
+                title="Return to flashcards"
               >
                 <ChevronLeft className="w-4.5 h-4.5" />
               </button>

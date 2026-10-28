@@ -127,7 +127,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
           </span>
 
           <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-400 font-bold text-[10px] tracking-wider uppercase">
-            {isMcq ? 'LẮNG NGHE & CHỌN ĐÁP ÁN' : 'LẮNG NGHE & GÕ CHÍNH TẢ'}
+            {isMcq ? 'LISTEN & SELECT ANSWER' : 'LISTEN & TYPE WHAT YOU HEAR'}
           </span>
         </div>
 
@@ -171,7 +171,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
             type="button"
             onClick={() => handlePlayAudioWithSpeed(playbackSpeed)}
             className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 shadow-xl shadow-cyan-500/25 flex items-center justify-center text-white active:scale-95 hover:scale-105 transition-all cursor-pointer relative z-10 group"
-            title="Nhấn để nghe phát âm"
+            title="Play pronunciation"
           >
             <Volume2 className={cn("w-10 h-10 sm:w-12 sm:h-12 transition-transform", isPlaying && "scale-110 animate-pulse")} />
           </button>
@@ -192,7 +192,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
             )}
           >
-            1.0x Chuẩn
+            1.0x Normal
           </button>
 
           <button
@@ -208,12 +208,12 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
             )}
           >
-            0.8x Chậm 🐢
+            0.8x Slow 🐢
           </button>
         </div>
 
         <span className="text-[11px] font-bold text-slate-400">
-          Nhấn loa hoặc phím <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Space</kbd> để nghe lại
+          Click audio icon or press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Space</kbd> to listen again
         </span>
       </div>
 
@@ -310,7 +310,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     type="text"
                     value={typingInput}
                     onChange={(e) => setTypingInput && setTypingInput(e.target.value)}
-                    placeholder="Nghe và gõ từ..."
+                    placeholder="Listen and type the word..."
                     enterKeyHint="go"
                     autoComplete="off"
                     autoCorrect="off"
@@ -329,7 +329,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                         : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 cursor-not-allowed opacity-60"
                     )}
                   >
-                    <span>Kiểm tra</span>
+                    <span>Check</span>
                     <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
                   </button>
                 </div>
@@ -352,10 +352,10 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                       </div>
                       <div>
                         <span className="font-black text-sm tracking-wide block">
-                          {typingFeedback.isCorrect ? "Nghe và gõ chính xác! 🎧" : "Chưa chính xác!"}
+                          {typingFeedback.isCorrect ? "Perfect listening! 🎧" : "Not quite right!"}
                         </span>
                         <span className="text-[11px] font-semibold opacity-75">
-                          Bạn đã nhập: <strong className="font-mono">{typingInput || "(Để trống)"}</strong>
+                          You typed: <strong className="font-mono">{typingInput || "(Empty)"}</strong>
                         </span>
                       </div>
                     </div>
@@ -363,7 +363,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     {!typingFeedback.isCorrect && (
                       <div className="mt-1 pt-2 border-t border-rose-200/60 flex flex-col gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-rose-600">
-                          Từ vựng đúng:
+                          Correct answer:
                         </span>
                         <div className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 text-emerald-900 dark:text-emerald-200 font-black text-lg">
                           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
@@ -377,7 +377,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                 {answerImages.length > 0 && (
                   <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-                      Hình ảnh minh họa đáp án:
+                      Answer illustration:
                     </span>
                     <CardImageGallery
                       images={answerImages}

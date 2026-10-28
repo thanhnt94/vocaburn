@@ -152,10 +152,10 @@ export function DashboardQuickDecksWidget({
             </div>
             <div>
               <h4 className="text-sm font-black text-slate-800">
-                Chưa có bộ thẻ nào được ghim ✨
+                No pinned decks yet ✨
               </h4>
               <p className="text-xs text-slate-400 font-medium max-w-xs mt-1">
-                Vào cài đặt để chọn các bộ thẻ bạn muốn học nhé!
+                Open settings to choose and pin decks for quick study!
               </p>
             </div>
           </div>
@@ -279,7 +279,7 @@ export function DashboardQuickDecksWidget({
           {/* Section Header */}
           <div className="flex items-center justify-center gap-1.5 text-xs font-black text-slate-800 tracking-wide select-none">
             <span className="text-orange-500 font-black text-sm">≥</span>
-            <span>Bắt đầu học ngay!</span>
+            <span>Start Studying Now!</span>
             <span className="text-orange-500 font-black text-sm">≤</span>
           </div>
 

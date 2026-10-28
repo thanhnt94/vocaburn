@@ -98,12 +98,12 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     const qk = String(question_key || 'front').toLowerCase()
     const ak = String(Array.isArray(answer_key) ? answer_key[0] : (answer_key || 'back')).toLowerCase()
     if (qk.includes('nghĩa') || qk.includes('meaning') || qk.includes('vi')) {
-      return 'DỊCH SANG TỪ VỰNG TIẾNG NHẬT'
+      return 'TRANSLATE TO JAPANESE TERM'
     }
     if (qk.includes('front') || qk.includes('word') || qk.includes('kanji')) {
-      return 'NHẬP Ý NGHĨA HOẶC CÁCH ĐỌC'
+      return 'TYPE MEANING OR READING'
     }
-    return 'NHẬP CÂU TRẢ LỜI CHÍNH XÁC'
+    return 'TYPE THE EXACT ANSWER'
   }, [question_key, answer_key])
 
   return (
@@ -140,7 +140,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 onPreviewInsight(currentQuestion)
               }}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-              title="Xem thông tin chi tiết / Giải thích"
+              title="View Card Insights & Explanation"
             >
               <Lightbulb className="w-4 h-4 fill-amber-400/20" />
             </button>
@@ -154,7 +154,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 onPlayAudio(question_key || 'front')
               }}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-              title="Phát âm câu hỏi"
+              title="Pronounce question"
             >
               <Volume2 className="w-4 h-4" />
             </button>
@@ -167,7 +167,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
               if (currentQuestion?.id) onToggleStar(currentQuestion.id)
             }}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-            title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Bỏ đánh dấu" : "Đánh dấu câu hỏi"}
+            title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Unstar card" : "Star card"}
           >
             <Bookmark className={cn("w-4 h-4 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-slate-400")} />
           </button>
@@ -226,7 +226,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     }
                   }
                 }}
-                placeholder="Nhập câu trả lời..."
+                placeholder="Type your answer..."
                 enterKeyHint="go"
                 autoComplete="off"
                 autoCorrect="off"
@@ -245,15 +245,15 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-700 cursor-not-allowed opacity-60"
                 )}
               >
-                <span>Kiểm tra</span>
+                <span>Check</span>
                 <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
               </button>
             </div>
 
             <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400 select-none">
-              <span>Gợi ý: Nhấn <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Enter ↵</kbd> để kiểm tra</span>
+              <span>Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Enter ↵</kbd> to submit</span>
               {acceptableAnswers.length > 1 && (
-                <span className="text-amber-600 dark:text-amber-400">{acceptableAnswers.length} đáp án hợp lệ</span>
+                <span className="text-amber-600 dark:text-amber-400">{acceptableAnswers.length} accepted answers</span>
               )}
             </div>
           </form>
@@ -277,10 +277,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     </div>
                     <div>
                       <span className="font-black text-sm tracking-wide block">
-                        {typingFeedback.isCorrect ? "Chính xác tuyệt vời! 🎯" : "Chưa chính xác!"}
+                        {typingFeedback.isCorrect ? "Excellent! 🎯" : "Not quite right!"}
                       </span>
                       <span className="text-[11px] font-semibold opacity-75">
-                        Bạn đã nhập: <strong className="font-mono">{typingInput || "(Để trống)"}</strong>
+                        You typed: <strong className="font-mono">{typingInput || "(Empty)"}</strong>
                       </span>
                     </div>
                   </div>
@@ -290,7 +290,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                       type="button"
                       onClick={() => onPlayAudio(Array.isArray(answer_key) ? answer_key[0] : (answer_key || 'back'))}
                       className="w-10 h-10 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-xs"
-                      title="Nghe phát âm chuẩn"
+                      title="Pronounce audio"
                     >
                       <Volume2 className="w-5 h-5" />
                     </button>
@@ -301,7 +301,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 {!typingFeedback.isCorrect && (
                   <div className="mt-1 pt-2 border-t border-rose-200/60 dark:border-rose-900/60 flex flex-col gap-1">
                     <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
-                      Đáp án đúng:
+                      Correct Answer:
                     </span>
                     <div className="px-3.5 py-2 rounded-xl bg-white/90 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-black text-lg">
                       <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
@@ -312,7 +312,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 {/* Other Accepted Answers */}
                 {acceptableAnswers.length > 1 && (
                   <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <span className="font-bold opacity-70">Các đáp án hợp lệ khác:</span>
+                    <span className="font-bold opacity-70">Other accepted answers:</span>
                     {acceptableAnswers.map((ans, idx) => (
                       <span
                         key={idx}
@@ -327,7 +327,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 {answerImages.length > 0 && (
                   <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-                      Hình ảnh minh họa đáp án:
+                      Answer illustration:
                     </span>
                     <CardImageGallery
                       images={answerImages}

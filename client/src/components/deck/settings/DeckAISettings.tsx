@@ -197,7 +197,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
         field: selectedColumnToRun,
         force: forceRegenerate,
       })
-      setAiRunMessage(res.data?.message || 'Đã gửi yêu cầu xử lý hàng loạt tới CentralAuth Queue thành công!')
+      setAiRunMessage(res.data?.message || 'Successfully queued bulk AI processing request to CentralAuth Queue!')
       setTimeout(() => {
         refetchAIStatus()
         queryClient.invalidateQueries({ queryKey: ['quiz-questions', String(deckId)] })
@@ -205,7 +205,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
       }, 2000)
       setTimeout(() => setAiRunMessage(null), 8000)
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Lỗi khi kích hoạt sinh AI hàng loạt')
+      alert(e?.response?.data?.error || 'Failed to trigger bulk AI generation')
     } finally {
       setIsRunningAI(false)
     }
@@ -227,7 +227,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
     ? selectedPrompt.name
     : selectedPromptIndex >= 0
     ? `#${selectedPromptIndex + 1} (${selectedColumnToRun})`
-    : `Cột "${selectedColumnToRun}"`
+    : `Column "${selectedColumnToRun}"`
 
   return (
     <div className="space-y-5 text-left">
@@ -239,10 +239,10 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-600" />
-              <span>Cấu Hình Prompt AI Theo Cột Dữ Liệu</span>
+              <span>AI Prompt Configuration by Column</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Đặt tên gợi nhớ, tùy biến câu lệnh (prompt) và chọn cột dữ liệu lưu trữ
+              Customize AI prompts, friendly labels, and target output columns
             </p>
           </div>
 
@@ -251,20 +251,20 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
             className="h-8.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Thêm Prompt</span>
+            <span>Add Prompt</span>
           </button>
         </div>
 
         {saveSuccess && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> Đã lưu cấu hình AI Prompt thành công!
+            <CheckCircle2 className="w-4 h-4" /> AI Prompt configuration saved successfully!
           </div>
         )}
 
         {/* Presets Row */}
         <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-2xl space-y-2">
           <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-            ⚡ Thêm nhanh từ mẫu có sẵn:
+            ⚡ Quick add from preset templates:
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {DEFAULT_PRESETS.map((preset, pIdx) => (
@@ -285,7 +285,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
         <div className="space-y-4 pt-1">
           {prompts.length === 0 ? (
             <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
-              Chưa có cấu hình AI Prompt nào. Nhấn "+ Thêm Prompt" để bắt đầu.
+              No AI Prompts configured yet. Click "+ Add Prompt" to start.
             </div>
           ) : (
             prompts.map((item, idx) => (
@@ -298,7 +298,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
                     </span>
                     <input
                       type="text"
-                      placeholder={`Tên gợi nhớ prompt #${idx + 1} (vd: Giải thích N2, Cách nhớ...)`}
+                      placeholder={`Prompt #${idx + 1} name (e.g., JLPT Explanation, Memory Hook...)`}
                       value={item.name || ''}
                       onChange={(e) => handleUpdatePrompt(idx, 'name', e.target.value)}
                       className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-purple-500 flex-1 shadow-2xs"
@@ -308,7 +308,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
                   {/* Target Column Selection */}
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">Lưu vào cột:</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Save to column:</span>
                       <select
                         value={item.column || 'explanation'}
                         onChange={(e) => {
@@ -329,7 +329,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
                       type="button"
                       onClick={() => handleRemovePrompt(idx)}
                       className="w-8.5 h-8.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                      title="Xóa Prompt này"
+                      title="Delete this prompt"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -338,14 +338,14 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
 
                 {/* Variable Injection Chips */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Chèn biến:</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Insert variable:</span>
                   {availableColumns.slice(0, 6).map((col) => (
                     <button
                       key={col}
                       type="button"
                       onClick={() => insertVariable(idx, col)}
                       className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 border border-purple-200/60 text-purple-700 text-[10px] font-mono font-bold transition-all cursor-pointer"
-                      title={`Chèn biến {${col}}`}
+                      title={`Insert variable {${col}}`}
                     >
                       +{`{${col}}`}
                     </button>
@@ -358,7 +358,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
                     rows={4}
                     value={item.prompt || ''}
                     onChange={(e) => handleUpdatePrompt(idx, 'prompt', e.target.value)}
-                    placeholder="Nhập nội dung prompt chỉ dẫn cho AI..."
+                    placeholder="Enter AI prompt instructions..."
                     className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all resize-y"
                   />
                 </div>
@@ -374,10 +374,10 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
               <Wand2 className="w-4 h-4 text-indigo-600" />
-              <span>Chạy Sinh AI Hàng Loạt (CentralAuth Batch Queue)</span>
+              <span>Bulk AI Generation Studio (CentralAuth Batch Queue)</span>
             </h3>
             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Gửi toàn bộ thẻ tới CentralAuth Queue Worker để gọi Gemini AI xử lý chạy nền
+              Dispatch all cards to CentralAuth Queue Worker for background Gemini AI processing
             </p>
           </div>
 
@@ -385,10 +385,10 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
             type="button"
             onClick={() => refetchAIStatus()}
             className="h-8 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-            title="Làm mới trạng thái"
+            title="Refresh status"
           >
             <RefreshCw className={cn("w-3 h-3", isFetchingAIStatus && "animate-spin")} />
-            <span>Kiểm tra trạng thái</span>
+            <span>Check Status</span>
           </button>
         </div>
 
@@ -402,21 +402,21 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
         {/* Live AI Status Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Tổng Số Thẻ</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Cards</span>
             <span className="text-lg font-black text-slate-800 mt-0.5 block">
               {aiStatus?.total_cards ?? '--'}
             </span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
-            <span className="text-[10px] font-bold text-amber-600 uppercase block">Chưa Có Dữ Liệu AI</span>
+            <span className="text-[10px] font-bold text-amber-600 uppercase block">Missing AI Data</span>
             <span className="text-lg font-black text-amber-700 mt-0.5 block">
               {aiStatus?.missing_ai_cards ?? '--'}
             </span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-emerald-600 uppercase block">Đã Có Dữ Liệu AI</span>
+            <span className="text-[10px] font-bold text-emerald-600 uppercase block">AI Data Available</span>
             <span className="text-lg font-black text-emerald-700 mt-0.5 block">
               {aiStatus?.total_cards !== undefined && aiStatus?.missing_ai_cards !== undefined
                 ? Math.max(0, aiStatus.total_cards - aiStatus.missing_ai_cards)
@@ -429,7 +429,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
           {/* Prompt Selection Dropdown */}
           <div>
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Chọn Mẫu Prompt AI Cần Chạy:
+              Select AI Prompt Preset to Run:
             </label>
             <select
               value={selectedColumnToRun}
@@ -441,7 +441,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
                 const targetCol = p.column || p.target_column || 'explanation'
                 return (
                   <option key={p.id || idx} value={targetCol}>
-                    {displayName} ➜ Lưu vào cột: [{targetCol}]
+                    {displayName} ➜ Save to column: [{targetCol}]
                   </option>
                 )
               })}
@@ -450,7 +450,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
 
           <div className="flex flex-col justify-between">
             <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Tùy chọn tạo lại:
+              Regeneration Option:
             </label>
             <label className="flex items-center gap-2 cursor-pointer select-none bg-white p-2.5 rounded-xl border border-slate-200">
               <input
@@ -460,7 +460,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
                 className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
               />
               <span className="text-xs font-bold text-slate-700">
-                Ghi đè (Tạo lại cả những thẻ đã có nội dung)
+                Overwrite (Regenerate even if card already has data)
               </span>
             </label>
           </div>
@@ -469,7 +469,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
         <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
             <Server className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Tiến trình xử lý bởi CentralAuth Queue (Chunk 100 cards/lô)</span>
+            <span>Processed in background via CentralAuth Queue (100 cards/chunk)</span>
           </div>
 
           <button
@@ -483,7 +483,7 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            <span>{isRunningAI ? 'ĐANG GỬI QUEUE...' : `SINH AI: "${selectedPromptTitle.toUpperCase()}"`}</span>
+            <span>{isRunningAI ? 'DISPATCHING QUEUE...' : `GENERATE AI: "${selectedPromptTitle.toUpperCase()}"`}</span>
           </button>
         </div>
       </div>

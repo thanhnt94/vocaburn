@@ -16,28 +16,28 @@ export function useLeaderboard() {
 
   const getUnitName = (type: string) => {
     if (type === 'xp') return 'XP'
-    if (type === 'streak') return 'ngày'
-    if (type === 'questions') return 'thẻ'
-    return 'phút'
+    if (type === 'streak') return 'days'
+    if (type === 'questions') return 'cards'
+    return 'mins'
   }
 
   let leaderboardMsg = ""
   if (userRank === 1) {
-    leaderboardMsg = "Bạn đang dẫn đầu Bảng xếp hạng! Hãy giữ vững ngôi vương nhé! 👑"
+    leaderboardMsg = "You're leading the leaderboard! Keep up the champion streak! 👑"
   } else if (userRank > 1) {
     const topUser = xpLeaderboard.list[0]
     const prevUser = xpLeaderboard.list[userRank - 2]
     const unit = getUnitName(leaderboardType)
     if (topUser) {
       const xpToTop = topUser.value - userValue
-      leaderboardMsg = `Cần thêm ${xpToTop.toLocaleString()} ${unit} nữa để đạt Top 1! 🚀`
+      leaderboardMsg = `Need ${xpToTop.toLocaleString()} more ${unit} to reach #1! 🚀`
     }
     if (prevUser) {
       const xpToPrev = prevUser.value - userValue
-      leaderboardMsg += ` Cách Hạng #${userRank - 1} (${prevUser.username}) ${xpToPrev.toLocaleString()} ${unit}! 💪`
+      leaderboardMsg += ` Just ${xpToPrev.toLocaleString()} ${unit} behind #${userRank - 1} (${prevUser.username})! 💪`
     }
   } else {
-    leaderboardMsg = `Hãy tích lũy thêm ${getUnitName(leaderboardType)} để ghi danh lên Bảng xếp hạng! 🏆`
+    leaderboardMsg = `Earn more ${getUnitName(leaderboardType)} to join the leaderboard rankings! 🏆`
   }
 
   const fetchLeaderboard = async (timeFilter = leaderboardTimeFilter) => {

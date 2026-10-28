@@ -206,8 +206,8 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   const formatValue = (u: any) => {
     if (activeMetric === 'xp') return `${(u.xp ?? 0).toLocaleString()} XP`
     if (activeMetric === 'time') return formatSeconds(u.total_time ?? 0)
-    if (activeMetric === 'new_cards') return `${u.new_cards ?? 0} thẻ`
-    return `${u.total_cards ?? 0} lượt`
+    if (activeMetric === 'new_cards') return `${u.new_cards ?? 0} cards`
+    return `${u.total_cards ?? 0} reviews`
   }
 
   // Fallback card stats from prop if API is loading
@@ -576,14 +576,14 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 text-[9px] font-black uppercase tracking-wider">
-                          Bộ thẻ tổng thể
+                          Overall Deck
                         </span>
                         <span className="text-xs font-black text-slate-700">
-                          {deckSummary?.total_cards || session?.questions?.length || 0} thẻ
+                          {deckSummary?.total_cards || session?.questions?.length || 0} cards
                         </span>
                       </div>
                       <h3 className="text-base font-black text-slate-800 leading-snug truncate">
-                        {session?.title || 'Bộ thẻ'}
+                        {session?.title || 'Deck'}
                       </h3>
                       {session?.description && (
                         <p className="text-xs text-slate-500 font-semibold mt-0.5 truncate">
@@ -598,73 +598,73 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {/* Số ngày đã học */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Số Ngày Đã Học</span>
-                    <span className="text-lg font-black text-emerald-600">{deckSummary?.active_days ?? 1} ngày</span>
-                    <span className="text-[8px] font-bold text-slate-400">Kiên trì tích lũy</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Days Studied</span>
+                    <span className="text-lg font-black text-emerald-600">{deckSummary?.active_days ?? 1} days</span>
+                    <span className="text-[8px] font-bold text-slate-400">Consistent effort</span>
                   </div>
 
                   {/* Trung bình thẻ mới/ngày */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Học Mới / Ngày</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">New / Day</span>
                     <span className="text-lg font-black text-indigo-600">{deckSummary?.avg_new_cards_per_day ?? 0}</span>
-                    <span className="text-[8px] font-bold text-indigo-500">thẻ mới / ngày</span>
+                    <span className="text-[8px] font-bold text-indigo-500">new cards / day</span>
                   </div>
 
                   {/* Trung bình lượt ôn/ngày */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Lượt Ôn / Ngày</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Reviews / Day</span>
                     <span className="text-lg font-black text-purple-600">{deckSummary?.avg_reviews_per_day ?? 0}</span>
-                    <span className="text-[8px] font-bold text-purple-500">lượt ôn / ngày</span>
+                    <span className="text-[8px] font-bold text-purple-500">reviews / day</span>
                   </div>
 
                   {/* Tổng thời gian đã học */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tổng Thời Gian</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Time</span>
                     <span className="text-lg font-black text-slate-800">
                       {formatSeconds(deckSummary?.total_study_time_seconds || 0)}
                     </span>
-                    <span className="text-[8px] font-bold text-slate-400">tổng thời gian học</span>
+                    <span className="text-[8px] font-bold text-slate-400">total study time</span>
                   </div>
 
                   {/* Tổng lượt ôn */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tổng Lượt Ôn</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Reviews</span>
                     <span className="text-lg font-black text-slate-800">{deckSummary?.total_reviews ?? 0}</span>
-                    <span className="text-[8px] font-bold text-slate-400">lượt trả lời</span>
+                    <span className="text-[8px] font-bold text-slate-400">total answers</span>
                   </div>
 
                   {/* Độ chính xác tổng thể */}
                   <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Độ Chính Xác</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Accuracy</span>
                     <span className="text-lg font-black text-teal-600">{deckSummary?.overall_accuracy ?? 0}%</span>
-                    <span className="text-[8px] font-bold text-teal-500">toàn bộ lần trả lời</span>
+                    <span className="text-[8px] font-bold text-teal-500">all answers</span>
                   </div>
                 </div>
 
                 {/* 3. Four Category Summary Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-emerald-600 uppercase">Thuần Thục (Box 5)</span>
+                    <span className="text-[8px] font-black text-emerald-600 uppercase">Mastered (Box 5)</span>
                     <span className="text-base font-black text-emerald-700">{deckSummary?.fsrs_distribution?.mastered ?? 0}</span>
-                    <span className="text-[8px] font-bold text-emerald-500">{deckSummary?.mastery_percentage ?? 0}% bộ thẻ</span>
+                    <span className="text-[8px] font-bold text-emerald-500">{deckSummary?.mastery_percentage ?? 0}% of deck</span>
                   </div>
 
                   <div className="p-2.5 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-indigo-600 uppercase">Đang Học (Box 1-4)</span>
+                    <span className="text-[8px] font-black text-indigo-600 uppercase">Learning (Box 1-4)</span>
                     <span className="text-base font-black text-indigo-700">{deckSummary?.fsrs_distribution?.learning ?? 0}</span>
-                    <span className="text-[8px] font-bold text-indigo-500">thẻ đang ghi nhớ</span>
+                    <span className="text-[8px] font-bold text-indigo-500">cards in progress</span>
                   </div>
 
                   <div className="p-2.5 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-blue-600 uppercase">Chưa Học (Mới)</span>
+                    <span className="text-[8px] font-black text-blue-600 uppercase">Unlearned (New)</span>
                     <span className="text-base font-black text-blue-700">{deckSummary?.fsrs_distribution?.new ?? 0}</span>
-                    <span className="text-[8px] font-bold text-blue-500">thẻ mới chờ học</span>
+                    <span className="text-[8px] font-bold text-blue-500">new cards pending</span>
                   </div>
 
                   <div className="p-2.5 rounded-2xl bg-rose-50 border border-rose-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-rose-600 uppercase">Cần Ôn Hôm Nay</span>
+                    <span className="text-[8px] font-black text-rose-600 uppercase">Due Today</span>
                     <span className="text-base font-black text-rose-700">{deckSummary?.fsrs_distribution?.due_today ?? 0}</span>
-                    <span className="text-[8px] font-bold text-rose-500">đến hạn FSRS 🔥</span>
+                    <span className="text-[8px] font-bold text-rose-500">FSRS review due 🔥</span>
                   </div>
                 </div>
 
@@ -684,7 +684,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                         return (
                           <div 
                             key={b}
-                            title={`Box ${b}: ${item?.count || 0} thẻ (${item?.percent || 0}%)`}
+                            title={`Box ${b}: ${item?.count || 0} cards (${item?.percent || 0}%)`}
                             className={cn("h-full transition-all duration-500", colors[Number(b) - 1])}
                             style={{ width: `${item?.percent || 0}%` }}
                           />
@@ -734,8 +734,8 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                           🎯
                         </div>
                         <div>
-                          <h4 className="text-xs font-black text-slate-800">Mục Tiêu Học Tập Hôm Nay</h4>
-                          <p className="text-[9px] text-slate-400 font-bold">Lộ trình thẻ mới</p>
+                          <h4 className="text-xs font-black text-slate-800">Today's Study Goal</h4>
+                          <p className="text-[9px] text-slate-400 font-bold">New card roadmap</p>
                         </div>
                       </div>
                       <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100">
@@ -746,7 +746,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                     <div className="space-y-2">
                       <div className="flex justify-between items-end">
                         <span className="text-xl font-black text-slate-800">
-                          {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} thẻ</span>
+                          {activeGoal.done_today} <span className="text-xs text-slate-400 font-bold">/ {activeGoal.daily_target} cards</span>
                         </span>
                       </div>
                       <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
@@ -774,7 +774,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                             : "text-slate-400 hover:text-slate-600"
                         )}
                       >
-                        {filter === 'today' ? 'Hôm nay' : filter === 'week' ? 'Tuần này' : 'Toàn bộ'}
+                        {filter === 'today' ? 'Today' : filter === 'week' ? 'This Week' : 'All Time'}
                       </button>
                     ))}
                   </div>
@@ -783,9 +783,9 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { id: 'xp', label: 'XP', icon: Zap },
-                      { id: 'time', label: 'Thời gian', icon: Clock },
-                      { id: 'new_cards', label: 'Thẻ mới', icon: Brain },
-                      { id: 'cards', label: 'Lượt ôn', icon: Flame }
+                      { id: 'time', label: 'Time', icon: Clock },
+                      { id: 'new_cards', label: 'New Cards', icon: Brain },
+                      { id: 'cards', label: 'Reviews', icon: Flame }
                     ].map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeMetric === tab.id;
@@ -811,7 +811,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   {isLeaderboardLoading ? (
                     <div className="py-12 flex flex-col items-center justify-center gap-2">
                       <div className="w-7 h-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-                      <span className="text-[9.5px] font-black text-slate-400 uppercase">Đang nạp bảng xếp hạng...</span>
+                      <span className="text-[9.5px] font-black text-slate-400 uppercase">Loading leaderboard...</span>
                     </div>
                   ) : leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 0 ? (
                     <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1 pt-2">
@@ -833,7 +833,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                                 {u.username?.slice(0, 2).toUpperCase()}
                               </div>
                               <span className={cn("truncate font-bold", isCurrentUser ? "text-indigo-900 font-black" : "text-slate-700")}>
-                                {u.username} {isCurrentUser && " (Bạn)"}
+                                {u.username} {isCurrentUser && " (You)"}
                               </span>
                             </div>
                             <span className={cn("font-black shrink-0", isCurrentUser ? "text-indigo-600" : "text-slate-600")}>
@@ -844,7 +844,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                       })}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-400 text-center py-8">Chưa có dữ liệu bảng xếp hạng.</p>
+                    <p className="text-[10px] text-slate-400 text-center py-8">No leaderboard data yet.</p>
                   )}
                 </div>
               </div>

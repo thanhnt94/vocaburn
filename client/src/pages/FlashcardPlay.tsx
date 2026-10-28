@@ -1190,8 +1190,8 @@ export default function FlashcardPlay() {
           total_cards: 0,
           learned_cards: 0,
           message: isGlobalFocus 
-            ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉' 
-            : 'Không có thẻ nào phù hợp với bộ lọc này.'
+            ? 'Splendid! All due FSRS cards from all active decks are completed for today 🎉' 
+            : 'No cards match this filter.'
         };
       } else if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
         curIdx = 0;
@@ -2062,7 +2062,7 @@ export default function FlashcardPlay() {
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
       confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 } });
-      setBadgeMessage("Chính xác! 🎯");
+      setBadgeMessage("Correct! 🎯");
     } else {
       if (sfxEnabled) playIncorrectSound();
       triggerHaptic('error');
@@ -2076,7 +2076,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      setBadgeMessage("Chưa chính xác! 😅");
+      setBadgeMessage("Incorrect! 😅");
     }
     
     setBadgeVisible(true);
@@ -2146,7 +2146,7 @@ export default function FlashcardPlay() {
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
       confetti({ zIndex: 9999, particleCount: 100, spread: 60, origin: { y: 0.6 } });
-      setBadgeMessage("Xuất sắc! ⌨️");
+      setBadgeMessage("Excellent! ⌨️");
     } else {
       if (sfxEnabled) playIncorrectSound();
       triggerHaptic('error');
@@ -2160,7 +2160,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      setBadgeMessage("Nhầm một chút rồi! 💪");
+      setBadgeMessage("Not quite! 💪");
     }
     
     setBadgeVisible(true);
@@ -2453,8 +2453,8 @@ export default function FlashcardPlay() {
             total_cards: total,
             learned_cards: total,
             message: id === 'global-focus'
-              ? 'Tuyệt vời! Toàn bộ thẻ FSRS đến hạn từ tất cả các bộ thẻ đã kích hoạt đều đã hoàn thành hôm nay 🎉'
-              : 'Đã hoàn tất toàn bộ câu hỏi trong phiên học!'
+              ? 'Splendid! All due FSRS cards from all active decks are completed for today 🎉'
+              : 'Session completed! All cards have been reviewed.'
           });
           return;
         }
@@ -2941,16 +2941,16 @@ export default function FlashcardPlay() {
           
           <div className="space-y-2">
             <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight italic">
-              Chế độ luyện tập chưa mở
+              Practice Mode Not Configured
             </h2>
             <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm mx-auto">
-              Chủ sở hữu bộ thẻ chưa cấu hình thiết lập luyện tập (MCQ, Gõ từ, Nghe) cho bộ thẻ này. Chỉ chủ sở hữu mới có quyền kích hoạt chế độ luyện tập.
+              The deck creator has not configured practice modes (MCQ, Typing, Listening) for this deck yet.
             </p>
           </div>
           
           <div className="pt-2">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-wider">
-              <span>Hỏi-Đáp chưa được thiết lập</span>
+              <span>Practice Setup Pending</span>
             </div>
           </div>
         </div>
@@ -2967,17 +2967,17 @@ export default function FlashcardPlay() {
               <Sliders className="w-7 h-7" />
             </div>
             <h2 className="text-xl font-black text-slate-800">
-              Cấu hình Luyện tập: {practiceSubMode === 'mcq' ? 'Trắc nghiệm' : practiceSubMode === 'typing' ? 'Gõ từ vựng' : 'Nghe'}
+              Practice Configuration: {practiceSubMode === 'mcq' ? 'Multiple Choice' : practiceSubMode === 'typing' ? 'Typing' : 'Listening'}
             </h2>
-            <p className="text-xs text-slate-400 mt-1">Chọn các cặp cột dữ liệu bạn muốn ghép cặp làm câu hỏi và câu trả lời.</p>
+            <p className="text-xs text-slate-400 mt-1">Select the question and answer column pairs for practice mode.</p>
           </div>
 
           <div className="space-y-4 mb-6">
-            <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Các cặp cột hỏi-đáp đang học</span>
+            <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block">Active Question-Answer Pairs</span>
             {setupPairs.map((pair, idx) => (
               <div key={idx} className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <div className="flex-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Câu hỏi</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Question Column</label>
                   <select
                     value={pair.q}
                     onChange={(e) => {
@@ -2996,7 +2996,7 @@ export default function FlashcardPlay() {
                 <div className="text-slate-300 font-bold text-xs mt-4">➔</div>
 
                 <div className="flex-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cột Đáp án</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Answer Column</label>
                   <select
                     value={pair.a}
                     onChange={(e) => {
@@ -3030,13 +3030,13 @@ export default function FlashcardPlay() {
               onClick={() => setSetupPairs([...setupPairs, { q: 'front', a: 'back' }])}
               className="w-full py-3 rounded-2xl border border-dashed border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
             >
-              <span>+ Thêm cặp hỏi-đáp</span>
+              <span>+ Add Pair</span>
             </button>
           </div>
 
           {(practiceSubMode === 'mcq' || practiceSubMode === 'listening') && (
             <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Số lượng Lựa chọn MCQ</label>
+              <label className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-2">Number of MCQ Choices</label>
               <div className="grid grid-cols-4 gap-2">
                 {[3, 4, 5, 6].map(num => (
                   <button
@@ -3049,7 +3049,7 @@ export default function FlashcardPlay() {
                         : "bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                   >
-                    {num} Lựa chọn {num === 4 && "(Gợi ý)"}
+                    {num} Choices {num === 4 && "(Recommended)"}
                   </button>
                 ))}
               </div>
@@ -3064,7 +3064,7 @@ export default function FlashcardPlay() {
               className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 font-black text-xs uppercase hover:bg-slate-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
               <Sliders className="w-4 h-4" />
-              <span>Đặt làm mặc định Deck</span>
+              <span>Set as Deck Default</span>
             </button>
           )}
 
@@ -3073,7 +3073,7 @@ export default function FlashcardPlay() {
             className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-1.5"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Lưu & Bắt đầu học 🚀</span>
+            <span>Save & Start Practice 🚀</span>
           </button>
         </div>
       </div>
@@ -3085,7 +3085,7 @@ export default function FlashcardPlay() {
     if (!currentQuestion || !practiceData) {
       return (
         <div className="flex-1 bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 flex items-center justify-center font-bold text-slate-400">
-          Chưa có câu hỏi luyện tập nào sẵn sàng...
+          No practice questions ready...
         </div>
       );
     }
@@ -3099,16 +3099,16 @@ export default function FlashcardPlay() {
           <div className="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-center text-amber-500 mb-2">
             <Sliders className="w-8 h-8 animate-pulse" />
           </div>
-          <h3 className="text-lg font-black text-slate-800">Chưa thiết lập Cặp cột Hỏi-Đáp</h3>
+          <h3 className="text-lg font-black text-slate-800">Question-Answer Pairs Not Configured</h3>
           <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-            Hệ thống chưa tìm thấy dữ liệu Hỏi-Đáp phù hợp. Vui lòng thiết lập Cặp cột câu hỏi để bắt đầu luyện tập nhé!
+            No question-answer pair found. Please configure question-answer column pairs to start practice mode!
           </p>
           <button
             onClick={() => navigate(`/practice/${id}/setting`)}
             className="mt-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
           >
             <Sliders className="w-3.5 h-3.5" />
-            <span>Thiết lập Cấu hình ⚙️</span>
+            <span>Configure Practice ⚙️</span>
           </button>
         </div>
       );
@@ -3153,13 +3153,13 @@ export default function FlashcardPlay() {
                   }
                 }}
                 className="relative w-24 h-24 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 hover:bg-indigo-100/30 active:scale-95 transition-all cursor-pointer group"
-                title="Nhấn để nghe lại"
+                title="Click to replay audio"
               >
                 <div className="absolute inset-0 rounded-full bg-indigo-400/10 animate-ping" />
                 <div className="absolute inset-2 rounded-full bg-indigo-300/20 animate-pulse" />
                 <Play className="w-8 h-8 text-indigo-600 fill-indigo-600 group-hover:scale-110 transition-transform" />
               </div>
-              <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase mt-2">Nhấn để nghe lại</span>
+              <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase mt-2">Click to replay</span>
             </div>
           ) : (
             <h2 className="text-2xl md:text-3xl font-black text-slate-800 leading-normal max-w-2xl px-4">
@@ -3229,7 +3229,7 @@ export default function FlashcardPlay() {
                     type="text"
                     value={typingInput}
                     onChange={(e) => setTypingInput(e.target.value)}
-                    placeholder="Gõ từ vựng..."
+                    placeholder="Type the word..."
                     autoFocus
                     className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
                   />
@@ -3237,7 +3237,7 @@ export default function FlashcardPlay() {
                     onClick={handleTypingAnswer}
                     className="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all"
                   >
-                    Kiểm tra
+                    Check
                   </button>
                 </div>
               ) : typingFeedback && (
@@ -3255,14 +3255,14 @@ export default function FlashcardPlay() {
                       {typingFeedback.isCorrect ? <Check className="w-4 h-4 stroke-[3]" /> : <X className="w-4 h-4 stroke-[3]" />}
                     </div>
                     <div className="text-xs">
-                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án của bạn</p>
-                      <p className="font-bold text-sm">{typingInput || "(Trống)"}</p>
+                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Your answer</p>
+                      <p className="font-bold text-sm">{typingInput || "(Empty)"}</p>
                     </div>
                   </div>
 
                   {!typingFeedback.isCorrect && (
                     <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-emerald-800 text-xs">
-                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Đáp án chính xác</p>
+                      <p className="font-black uppercase tracking-wider text-[9px] opacity-60">Correct answer</p>
                       <p className="font-bold text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
                     </div>
                   )}
@@ -3297,10 +3297,10 @@ export default function FlashcardPlay() {
     return (
       <div className="bg-slate-50/80 rounded-[1.5rem] p-5 border border-slate-100/50">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">THỐNG KÊ LUYỆN TẬP</span>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PRACTICE STATS</span>
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full text-white">
             <Target className="w-2.5 h-2.5" />
-            <span className="text-[9px] font-black">CHÍNH XÁC: {accuracy}%</span>
+            <span className="text-[9px] font-black">ACCURACY: {accuracy}%</span>
           </div>
         </div>
 
@@ -3313,8 +3313,8 @@ export default function FlashcardPlay() {
                 <HelpCircle className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">ĐÃ TRẢ LỜI</span>
-                <span className="text-[8px] font-medium text-slate-400">Số câu hỏi đã luyện tập</span>
+                <span className="text-[10px] font-bold text-slate-700">ANSWERED</span>
+                <span className="text-[8px] font-medium text-slate-400">Questions practiced</span>
               </div>
             </div>
             <span className="text-xl font-black text-slate-700">{practiceTotalAnswered}</span>
@@ -3327,8 +3327,8 @@ export default function FlashcardPlay() {
                 <Check className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">ĐÚNG</span>
-                <span className="text-[8px] font-medium text-slate-400">Trả lời chính xác</span>
+                <span className="text-[10px] font-bold text-slate-700">CORRECT</span>
+                <span className="text-[8px] font-medium text-slate-400">Correct answers</span>
               </div>
             </div>
             <span className="text-xl font-black text-emerald-600">{practiceCorrectCount}</span>
@@ -3341,8 +3341,8 @@ export default function FlashcardPlay() {
                 <Flame className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">STREAK HIỆN TẠI</span>
-                <span className="text-[8px] font-medium text-slate-400">Chuỗi trả lời đúng liên tiếp</span>
+                <span className="text-[10px] font-bold text-slate-700">CURRENT STREAK</span>
+                <span className="text-[8px] font-medium text-slate-400">Consecutive correct streak</span>
               </div>
             </div>
             <span className="text-xl font-black text-amber-600">{streak}</span>
@@ -3355,8 +3355,8 @@ export default function FlashcardPlay() {
                 <Trophy className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-700">XP TÍCH LŨY</span>
-                <span className="text-[8px] font-medium text-slate-400">XP nhận được trong phiên</span>
+                <span className="text-[10px] font-bold text-slate-700">SESSION XP</span>
+                <span className="text-[8px] font-medium text-slate-400">XP earned this session</span>
               </div>
             </div>
             <span className="text-xl font-black text-purple-600">+{sessionXP} XP</span>

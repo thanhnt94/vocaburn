@@ -467,7 +467,7 @@ export function HomeCustomizeModal({
                 <div className="space-y-5">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
-                      Default Home View (Chế độ xem mặc định trên Trang chủ)
+                      Default Home View Layout
                     </label>
                     <div className="space-y-2.5">
                       {/* 1. Spotlight View */}
@@ -489,7 +489,7 @@ export function HomeCustomizeModal({
                               Spotlight View (Recommended)
                             </h4>
                             <p className="text-[10px] font-medium text-slate-500">
-                              Thẻ học tập trung dạng Hero Mascot, hỗ trợ vuốt chuyển bài đa chiều và các phím tắt học nhanh
+                              Hero mascot card carousel with multi-axis gestures and fast study shortcuts
                             </p>
                           </div>
                         </div>
@@ -520,7 +520,7 @@ export function HomeCustomizeModal({
                               Grid Cards View
                             </h4>
                             <p className="text-[10px] font-medium text-slate-500">
-                              Danh sách các bộ thẻ đang học kèm tiến độ chi tiết và bảng điều khiển Bắt đầu học ngay
+                              Curated active decks list with detailed progress bars and quick study launchpad
                             </p>
                           </div>
                         </div>
@@ -538,10 +538,10 @@ export function HomeCustomizeModal({
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                        Default Study Action (Nút Study)
+                        Default Study Action
                       </label>
                       <span className="text-[9.5px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
-                        Chế độ học mặc định
+                        Primary Action
                       </span>
                     </div>
                     <div className="space-y-2">
@@ -550,19 +550,19 @@ export function HomeCustomizeModal({
                           mode: 'fsrs',
                           icon: '🧠',
                           title: 'FSRS v6 Spaced Repetition (Recommended)',
-                          desc: 'Lặp lại ngắt quãng thích ứng với 4 nút đánh giá (Again, Hard, Good, Easy)'
+                          desc: 'Adaptive spaced repetition with 4 rating buttons (Again, Hard, Good, Easy)'
                         },
                         {
                           mode: 'skim',
                           icon: '⚡',
                           title: 'Speed Skim',
-                          desc: 'Quét thẻ nhanh 1 chạm / phím Space không áp lực chấm điểm (+3 XP)'
+                          desc: 'Ultra-fast 1-tap / Space key flashcard scanning without rating friction'
                         },
                         {
                           mode: 'autoplay',
                           icon: '🎧',
                           title: 'AutoPlay',
-                          desc: 'Tự động phát âm và lật thẻ rảnh tay theo nhịp độ'
+                          desc: 'Hands-free automatic audio pronunciation and flip rhythm'
                         }
                       ].map(item => (
                         <div
@@ -603,10 +603,10 @@ export function HomeCustomizeModal({
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                        Default Practice Action (Nút Practice)
+                        Default Practice Action
                       </label>
                       <span className="text-[9.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-                        Dạng bài tập mặc định
+                        Quiz Format
                       </span>
                     </div>
                     <div className="space-y-2">
@@ -615,19 +615,19 @@ export function HomeCustomizeModal({
                           mode: 'mcq',
                           icon: '🎯',
                           title: 'Multiple Choice (MCQ Quiz) (Recommended)',
-                          desc: 'Luyện phản xạ nhanh với trắc nghiệm 4 đáp án'
+                          desc: 'Build quick reflex recall with 4-choice questions'
                         },
                         {
                           mode: 'typing',
                           icon: '⌨️',
                           title: 'Vocabulary Typing',
-                          desc: 'Gõ từ vựng kiểm tra trí nhớ chính tả chuyên sâu'
+                          desc: 'Type target words to test deep spelling and active recall'
                         },
                         {
                           mode: 'listening',
                           icon: '🔊',
                           title: 'Listening Test',
-                          desc: 'Nghe phát âm bản xứ và chọn đáp án chính xác'
+                          desc: 'Listen to native audio pronunciation and select the correct answer'
                         }
                       ].map(item => (
                         <div
