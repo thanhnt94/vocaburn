@@ -1180,8 +1180,8 @@ export default function HybridPlay() {
                         ) : (
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                         )}
-                        <span className="truncate max-w-[70px]">
-                          {card.content || (card as any).front || `#${idx + 1}`}
+                        <span>
+                          Card {idx + 1}
                         </span>
                         <span className="font-mono text-[9px] opacity-70">
                           {cCount}/{hybridSettings.required_correct}
