@@ -355,6 +355,7 @@ export default function DecksPage() {
     if (defMode === 'mcq') navigate(`/practice/${quiz.id}/mcq`)
     else if (defMode === 'typing') navigate(`/practice/${quiz.id}/typing`)
     else if (defMode === 'listening') navigate(`/practice/${quiz.id}/listening`)
+    else if (defMode === 'hybrid') navigate(`/hybrid/${quiz.id}/play`)
     else if (defMode === 'skim' || defMode === 'speed_skim') navigate(`/flashcard/${quiz.id}/play?mode=skim`)
     else if (defMode === 'review') navigate(`/flashcard/${quiz.id}/play?mode=review`)
     else if (defMode === 'new') navigate(`/flashcard/${quiz.id}/play?mode=new`)

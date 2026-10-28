@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  BookOpen, 
-  SlidersHorizontal, 
-  Check, 
-  ChevronRight, 
-  Flame, 
+import {
+  BookOpen,
+  SlidersHorizontal,
+  Check,
+  ChevronRight,
+  Flame,
   Sparkles,
   Layers,
   Brain,
@@ -104,6 +104,8 @@ export function DashboardQuickDecksWidget({
 
   const studyModeLabel = (() => {
     switch (activeStudyMode) {
+      case 'hybrid':
+        return 'Hybrid Recall'
       case 'skim':
         return 'Speed Skim'
       case 'autoplay':
@@ -128,6 +130,8 @@ export function DashboardQuickDecksWidget({
 
   const practiceModeLabel = (() => {
     switch (activePracticeMode) {
+      case 'hybrid':
+        return 'Hybrid Recall'
       case 'typing':
         return 'Typing'
       case 'listening':
@@ -165,10 +169,10 @@ export function DashboardQuickDecksWidget({
             const isSelected = (currentSelectedDeck?.deck_id ?? currentSelectedDeck?.id) === deckId
             const learned = deck.learned_cards || 0
             const total = deck.total_cards || deck.questions_count || 0
-            const pct = deck.total_pct !== undefined 
-              ? deck.total_pct 
+            const pct = deck.total_pct !== undefined
+              ? deck.total_pct
               : (total > 0 ? Math.min(100, Math.round((learned / total) * 100)) : 0)
-            
+
             const newRem = deck.new_remaining || 0
             const revRem = deck.review_remaining || 0
             const palette = DECK_PALETTES[idx % DECK_PALETTES.length]
@@ -293,7 +297,11 @@ export function DashboardQuickDecksWidget({
                   if (currentSelectedDeck) {
                     if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
                     const id = currentSelectedDeck.deck_id ?? currentSelectedDeck.id
-                    navigate(`/flashcard/${id}/play?mode=${activeStudyMode}`)
+                    if (activeStudyMode === 'hybrid') {
+                      navigate(`/hybrid/${id}/play`)
+                    } else {
+                      navigate(`/flashcard/${id}/play?mode=${activeStudyMode}`)
+                    }
                   }
                 }}
                 className="flex-1 h-full px-2.5 flex items-center gap-2 min-w-0 text-left cursor-pointer"
@@ -335,7 +343,11 @@ export function DashboardQuickDecksWidget({
                   if (currentSelectedDeck) {
                     if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
                     const id = currentSelectedDeck.deck_id ?? currentSelectedDeck.id
-                    navigate(`/practice/${id}/${activePracticeMode}`)
+                    if (activePracticeMode === 'hybrid') {
+                      navigate(`/hybrid/${id}/play`)
+                    } else {
+                      navigate(`/practice/${id}/${activePracticeMode}`)
+                    }
                   }
                 }}
                 className="flex-1 h-full px-2.5 flex items-center gap-2 min-w-0 text-left cursor-pointer"

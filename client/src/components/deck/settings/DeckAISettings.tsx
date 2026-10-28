@@ -226,268 +226,268 @@ export function DeckAISettings({ deckId, initialSettings, onSaved, section }: De
   const selectedPromptTitle = selectedPrompt?.name?.trim()
     ? selectedPrompt.name
     : selectedPromptIndex >= 0
-    ? `#${selectedPromptIndex + 1} (${selectedColumnToRun})`
-    : `Column "${selectedColumnToRun}"`
+      ? `#${selectedPromptIndex + 1} (${selectedColumnToRun})`
+      : `Column "${selectedColumnToRun}"`
 
   return (
     <div className="space-y-5 text-left">
       {(!section || section === 'prompts') && (
-      <>
-      {/* SECTION 1: PROMPT TEMPLATES & MAPPING */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-600" />
-              <span>AI Prompt Configuration by Column</span>
-            </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Customize AI prompts, friendly labels, and target output columns
-            </p>
-          </div>
+        <>
+          {/* SECTION 1: PROMPT TEMPLATES & MAPPING */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <span>AI Prompt Configuration by Column</span>
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                  Customize AI prompts, friendly labels, and target output columns
+                </p>
+              </div>
 
-          <button
-            onClick={() => handleAddPrompt()}
-            className="h-8.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Prompt</span>
-          </button>
-        </div>
-
-        {saveSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> AI Prompt configuration saved successfully!
-          </div>
-        )}
-
-        {/* Presets Row */}
-        <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-2xl space-y-2">
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-            ⚡ Quick add from preset templates:
-          </span>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {DEFAULT_PRESETS.map((preset, pIdx) => (
               <button
-                key={pIdx}
-                type="button"
-                onClick={() => handleAddPrompt(preset)}
-                className="px-2.5 py-1 rounded-xl bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-200 text-[11px] font-bold text-slate-700 hover:text-purple-700 transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                onClick={() => handleAddPrompt()}
+                className="h-8.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
               >
-                <Plus className="w-3 h-3 text-purple-500" />
-                <span>{preset.name}</span>
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Prompt</span>
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Prompts List */}
-        <div className="space-y-4 pt-1">
-          {prompts.length === 0 ? (
-            <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
-              No AI Prompts configured yet. Click "+ Add Prompt" to start.
             </div>
-          ) : (
-            prompts.map((item, idx) => (
-              <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  {/* Prompt Name Input */}
-                  <div className="flex items-center gap-2 flex-1 min-w-[220px]">
-                    <span className="w-6.5 h-6.5 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                      #{idx + 1}
-                    </span>
-                    <input
-                      type="text"
-                      placeholder={`Prompt #${idx + 1} name (e.g., JLPT Explanation, Memory Hook...)`}
-                      value={item.name || ''}
-                      onChange={(e) => handleUpdatePrompt(idx, 'name', e.target.value)}
-                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-purple-500 flex-1 shadow-2xs"
-                    />
-                  </div>
 
-                  {/* Target Column Selection */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">Save to column:</span>
-                      <select
-                        value={item.column || 'explanation'}
-                        onChange={(e) => {
-                          handleUpdatePrompt(idx, 'column', e.target.value)
-                          handleUpdatePrompt(idx, 'target_column', e.target.value)
-                        }}
-                        className="h-8.5 px-2.5 bg-white border border-purple-200 rounded-xl text-xs font-black text-purple-700 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
-                      >
-                        {availableColumns.map((col) => (
-                          <option key={col} value={col}>
-                            {col}
-                          </option>
-                        ))}
-                      </select>
+            {saveSuccess && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> AI Prompt configuration saved successfully!
+              </div>
+            )}
+
+            {/* Presets Row */}
+            <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-2xl space-y-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                ⚡ Quick add from preset templates:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {DEFAULT_PRESETS.map((preset, pIdx) => (
+                  <button
+                    key={pIdx}
+                    type="button"
+                    onClick={() => handleAddPrompt(preset)}
+                    className="px-2.5 py-1 rounded-xl bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-200 text-[11px] font-bold text-slate-700 hover:text-purple-700 transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3 text-purple-500" />
+                    <span>{preset.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Prompts List */}
+            <div className="space-y-4 pt-1">
+              {prompts.length === 0 ? (
+                <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
+                  No AI Prompts configured yet. Click "+ Add Prompt" to start.
+                </div>
+              ) : (
+                prompts.map((item, idx) => (
+                  <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      {/* Prompt Name Input */}
+                      <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                        <span className="w-6.5 h-6.5 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={`Prompt #${idx + 1} name (e.g., JLPT Explanation, Memory Hook...)`}
+                          value={item.name || ''}
+                          onChange={(e) => handleUpdatePrompt(idx, 'name', e.target.value)}
+                          className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-purple-500 flex-1 shadow-2xs"
+                        />
+                      </div>
+
+                      {/* Target Column Selection */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">Save to column:</span>
+                          <select
+                            value={item.column || 'explanation'}
+                            onChange={(e) => {
+                              handleUpdatePrompt(idx, 'column', e.target.value)
+                              handleUpdatePrompt(idx, 'target_column', e.target.value)
+                            }}
+                            className="h-8.5 px-2.5 bg-white border border-purple-200 rounded-xl text-xs font-black text-purple-700 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
+                          >
+                            {availableColumns.map((col) => (
+                              <option key={col} value={col}>
+                                {col}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePrompt(idx)}
+                          className="w-8.5 h-8.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                          title="Delete this prompt"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePrompt(idx)}
-                      className="w-8.5 h-8.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                      title="Delete this prompt"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Variable Injection Chips */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Insert variable:</span>
+                      {availableColumns.slice(0, 6).map((col) => (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => insertVariable(idx, col)}
+                          className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 border border-purple-200/60 text-purple-700 text-[10px] font-mono font-bold transition-all cursor-pointer"
+                          title={`Insert variable {${col}}`}
+                        >
+                          +{`{${col}}`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Textarea */}
+                    <div>
+                      <textarea
+                        rows={4}
+                        value={item.prompt || ''}
+                        onChange={(e) => handleUpdatePrompt(idx, 'prompt', e.target.value)}
+                        placeholder="Enter AI prompt instructions..."
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all resize-y"
+                      />
+                    </div>
                   </div>
-                </div>
+                ))
+              )}
+            </div>
+          </div>
 
-                {/* Variable Injection Chips */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Insert variable:</span>
-                  {availableColumns.slice(0, 6).map((col) => (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => insertVariable(idx, col)}
-                      className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 border border-purple-200/60 text-purple-700 text-[10px] font-mono font-bold transition-all cursor-pointer"
-                      title={`Insert variable {${col}}`}
-                    >
-                      +{`{${col}}`}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Textarea */}
-                <div>
-                  <textarea
-                    rows={4}
-                    value={item.prompt || ''}
-                    onChange={(e) => handleUpdatePrompt(idx, 'prompt', e.target.value)}
-                    placeholder="Enter AI prompt instructions..."
-                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all resize-y"
-                  />
-                </div>
+          {/* SECTION 2: BULK AI RUNNER STUDIO */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
+                  <Wand2 className="w-4 h-4 text-indigo-600" />
+                  <span>Bulk AI Generation Studio (CentralAuth Batch Queue)</span>
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                  Dispatch all cards to CentralAuth Queue Worker for background Gemini AI processing
+                </p>
               </div>
-            ))
-          )}
-        </div>
-      </div>
 
-      {/* SECTION 2: BULK AI RUNNER STUDIO */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none flex items-center gap-2">
-              <Wand2 className="w-4 h-4 text-indigo-600" />
-              <span>Bulk AI Generation Studio (CentralAuth Batch Queue)</span>
-            </h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-              Dispatch all cards to CentralAuth Queue Worker for background Gemini AI processing
-            </p>
-          </div>
+              <button
+                type="button"
+                onClick={() => refetchAIStatus()}
+                className="h-8 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                title="Refresh status"
+              >
+                <RefreshCw className={cn("w-3 h-3", isFetchingAIStatus && "animate-spin")} />
+                <span>Check Status</span>
+              </button>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => refetchAIStatus()}
-            className="h-8 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-            title="Refresh status"
-          >
-            <RefreshCw className={cn("w-3 h-3", isFetchingAIStatus && "animate-spin")} />
-            <span>Check Status</span>
-          </button>
-        </div>
-
-        {aiRunMessage && (
-          <div className="p-3 bg-purple-50 border border-purple-200 text-purple-800 text-xs rounded-xl font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-purple-600" />
-            <span>{aiRunMessage}</span>
-          </div>
-        )}
-
-        {/* Live AI Status Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Cards</span>
-            <span className="text-lg font-black text-slate-800 mt-0.5 block">
-              {aiStatus?.total_cards ?? '--'}
-            </span>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
-            <span className="text-[10px] font-bold text-amber-600 uppercase block">Missing AI Data</span>
-            <span className="text-lg font-black text-amber-700 mt-0.5 block">
-              {aiStatus?.missing_ai_cards ?? '--'}
-            </span>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-emerald-600 uppercase block">AI Data Available</span>
-            <span className="text-lg font-black text-emerald-700 mt-0.5 block">
-              {aiStatus?.total_cards !== undefined && aiStatus?.missing_ai_cards !== undefined
-                ? Math.max(0, aiStatus.total_cards - aiStatus.missing_ai_cards)
-                : '--'}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-          {/* Prompt Selection Dropdown */}
-          <div>
-            <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Select AI Prompt Preset to Run:
-            </label>
-            <select
-              value={selectedColumnToRun}
-              onChange={(e) => setSelectedColumnToRun(e.target.value)}
-              className="w-full h-10 px-3 bg-white border border-purple-200 rounded-xl text-xs font-black text-purple-900 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
-            >
-              {prompts.map((p, idx) => {
-                const displayName = p.name?.trim() ? p.name : `#${idx + 1}`
-                const targetCol = p.column || p.target_column || 'explanation'
-                return (
-                  <option key={p.id || idx} value={targetCol}>
-                    {displayName} ➜ Save to column: [{targetCol}]
-                  </option>
-                )
-              })}
-            </select>
-          </div>
-
-          <div className="flex flex-col justify-between">
-            <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
-              Regeneration Option:
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer select-none bg-white p-2.5 rounded-xl border border-slate-200">
-              <input
-                type="checkbox"
-                checked={forceRegenerate}
-                onChange={(e) => setForceRegenerate(e.target.checked)}
-                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-slate-700">
-                Overwrite (Regenerate even if card already has data)
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-            <Server className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Processed in background via CentralAuth Queue (100 cards/chunk)</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleTriggerBulkAI}
-            disabled={isRunningAI}
-            className="px-6 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-purple-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
-          >
-            {isRunningAI ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
+            {aiRunMessage && (
+              <div className="p-3 bg-purple-50 border border-purple-200 text-purple-800 text-xs rounded-xl font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-purple-600" />
+                <span>{aiRunMessage}</span>
+              </div>
             )}
-            <span>{isRunningAI ? 'DISPATCHING QUEUE...' : `GENERATE AI: "${selectedPromptTitle.toUpperCase()}"`}</span>
-          </button>
-        </div>
-      </div>
-      </>
+
+            {/* Live AI Status Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Cards</span>
+                <span className="text-lg font-black text-slate-800 mt-0.5 block">
+                  {aiStatus?.total_cards ?? '--'}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80">
+                <span className="text-[10px] font-bold text-amber-600 uppercase block">Missing AI Data</span>
+                <span className="text-lg font-black text-amber-700 mt-0.5 block">
+                  {aiStatus?.missing_ai_cards ?? '--'}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase block">AI Data Available</span>
+                <span className="text-lg font-black text-emerald-700 mt-0.5 block">
+                  {aiStatus?.total_cards !== undefined && aiStatus?.missing_ai_cards !== undefined
+                    ? Math.max(0, aiStatus.total_cards - aiStatus.missing_ai_cards)
+                    : '--'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              {/* Prompt Selection Dropdown */}
+              <div>
+                <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
+                  Select AI Prompt Preset to Run:
+                </label>
+                <select
+                  value={selectedColumnToRun}
+                  onChange={(e) => setSelectedColumnToRun(e.target.value)}
+                  className="w-full h-10 px-3 bg-white border border-purple-200 rounded-xl text-xs font-black text-purple-900 outline-none focus:border-purple-500 cursor-pointer shadow-2xs"
+                >
+                  {prompts.map((p, idx) => {
+                    const displayName = p.name?.trim() ? p.name : `#${idx + 1}`
+                    const targetCol = p.column || p.target_column || 'explanation'
+                    return (
+                      <option key={p.id || idx} value={targetCol}>
+                        {displayName} ➜ Save to column: [{targetCol}]
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+
+              <div className="flex flex-col justify-between">
+                <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 block">
+                  Regeneration Option:
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none bg-white p-2.5 rounded-xl border border-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={forceRegenerate}
+                    onChange={(e) => setForceRegenerate(e.target.checked)}
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    Overwrite (Regenerate even if card already has data)
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                <Server className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Processed in background via CentralAuth Queue (100 cards/chunk)</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTriggerBulkAI}
+                disabled={isRunningAI}
+                className="px-6 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-xs shadow-purple-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
+              >
+                {isRunningAI ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>{isRunningAI ? 'DISPATCHING QUEUE...' : `GENERATE AI: "${selectedPromptTitle.toUpperCase()}"`}</span>
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ═══════════════ SECTION 3: BULK FURIGANA RUBY GENERATOR ═══════════════ */}

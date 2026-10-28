@@ -605,6 +605,10 @@ export default function FlashcardPlay() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const rawUrlMode = searchParams.get('mode');
+    if (rawUrlMode === 'hybrid' || rawUrlMode === 'hybrid_recall' || rawUrlMode === 'hybrid_drill') {
+      navigate(`/hybrid/${id}/play${window.location.search}`, { replace: true });
+      return;
+    }
     const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
     if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
       setActiveMode(urlMode);

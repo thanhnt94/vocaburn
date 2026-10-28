@@ -110,6 +110,8 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
 
   const studyModeLabel = (() => {
     switch (activeStudyMode) {
+      case 'hybrid':
+        return 'Hybrid Recall'
       case 'skim':
         return 'Speed Skim'
       case 'autoplay':
@@ -134,6 +136,8 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
 
   const practiceModeLabel = (() => {
     switch (activePracticeMode) {
+      case 'hybrid':
+        return 'Hybrid Recall'
       case 'typing':
         return 'Typing'
       case 'listening':
@@ -331,7 +335,12 @@ export function DashboardRoadmapSection({
             type="button"
             onClick={() => {
               if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-              navigate(`/flashcard/${targetDeck.deck_id ?? targetDeck.id}/play?mode=${data.activeStudyMode}`)
+              const id = targetDeck.deck_id ?? targetDeck.id
+              if (data.activeStudyMode === 'hybrid') {
+                navigate(`/hybrid/${id}/play`)
+              } else {
+                navigate(`/flashcard/${id}/play?mode=${data.activeStudyMode}`)
+              }
             }}
             className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
             title={`Start studying with ${data.studyModeLabel}`}
@@ -369,7 +378,12 @@ export function DashboardRoadmapSection({
               type="button"
               onClick={() => {
                 if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(12)
-                navigate(`/practice/${targetDeck.deck_id ?? targetDeck.id}/${data.activePracticeMode}`)
+                const id = targetDeck.deck_id ?? targetDeck.id
+                if (data.activePracticeMode === 'hybrid') {
+                  navigate(`/hybrid/${id}/play`)
+                } else {
+                  navigate(`/practice/${id}/${data.activePracticeMode}`)
+                }
               }}
               className="flex-1 py-2 px-2.5 flex items-center justify-center gap-2 text-white active:scale-95 transition-all cursor-pointer min-w-0"
               title={`Start practice with ${data.practiceModeLabel}`}

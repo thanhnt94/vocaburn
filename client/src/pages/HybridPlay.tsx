@@ -226,6 +226,10 @@ export default function HybridPlay() {
       )
     }
 
+    if (filtered.length === 0 && rawQuestions.length > 0) {
+      filtered = rawQuestions
+    }
+
     if (hybridSettings.order === 'random') {
       const copy = [...filtered]
       for (let i = copy.length - 1; i > 0; i--) {
@@ -422,7 +426,7 @@ export default function HybridPlay() {
           const totalB = Math.ceil(filtered.length / bSize)
           if (targetBatchIdx < totalB) {
             setCurrentBatchIndex(targetBatchIdx)
-            setSkimCardIndex(smartIdx % bSize)
+            setSkimCardIndex(0)
           }
         }
 
@@ -489,7 +493,7 @@ export default function HybridPlay() {
         const totalB = Math.ceil(filtered.length / bSize)
         if (targetBatchIdx < totalB) {
           setCurrentBatchIndex(targetBatchIdx)
-          setSkimCardIndex(smartIdx % bSize)
+          setSkimCardIndex(0)
         } else {
           setCurrentBatchIndex(0)
           setSkimCardIndex(0)
@@ -545,11 +549,22 @@ export default function HybridPlay() {
       return
     }
 
-    // Pick a card from pendingCards (avoid picking same card consecutively if multiple exist)
-    let candidate = pendingCards[Math.floor(Math.random() * pendingCards.length)]
-    if (pendingCards.length > 1 && drillActiveCard && candidate.id === drillActiveCard.id) {
-      const others = pendingCards.filter(c => c.id !== drillActiveCard.id)
-      if (others.length > 0) candidate = others[Math.floor(Math.random() * others.length)]
+    let candidate: Question
+    if (hybridSettings.order === 'sequential') {
+      // In sequential mode, drill cards in sequential order (Card 1 -> Card 2 -> Card 3...)
+      // Rotate to next pending if active card was just answered and multiple pending exist
+      if (pendingCards.length > 1 && drillActiveCard && pendingCards[0].id === drillActiveCard.id) {
+        candidate = pendingCards[1] || pendingCards[0]
+      } else {
+        candidate = pendingCards[0]
+      }
+    } else {
+      // Pick a random pending card (avoid picking same card consecutively if multiple exist)
+      candidate = pendingCards[Math.floor(Math.random() * pendingCards.length)]
+      if (pendingCards.length > 1 && drillActiveCard && candidate.id === drillActiveCard.id) {
+        const others = pendingCards.filter(c => c.id !== drillActiveCard.id)
+        if (others.length > 0) candidate = others[Math.floor(Math.random() * others.length)]
+      }
     }
 
     setDrillActiveCard(candidate)
@@ -1041,7 +1056,7 @@ export default function HybridPlay() {
                 />
                 <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
                   <HelpCircle className="w-3 h-3 text-slate-400" />
-                  <span>Preview all {currentBatch.length} cards, then start drill</span>
+                  <span>Card {skimCardIndex + 1}/{currentBatch.length} • Preview batch, then drill</span>
                 </div>
               </div>
 
@@ -1397,17 +1412,27 @@ export default function HybridPlay() {
 
             {/* Next Card or Start Drill */}
             {skimCardIndex + 1 < currentBatch.length ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setSkimCardIndex(prev => prev + 1)
-                  setIsFlipped(false)
-                }}
-                className="py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-rose-200 transition-all cursor-pointer active:scale-95"
-              >
-                <span>Next</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={startBatchDrill}
+                  className="p-2.5 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200/80 transition-all cursor-pointer active:scale-95"
+                  title="Skip remaining preview and start drill now"
+                >
+                  <Target className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSkimCardIndex(prev => prev + 1)
+                    setIsFlipped(false)
+                  }}
+                  className="py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-rose-200 transition-all cursor-pointer active:scale-95"
+                >
+                  <span>Next ({skimCardIndex + 2}/{currentBatch.length})</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             ) : (
               <button
                 type="button"
@@ -1566,20 +1591,20 @@ export default function HybridPlay() {
                   <label className="block text-xs font-black text-slate-700 mb-1.5">
                     Cards per Batch (Group Size)
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[3, 5, 10, 15].map(size => (
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[1, 3, 5, 10, 15].map(size => (
                       <button
                         key={size}
                         type="button"
                         onClick={() => setHybridSettings(prev => ({ ...prev, batch_size: size }))}
                         className={cn(
-                          "py-2 rounded-xl text-xs font-black border transition-all cursor-pointer",
+                          "py-2 rounded-xl text-xs font-black border transition-all cursor-pointer text-center",
                           hybridSettings.batch_size === size
                             ? "bg-rose-50 border-rose-400 text-rose-700 shadow-2xs"
                             : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                         )}
                       >
-                        {size} Cards
+                        {size} {size === 1 ? 'Card' : 'Cards'}
                       </button>
                     ))}
                   </div>

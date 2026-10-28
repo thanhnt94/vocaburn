@@ -56,9 +56,9 @@ export const getCentralAuthUrl = (): string => {
         const u = new URL(appCfg.jump_url)
         cachedCentralAuthUrl = u.origin
         return cachedCentralAuthUrl
-      } catch {}
+      } catch { }
     }
-  } catch {}
+  } catch { }
 
   // 2. Check useAuthStore
   try {
@@ -72,9 +72,9 @@ export const getCentralAuthUrl = (): string => {
         const u = new URL(authCfg.jump_url)
         cachedCentralAuthUrl = u.origin
         return cachedCentralAuthUrl
-      } catch {}
+      } catch { }
     }
-  } catch {}
+  } catch { }
 
   // 3. Fallback to Vite environment variable if provided
   const envUrl = ((import.meta as any).env?.VITE_SSO_SERVER_URL || '').trim().replace(/\/$/, '')
@@ -179,16 +179,16 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
     mediaType === 'image'
       ? 'image/*'
       : mediaType === 'audio'
-      ? 'audio/*'
-      : 'image/*,audio/*'
+        ? 'audio/*'
+        : 'image/*,audio/*'
 
   const defaultPlaceholder =
     placeholder ||
     (mediaType === 'image'
       ? 'Paste image links (comma-separated) or Ctrl+V...'
       : mediaType === 'audio'
-      ? 'Paste URL or upload audio...'
-      : 'Paste URL or upload media...')
+        ? 'Paste URL or upload audio...'
+        : 'Paste URL or upload media...')
 
   // Upload function to Vocaburn -> CentralAuth Vault
   const uploadFile = useCallback(
@@ -479,10 +479,10 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
             isUploading
               ? "bg-indigo-50 text-indigo-500 cursor-not-allowed"
               : uploadStatus === 'success'
-              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-              : uploadStatus === 'error'
-              ? "bg-rose-50 text-rose-600 border border-rose-200"
-              : "bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 active:scale-95"
+                ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                : uploadStatus === 'error'
+                  ? "bg-rose-50 text-rose-600 border border-rose-200"
+                  : "bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 active:scale-95"
           )}
           title={
             mediaType === 'image'
@@ -526,8 +526,8 @@ export const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
             uploadStatus === 'success'
               ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
               : uploadStatus === 'error'
-              ? "text-rose-700 bg-rose-50 border border-rose-200"
-              : "text-indigo-700 bg-indigo-50 border border-indigo-200"
+                ? "text-rose-700 bg-rose-50 border border-rose-200"
+                : "text-indigo-700 bg-indigo-50 border border-indigo-200"
           )}
         >
           {isUploading && <Loader2 className="w-2.5 h-2.5 animate-spin" />}

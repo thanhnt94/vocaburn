@@ -75,6 +75,12 @@ export default function PracticePlay() {
   const { user, gamify, setUser, setGamify, addXp, userSettings, updateUserSettings } = useAppStore()
 
   useEffect(() => {
+    if (subMode === 'hybrid') {
+      navigate(`/hybrid/${id}/play`, { replace: true });
+    }
+  }, [id, subMode, navigate]);
+
+  useEffect(() => {
     if (id && id !== 'quick' && !isNaN(Number(id))) {
       updateUserSettings({ last_deck_id: Number(id) });
     }

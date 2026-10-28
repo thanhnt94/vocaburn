@@ -1730,7 +1730,11 @@ export default function Dashboard() {
           selectedPracticeQuiz={selectedPracticeQuiz}
           onSelectMode={(mode) => {
             setIsPracticeModalOpen(false)
-            navigate(`/practice/${selectedPracticeQuiz.id}/${mode}`)
+            if (mode === 'hybrid') {
+              navigate(`/hybrid/${selectedPracticeQuiz.id}/play`)
+            } else {
+              navigate(`/practice/${selectedPracticeQuiz.id}/${mode}`)
+            }
           }}
         />
 
