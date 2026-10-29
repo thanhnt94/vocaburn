@@ -187,8 +187,8 @@ export default function HybridPlay() {
     touchStartYRef.current = null
     touchStartXRef.current = null
 
-    // Upward swipe threshold: pulled up > 35px, primarily vertical
-    if (deltaY > 35 && deltaY > deltaX * 0.8) {
+    // Upward swipe threshold strictly on bottom docked bar: pulled up > 40px, primarily vertical
+    if (deltaY > 40 && deltaY > deltaX * 1.2) {
       setIsSettingsOpen(true)
     }
   }
@@ -1303,8 +1303,6 @@ export default function HybridPlay() {
 
       {/* ═══════════ MAIN CONTENT AREA ═══════════ */}
       <main
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         className="flex-1 min-h-0 flex w-full max-w-4xl mx-auto flex-col justify-center items-center px-3 sm:px-6 py-2 overflow-hidden relative touch-pan-y"
       >
         <AnimatePresence mode="wait">
