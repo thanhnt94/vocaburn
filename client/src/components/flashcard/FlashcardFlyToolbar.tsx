@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Volume2,
@@ -350,6 +350,79 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   const [copiedFull, setCopiedFull] = useState(false)
   const [quickTab, setQuickTab] = useState<'actions' | 'preferences'>('preferences')
   const dragControls = useDragControls()
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const touchStartYRef = useRef<number | null>(null)
+  const touchStartTimeRef = useRef<number>(0)
+  const backdropTouchStartY = useRef<number | null>(null)
+
+  // Prevent mobile browser pull-to-refresh while quick controls sheet is open
+  useEffect(() => {
+    if (!isOpen) return
+    const prevBodyOverscroll = document.body.style.overscrollBehavior
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
+    document.body.style.overscrollBehavior = 'none'
+    document.documentElement.style.overscrollBehavior = 'none'
+
+    return () => {
+      document.body.style.overscrollBehavior = prevBodyOverscroll
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+    }
+  }, [isOpen])
+
+  const handleBackdropTouchStart = (e: React.TouchEvent) => {
+    backdropTouchStartY.current = e.touches[0].clientY
+  }
+
+  const handleBackdropTouchMove = (e: React.TouchEvent) => {
+    if (e.cancelable) {
+      e.preventDefault()
+    }
+  }
+
+  const handleBackdropTouchEnd = (e: React.TouchEvent) => {
+    if (backdropTouchStartY.current !== null) {
+      const deltaY = e.changedTouches[0].clientY - backdropTouchStartY.current
+      if (deltaY > 25) {
+        onClose()
+      }
+      backdropTouchStartY.current = null
+    }
+  }
+
+  // Drawer downward swipe to dismiss when scrolled to top
+  const handleDrawerTouchStart = (e: React.TouchEvent) => {
+    if (drawerRef.current && drawerRef.current.scrollTop <= 0) {
+      touchStartYRef.current = e.touches[0].clientY
+      touchStartTimeRef.current = Date.now()
+    } else {
+      touchStartYRef.current = null
+    }
+  }
+
+  const handleDrawerTouchMove = (e: React.TouchEvent) => {
+    if (touchStartYRef.current !== null && drawerRef.current && drawerRef.current.scrollTop <= 0) {
+      const currentY = e.touches[0].clientY
+      const deltaY = currentY - touchStartYRef.current
+      // If user drags downward at the top of drawer, suppress browser pull-to-refresh
+      if (deltaY > 0 && e.cancelable) {
+        e.preventDefault()
+      }
+    }
+  }
+
+  const handleDrawerTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current !== null && drawerRef.current && drawerRef.current.scrollTop <= 0) {
+      const currentY = e.changedTouches[0].clientY
+      const deltaY = currentY - touchStartYRef.current
+      const duration = Date.now() - touchStartTimeRef.current
+      const velocity = deltaY / Math.max(1, duration)
+
+      if (deltaY > 50 || (deltaY > 25 && velocity > 0.3)) {
+        onClose()
+      }
+    }
+    touchStartYRef.current = null
+  }
 
   const handleCopyCurrentFace = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -397,7 +470,10 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+            onTouchStart={handleBackdropTouchStart}
+            onTouchMove={handleBackdropTouchMove}
+            onTouchEnd={handleBackdropTouchEnd}
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs overscroll-none touch-none"
             onClick={(e) => {
               e.stopPropagation()
               onClose()
@@ -406,6 +482,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 
           {/* Bottom Drawer Container with Swipe-Down Gesture */}
           <motion.div
+            ref={drawerRef}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -421,7 +498,10 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-5 sm:pb-6 flex flex-col gap-2.5 select-none z-10 max-h-[88vh] overflow-y-auto touch-pan-y"
+            onTouchStart={handleDrawerTouchStart}
+            onTouchMove={handleDrawerTouchMove}
+            onTouchEnd={handleDrawerTouchEnd}
+            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-5 sm:pb-6 flex flex-col gap-2.5 select-none z-10 max-h-[88vh] overflow-y-auto overscroll-contain overscroll-none touch-pan-y"
           >
             {/* Drag Handle Bar & Pull-down Dismiss Area */}
             <div 

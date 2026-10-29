@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Brain, 
   Route, 
@@ -156,6 +156,20 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [copied, setCopied] = useState<boolean>(false)
 
+  // Prevent mobile browser pull-to-refresh while settings modal is open
+  useEffect(() => {
+    if (!isOpen) return
+    const prevBodyOverscroll = document.body.style.overscrollBehavior
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
+    document.body.style.overscrollBehavior = 'none'
+    document.documentElement.style.overscrollBehavior = 'none'
+
+    return () => {
+      document.body.style.overscrollBehavior = prevBodyOverscroll
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+    }
+  }, [isOpen])
+
   const starred = isStarred ?? Boolean(currentQuestion?.is_starred)
 
   const handleResetToCreator = async () => {
@@ -208,7 +222,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md overscroll-none touch-none"
           />
 
           {/* Modal Container */}
@@ -216,7 +230,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            className="relative w-full max-w-lg bg-[#F8FAFC] rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden text-slate-800 max-h-[88vh] flex flex-col"
+            className="relative w-full max-w-lg bg-[#F8FAFC] rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden text-slate-800 max-h-[88vh] flex flex-col overscroll-contain overscroll-none"
           >
             {/* Top Accent Line */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-rose-500 to-indigo-500" />

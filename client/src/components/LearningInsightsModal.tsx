@@ -180,6 +180,20 @@ export default function LearningInsightsModal({
   const [isEditingNote, setIsEditingNote] = useState<boolean>(false);
   const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
 
+  // Prevent mobile browser pull-to-refresh while modal is open
+  useEffect(() => {
+    if (!card) return
+    const prevBodyOverscroll = document.body.style.overscrollBehavior
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
+    document.body.style.overscrollBehavior = 'none'
+    document.documentElement.style.overscrollBehavior = 'none'
+
+    return () => {
+      document.body.style.overscrollBehavior = prevBodyOverscroll
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+    }
+  }, [card])
+
   // Fetch personal note when card changes
   useEffect(() => {
     if (!card || !card.id) {
@@ -332,13 +346,13 @@ export default function LearningInsightsModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-md overscroll-none touch-none"
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-xl bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100/60 overflow-hidden flex flex-col max-h-[88vh] text-slate-800 z-10"
+          className="relative w-full max-w-xl bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100/60 overflow-hidden flex flex-col max-h-[88vh] text-slate-800 z-10 overscroll-contain overscroll-none"
         >
           {/* Modal Header */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-shrink-0">

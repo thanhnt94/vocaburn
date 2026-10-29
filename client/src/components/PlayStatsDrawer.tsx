@@ -89,6 +89,20 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     }
   }, [initialCardSubTab])
 
+  // Prevent mobile browser pull-to-refresh while drawer is open
+  useEffect(() => {
+    if (!isOpen) return
+    const prevBodyOverscroll = document.body.style.overscrollBehavior
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
+    document.body.style.overscrollBehavior = 'none'
+    document.documentElement.style.overscrollBehavior = 'none'
+
+    return () => {
+      document.body.style.overscrollBehavior = prevBodyOverscroll
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+    }
+  }, [isOpen])
+
   // Detailed data states
   const [cardDetails, setCardDetails] = useState<any>(null)
   const [isCardLoading, setIsCardLoading] = useState<boolean>(false)
@@ -242,7 +256,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           initial={{ opacity: 0, y: 30 }} 
           animate={{ opacity: 1, y: 0 }} 
           exit={{ opacity: 0, y: 30 }} 
-          className="fixed inset-x-0 top-0 bottom-12 z-[250] bg-[#F8FAFC] flex flex-col select-none overflow-hidden"
+          className="fixed inset-x-0 top-0 bottom-12 z-[250] bg-[#F8FAFC] flex flex-col select-none overflow-hidden overscroll-none overscroll-contain"
         >
           {/* ════════════ TOP HEADER ════════════ */}
           <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/90 px-4 py-2 flex items-center justify-between shadow-[0_1px_15px_rgba(0,0,0,0.03)]">
