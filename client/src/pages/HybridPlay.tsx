@@ -142,6 +142,8 @@ export default function HybridPlay() {
   const [scopedQuestions, setScopedQuestions] = useState<Question[]>([])
   const [masteredCardIds, setMasteredCardIds] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadError, setIsLoadError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
 
   // ── Study Display & Audio Settings (Inherited from Deck/User defaults) ──
   const playSettings = usePlaySettings(id || '')
@@ -150,11 +152,18 @@ export default function HybridPlay() {
   // ── Permissions & Feedback ──
   const canEdit = Boolean(user?.role === 'admin' || user?.id === 1 || session?.creator_id === user?.id || session?.is_collaborator)
 
-  // Floating Notification Toast
+  // Floating Notification Toast with cancelable timer
   const [toast, setToast] = useState<{ message: string; type?: 'info' | 'success' | 'warning' | 'error' } | null>(null)
+  const toastTimeoutRef = useRef<any>(null)
   const showLocalToast = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
     setToast({ message, type })
-    setTimeout(() => setToast(null), 2200)
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null)
+      toastTimeoutRef.current = null
+    }, 2200)
   }, [])
 
   // Touch Swipe-Up Gestures to open Quick Controls Sheet
@@ -215,28 +224,38 @@ export default function HybridPlay() {
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
 
+  // Drill active timing & round-robin cursor refs
+  const drillCardShownAtRef = useRef<number>(Date.now())
+  const drillCursorRef = useRef<number>(-1)
+
   // ── Session Statistics ──
   const [sessionXP, setSessionXP] = useState(0)
   const [drillTotalAttempts, setDrillTotalAttempts] = useState(0)
   const [drillTotalCorrect, setDrillTotalCorrect] = useState(0)
-  const [sessionStartTime] = useState(Date.now())
   const [elapsedTime, setElapsedTime] = useState(0)
+  const activeSecondsRef = useRef<number>(0)
 
-  // Floating XP toast
+  // Floating XP toast (only updates local session XP to prevent double-awarding with backend)
   const [xpFloat, setXpFloat] = useState<{ amount: number; id: number } | null>(null)
   const showXpGain = (amount: number) => {
     setSessionXP(prev => prev + amount)
-    addXp(amount)
     setXpFloat({ amount, id: Date.now() })
     setTimeout(() => setXpFloat(null), 1400)
   }
 
-  // Update elapsed time only when session reaches completion screen
+  // Active time tracking: only accumulate seconds when tab is active
   useEffect(() => {
     if (stage === 'complete') {
-      setElapsedTime(Math.floor((Date.now() - sessionStartTime) / 1000))
+      setElapsedTime(activeSecondsRef.current)
+      return
     }
-  }, [stage, sessionStartTime])
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        activeSecondsRef.current += 1
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [stage])
 
   // Cleanup audio playback when leaving Hybrid session
   useEffect(() => {
@@ -302,12 +321,17 @@ export default function HybridPlay() {
     currentQuestion: activeQuestionForAudio || null
   })
 
+  const playCardAudioRef = useRef(playCardAudio)
+  useEffect(() => {
+    playCardAudioRef.current = playCardAudio
+  }, [playCardAudio])
+
   // ── Skim Stage Autoplay Audio (Front on card show, Back on flip) ──
   useEffect(() => {
     if (stage === 'skim' && currentSkimQuestion) {
       if (playSettings.autoPlayAudio === 'always' || playSettings.autoPlayAudio === 'front') {
         const timer = setTimeout(() => {
-          playCardAudio('front')
+          playCardAudioRef.current('front')
         }, 200)
         return () => clearTimeout(timer)
       }
@@ -318,7 +342,7 @@ export default function HybridPlay() {
     if (stage === 'skim' && currentSkimQuestion && isFlipped) {
       if (playSettings.autoPlayAudio === 'always' || playSettings.autoPlayAudio === 'back') {
         const timer = setTimeout(() => {
-          playCardAudio('back')
+          playCardAudioRef.current('back')
         }, 150)
         return () => clearTimeout(timer)
       }
@@ -376,12 +400,14 @@ export default function HybridPlay() {
     } catch (e) {}
   }
 
-  // ── 1. Fetch Session and Deck Settings ──
+  // ── 1. Fetch Session and Deck Settings (With Auto-Retry & Robust Hydration) ──
   useEffect(() => {
     let isMounted = true
-    const fetchSessionData = async () => {
+    const fetchSessionData = async (attempt = 1) => {
       try {
         setIsLoading(true)
+        setIsLoadError(false)
+
         const [quizRes, settingsRes] = await Promise.all([
           axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid`),
           axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: {} }))
@@ -389,11 +415,21 @@ export default function HybridPlay() {
         if (!isMounted) return
 
         const questions: Question[] = quizRes.data.questions || quizRes.data.cards || []
-        setRawQuestions(questions)
+
+        // If returned 0 questions but attempt < 3, retry once after 600ms (handles server warm-up/DB lock)
+        if (questions.length === 0 && attempt < 3) {
+          console.warn(`[HybridPlay] Deck returned 0 cards on attempt ${attempt}. Retrying in 600ms...`)
+          setTimeout(() => {
+            if (isMounted) fetchSessionData(attempt + 1)
+          }, 600)
+          return
+        }
 
         if (questions.length === 0) {
           setStage('complete')
           setSession({ ...quizRes.data, questions: [] })
+          setRawQuestions([])
+          setScopedQuestions([])
           setIsLoading(false)
           return
         }
@@ -401,11 +437,6 @@ export default function HybridPlay() {
         // Parse practice settings from user_settings or creator_settings
         const creatorPracticeSettings = settingsRes.data?.creator_settings || quizRes.data.practice_settings || {}
         const userPracticeSettings = settingsRes.data?.user_settings || quizRes.data.user_settings || {}
-        setDeckPracticeSettings({
-          creator_settings: creatorPracticeSettings,
-          user_settings: userPracticeSettings,
-          practice_settings: creatorPracticeSettings
-        })
 
         // ── Synchronize Display & Audio Settings from Backend (Zero localStorage) ──
         const effectiveStudy = settingsRes.data?.effective_study_settings || quizRes.data?.effective_study_settings || settingsRes.data?.user_settings?.study_settings || quizRes.data?.user_settings?.study_settings || {}
@@ -430,7 +461,6 @@ export default function HybridPlay() {
             preMastered.add(q.id)
           }
         })
-        setMasteredCardIds(preMastered)
 
         // Check if chosen scope has cards; if 0 cards, fallback to 'all' so the session never displays 0 cards
         const checkFiltered = filterCardsByScope(questions, chosenScope, reqCorrect, preMastered)
@@ -450,13 +480,9 @@ export default function HybridPlay() {
                 ? creatorSet.allowed_practices
                 : DEFAULT_HYBRID_SETTINGS.allowed_practices)
         }
-        setHybridSettings(mergedSettings)
 
         // ── Card Order & Session Questions Initialization ──
         let initialFiltered = filterCardsByScope(questions, mergedSettings.scope, mergedSettings.required_correct, preMastered)
-        if (initialFiltered.length === 0 && questions.length > 0 && mergedSettings.scope !== 'all') {
-          initialFiltered = filterCardsByScope(questions, 'all', mergedSettings.required_correct, preMastered)
-        }
         if (initialFiltered.length === 0 && questions.length > 0) {
           initialFiltered = questions
         }
@@ -484,7 +510,9 @@ export default function HybridPlay() {
           const maxBatches = Math.ceil(finalQuestions.length / bSize)
           const savedIdx = Number(savedProgress.batch_index) || 0
           initialBatchIdx = (savedIdx >= 0 && savedIdx < maxBatches) ? savedIdx : 0
-        } else {
+        }
+
+        if (finalQuestions.length === 0) {
           // Fresh order
           if (mergedSettings.order === 'random') {
             const copy = [...initialFiltered]
@@ -518,10 +546,23 @@ export default function HybridPlay() {
           }).catch(() => {})
         }
 
+        // Guaranteed fallback: never allow 0 cards if deck has questions
+        if (finalQuestions.length === 0 && questions.length > 0) {
+          finalQuestions = questions
+        }
+
+        // Atomic Hydration: Apply all states together before releasing loading spinner
+        setRawQuestions(questions)
+        setMasteredCardIds(preMastered)
+        setDeckPracticeSettings({
+          creator_settings: creatorPracticeSettings,
+          user_settings: userPracticeSettings,
+          practice_settings: creatorPracticeSettings
+        })
+        setHybridSettings(mergedSettings)
         setScopedQuestions(finalQuestions)
         setCurrentBatchIndex(initialBatchIdx)
         setSkimCardIndex(0)
-
         setSession({
           ...quizRes.data,
           questions,
@@ -532,7 +573,15 @@ export default function HybridPlay() {
         setIsLoading(false)
       } catch (err) {
         console.error('Failed to load hybrid session', err)
+        if (attempt < 2) {
+          console.warn('[HybridPlay] Network glitch, retrying attempt 2 in 800ms...')
+          setTimeout(() => {
+            if (isMounted) fetchSessionData(attempt + 1)
+          }, 800)
+          return
+        }
         setIsLoading(false)
+        setIsLoadError(true)
       }
     }
 
@@ -540,7 +589,7 @@ export default function HybridPlay() {
     return () => {
       isMounted = false
     }
-  }, [id])
+  }, [id, urlScope, urlOrder, retryCount])
 
   // ── 2. Live Scope Counts & Auto-Save Hybrid Settings (Zero localStorage) ──
   const scopeCounts = useMemo(() => {
@@ -638,6 +687,7 @@ export default function HybridPlay() {
       initialCounts[c.id] = 0
     })
     setBatchCorrectCounts(initialCounts)
+    drillCursorRef.current = -1
 
     // Move to drill stage
     setStage('drill')
@@ -667,9 +717,9 @@ export default function HybridPlay() {
         const pending = pendingQueueUpdateRef.current
         pendingQueueUpdateRef.current = null
 
-        const effectiveScope = pending.scope || hybridSettings.scope
-        const effectiveOrder = pending.order || hybridSettings.order
-        const effectiveReq = pending.required_correct || hybridSettings.required_correct
+        const effectiveScope = pending.scope ?? hybridSettings.scope
+        const effectiveOrder = pending.order ?? hybridSettings.order
+        const effectiveReq = pending.required_correct ?? hybridSettings.required_correct
 
         // Filter cards for the new scope
         let newFiltered = filterCardsByScope(rawQuestions, effectiveScope, effectiveReq, nextMastered)
@@ -707,6 +757,7 @@ export default function HybridPlay() {
         setStage('skim')
         setDrillActiveCard(null)
         setBatchCorrectCounts({})
+        drillCursorRef.current = -1
         saveHybridProgress(0, newQueue)
         showLocalToast?.(`Starting next batch in ${effectiveOrder === 'random' ? 'Random' : 'Sequential'} mode! ⚡`, 'success')
         return
@@ -722,6 +773,7 @@ export default function HybridPlay() {
         setStage('skim')
         setDrillActiveCard(null)
         setBatchCorrectCounts({})
+        drillCursorRef.current = -1
         saveHybridProgress(nextBatchIdx)
       } else {
         // Reached end of batches: Check if there are still unmastered cards in scope
@@ -741,6 +793,7 @@ export default function HybridPlay() {
             setStage('skim')
             setDrillActiveCard(null)
             setBatchCorrectCounts({})
+            drillCursorRef.current = -1
             saveHybridProgress(0, copy)
             showLocalToast?.('Continuing with next round of cards! 🔥', 'info')
           } else {
@@ -753,6 +806,7 @@ export default function HybridPlay() {
             setStage('skim')
             setDrillActiveCard(null)
             setBatchCorrectCounts({})
+            drillCursorRef.current = -1
             saveHybridProgress(safeBatchIdx)
             showLocalToast?.('Reviewing remaining unmastered cards! 🔥', 'info')
           }
@@ -768,13 +822,11 @@ export default function HybridPlay() {
 
     let candidate: Question
     if (hybridSettings.order === 'sequential') {
-      // In sequential mode, drill cards in sequential order (Card 1 -> Card 2 -> Card 3...)
-      // Rotate to next pending if active card was just answered and multiple pending exist
-      if (pendingCards.length > 1 && drillActiveCard && pendingCards[0].id === drillActiveCard.id) {
-        candidate = pendingCards[1] || pendingCards[0]
-      } else {
-        candidate = pendingCards[0]
-      }
+      // Round-robin sequential rotation through pending cards
+      const lastIdx = drillCursorRef.current
+      const nextIdx = (lastIdx + 1) % pendingCards.length
+      drillCursorRef.current = nextIdx
+      candidate = pendingCards[nextIdx] || pendingCards[0]
     } else {
       // Pick a random pending card (avoid picking same card consecutively if multiple exist)
       candidate = pendingCards[Math.floor(Math.random() * pendingCards.length)]
@@ -784,6 +836,7 @@ export default function HybridPlay() {
       }
     }
 
+    drillCardShownAtRef.current = Date.now()
     setDrillActiveCard(candidate)
     generatePracticeForDrillCard(candidate)
     setAnswered(false)
@@ -1075,15 +1128,16 @@ export default function HybridPlay() {
     // STRICT FSRS ISOLATION:
     // Records strictly into UserPracticeStats with practice_mode='hybrid_drill'.
     // UserCardMastery state, stability, difficulty, last_review, and due dates are 100% untouched.
+    const elapsedSec = Math.min(60, Math.max(0.5, Number(((Date.now() - drillCardShownAtRef.current) / 1000).toFixed(1))))
     try {
       axios.post('/api/v1/deck/record_answer', {
-        attempt_id: session?.attempt_id || null,
+        attempt_id: null,
         card_id: cardId,
         deck_id: Number(id),
         is_correct: isCorrect,
         is_practice: true,
         practice_mode: 'hybrid_drill',
-        time_spent: 2.5
+        time_spent: elapsedSec
       }).catch(() => {})
     } catch (e) {}
   }
@@ -1100,6 +1154,9 @@ export default function HybridPlay() {
       setSkimCardIndex(0)
       setIsFlipped(false)
       setStage('skim')
+      setDrillActiveCard(null)
+      setBatchCorrectCounts({})
+      drillCursorRef.current = -1
       saveHybridProgress(nextBatchIdx)
     } else {
       setStage('complete')
@@ -1250,7 +1307,32 @@ export default function HybridPlay() {
         className="flex-1 min-h-0 flex w-full max-w-4xl mx-auto flex-col justify-center items-center px-3 sm:px-6 py-2 overflow-hidden relative touch-pan-y"
       >
         <AnimatePresence mode="wait">
-          {scopedQuestions.length === 0 ? (
+          {isLoadError ? (
+            /* ──────────────── NETWORK LOAD ERROR FALLBACK ──────────────── */
+            <motion.div
+              key="load_error"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-white rounded-3xl border border-rose-100 p-8 shadow-2xl text-center flex flex-col items-center"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-500 border border-rose-200/60 flex items-center justify-center mb-4 shadow-sm">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800">Connection Failed</h3>
+              <p className="text-xs text-slate-500 mt-2 mb-6 leading-relaxed">
+                Could not load deck items due to a network glitch or server timeout.
+              </p>
+              <button
+                type="button"
+                onClick={() => setRetryCount(prev => prev + 1)}
+                className="w-full py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-md shadow-rose-200 cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Retry Loading Deck</span>
+              </button>
+            </motion.div>
+          ) : scopedQuestions.length === 0 ? (
             /* ──────────────── EMPTY SCOPE FALLBACK ──────────────── */
             <motion.div
               key="empty_scope"
@@ -1500,7 +1582,20 @@ export default function HybridPlay() {
                     }
                     setCurrentBatchIndex(0)
                     setSkimCardIndex(0)
+                    setIsFlipped(false)
                     setStage('skim')
+                    setDrillActiveCard(null)
+                    setBatchCorrectCounts({})
+                    setMasteredCardIds(new Set())
+                    setSessionXP(0)
+                    setDrillTotalAttempts(0)
+                    setDrillTotalCorrect(0)
+                    setAnswered(false)
+                    setSelectedOption(null)
+                    setTypingInput('')
+                    setTypingFeedback(null)
+                    drillCursorRef.current = -1
+                    activeSecondsRef.current = 0
                     saveHybridProgress(0, newQuestions)
                   }}
                   className="flex-1 py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"

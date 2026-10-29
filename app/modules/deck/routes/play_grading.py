@@ -99,13 +99,18 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
         if mode_val in ("speed_skim", "skim"):
             is_practice_mode = False
             attempt_mode = "speed_skim"
+        elif mode_val in ("hybrid_drill", "hybrid"):
+            is_practice_mode = True
+            attempt_mode = "hybrid_drill"
         else:
-            is_practice_mode = is_practice or (mode_val in ["practice", "roadmap_mcq", "roadmap_typing", "roadmap_test", "mcq", "typing", "listening"])
+            is_practice_mode = is_practice or (mode_val in ["practice", "roadmap_mcq", "roadmap_typing", "roadmap_test", "mcq", "typing", "listening", "hybrid_drill", "hybrid"])
             if is_practice_mode:
                 if mode_val in ["roadmap_mcq", "mcq"]:
                     attempt_mode = "roadmap_mcq"
                 elif mode_val in ["roadmap_typing", "typing"]:
                     attempt_mode = "roadmap_typing"
+                elif mode_val in ["hybrid_drill", "hybrid"]:
+                    attempt_mode = "hybrid_drill"
                 else:
                     attempt_mode = "practice"
             else:

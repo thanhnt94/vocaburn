@@ -180,8 +180,8 @@ export function filterCardsByScope(
       case 'all':
         return true
       case 'new':
-        // Pre-FSRS: not yet reviewed by FSRS (new, skim, practice, drill)
-        return status === 'new' || status === 'skim' || status === 'practice' || status === 'drill'
+        // Pre-FSRS unmastered cards (new, skim, practice)
+        return status === 'new' || status === 'skim' || status === 'practice'
       case 'undrilled':
         // Unmastered in Hybrid: new, skim, practice
         return status === 'new' || status === 'skim' || status === 'practice'
