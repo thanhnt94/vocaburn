@@ -48,6 +48,7 @@ import {
 import { usePracticeAudio } from '@/hooks/usePracticeAudio'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import LearningInsightsModal from '@/components/LearningInsightsModal'
+import { HybridQuickControlsSheet } from '@/components/hybrid/HybridQuickControlsSheet'
 import { getAudioContext, cancelAllAudio } from '@/lib/audio'
 import { getVal } from '@/lib/practice-utils'
 import { selectDistractors } from '@/lib/distractor'
@@ -146,10 +147,45 @@ export default function HybridPlay() {
   const playSettings = usePlaySettings(id || '')
   const [previewInsightCard, setPreviewInsightCard] = useState<Question | null>(null)
 
+  // ── Permissions & Feedback ──
+  const canEdit = Boolean(user?.role === 'admin' || user?.id === 1 || session?.creator_id === user?.id || session?.is_collaborator)
+
+  // Floating Notification Toast
+  const [toast, setToast] = useState<{ message: string; type?: 'info' | 'success' | 'warning' | 'error' } | null>(null)
+  const showLocalToast = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 2200)
+  }, [])
+
+  // Touch Swipe-Up Gestures to open Quick Controls Sheet
+  const touchStartYRef = useRef<number | null>(null)
+  const touchStartXRef = useRef<number | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent | React.PointerEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.PointerEvent).clientY
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.PointerEvent).clientX
+    touchStartYRef.current = clientY
+    touchStartXRef.current = clientX
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent | React.PointerEvent) => {
+    if (touchStartYRef.current === null) return
+    const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as React.PointerEvent).clientY
+    const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.PointerEvent).clientX
+    const deltaY = touchStartYRef.current - clientY
+    const deltaX = Math.abs(clientX - (touchStartXRef.current || 0))
+    touchStartYRef.current = null
+    touchStartXRef.current = null
+
+    // Upward swipe threshold: pulled up > 35px, primarily vertical
+    if (deltaY > 35 && deltaY > deltaX * 0.8) {
+      setIsSettingsOpen(true)
+    }
+  }
+
   // ── Hybrid Configuration (Stored in User Deck Settings) ──
   const [hybridSettings, setHybridSettings] = useState<HybridSettings>(DEFAULT_HYBRID_SETTINGS)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [isSavingSettings, setIsSavingSettings] = useState(false)
 
   // ── Batch & Workflow Stages ──
   // 'skim': Preview batch of cards at skim level (no rating pressure)
@@ -368,6 +404,15 @@ export default function HybridPlay() {
           practice_settings: creatorPracticeSettings
         })
 
+        // ── Synchronize Display & Audio Settings from Backend (Zero localStorage) ──
+        const effectiveStudy = settingsRes.data?.effective_study_settings || quizRes.data?.effective_study_settings || settingsRes.data?.user_settings?.study_settings || quizRes.data?.user_settings?.study_settings || {}
+        const creatorStudyDefs = settingsRes.data?.creator_study_defaults || quizRes.data?.creator_study_defaults || settingsRes.data?.creator_settings?.study_defaults || quizRes.data?.practice_settings?.study_defaults || {}
+        const userStudyOverrides = settingsRes.data?.user_study_settings || quizRes.data?.user_study_settings || settingsRes.data?.user_settings?.study_settings || quizRes.data?.user_settings?.study_settings || {}
+        const isCustom = settingsRes.data?.is_study_customized ?? quizRes.data?.is_study_customized
+        const origin = settingsRes.data?.setting_origin || quizRes.data?.setting_origin
+
+        playSettings.syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin)
+
         const userSet = userPracticeSettings?.hybrid || quizRes.data.user_settings?.hybrid || {}
         const creatorSet = creatorPracticeSettings?.hybrid || quizRes.data.practice_settings?.hybrid || {}
 
@@ -494,51 +539,49 @@ export default function HybridPlay() {
     }
   }, [id])
 
-  // ── 2. Save Hybrid Settings to Backend (Zero localStorage) ──
-  const handleSaveSettings = async (newSettings: HybridSettings, setAsCreator: boolean = false) => {
-    setIsSavingSettings(true)
-    try {
-      if (setAsCreator) {
-        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-          is_creator: true,
-          settings: {
-            hybrid: newSettings
-          }
-        })
-      } else {
-        await axios.post(`/api/v1/deck/${id}/practice-settings`, {
-          is_creator: false,
-          settings: {
-            hybrid: newSettings
-          }
-        })
-      }
-      // Save display & audio preferences alongside hybrid settings
-      try {
-        await playSettings.saveGeneralSettings({
-          autoplay_audio: playSettings.autoPlayAudio,
-          front_halign: playSettings.frontHalign,
-          back_halign: playSettings.backHalign,
-          front_font_size: playSettings.frontFontSize,
-          back_font_size: playSettings.backFontSize
-        })
-      } catch (e) {
-        console.warn('Failed to save general display settings', e)
-      }
-      setHybridSettings(newSettings)
-      setIsSettingsOpen(false)
+  // ── 2. Live Scope Counts & Auto-Save Hybrid Settings (Zero localStorage) ──
+  const scopeCounts = useMemo(() => {
+    return {
+      all: rawQuestions.length,
+      new: filterCardsByScope(rawQuestions, 'new', hybridSettings.required_correct, masteredCardIds).length,
+      undrilled: filterCardsByScope(rawQuestions, 'undrilled', hybridSettings.required_correct, masteredCardIds).length,
+      review: filterCardsByScope(rawQuestions, 'review', hybridSettings.required_correct, masteredCardIds).length,
+      due: filterCardsByScope(rawQuestions, 'due', hybridSettings.required_correct, masteredCardIds).length
+    }
+  }, [rawQuestions, hybridSettings.required_correct, masteredCardIds])
 
-      // Re-filter and re-position for new settings
-      let filtered = filterCardsByScope(rawQuestions, newSettings.scope, newSettings.required_correct, masteredCardIds)
+  const handleUpdateHybridSettings = useCallback(async (partial: Partial<HybridSettings>) => {
+    const updated: HybridSettings = {
+      ...hybridSettings,
+      ...partial
+    }
+    setHybridSettings(updated)
+
+    // Save to user settings immediately (Zero localStorage)
+    axios.post(`/api/v1/deck/${id}/practice-settings`, {
+      is_creator: false,
+      settings: {
+        hybrid: updated
+      }
+    }).catch(e => console.warn('Failed to auto-save hybrid settings', e))
+
+    // If scope, order, batch_size, or required_correct changed, re-filter and reposition
+    if (
+      partial.scope !== undefined ||
+      partial.order !== undefined ||
+      partial.batch_size !== undefined ||
+      partial.required_correct !== undefined
+    ) {
+      let filtered = filterCardsByScope(rawQuestions, updated.scope, updated.required_correct, masteredCardIds)
       if (filtered.length === 0 && rawQuestions.length > 0) {
         filtered = rawQuestions
       }
 
       let newQuestions: Question[] = []
       let newBatchIdx = 0
-      const bSize = Math.max(1, newSettings.batch_size)
+      const bSize = Math.max(1, updated.batch_size)
 
-      if (newSettings.order === 'random') {
+      if (updated.order === 'random') {
         const copy = [...filtered]
         for (let i = copy.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -548,7 +591,7 @@ export default function HybridPlay() {
         newBatchIdx = 0
       } else {
         newQuestions = filtered
-        const smartIdx = findSmartSequentialIndex(newQuestions, newSettings.required_correct, masteredCardIds)
+        const smartIdx = findSmartSequentialIndex(newQuestions, updated.required_correct, masteredCardIds)
         const targetBatchIdx = Math.floor(smartIdx / bSize)
         const totalB = Math.ceil(newQuestions.length / bSize)
         newBatchIdx = targetBatchIdx < totalB ? targetBatchIdx : 0
@@ -557,27 +600,14 @@ export default function HybridPlay() {
       setScopedQuestions(newQuestions)
       setCurrentBatchIndex(newBatchIdx)
       setSkimCardIndex(0)
+      setIsFlipped(false)
       setStage('skim')
+      setDrillActiveCard(null)
+      setBatchCorrectCounts({})
 
-      // Persist new session progress
-      axios.post(`/api/v1/deck/${id}/practice-settings`, {
-        is_creator: false,
-        settings: {
-          hybrid_progress: {
-            batch_index: newBatchIdx,
-            card_ids: newQuestions.map(q => q.id),
-            order: newSettings.order,
-            scope: newSettings.scope,
-            updated_at: Date.now()
-          }
-        }
-      }).catch(() => {})
-    } catch (e) {
-      console.error('Failed to save hybrid settings', e)
-    } finally {
-      setIsSavingSettings(false)
+      saveHybridProgress(newBatchIdx, newQuestions)
     }
-  }
+  }, [hybridSettings, id, rawQuestions, masteredCardIds, saveHybridProgress])
 
   // ── 3. Start Drill for Current Batch ──
   const startBatchDrill = () => {
@@ -1086,7 +1116,11 @@ export default function HybridPlay() {
       </header>
 
       {/* ═══════════ MAIN CONTENT AREA ═══════════ */}
-      <main className="flex-1 min-h-0 flex w-full max-w-4xl mx-auto flex-col justify-center items-center px-3 sm:px-6 py-2 overflow-hidden relative">
+      <main
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1 min-h-0 flex w-full max-w-4xl mx-auto flex-col justify-center items-center px-3 sm:px-6 py-2 overflow-hidden relative touch-pan-y"
+      >
         <AnimatePresence mode="wait">
           {scopedQuestions.length === 0 ? (
             /* ──────────────── EMPTY SCOPE FALLBACK ──────────────── */
@@ -1106,11 +1140,7 @@ export default function HybridPlay() {
               </p>
               <button
                 type="button"
-                onClick={() => {
-                  const newSettings = { ...hybridSettings, scope: 'all' as HybridScope }
-                  setHybridSettings(newSettings)
-                  handleSaveSettings(newSettings, false)
-                }}
+                onClick={() => handleUpdateHybridSettings({ scope: 'all' })}
                 className="w-full py-3.5 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-md shadow-rose-200 cursor-pointer active:scale-95"
               >
                 Switch Scope to "All Cards" ({rawQuestions.length} Cards)
@@ -1426,7 +1456,14 @@ export default function HybridPlay() {
 
       {/* ═══════════ DOCKED BOTTOM SEGMENTED CONTROLS ═══════════ */}
       {scopedQuestions.length > 0 && stage === 'skim' && currentSkimQuestion && (
-        <footer className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg">
+        <footer
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg relative touch-pan-x"
+        >
+          {/* Pull up indicator for Quick Settings */}
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300 pointer-events-none" />
+
           <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
             {/* Prev Skim Card */}
             <button
@@ -1459,27 +1496,17 @@ export default function HybridPlay() {
 
             {/* Next Card or Start Drill */}
             {skimCardIndex + 1 < currentBatch.length ? (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={startBatchDrill}
-                  className="p-2.5 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200/80 transition-all cursor-pointer active:scale-95"
-                  title="Skip remaining preview and start drill now"
-                >
-                  <Target className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSkimCardIndex(prev => prev + 1)
-                    setIsFlipped(false)
-                  }}
-                  className="py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-rose-200 transition-all cursor-pointer active:scale-95"
-                >
-                  <span>Next ({skimCardIndex + 2}/{currentBatch.length})</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSkimCardIndex(prev => prev + 1)
+                  setIsFlipped(false)
+                }}
+                className="py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-rose-200 transition-all cursor-pointer active:scale-95"
+              >
+                <span>Next ({skimCardIndex + 2}/{currentBatch.length})</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             ) : (
               <button
                 type="button"
@@ -1495,7 +1522,13 @@ export default function HybridPlay() {
       )}
 
       {scopedQuestions.length > 0 && stage === 'drill' && drillActiveCard && (
-        <footer className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg">
+        <footer
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg relative touch-pan-x"
+        >
+          {/* Pull up indicator for Quick Settings */}
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300 pointer-events-none" />
           <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
             <span className="text-[11px] font-black text-slate-400">
               Drill Mode: <span className="uppercase text-slate-700">{drillSubMode}</span>
@@ -1524,361 +1557,52 @@ export default function HybridPlay() {
         </footer>
       )}
 
-      {/* ═══════════ HYBRID SETTINGS MODAL ═══════════ */}
+      {/* ═══════════ HYBRID QUICK CONTROLS SHEET (Mobile-First Bottom Sheet) ═══════════ */}
+      <HybridQuickControlsSheet
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={hybridSettings}
+        onUpdateHybridSettings={handleUpdateHybridSettings}
+        scopeCounts={scopeCounts}
+        frontHalign={playSettings.frontHalign}
+        setFrontHalign={playSettings.setFrontHalign}
+        backHalign={playSettings.backHalign}
+        setBackHalign={playSettings.setBackHalign}
+        frontFontSize={playSettings.frontFontSize}
+        setFrontFontSize={playSettings.setFrontFontSize}
+        backFontSize={playSettings.backFontSize}
+        setBackFontSize={playSettings.setBackFontSize}
+        autoPlayAudio={playSettings.autoPlayAudio}
+        setAutoPlayAudio={playSettings.setAutoPlayAudio}
+        sfxEnabled={playSettings.sfxEnabled}
+        setSfxEnabled={playSettings.setSfxEnabled}
+        hapticEnabled={playSettings.hapticEnabled}
+        setHapticEnabled={playSettings.setHapticEnabled}
+        deckId={id}
+        canEdit={canEdit}
+        onSaveAsCreatorBaseline={() => {
+          playSettings.saveAsCreatorDefaults()
+          axios.post(`/api/v1/deck/${id}/practice-settings`, {
+            is_creator: true,
+            settings: {
+              hybrid: hybridSettings
+            }
+          }).catch(() => {})
+        }}
+        showLocalToast={showLocalToast}
+      />
+
+      {/* Floating Notification Toast */}
       <AnimatePresence>
-        {isSettingsOpen && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-lg bg-white rounded-3xl border border-slate-100 p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-                    <Sliders className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-800">Hybrid Recall Settings</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Standardized Pre-Learning & Drill Coordination</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Form Options */}
-              <div className="space-y-4">
-                {/* 1. Study Scope Filter */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1.5 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Card Scope Filter (Phạm vi học)</span>
-                  </label>
-                  <div className="space-y-1.5">
-                    {HYBRID_SCOPE_OPTIONS.map(opt => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setHybridSettings(prev => ({ ...prev, scope: opt.id }))}
-                        className={cn(
-                          "w-full p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between",
-                          hybridSettings.scope === opt.id
-                            ? "bg-rose-50/70 border-rose-300 text-rose-900 shadow-2xs"
-                            : "bg-slate-50/80 border-slate-200 text-slate-600 hover:bg-slate-100/80"
-                        )}
-                      >
-                        <div>
-                          <span className="text-xs font-black block">{opt.label}</span>
-                          <span className="text-[10px] text-slate-400 block">{opt.description}</span>
-                        </div>
-                        <div className={cn(
-                          "w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-2",
-                          hybridSettings.scope === opt.id ? "border-rose-600 bg-rose-600 text-white" : "border-slate-300"
-                        )}>
-                          {hybridSettings.scope === opt.id && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Order Selector */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1.5 flex items-center gap-1.5">
-                    <ListOrdered className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>Card Ordering & Smart Cursor</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setHybridSettings(prev => ({ ...prev, order: 'sequential' }))}
-                      className={cn(
-                        "p-2.5 rounded-2xl text-left border transition-all cursor-pointer",
-                        hybridSettings.order === 'sequential'
-                          ? "bg-indigo-50 border-indigo-400 text-indigo-900 shadow-2xs"
-                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <ListOrdered className="w-3.5 h-3.5 text-indigo-600" />
-                        <span className="text-xs font-black">Sequential</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 block">Smart Cursor (skip drilled)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setHybridSettings(prev => ({ ...prev, order: 'random' }))}
-                      className={cn(
-                        "p-2.5 rounded-2xl text-left border transition-all cursor-pointer",
-                        hybridSettings.order === 'random'
-                          ? "bg-indigo-50 border-indigo-400 text-indigo-900 shadow-2xs"
-                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <Shuffle className="w-3.5 h-3.5 text-indigo-600" />
-                        <span className="text-xs font-black">Random</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 block">Shuffle cards randomly</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Batch Size */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1.5">
-                    Cards per Batch (Group Size)
-                  </label>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {[1, 3, 5, 10, 15].map(size => (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => setHybridSettings(prev => ({ ...prev, batch_size: size }))}
-                        className={cn(
-                          "py-2 rounded-xl text-xs font-black border transition-all cursor-pointer text-center",
-                          hybridSettings.batch_size === size
-                            ? "bg-rose-50 border-rose-400 text-rose-700 shadow-2xs"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                        )}
-                      >
-                        {size} {size === 1 ? 'Card' : 'Cards'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 4. Required Correct Count */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1.5">
-                    Pass Target (Correct Count to Master)
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    Number of times each card must be answered correctly in drill before passing.
-                  </p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[1, 2, 3, 5].map(req => (
-                      <button
-                        key={req}
-                        type="button"
-                        onClick={() => setHybridSettings(prev => ({ ...prev, required_correct: req }))}
-                        className={cn(
-                          "py-2 rounded-xl text-xs font-black border transition-all cursor-pointer",
-                          hybridSettings.required_correct === req
-                            ? "bg-emerald-50 border-emerald-400 text-emerald-700 shadow-2xs"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                        )}
-                      >
-                        {req} {req === 1 ? 'Time' : 'Times'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 5. Allowed Practice Modes */}
-                <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1.5">
-                    Active Practice Types in Drill
-                  </label>
-                  <div className="space-y-1.5">
-                    {[
-                      { id: 'mcq', label: 'Multiple Choice (MCQ)', desc: 'Fast reflex 4-choice recognition' },
-                      { id: 'typing', label: 'Spelling Typing', desc: 'Deep memory recall character typing' },
-                      { id: 'listening', label: 'Audio Listening', desc: 'Audio pronunciation recognition test' }
-                    ].map(item => {
-                      const isSelected = hybridSettings.allowed_practices.includes(item.id)
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => {
-                            setHybridSettings(prev => {
-                              const curr = prev.allowed_practices
-                              if (curr.includes(item.id)) {
-                                if (curr.length <= 1) return prev // Keep at least one
-                                return { ...prev, allowed_practices: curr.filter(x => x !== item.id) }
-                              } else {
-                                return { ...prev, allowed_practices: [...curr, item.id] }
-                              }
-                            })
-                          }}
-                          className={cn(
-                            "p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
-                            isSelected
-                              ? "bg-indigo-50/70 border-indigo-200 text-indigo-900"
-                              : "bg-slate-50 border-slate-200 text-slate-600 opacity-60"
-                          )}
-                        >
-                          <div>
-                            <span className="text-xs font-black block">{item.label}</span>
-                            <span className="text-[10px] text-slate-400 block">{item.desc}</span>
-                          </div>
-                          <div className={cn(
-                            "w-5 h-5 rounded-lg flex items-center justify-center border",
-                            isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-300"
-                          )}>
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* 6. Display & Alignment Settings */}
-                <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
-                      <Sliders className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Card Display & Audio Pacing</span>
-                    </span>
-                  </div>
-
-                  {/* Audio Autoplay */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                      AutoPlay Audio (Tự động đọc âm thanh)
-                    </label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[
-                        { id: 'none', label: 'Off' },
-                        { id: 'front', label: 'Front' },
-                        { id: 'back', label: 'Back' },
-                        { id: 'always', label: 'Always' },
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => playSettings.setAutoPlayAudio(opt.id as any)}
-                          className={cn(
-                            "py-1.5 px-2 rounded-xl text-[11px] font-black border transition-all cursor-pointer text-center",
-                            playSettings.autoPlayAudio === opt.id
-                              ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-2xs"
-                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Horizontal Alignment */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                        Front Align (Mặt trước)
-                      </label>
-                      <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-xl">
-                        {(['left', 'center'] as const).map(align => (
-                          <button
-                            key={align}
-                            type="button"
-                            onClick={() => playSettings.setFrontHalign(align)}
-                            className={cn(
-                              "py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer capitalize",
-                              playSettings.frontHalign === align
-                                ? "bg-white text-indigo-600 shadow-2xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {align}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                        Back Align (Mặt sau)
-                      </label>
-                      <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-xl">
-                        {(['left', 'center'] as const).map(align => (
-                          <button
-                            key={align}
-                            type="button"
-                            onClick={() => playSettings.setBackHalign(align)}
-                            className={cn(
-                              "py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer capitalize",
-                              playSettings.backHalign === align
-                                ? "bg-white text-indigo-600 shadow-2xs"
-                                : "text-slate-500 hover:text-slate-800"
-                            )}
-                          >
-                            {align}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Font Size Scale */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                      Font Size (Cỡ chữ hiển thị)
-                    </label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[
-                        { id: '80%', label: 'Small (80%)' },
-                        { id: '100%', label: 'Normal (100%)' },
-                        { id: '120%', label: 'Large (120%)' },
-                        { id: '140%', label: 'Huge (140%)' },
-                      ].map(sz => (
-                        <button
-                          key={sz.id}
-                          type="button"
-                          onClick={() => {
-                            playSettings.setFrontFontSize(sz.id)
-                            playSettings.setBackFontSize(sz.id)
-                          }}
-                          className={cn(
-                            "py-1.5 px-1 rounded-xl text-[10px] font-black border transition-all cursor-pointer text-center",
-                            playSettings.frontFontSize === sz.id
-                              ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-2xs"
-                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                          )}
-                        >
-                          {sz.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  disabled={isSavingSettings}
-                  onClick={() => handleSaveSettings(hybridSettings, false)}
-                  className="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-md shadow-rose-200 cursor-pointer disabled:opacity-50"
-                >
-                  {isSavingSettings ? 'Saving...' : 'Save for this Deck'}
-                </button>
-
-                {user?.role === 'admin' && (
-                  <button
-                    type="button"
-                    disabled={isSavingSettings}
-                    onClick={() => handleSaveSettings(hybridSettings, true)}
-                    className="py-3 px-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-all cursor-pointer"
-                    title="Set as Deck Baseline Default for All Learners"
-                  >
-                    Set Default
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </div>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[400] px-4 py-2 rounded-2xl bg-slate-900/90 text-white font-bold text-xs shadow-xl backdrop-blur-md flex items-center gap-2 pointer-events-none"
+          >
+            <span>{toast.message}</span>
+          </motion.div>
         )}
       </AnimatePresence>
 
