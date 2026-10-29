@@ -56,6 +56,7 @@ export interface Flashcard3DCardProps {
   showAbsoluteLast: boolean
   setShowAbsoluteLast: React.Dispatch<React.SetStateAction<boolean>>
   renderFlyToolbarNode?: (isCardSlot: boolean) => React.ReactNode
+  hideFlyToolbar?: boolean
   activeMode?: string
   handleNext?: () => void
   isFlyingOut?: boolean
@@ -107,6 +108,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   showAbsoluteLast,
   setShowAbsoluteLast,
   renderFlyToolbarNode,
+  hideFlyToolbar = false,
   activeMode,
   handleNext,
   handleOpenCardHub,
@@ -435,57 +437,59 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             </div>
 
             {/* ── FLOATING FLY TOOLBAR ON FRONT FACE (Bottom-Left) ── */}
-            <div 
-              className="absolute bottom-3.5 left-3.5 z-30 pointer-events-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {renderFlyToolbarNode ? (
-                renderFlyToolbarNode(true)
-              ) : onTriggerPlayAudio ? (
-                <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTriggerPlayAudio();
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-                      isPlayingAudio
-                        ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
-                        : isLoadingAudio
-                        ? "bg-indigo-100 text-indigo-700 animate-pulse"
-                        : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
+            {!hideFlyToolbar && (
+              <div 
+                className="absolute bottom-3.5 left-3.5 z-30 pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {renderFlyToolbarNode ? (
+                  renderFlyToolbarNode(true)
+                ) : onTriggerPlayAudio ? (
+                  <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTriggerPlayAudio();
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
+                        isPlayingAudio
+                          ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
+                          : isLoadingAudio
+                          ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                          : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
+                      )}
+                      title={isLoadingAudio ? "Generating audio..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
+                    >
+                      {isLoadingAudio ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                      ) : (
+                        <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
+                      )}
+                    </button>
+                    {(onOpenStudySettings || onOpenQuickSettings) && (
+                      <>
+                        <div className="w-[1px] h-3 bg-slate-200/80" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onOpenStudySettings) onOpenStudySettings();
+                            else if (onOpenQuickSettings) onOpenQuickSettings();
+                            else setIsFlyToolbarOpen(true);
+                          }}
+                          className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
+                          title="Quick Controls & Settings"
+                        >
+                          <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                        </button>
+                      </>
                     )}
-                    title={isLoadingAudio ? "Generating audio..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
-                  >
-                    {isLoadingAudio ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                    ) : (
-                      <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
-                    )}
-                  </button>
-                  {(onOpenStudySettings || onOpenQuickSettings) && (
-                    <>
-                      <div className="w-[1px] h-3 bg-slate-200/80" />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onOpenStudySettings) onOpenStudySettings();
-                          else if (onOpenQuickSettings) onOpenQuickSettings();
-                          else setIsFlyToolbarOpen(true);
-                        }}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
-                        title="Quick Controls & Settings"
-                      >
-                        <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              ) : null}
-            </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* ═══════════ BACK SIDE ═══════════ */}
@@ -840,7 +844,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
             })()}
 
             {/* ── FLOATING ACTION OVERLAY (Fly Toolbar on Back Face - Bottom Left) ── */}
-            {(!hasRated || selectedOption === null) && (
+            {!hideFlyToolbar && (!hasRated || selectedOption === null) && (
               <div 
                 className="absolute bottom-3.5 left-3.5 z-30 pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
