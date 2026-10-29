@@ -1649,17 +1649,22 @@ export default function HybridPlay() {
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            {/* 5. Nav: Flip / Reveal */}
+            {/* 5. Nav: Flip / Reveal (Icon only, no text) */}
             <button
               type="button"
               onClick={() => {
                 setIsFlipped(prev => !prev)
                 playSfx('flip')
               }}
-              className="flex-1 h-10 sm:h-11 rounded-2xl bg-slate-100/90 hover:bg-rose-50 text-slate-800 hover:text-rose-700 border border-slate-200/80 hover:border-rose-200/80 font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all duration-200 cursor-pointer"
+              className={cn(
+                "w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 border shadow-2xs",
+                isFlipped
+                  ? "bg-rose-50 border-rose-300 text-rose-600 ring-2 ring-rose-200/60"
+                  : "bg-slate-100/90 hover:bg-rose-50 border-slate-200/80 text-slate-700 hover:text-rose-600 hover:border-rose-200"
+              )}
+              title={isFlipped ? "Flip to front side" : "Flip to back side"}
             >
-              <RotateCw className={cn("w-4 h-4 transition-transform duration-300", isFlipped && "rotate-180 text-rose-600")} />
-              <span>{isFlipped ? 'Front' : 'Flip'}</span>
+              <RotateCw className={cn("w-5 h-5 transition-transform duration-300", isFlipped && "rotate-180 text-rose-600")} />
             </button>
 
             {/* 6. Nav: Next Card or Start Drill */}
