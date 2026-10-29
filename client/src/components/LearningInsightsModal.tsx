@@ -182,17 +182,19 @@ export default function LearningInsightsModal({
 
   // Prevent mobile browser pull-to-refresh while modal is open
   useEffect(() => {
-    if (!card) return
-    const prevBodyOverscroll = document.body.style.overscrollBehavior
-    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
-    document.body.style.overscrollBehavior = 'none'
-    document.documentElement.style.overscrollBehavior = 'none'
+    if (Boolean(card)) {
+      document.body.style.overscrollBehavior = 'none'
+      document.documentElement.style.overscrollBehavior = 'none'
+    } else {
+      document.body.style.overscrollBehavior = 'auto'
+      document.documentElement.style.overscrollBehavior = 'auto'
+    }
 
     return () => {
-      document.body.style.overscrollBehavior = prevBodyOverscroll
-      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+      document.body.style.overscrollBehavior = 'auto'
+      document.documentElement.style.overscrollBehavior = 'auto'
     }
-  }, [card])
+  }, [Boolean(card)])
 
   // Fetch personal note when card changes
   useEffect(() => {

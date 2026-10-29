@@ -717,6 +717,16 @@ export default function FlashcardPlay() {
     }
   }, [isFlipped, currentIndex, currentQuestion?.id, effectiveShowFsrs])
 
+  // Ensure native pull-to-refresh works freely on mobile browsers when quick settings/modals are closed
+  useEffect(() => {
+    document.body.style.overscrollBehavior = 'auto'
+    document.documentElement.style.overscrollBehavior = 'auto'
+    return () => {
+      document.body.style.overscrollBehavior = 'auto'
+      document.documentElement.style.overscrollBehavior = 'auto'
+    }
+  }, [])
+
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isSelectMode) return;
     const touch = e.touches[0];
@@ -3588,7 +3598,7 @@ export default function FlashcardPlay() {
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
   return (
-    <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
+    <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative touch-pan-y">
       <FloatingToasts
         badgeVisible={badgeVisible}
         selectedOption={selectedOption}
@@ -3849,7 +3859,7 @@ export default function FlashcardPlay() {
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
 
-      <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
+      <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden touch-pan-y">
         <FlashcardDesktopLeftAside
           showFeedback={showFeedback || isFeedbackOpen}
           activeFeedbackTab={activeFeedbackTab}
@@ -3910,8 +3920,8 @@ export default function FlashcardPlay() {
           setMobileMapFilterMode={setMobileMapFilterMode}
         />
 
-        <div className="w-full max-w-4xl min-w-0 flex flex-col min-h-0 overflow-hidden h-full">
-          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0 min-h-0">
+        <div className="w-full max-w-4xl min-w-0 flex flex-col min-h-0 overflow-hidden h-full touch-pan-y">
+          <div className="flex-1 flex flex-col overflow-hidden md:pr-2 md:pb-2 pr-0 pb-0 xl:pb-0 min-h-0 touch-pan-y">
             
 
           <AnimatePresence initial={false}>
@@ -3980,7 +3990,8 @@ export default function FlashcardPlay() {
                   setShowAbsoluteFirst={setShowAbsoluteFirst}
                   showAbsoluteLast={showAbsoluteLast}
                   setShowAbsoluteLast={setShowAbsoluteLast}
-                  renderFlyToolbarNode={renderFlyToolbar}
+                  renderFlyToolbarNode={undefined}
+                  hideFlyToolbar={showActionDock}
                   activeMode={effectiveCardMode}
                   handleNext={handleNext}
                   handleOpenCardHub={handleOpenCardHub}
@@ -4022,6 +4033,7 @@ export default function FlashcardPlay() {
         practiceNeedsSetup={practiceNeedsSetup}
         practiceAnswers={practiceAnswers}
         currentIndex={currentIndex}
+        totalCards={session?.questions?.length || 0}
         activeBottomTab={activeBottomTab}
         isFeedbackOpen={isFeedbackOpen}
         showingHint={showingHint}
@@ -4057,6 +4069,9 @@ export default function FlashcardPlay() {
         }}
         onOpenQuickSettings={() => {
           setIsFlyToolbarOpen(true);
+        }}
+        onOpenInsights={() => {
+          handleOpenCardHub('insight');
         }}
         onTriggerPlayAudio={() => {
           const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');

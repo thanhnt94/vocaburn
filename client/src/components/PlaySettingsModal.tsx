@@ -158,15 +158,17 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 
   // Prevent mobile browser pull-to-refresh while settings modal is open
   useEffect(() => {
-    if (!isOpen) return
-    const prevBodyOverscroll = document.body.style.overscrollBehavior
-    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
-    document.body.style.overscrollBehavior = 'none'
-    document.documentElement.style.overscrollBehavior = 'none'
+    if (isOpen) {
+      document.body.style.overscrollBehavior = 'none'
+      document.documentElement.style.overscrollBehavior = 'none'
+    } else {
+      document.body.style.overscrollBehavior = 'auto'
+      document.documentElement.style.overscrollBehavior = 'auto'
+    }
 
     return () => {
-      document.body.style.overscrollBehavior = prevBodyOverscroll
-      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+      document.body.style.overscrollBehavior = 'auto'
+      document.documentElement.style.overscrollBehavior = 'auto'
     }
   }, [isOpen])
 

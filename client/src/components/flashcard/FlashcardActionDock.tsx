@@ -1,5 +1,24 @@
 import React, { useRef } from 'react'
-import { ChevronRight, LayoutGrid, BookOpen, TrendingUp, Undo2, X, Sparkles, Play, Pause, SkipBack, SkipForward, RotateCw, RotateCcw, Volume2, Sliders, RefreshCw } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  BookOpen,
+  TrendingUp,
+  Undo2,
+  X,
+  Sparkles,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  RotateCw,
+  RotateCcw,
+  Volume2,
+  Sliders,
+  RefreshCw,
+  Lightbulb
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -9,6 +28,7 @@ export interface FlashcardActionDockProps {
   practiceNeedsSetup: boolean
   practiceAnswers: Record<number, any>
   currentIndex: number
+  totalCards?: number
   activeBottomTab: 'map' | 'flashcard' | 'stats'
   isFeedbackOpen: boolean
   showingHint: boolean
@@ -33,6 +53,7 @@ export interface FlashcardActionDockProps {
   onOpenFlashcard: () => void
   onOpenStats: () => void
   onOpenQuickSettings?: () => void
+  onOpenInsights?: () => void
   onTriggerPlayAudio?: () => void
   isLoadingAudio?: boolean
   isPlayingAudio?: boolean
@@ -45,6 +66,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   practiceNeedsSetup,
   practiceAnswers,
   currentIndex,
+  totalCards,
   activeBottomTab,
   isFeedbackOpen,
   showingHint,
@@ -68,6 +90,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   onOpenFlashcard,
   onOpenStats,
   onOpenQuickSettings,
+  onOpenInsights,
   onTriggerPlayAudio,
   isLoadingAudio = false,
   isPlayingAudio = false,
@@ -101,11 +124,13 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   if (shouldShowFsrsCompleteScreen) return null
   if (mainTab === 'practice' && practiceNeedsSetup) return null
 
+  const isSkimOrFlipMode = activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip'
+
   const hasActionButtons = Boolean(
     showActionDock && (
       mainTab === 'practice' ||
       activeMode === 'autoplay' ||
-      activeMode === 'flip' ||
+      isSkimOrFlipMode ||
       !isFlipped ||
       (isFlipped && !hasRated && activeMode !== 'autoplay') ||
       (isFlipped && hasRated && activeMode !== 'autoplay')
@@ -270,8 +295,124 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   </div>
                 </div>
+              ) : isSkimOrFlipMode ? (
+                /* ─── SKIM / FLIP DOCKED NAVIGATION BAR (Audio, Insights, Settings | Prev, Flip, Next) ─── */
+                <div className="w-full flex items-center justify-between gap-1.5 sm:gap-2 h-11 sm:h-12">
+                  {/* 1. Audio Button */}
+                  {onTriggerPlayAudio && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onTriggerPlayAudio()
+                      }}
+                      className={cn(
+                        "w-10 sm:w-11 h-full rounded-2xl border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs",
+                        isPlayingAudio
+                          ? "bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 animate-pulse"
+                          : isLoadingAudio
+                          ? "bg-indigo-100 text-indigo-700 border-indigo-200 animate-pulse"
+                          : "bg-white hover:bg-indigo-50 text-indigo-600 border-slate-200/80"
+                      )}
+                      title="Play Pronunciation (Audio)"
+                    >
+                      {isLoadingAudio ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                      ) : (
+                        <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
+                      )}
+                    </button>
+                  )}
+
+                  {/* 2. Lightbulb (Insights / Card Explanation) */}
+                  {onOpenInsights && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenInsights()
+                      }}
+                      className="w-10 sm:w-11 h-full rounded-2xl bg-white hover:bg-amber-50 text-amber-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
+                      title="Card Insights & AI Explanation"
+                    >
+                      <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+                    </button>
+                  )}
+
+                  {/* 3. Quick Settings Button */}
+                  {onOpenQuickSettings && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenQuickSettings()
+                      }}
+                      className="w-10 sm:w-11 h-full rounded-2xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
+                      title="Quick Settings"
+                    >
+                      <Sliders className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Vertical Divider */}
+                  <div className="w-[1.5px] h-6 bg-slate-200/80 shrink-0 mx-0.5" />
+
+                  {/* 4. Prev Card */}
+                  <button
+                    type="button"
+                    disabled={currentIndex === 0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onPrevCard?.()
+                    }}
+                    className={cn(
+                      "w-10 sm:w-11 h-full rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 border shadow-2xs",
+                      currentIndex === 0
+                        ? "opacity-30 cursor-not-allowed bg-slate-50 border-slate-200/50 text-slate-400"
+                        : "bg-slate-100/90 hover:bg-slate-200 border-slate-200/80 text-slate-700 hover:text-slate-900"
+                    )}
+                    title="Previous Card"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  {/* 5. Flip Card (Icon Only - RotateCw without raw text) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsFlipped(!isFlipped)
+                      setJustAnswered(true)
+                    }}
+                    className={cn(
+                      "w-10 sm:w-11 h-full rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shrink-0 border shadow-2xs",
+                      isFlipped
+                        ? "bg-amber-50 border-amber-300 text-amber-600 ring-2 ring-amber-200/60"
+                        : "bg-slate-100/90 hover:bg-amber-50 border-slate-200/80 text-slate-700 hover:text-amber-600 hover:border-amber-200"
+                    )}
+                    title={isFlipped ? "Flip to front side" : "Flip to back side"}
+                  >
+                    <RotateCw className={cn("w-5 h-5 transition-transform duration-300", isFlipped && "rotate-180 text-amber-600")} />
+                  </button>
+
+                  {/* 6. Next Card */}
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="flex-1 h-full rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/25 active:scale-95 transition-all duration-200 cursor-pointer"
+                    title="Next Card"
+                  >
+                    <span>Next</span>
+                    {totalCards ? (
+                      <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono font-bold leading-none">
+                        {currentIndex + 1}/{totalCards}
+                      </span>
+                    ) : null}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               ) : !isFlipped ? (
-                /* ── FRONT FACE: FLIP CARD CTA BUTTON + AUDIO / QUICK SETTINGS ── */
+                /* ─── FRONT FACE (FSRS): FLIP CARD CTA BUTTON + AUDIO / LIGHTBULB / SETTINGS ─── */
                 <div className="w-full flex items-center gap-2 h-12 sm:h-13">
                   {/* Audio Button */}
                   {onTriggerPlayAudio && (
@@ -299,6 +440,21 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
+                  {/* Lightbulb (Insights / Card Explanation) */}
+                  {onOpenInsights && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenInsights();
+                      }}
+                      className="h-full px-3 sm:px-3.5 rounded-2xl bg-white hover:bg-amber-50 text-amber-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
+                      title="Card Insights & Explanation"
+                    >
+                      <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+                    </button>
+                  )}
+
                   {/* Quick Settings Button */}
                   {onOpenQuickSettings && (
                     <button
@@ -320,19 +476,14 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                       setIsFlipped(true);
                       setJustAnswered(true);
                     }}
-                    className={cn(
-                      "flex-1 h-full font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white",
-                      activeMode === 'speed_skim' || activeMode === 'skim'
-                        ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
-                        : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-300/50 hover:shadow-indigo-400/60"
-                    )}
+                    className="flex-1 h-full font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer text-white bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-300/50 hover:shadow-indigo-400/60"
                   >
-                    <span>{activeMode === 'speed_skim' || activeMode === 'skim' ? '⚡ SKIM / FLIP' : 'FLIP CARD'}</span>
+                    <span>FLIP CARD</span>
                     <kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space</kbd>
                     <ChevronRight className="w-4 h-4 rotate-90" />
                   </button>
                 </div>
-              ) : !hasRated && activeMode !== 'flip' && activeMode !== 'speed_skim' && activeMode !== 'skim' && activeMode !== 'autoplay' ? (
+              ) : !hasRated && activeMode !== 'autoplay' ? (
                 /* ── BACK FACE: UNRATED (4 FSRS BUTTONS) ── */
                 <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full">
 
@@ -397,7 +548,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                   </button>
                 </div>
               ) : (
-                /* ── BACK FACE: RATED (OR FLIP / SPEED_SKIM MODE FLIPPED) ── */
+                /* ── BACK FACE: RATED (SHOW NEXT CARD + AUDIO + LIGHTBULB + SETTINGS) ── */
                 <div className="w-full flex items-center gap-2 h-12 sm:h-13">
                   {/* Audio Button */}
                   {onTriggerPlayAudio && (
@@ -417,6 +568,21 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
+                  {/* Lightbulb (Insights / Card Explanation) */}
+                  {onOpenInsights && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenInsights();
+                      }}
+                      className="h-full px-3 sm:px-3.5 rounded-2xl bg-white hover:bg-amber-50 text-amber-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
+                      title="Card Insights & Explanation"
+                    >
+                      <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+                    </button>
+                  )}
+
                   {/* Quick Settings Button */}
                   {onOpenQuickSettings && (
                     <button
@@ -432,8 +598,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
-                  {/* If card was rated, show Undo ONLY (icon-only, DO NOT show duplicate Back button) */}
-                  {activelyRatedCurrentCard && hasRated ? (
+                  {/* If card was rated, show Undo ONLY */}
+                  {activelyRatedCurrentCard && hasRated && (
                     <button
                       onClick={handleUndoRating}
                       className="h-full px-3 sm:px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
@@ -442,30 +608,15 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     >
                       <Undo2 className="w-4 h-4 text-slate-600" />
                     </button>
-                  ) : (
-                    /* Flip Back button (only shown when unrated in skim/flip mode) */
-                    <button
-                      onClick={() => setIsFlipped(false)}
-                      className="h-full px-3 sm:px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer shrink-0"
-                      title="Flip Back to Front"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-xs">Front</span>
-                    </button>
                   )}
 
                   {/* NEXT CARD button */}
                   <button 
                     onClick={handleNext}
-                    className={cn(
-                      "flex-1 h-full text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer",
-                      activeMode === 'speed_skim' || activeMode === 'skim'
-                        ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 shadow-amber-300/50 hover:shadow-amber-400/60"
-                        : "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-300/50 hover:shadow-emerald-400/60"
-                    )}
+                    className="flex-1 h-full text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-xl cursor-pointer bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-300/50 hover:shadow-emerald-400/60"
                   >
-                    <span>{activeMode === 'speed_skim' || activeMode === 'skim' ? '⚡ NEXT CARD' : 'NEXT CARD'}</span>
-                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                    <span>NEXT CARD</span>
+                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ➔</kbd>
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
