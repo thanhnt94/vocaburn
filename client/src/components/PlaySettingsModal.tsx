@@ -33,6 +33,7 @@ import {
   SegmentedControl,
   ToggleRow,
   getFrontFontSizeStyle,
+  getBackFontSizeStyle,
 } from '@/components/common/study'
 
 export type PlaySettingsTab = 'mode' | 'gestures' | 'display' | 'audio'
@@ -710,7 +711,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
                       <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center overflow-hidden min-h-[50px]">
                         <span
                           className="font-bold text-slate-700 tracking-tight transition-all duration-150 truncate max-w-full text-center"
-                          style={{ fontSize: getFrontFontSizeStyle(backFontSize || '100%') }}
+                          style={{ fontSize: getBackFontSizeStyle(backFontSize || '100%') }}
                         >
                           Definition & Meaning
                         </span>

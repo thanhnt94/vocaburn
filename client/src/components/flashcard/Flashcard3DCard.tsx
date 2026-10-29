@@ -15,7 +15,7 @@ import {
   getFSRSIntervals
 } from '@/lib/flashcard-utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
-import { getFrontFontSizeStyle } from '@/components/common/study'
+import { getFrontFontSizeStyle, getBackFontSizeStyle } from '@/components/common/study'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
 
@@ -563,7 +563,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                     )}
                     style={{
                       textAlign: backHalign === 'center' ? 'center' : 'left',
-                      fontSize: getFrontFontSizeStyle(backFontSize || frontFontSize || '100%')
+                      fontSize: getBackFontSizeStyle(backFontSize || '100%')
                     }}
                   >
                     <ReactMarkdown 
@@ -624,7 +624,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                       )}
                       style={{
                         textAlign: backHalign === 'center' ? 'center' : 'left',
-                        fontSize: `calc(${getFrontFontSizeStyle(backFontSize || frontFontSize || '100%')} * 0.85)`
+                        fontSize: `calc(${getBackFontSizeStyle(backFontSize || '100%')} * 0.9)`
                       }}
                     >
                       <ReactMarkdown 

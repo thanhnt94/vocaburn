@@ -29,6 +29,7 @@ export interface PracticeTypingCardProps {
   showImages?: string | boolean
   autoFocus?: boolean
   hideInlineSubmit?: boolean
+  hideHeaderActions?: boolean
 }
 
 export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
@@ -50,7 +51,8 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   frontFontSize = 'M',
   showImages = 'always',
   autoFocus = false,
-  hideInlineSubmit = false
+  hideInlineSubmit = false,
+  hideHeaderActions = false
 }) => {
   const { question, correct_answer, question_key, answer_key } = practiceData
   const inputRef = useRef<HTMLInputElement>(null)
@@ -139,7 +141,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
         {/* Right Action Icons */}
         <div className="flex items-center gap-1">
-          {onPreviewInsight && currentQuestion && (
+          {!hideHeaderActions && onPreviewInsight && currentQuestion && (
             <button
               type="button"
               onClick={(e) => {
@@ -153,7 +155,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
             </button>
           )}
 
-          {onPlayAudio && (
+          {!hideHeaderActions && onPlayAudio && (
             <button
               type="button"
               onClick={(e) => {

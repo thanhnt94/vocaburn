@@ -26,6 +26,7 @@ export interface PracticeMcqCardProps {
   onZoomImage?: (url: string) => void
   frontFontSize?: string
   showImages?: string | boolean
+  hideHeaderActions?: boolean
 }
 
 const getVal = (card: any, key: string) => {
@@ -49,7 +50,8 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
   onNext,
   onZoomImage,
   frontFontSize = 'M',
-  showImages = 'always'
+  showImages = 'always',
+  hideHeaderActions = false
 }) => {
   const { question, choices, choice_item_ids, correct_index, question_key, answer_key } = practiceData
 
@@ -111,7 +113,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
-          {onPreviewInsight && currentQuestion && (
+          {!hideHeaderActions && onPreviewInsight && currentQuestion && (
             <button
               type="button"
               onClick={(e) => {
@@ -125,7 +127,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
             </button>
           )}
 
-          {onPlayAudio && (
+          {!hideHeaderActions && onPlayAudio && (
             <button
               type="button"
               onClick={(e) => {

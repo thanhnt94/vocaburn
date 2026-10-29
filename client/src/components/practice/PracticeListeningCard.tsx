@@ -28,6 +28,7 @@ export interface PracticeListeningCardProps {
   onNext?: () => void
   onZoomImage?: (url: string) => void
   frontFontSize?: string
+  hideHeaderActions?: boolean
 }
 
 export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
@@ -50,7 +51,8 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
   onPlayAudio,
   onNext,
   onZoomImage,
-  frontFontSize = 'M'
+  frontFontSize = 'M',
+  hideHeaderActions = false
 }) => {
   const { question, correct_answer, choices, correct_index, question_key, answer_key, choice_item_ids } = practiceData
   const [isPlaying, setIsPlaying] = useState(false)
@@ -132,7 +134,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
-          {onPreviewInsight && currentQuestion && (
+          {!hideHeaderActions && onPreviewInsight && currentQuestion && (
             <button
               type="button"
               onClick={(e) => {

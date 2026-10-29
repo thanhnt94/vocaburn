@@ -328,6 +328,26 @@ export function getFrontFontSizeStyle(scale?: string | number): string {
   return `calc(clamp(1.75rem, 4.5vw, 2.25rem) * ${ratio})`
 }
 
+/** Calculate responsive clamped font size for card back side (definitions, explanations, sentences) */
+export function getBackFontSizeStyle(scale?: string | number): string {
+  if (!scale) return 'clamp(1rem, 2.5vw, 1.25rem)'
+  const str = String(scale).trim().toLowerCase()
+  let percent = 100
+  if (str === 'compact' || str === 'small' || str === 's') percent = 85
+  else if (str === 'normal' || str === 'default' || str === 'm') percent = 100
+  else if (str === 'large' || str === 'l') percent = 125
+  else if (str === 'xlarge' || str === 'xl') percent = 150
+  else if (str === 'huge') percent = 175
+  else if (str === 'massive' || str === 'max') percent = 200
+  else {
+    const num = parseFloat(str.replace('%', ''))
+    if (!isNaN(num) && num > 0) percent = num
+  }
+  const ratio = Math.max(0.5, Math.min(2.5, percent / 100))
+  if (ratio === 1) return 'clamp(1rem, 2.5vw, 1.25rem)'
+  return `calc(clamp(1rem, 2.5vw, 1.25rem) * ${ratio})`
+}
+
 /** Merge partial settings onto defaults */
 export function resolveStudySettings(partial: Partial<StudySettings>): StudySettings {
   return { ...DEFAULT_STUDY_SETTINGS, ...partial }

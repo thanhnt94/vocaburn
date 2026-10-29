@@ -596,27 +596,51 @@ export const HybridQuickControlsSheet: React.FC<HybridQuickControlsSheetProps> =
                   </div>
                 </div>
 
-                {/* Font Size Scale */}
-                <div className="flex flex-col gap-1.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      <Type className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Font Size Scale</span>
-                    </span>
-                    <span className="text-[10px] font-bold text-indigo-600">
-                      {frontFontSize || '100%'}
-                    </span>
+                {/* Front & Back Font Size Scale */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* Front Font Size */}
+                  <div className="flex flex-col gap-1.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Type className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>Front Font Size</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-indigo-600">
+                        {frontFontSize || '100%'}
+                      </span>
+                    </div>
+                    <SegmentedControl<string>
+                      value={frontFontSize || '100%'}
+                      onChange={(val) => {
+                        setFrontFontSize(val)
+                        showLocalToast?.(`Front font size: ${val}`, 'info')
+                      }}
+                      options={FONT_SIZE_OPTIONS}
+                      compact
+                    />
                   </div>
-                  <SegmentedControl<string>
-                    value={frontFontSize || '100%'}
-                    onChange={(val) => {
-                      setFrontFontSize(val)
-                      setBackFontSize(val)
-                      showLocalToast?.(`Font size: ${val}`, 'info')
-                    }}
-                    options={FONT_SIZE_OPTIONS}
-                    compact
-                  />
+
+                  {/* Back Font Size */}
+                  <div className="flex flex-col gap-1.5 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/70">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Type className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Back Font Size</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-600">
+                        {backFontSize || '100%'}
+                      </span>
+                    </div>
+                    <SegmentedControl<string>
+                      value={backFontSize || '100%'}
+                      onChange={(val) => {
+                        setBackFontSize(val)
+                        showLocalToast?.(`Back font size: ${val}`, 'info')
+                      }}
+                      options={FONT_SIZE_OPTIONS}
+                      compact
+                    />
+                  </div>
                 </div>
 
                 {/* Autoplay Audio */}

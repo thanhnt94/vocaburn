@@ -1442,6 +1442,7 @@ export default function HybridPlay() {
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                     frontFontSize={playSettings.frontFontSize}
                     showImages={playSettings.showImages}
+                    hideHeaderActions={true}
                   />
                 )}
 
@@ -1463,6 +1464,7 @@ export default function HybridPlay() {
                     showImages={playSettings.showImages}
                     autoFocus={false}
                     hideInlineSubmit={true}
+                    hideHeaderActions={true}
                   />
                 )}
 
@@ -1479,6 +1481,7 @@ export default function HybridPlay() {
                     onSelectOption={handleSelectOption}
                     onPreviewInsight={(card) => setPreviewInsightCard(card || drillActiveCard)}
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
+                    hideHeaderActions={true}
                   />
                 )}
               </div>
