@@ -316,6 +316,7 @@ SYSTEM_STUDY_DEFAULTS = {
     "front_font_size": "100%",      # '85%' | '100%' | '125%' | '150%' | '175%' | '200%'
     "back_valign": "center",        # 'center' | 'top'
     "back_halign": "left",          # 'left' | 'center'
+    "back_font_size": "100%",       # '85%' | '100%' | '125%' | '150%' | '175%' | '200%'
     "random_enabled": False,        # boolean
     "sfx_enabled": True,            # boolean
     "haptic_enabled": True,         # boolean
@@ -325,7 +326,9 @@ SYSTEM_STUDY_DEFAULTS = {
     "card_flip_trigger": "both",    # 'both' | 'tap' | 'button_only'
     "card_rating_mode": "both",     # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
     "show_action_dock": True,       # boolean
-    "swipe_to_rate": True           # boolean
+    "swipe_to_rate": True,          # boolean
+    "audio_speed": 1.0,             # float
+    "flip_sides": False             # boolean
 }
 
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())

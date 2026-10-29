@@ -1398,59 +1398,7 @@ export default function HybridPlay() {
                 setShowAbsoluteFirst={() => {}}
                 showAbsoluteLast={false}
                 setShowAbsoluteLast={() => {}}
-                renderFlyToolbarNode={() => (
-                  <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const targetFace = isFlipped ? 'back' : 'front';
-                        playCardAudio(targetFace);
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-                        isPlayingAudio
-                          ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
-                          : isLoadingAudio
-                          ? "bg-indigo-100 text-indigo-700 animate-pulse"
-                          : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
-                      )}
-                      title="Play Pronunciation (Audio)"
-                    >
-                      {isLoadingAudio ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      ) : (
-                        <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewInsightCard(currentSkimQuestion);
-                      }}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
-                      title="View Card Insights & Explanation"
-                    >
-                      <Lightbulb className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                    </button>
-
-                    <div className="w-[1px] h-3 bg-slate-200/80" />
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsSettingsOpen(true);
-                      }}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
-                      title="Quick Controls & Settings"
-                    >
-                      <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                )}
+                renderFlyToolbarNode={undefined}
                 setIsFlyToolbarOpen={() => {}}
                 setShowFeedback={() => {}}
                 setJustAnswered={() => {}}
@@ -1527,6 +1475,7 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onSelectOption={handleSelectOption}
+                    onPreviewInsight={(card) => setPreviewInsightCard(card || drillActiveCard)}
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                   />
                 )}
@@ -1627,12 +1576,56 @@ export default function HybridPlay() {
         <footer
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg relative touch-pan-x"
+          className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-3 sm:px-4 shadow-lg relative touch-pan-x"
         >
           {/* Pull up indicator for Quick Settings */}
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300 pointer-events-none" />
 
-          <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
+          <div className="max-w-xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+            {/* Quick Actions Cluster: Audio + Insight + Settings */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const targetFace = isFlipped ? 'back' : 'front'
+                  playCardAudio(targetFace)
+                }}
+                className={cn(
+                  "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs",
+                  isPlayingAudio
+                    ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
+                    : isLoadingAudio
+                    ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                    : "bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200/60"
+                )}
+                title="Play Audio (Pronunciation)"
+              >
+                {isLoadingAudio ? (
+                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                ) : (
+                  <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewInsightCard(currentSkimQuestion)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/60 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs"
+                title="Card Insights & Explanation (Lightbulb)"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/60 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs"
+                title="Quick Controls & Settings"
+              >
+                <Sliders className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
             {/* Prev Skim Card */}
             <button
               type="button"
@@ -1643,10 +1636,11 @@ export default function HybridPlay() {
                   setIsFlipped(false)
                 }
               }}
-              className="py-2.5 px-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-black text-xs flex items-center gap-1 transition-all cursor-pointer"
+              className="py-2.5 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700 font-black text-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+              title="Previous Card"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span className="hidden sm:inline">Back</span>
             </button>
 
             {/* Flip / Reveal Toggle */}
@@ -1656,10 +1650,10 @@ export default function HybridPlay() {
                 setIsFlipped(prev => !prev)
                 playSfx('flip')
               }}
-              className="flex-1 py-2.5 px-4 rounded-2xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-black text-xs flex items-center justify-center gap-1.5 border border-slate-200/80 transition-all cursor-pointer active:scale-95"
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-black text-xs flex items-center justify-center gap-1.5 border border-slate-200/80 transition-all cursor-pointer active:scale-95"
             >
               <RefreshCw className={cn("w-4 h-4 transition-transform", isFlipped && "rotate-180 text-rose-600")} />
-              <span>{isFlipped ? 'Show Front' : 'Flip / Reveal'}</span>
+              <span>{isFlipped ? 'Show Front' : 'Flip'}</span>
             </button>
 
             {/* Next Card or Start Drill */}
@@ -1670,7 +1664,7 @@ export default function HybridPlay() {
                   setSkimCardIndex(prev => prev + 1)
                   setIsFlipped(false)
                 }}
-                className="py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-rose-200 transition-all cursor-pointer active:scale-95"
+                className="py-2.5 px-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-rose-200 transition-all cursor-pointer active:scale-95 shrink-0"
               >
                 <span>Next ({skimCardIndex + 2}/{currentBatch.length})</span>
                 <ChevronRight className="w-4 h-4" />
@@ -1679,9 +1673,9 @@ export default function HybridPlay() {
               <button
                 type="button"
                 onClick={startBatchDrill}
-                className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-rose-300 transition-all cursor-pointer animate-pulse active:scale-95"
+                className="py-2.5 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-rose-300 transition-all cursor-pointer animate-pulse active:scale-95 shrink-0"
               >
-                <span>Start Drill</span>
+                <span>Drill</span>
                 <Target className="w-4 h-4" />
               </button>
             )}
@@ -1693,20 +1687,63 @@ export default function HybridPlay() {
         <footer
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-4 shadow-lg relative touch-pan-x"
+          className="shrink-0 z-[110] bg-white/95 backdrop-blur-xl border-t border-rose-100/70 py-2.5 px-3 sm:px-4 shadow-lg relative touch-pan-x"
         >
           {/* Pull up indicator for Quick Settings */}
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300 pointer-events-none" />
-          <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
-            <span className="text-[11px] font-black text-slate-400">
-              Drill Mode: <span className="uppercase text-slate-700">{drillSubMode}</span>
-            </span>
+          <div className="max-w-xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+            {/* Quick Actions Cluster: Audio + Insight + Settings */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const targetAudioCol = currentPracticeData?.audio_col || 'front'
+                  playCardAudio(targetAudioCol)
+                }}
+                className={cn(
+                  "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs",
+                  isPlayingAudio
+                    ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
+                    : isLoadingAudio
+                    ? "bg-indigo-100 text-indigo-700 animate-pulse"
+                    : "bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200/60"
+                )}
+                title="Play Audio (Pronunciation)"
+              >
+                {isLoadingAudio ? (
+                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                ) : (
+                  <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
+                )}
+              </button>
 
+              <button
+                type="button"
+                onClick={() => {
+                  if (drillActiveCard) setPreviewInsightCard(drillActiveCard)
+                }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/60 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs"
+                title="Card Insights & Explanation (Lightbulb)"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/60 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs"
+                title="Quick Controls & Settings"
+              >
+                <Sliders className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Right: Actions depending on sub-mode & state */}
             {answered ? (
               <button
                 type="button"
                 onClick={handleAdvanceDrill}
-                className="py-3 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-rose-200 active:scale-95 transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-200 active:scale-95 transition-all cursor-pointer animate-pulse"
               >
                 <span>Next Recall Card</span>
                 <ArrowRight className="w-4 h-4" />
@@ -1715,12 +1752,18 @@ export default function HybridPlay() {
               <button
                 type="button"
                 onClick={handleCheckTyping}
-                className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-indigo-200 active:scale-95 transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-200 active:scale-95 transition-all cursor-pointer"
               >
-                <span>Submit</span>
+                <span>Submit Answer</span>
                 <Check className="w-4 h-4" />
               </button>
-            ) : null}
+            ) : (
+              <div className="flex-1 flex justify-end items-center pr-2">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 px-2.5 py-1 rounded-xl">
+                  {drillSubMode === 'listening' ? '🎧 Listening' : '🎯 MCQ Recall'}
+                </span>
+              </div>
+            )}
           </div>
         </footer>
       )}

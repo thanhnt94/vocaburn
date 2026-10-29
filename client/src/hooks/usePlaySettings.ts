@@ -269,6 +269,8 @@ export function usePlaySettings(
     if (updates.front_halign !== undefined) setFrontHalignState(updates.front_halign)
     if (updates.front_font_size !== undefined) setFrontFontSizeState(updates.front_font_size)
     if (updates.back_valign !== undefined) setBackValignState(updates.back_valign)
+    if (updates.back_halign !== undefined) setBackHalignState(updates.back_halign)
+    if (updates.back_font_size !== undefined) setBackFontSizeState(updates.back_font_size)
     if (updates.card_flip_trigger !== undefined) setCardFlipTriggerState(updates.card_flip_trigger)
     if (updates.card_rating_mode !== undefined) {
       setCardRatingModeState(updates.card_rating_mode)
