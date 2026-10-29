@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -138,6 +138,7 @@ export default function HybridPlay() {
   const [session, setSession] = useState<any>(null)
   const [deckPracticeSettings, setDeckPracticeSettings] = useState<any>(null)
   const [rawQuestions, setRawQuestions] = useState<Question[]>([])
+  const [scopedQuestions, setScopedQuestions] = useState<Question[]>([])
   const [masteredCardIds, setMasteredCardIds] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
 
@@ -153,9 +154,8 @@ export default function HybridPlay() {
   // ── Batch & Workflow Stages ──
   // 'skim': Preview batch of cards at skim level (no rating pressure)
   // 'drill': Practice drill for the batch until all cards reach required_correct count
-  // 'batch_summary': Brief celebration when batch completes before next batch
   // 'complete': Entire deck completed
-  const [stage, setStage] = useState<'skim' | 'drill' | 'batch_summary' | 'complete'>('skim')
+  const [stage, setStage] = useState<'skim' | 'drill' | 'complete'>('skim')
 
   // Batches
   const [currentBatchIndex, setCurrentBatchIndex] = useState(0)
@@ -206,42 +206,29 @@ export default function HybridPlay() {
     }
   }, [])
 
-  // Filtered Cards according to Scope & Order
-  const scopedQuestions: Question[] = useMemo(() => {
-    if (!rawQuestions || rawQuestions.length === 0) return []
-    let filtered = filterCardsByScope(
-      rawQuestions,
-      hybridSettings.scope,
-      hybridSettings.required_correct,
-      masteredCardIds
-    )
-
-    // Fail-Safe: If selected scope yielded 0 cards but deck has cards, fallback to 'all' so study never breaks
-    if (filtered.length === 0 && rawQuestions.length > 0 && hybridSettings.scope !== 'all') {
-      filtered = filterCardsByScope(
-        rawQuestions,
-        'all',
-        hybridSettings.required_correct,
-        masteredCardIds
-      )
+  // ── Persist Session Progress to Backend (Zero localStorage) ──
+  const saveHybridProgress = useCallback(async (batchIdx: number, customQuestions?: Question[]) => {
+    try {
+      const qList = customQuestions || scopedQuestions
+      if (!id || !qList || qList.length === 0) return
+      await axios.post(`/api/v1/deck/${id}/practice-settings`, {
+        is_creator: false,
+        settings: {
+          hybrid_progress: {
+            batch_index: batchIdx,
+            card_ids: qList.map(q => q.id),
+            order: hybridSettings.order,
+            scope: hybridSettings.scope,
+            updated_at: Date.now()
+          }
+        }
+      })
+    } catch (e) {
+      console.warn('Failed to save hybrid progress', e)
     }
+  }, [id, scopedQuestions, hybridSettings.order, hybridSettings.scope])
 
-    if (filtered.length === 0 && rawQuestions.length > 0) {
-      filtered = rawQuestions
-    }
-
-    if (hybridSettings.order === 'random') {
-      const copy = [...filtered]
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
-      return copy
-    }
-    return filtered
-  }, [rawQuestions, hybridSettings.scope, hybridSettings.order, hybridSettings.required_correct, masteredCardIds])
-
-  // Split scoped questions into batches
+  // Split scoped questions into stable batches
   const batches: Question[][] = useMemo(() => {
     if (!scopedQuestions || scopedQuestions.length === 0) return []
     const bSize = Math.max(1, hybridSettings.batch_size)
@@ -417,18 +404,75 @@ export default function HybridPlay() {
         }
         setHybridSettings(mergedSettings)
 
-        // Smart Sequential Cursor: automatically position at first unmastered card batch
-        if (mergedSettings.order === 'sequential') {
-          const filtered = filterCardsByScope(questions, mergedSettings.scope, mergedSettings.required_correct, preMastered)
-          const smartIdx = findSmartSequentialIndex(filtered, mergedSettings.required_correct, preMastered)
-          const bSize = Math.max(1, mergedSettings.batch_size)
-          const targetBatchIdx = Math.floor(smartIdx / bSize)
-          const totalB = Math.ceil(filtered.length / bSize)
-          if (targetBatchIdx < totalB) {
-            setCurrentBatchIndex(targetBatchIdx)
-            setSkimCardIndex(0)
-          }
+        // ── Card Order & Session Questions Initialization ──
+        let initialFiltered = filterCardsByScope(questions, mergedSettings.scope, mergedSettings.required_correct, preMastered)
+        if (initialFiltered.length === 0 && questions.length > 0 && mergedSettings.scope !== 'all') {
+          initialFiltered = filterCardsByScope(questions, 'all', mergedSettings.required_correct, preMastered)
         }
+        if (initialFiltered.length === 0 && questions.length > 0) {
+          initialFiltered = questions
+        }
+
+        const savedProgress = userPracticeSettings?.hybrid_progress
+        let finalQuestions: Question[] = []
+        let initialBatchIdx = 0
+        const bSize = Math.max(1, mergedSettings.batch_size)
+
+        // Check if saved progress matches current scope and order
+        if (
+          savedProgress &&
+          Array.isArray(savedProgress.card_ids) &&
+          savedProgress.card_ids.length > 0 &&
+          savedProgress.scope === mergedSettings.scope &&
+          savedProgress.order === mergedSettings.order
+        ) {
+          // Restore exact card sequence across reloads
+          const cardMap = new Map(initialFiltered.map(c => [c.id, c]))
+          const restored = savedProgress.card_ids.map((cid: number) => cardMap.get(cid)).filter(Boolean) as Question[]
+          const restoredIdSet = new Set(restored.map(c => c.id))
+          const missing = initialFiltered.filter(c => !restoredIdSet.has(c.id))
+          finalQuestions = [...restored, ...missing]
+
+          const maxBatches = Math.ceil(finalQuestions.length / bSize)
+          const savedIdx = Number(savedProgress.batch_index) || 0
+          initialBatchIdx = (savedIdx >= 0 && savedIdx < maxBatches) ? savedIdx : 0
+        } else {
+          // Fresh order
+          if (mergedSettings.order === 'random') {
+            const copy = [...initialFiltered]
+            for (let i = copy.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            finalQuestions = copy
+            initialBatchIdx = 0
+          } else {
+            finalQuestions = initialFiltered
+            // Smart Sequential Cursor: position at first unmastered card batch
+            const smartIdx = findSmartSequentialIndex(finalQuestions, mergedSettings.required_correct, preMastered)
+            const targetBatchIdx = Math.floor(smartIdx / bSize)
+            const maxBatches = Math.ceil(finalQuestions.length / bSize)
+            initialBatchIdx = targetBatchIdx < maxBatches ? targetBatchIdx : 0
+          }
+
+          // Persist initial session progress to backend for seamless reload support
+          axios.post(`/api/v1/deck/${id}/practice-settings`, {
+            is_creator: false,
+            settings: {
+              hybrid_progress: {
+                batch_index: initialBatchIdx,
+                card_ids: finalQuestions.map(q => q.id),
+                order: mergedSettings.order,
+                scope: mergedSettings.scope,
+                updated_at: Date.now()
+              }
+            }
+          }).catch(() => {})
+        }
+
+        setScopedQuestions(finalQuestions)
+        setCurrentBatchIndex(initialBatchIdx)
+        setSkimCardIndex(0)
 
         setSession({
           ...quizRes.data,
@@ -484,25 +528,50 @@ export default function HybridPlay() {
       setHybridSettings(newSettings)
       setIsSettingsOpen(false)
 
-      // Re-position smart cursor for new settings
-      if (newSettings.order === 'sequential') {
-        const filtered = filterCardsByScope(rawQuestions, newSettings.scope, newSettings.required_correct, masteredCardIds)
-        const smartIdx = findSmartSequentialIndex(filtered, newSettings.required_correct, masteredCardIds)
-        const bSize = Math.max(1, newSettings.batch_size)
-        const targetBatchIdx = Math.floor(smartIdx / bSize)
-        const totalB = Math.ceil(filtered.length / bSize)
-        if (targetBatchIdx < totalB) {
-          setCurrentBatchIndex(targetBatchIdx)
-          setSkimCardIndex(0)
-        } else {
-          setCurrentBatchIndex(0)
-          setSkimCardIndex(0)
-        }
-      } else {
-        setCurrentBatchIndex(0)
-        setSkimCardIndex(0)
+      // Re-filter and re-position for new settings
+      let filtered = filterCardsByScope(rawQuestions, newSettings.scope, newSettings.required_correct, masteredCardIds)
+      if (filtered.length === 0 && rawQuestions.length > 0) {
+        filtered = rawQuestions
       }
+
+      let newQuestions: Question[] = []
+      let newBatchIdx = 0
+      const bSize = Math.max(1, newSettings.batch_size)
+
+      if (newSettings.order === 'random') {
+        const copy = [...filtered]
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        newQuestions = copy
+        newBatchIdx = 0
+      } else {
+        newQuestions = filtered
+        const smartIdx = findSmartSequentialIndex(newQuestions, newSettings.required_correct, masteredCardIds)
+        const targetBatchIdx = Math.floor(smartIdx / bSize)
+        const totalB = Math.ceil(newQuestions.length / bSize)
+        newBatchIdx = targetBatchIdx < totalB ? targetBatchIdx : 0
+      }
+
+      setScopedQuestions(newQuestions)
+      setCurrentBatchIndex(newBatchIdx)
+      setSkimCardIndex(0)
       setStage('skim')
+
+      // Persist new session progress
+      axios.post(`/api/v1/deck/${id}/practice-settings`, {
+        is_creator: false,
+        settings: {
+          hybrid_progress: {
+            batch_index: newBatchIdx,
+            card_ids: newQuestions.map(q => q.id),
+            order: newSettings.order,
+            scope: newSettings.scope,
+            updated_at: Date.now()
+          }
+        }
+      }).catch(() => {})
     } catch (e) {
       console.error('Failed to save hybrid settings', e)
     } finally {
@@ -540,11 +609,18 @@ export default function HybridPlay() {
       })
       playSfx('batch')
       showXpGain(15) // Bonus XP for finishing batch
-      if (currentBatchIndex + 1 < totalBatches) {
-        setStage('batch_summary')
+      const nextBatchIdx = currentBatchIndex + 1
+      if (nextBatchIdx < totalBatches) {
+        // Auto-advance seamlessly to the next batch (no blocking popup)
+        setCurrentBatchIndex(nextBatchIdx)
+        setSkimCardIndex(0)
+        setIsFlipped(false)
+        setStage('skim')
+        saveHybridProgress(nextBatchIdx)
       } else {
         setStage('complete')
         playSfx('complete')
+        saveHybridProgress(0)
       }
       return
     }
@@ -877,14 +953,17 @@ export default function HybridPlay() {
   }
 
   const handleProceedToNextBatch = () => {
-    if (currentBatchIndex + 1 < totalBatches) {
-      setCurrentBatchIndex(prev => prev + 1)
+    const nextBatchIdx = currentBatchIndex + 1
+    if (nextBatchIdx < totalBatches) {
+      setCurrentBatchIndex(nextBatchIdx)
       setSkimCardIndex(0)
       setIsFlipped(false)
       setStage('skim')
+      saveHybridProgress(nextBatchIdx)
     } else {
       setStage('complete')
       playSfx('complete')
+      saveHybridProgress(0)
     }
   }
 
@@ -1268,51 +1347,8 @@ export default function HybridPlay() {
                 )}
               </div>
             </motion.div>
-          ) : stage === 'batch_summary' ? (
-            /* ──────────────── STAGE C: BATCH COMPLETED ──────────────── */
-            <motion.div
-              key="batch_summary"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-md bg-white rounded-3xl border border-rose-100 p-6 sm:p-8 shadow-xl text-center flex flex-col items-center"
-            >
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 mb-4">
-                <Trophy className="w-8 h-8" />
-              </div>
-
-              <h2 className="text-xl font-black text-slate-800">
-                Batch {currentBatchIndex + 1} Drilled & Mastered!
-              </h2>
-              <p className="text-xs text-slate-400 font-medium mt-1">
-                All {currentBatch.length} cards answered correctly {hybridSettings.required_correct}x times
-              </p>
-
-              {/* Batch Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 w-full my-6">
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Batch Accuracy</span>
-                  <span className="text-lg font-black text-slate-800">
-                    {drillTotalAttempts > 0 ? Math.round((drillTotalCorrect / drillTotalAttempts) * 100) : 100}%
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-100 flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-amber-600 uppercase">XP Earned</span>
-                  <span className="text-lg font-black text-amber-700">+{sessionXP} XP</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleProceedToNextBatch}
-                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-indigo-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-200 active:scale-95 transition-all cursor-pointer"
-              >
-                <span>Continue to Batch {currentBatchIndex + 2} of {totalBatches}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </motion.div>
           ) : stage === 'complete' ? (
-            /* ──────────────── STAGE D: COMPLETE SESSION ──────────────── */
+            /* ──────────────── STAGE C: COMPLETE SESSION ──────────────── */
             <motion.div
               key="complete"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -1349,9 +1385,20 @@ export default function HybridPlay() {
                 <button
                   type="button"
                   onClick={() => {
+                    let newQuestions = scopedQuestions
+                    if (hybridSettings.order === 'random') {
+                      const copy = [...scopedQuestions]
+                      for (let i = copy.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [copy[i], copy[j]] = [copy[j], copy[i]];
+                      }
+                      newQuestions = copy
+                      setScopedQuestions(copy)
+                    }
                     setCurrentBatchIndex(0)
                     setSkimCardIndex(0)
                     setStage('skim')
+                    saveHybridProgress(0, newQuestions)
                   }}
                   className="flex-1 py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
