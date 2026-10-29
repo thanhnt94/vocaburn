@@ -87,24 +87,24 @@ export const CardLifecycleBadge = ({
   targetDrillCount = 2,
   masteredCardIds
 }: {
-  card: Question
+  card?: Question | null
   targetDrillCount?: number
   masteredCardIds?: Set<number>
 }) => {
+  if (!card) return null
   const status = getCardLifecycleState(card, targetDrillCount, masteredCardIds)
   const meta = CARD_LIFECYCLE_META[status]
 
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all shadow-2xs select-none",
+        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black border transition-all shadow-2xs select-none shrink-0",
         meta.badgeClass
       )}
       title={meta.description}
     >
-      <span className={cn("w-1.5 h-1.5 rounded-full", meta.dotClass)} />
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meta.dotClass)} />
       <span className="uppercase tracking-wider font-extrabold">{meta.shortLabel}</span>
-      <span className="opacity-70 text-[10px] font-medium hidden sm:inline">• {meta.label}</span>
     </div>
   )
 }
@@ -1167,12 +1167,17 @@ export default function HybridPlay() {
         )}
       </AnimatePresence>
 
-      {/* ═══════════ UNIFIED HEADER HUD ═══════════ */}
-      <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-3 sm:px-5 py-2 flex items-center justify-between gap-3 bg-white/95 border-b border-rose-100/70 shadow-sm">
+      {/* ═══════════ DYNAMIC LIVE HUD HEADER ═══════════ */}
+      <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-3 sm:px-5 py-2 flex items-center justify-between gap-2.5 bg-white/95 border-b border-slate-100 shadow-xs">
         {/* Underline Progress Bar for Total Batches */}
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-slate-100">
+        <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-100 overflow-hidden">
           <motion.div
-            className="h-full rounded-r-full bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-600 shadow-[0_0_10px_rgba(244,63,94,0.4)]"
+            className={cn(
+              "h-full rounded-r-full transition-all duration-300",
+              stage === 'skim'
+                ? "bg-gradient-to-r from-amber-400 to-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                : "bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-600 shadow-[0_0_8px_rgba(244,63,94,0.4)]"
+            )}
             animate={{
               width: `${totalBatches > 0 ? Math.round(((currentBatchIndex + (stage === 'drill' ? (passedCardsInBatchCount / Math.max(1, currentBatch.length)) : 0)) / totalBatches) * 100) : 0}%`
             }}
@@ -1180,34 +1185,137 @@ export default function HybridPlay() {
           />
         </div>
 
-        {/* Left: Exit & Deck Title */}
+        {/* Left: Exit, Title, Dynamic Stage Badge & Card Lifecycle Badge */}
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => navigate(`/decks/${id}`)}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
             title="Exit Hybrid Session"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div className="min-w-0 flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-xs sm:text-sm text-slate-800 truncate">
+          <div className="min-w-0 flex flex-col justify-center">
+            {/* Top row: Title + Stage Pill + Card Lifecycle Pill */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="font-black text-xs sm:text-sm text-slate-800 truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[220px]">
                 {session?.title || 'Hybrid Recall'}
               </span>
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-700">
-                BETA
-              </span>
+
+              {/* Dynamic Stage Pill */}
+              {stage === 'skim' ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-100/90 text-amber-800 border border-amber-200/70 shadow-2xs shrink-0">
+                  <Zap className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                  SKIM
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-rose-100/90 text-rose-800 border border-rose-200/70 shadow-2xs shrink-0">
+                  <Target className="w-2.5 h-2.5 text-rose-600" />
+                  DRILL
+                </span>
+              )}
+
+              {/* Active Card Lifecycle Pill */}
+              <CardLifecycleBadge
+                card={stage === 'skim' ? currentSkimQuestion : drillActiveCard}
+                targetDrillCount={hybridSettings.required_correct}
+                masteredCardIds={masteredCardIds}
+              />
             </div>
-            <span className="text-[10px] text-slate-400 font-bold truncate">
-              Batch {currentBatchIndex + 1}/{totalBatches} • {currentBatch.length} Cards • Scope: {hybridSettings.scope.toUpperCase()}
-            </span>
+
+            {/* Bottom row: Dynamic Stage HUD (Story dashes in Skim, Micro-chips in Drill) */}
+            {stage === 'skim' ? (
+              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-bold text-slate-500 min-w-0">
+                <span className="text-slate-400 font-semibold shrink-0">
+                  Batch {currentBatchIndex + 1}/{totalBatches}
+                </span>
+                <span className="text-slate-300 shrink-0">•</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  {currentBatch.map((c, idx) => {
+                    const isCurrent = idx === skimCardIndex
+                    const isPast = idx < skimCardIndex
+                    return (
+                      <button
+                        key={c.id || idx}
+                        type="button"
+                        onClick={() => {
+                          setSkimCardIndex(idx)
+                          setIsFlipped(false)
+                        }}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-200 cursor-pointer",
+                          isCurrent
+                            ? "w-4 sm:w-5 bg-amber-500 shadow-2xs shadow-amber-300 ring-1 ring-amber-400/40"
+                            : isPast
+                              ? "w-2 sm:w-2.5 bg-amber-200 hover:bg-amber-300"
+                              : "w-1.5 sm:w-2 bg-slate-200 hover:bg-slate-300"
+                        )}
+                        title={`Card ${idx + 1}/${currentBatch.length}`}
+                      />
+                    )
+                  })}
+                </div>
+                <span className="text-amber-800 font-black text-[10px] shrink-0">
+                  {skimCardIndex + 1}/{currentBatch.length}
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium hidden sm:inline shrink-0">
+                  • Preview batch
+                </span>
+              </div>
+            ) : stage === 'drill' ? (
+              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-bold text-slate-500 min-w-0 overflow-x-auto no-scrollbar py-0.5">
+                <span className="text-slate-400 font-semibold shrink-0">
+                  Batch {currentBatchIndex + 1}/{totalBatches}
+                </span>
+                <span className="text-slate-300 shrink-0">•</span>
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
+                  {currentBatch.map((card, idx) => {
+                    const cCount = batchCorrectCounts[card.id] || 0
+                    const isPassed = cCount >= hybridSettings.required_correct
+                    const isCurrent = card.id === drillActiveCard?.id
+                    return (
+                      <div
+                        key={card.id || idx}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded-md text-[9px] font-black border transition-all flex items-center gap-1 select-none shrink-0",
+                          isPassed
+                            ? "bg-emerald-50 border-emerald-200/90 text-emerald-700"
+                            : isCurrent
+                              ? "bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-400/20"
+                              : "bg-slate-50 border-slate-200/80 text-slate-400"
+                        )}
+                        title={`Card #${idx + 1}: ${cCount}/${hybridSettings.required_correct} correct`}
+                      >
+                        {isPassed ? (
+                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <span
+                            className={cn(
+                              "w-1 h-1 rounded-full shrink-0",
+                              isCurrent ? "bg-rose-500" : "bg-slate-300"
+                            )}
+                          />
+                        )}
+                        <span>#{idx + 1}</span>
+                        <span className="font-mono text-[8px] opacity-75">
+                          {cCount}/{hybridSettings.required_correct}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <span className="text-[10px] text-slate-400 font-bold truncate">
+                Batch {currentBatchIndex + 1}/{totalBatches} • {currentBatch.length} Cards • Scope: {hybridSettings.scope.toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Right: Settings & Stats */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Quick Settings Gear */}
           <button
             type="button"
@@ -1219,7 +1327,7 @@ export default function HybridPlay() {
           </button>
 
           {/* Session XP Pill */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 font-black text-xs shadow-2xs">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 font-black text-xs shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
             <span>+{sessionXP}</span>
           </div>
@@ -1267,19 +1375,6 @@ export default function HybridPlay() {
               transition={{ duration: 0.2 }}
               className="w-full h-full flex flex-col justify-center items-center min-h-0"
             >
-              {/* Top Hint Banner with Card Lifecycle Badge */}
-              <div className="mb-2 flex items-center justify-between w-full max-w-xl px-1">
-                <CardLifecycleBadge
-                  card={currentSkimQuestion}
-                  targetDrillCount={hybridSettings.required_correct}
-                  masteredCardIds={masteredCardIds}
-                />
-                <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3 text-slate-400" />
-                  <span>Card {skimCardIndex + 1}/{currentBatch.length} • Preview batch, then drill</span>
-                </div>
-              </div>
-
               <Flashcard3DCard
                 currentQuestion={currentSkimQuestion}
                 currentIndex={currentBatchIndex * hybridSettings.batch_size + skimCardIndex}
@@ -1389,50 +1484,8 @@ export default function HybridPlay() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.03 }}
               transition={{ duration: 0.2 }}
-              className="w-full h-full flex flex-col justify-between items-center min-h-0"
+              className="w-full h-full flex flex-col justify-center items-center min-h-0"
             >
-              {/* Batch Mastery Chips HUD & Card State Badge */}
-              <div className="w-full max-w-2xl flex items-center justify-between gap-2 py-1 overflow-x-auto no-scrollbar shrink-0 px-2">
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                  {currentBatch.map((card, idx) => {
-                    const cCount = batchCorrectCounts[card.id] || 0
-                    const isPassed = cCount >= hybridSettings.required_correct
-                    const isCurrent = card.id === drillActiveCard?.id
-                    return (
-                      <div
-                        key={card.id}
-                        className={cn(
-                          "px-2 py-0.5 rounded-xl text-[10px] font-black border transition-all flex items-center gap-1 shadow-2xs shrink-0",
-                          isPassed
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                            : isCurrent
-                              ? "bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-400/20"
-                              : "bg-white border-slate-200 text-slate-500"
-                        )}
-                      >
-                        {isPassed ? (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        ) : (
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                        )}
-                        <span>
-                          Card {idx + 1}
-                        </span>
-                        <span className="font-mono text-[9px] opacity-70">
-                          {cCount}/{hybridSettings.required_correct}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <CardLifecycleBadge
-                  card={drillActiveCard}
-                  targetDrillCount={hybridSettings.required_correct}
-                  masteredCardIds={masteredCardIds}
-                />
-              </div>
-
               {/* Practice Exercise Body */}
               <div className="w-full max-w-xl flex-1 flex flex-col justify-center min-h-0 py-2">
                 {drillSubMode === 'mcq' && currentPracticeData && (
