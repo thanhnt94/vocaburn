@@ -186,6 +186,9 @@ export default function HybridPlay() {
   // ── Hybrid Configuration (Stored in User Deck Settings) ──
   const [hybridSettings, setHybridSettings] = useState<HybridSettings>(DEFAULT_HYBRID_SETTINGS)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  // Deferred Queue Update: if user changes order, scope, or batch_size mid-batch,
+  // finish the current 5-card batch completely before applying the new queue for the next batch!
+  const pendingQueueUpdateRef = useRef<Partial<HybridSettings> | null>(null)
 
   // ── Batch & Workflow Stages ──
   // 'skim': Preview batch of cards at skim level (no rating pressure)
@@ -565,13 +568,8 @@ export default function HybridPlay() {
       }
     }).catch(e => console.warn('Failed to auto-save hybrid settings', e))
 
-    // If scope, order, batch_size, or required_correct changed, re-filter and reposition
-    if (
-      partial.scope !== undefined ||
-      partial.order !== undefined ||
-      partial.batch_size !== undefined ||
-      partial.required_correct !== undefined
-    ) {
+    // If already at complete screen, immediately apply and restart fresh
+    if (stage === 'complete') {
       let filtered = filterCardsByScope(rawQuestions, updated.scope, updated.required_correct, masteredCardIds)
       if (filtered.length === 0 && rawQuestions.length > 0) {
         filtered = rawQuestions
@@ -604,10 +602,31 @@ export default function HybridPlay() {
       setStage('skim')
       setDrillActiveCard(null)
       setBatchCorrectCounts({})
-
       saveHybridProgress(newBatchIdx, newQuestions)
+      return
     }
-  }, [hybridSettings, id, rawQuestions, masteredCardIds, saveHybridProgress])
+
+    // Mid-batch queue change: DO NOT destroy or abort current 5-card batch!
+    // Finish the current batch first; apply the new mode/order on the next batch!
+    if (partial.order !== undefined || partial.scope !== undefined || partial.batch_size !== undefined) {
+      pendingQueueUpdateRef.current = {
+        ...pendingQueueUpdateRef.current,
+        ...partial
+      }
+      if (partial.order !== undefined) {
+        showLocalToast?.(`Queue order set to ${partial.order === 'random' ? 'Random' : 'Sequential'} (will apply on next batch) ⚡`, 'info')
+      } else if (partial.scope !== undefined) {
+        showLocalToast?.(`Scope set to ${String(partial.scope).toUpperCase()} (will apply on next batch) ⚡`, 'info')
+      } else if (partial.batch_size !== undefined) {
+        showLocalToast?.(`Batch size set to ${partial.batch_size} cards (will apply on next batch) ⚡`, 'info')
+      }
+    }
+
+    // Immediate non-disruptive parameters:
+    if (partial.required_correct !== undefined) {
+      showLocalToast?.(`Pass target updated to ${partial.required_correct}x correct`, 'info')
+    }
+  }, [hybridSettings, id, stage, rawQuestions, masteredCardIds, saveHybridProgress, showLocalToast])
 
   // ── 3. Start Drill for Current Batch ──
   const startBatchDrill = () => {
@@ -634,11 +653,66 @@ export default function HybridPlay() {
 
     if (pendingCards.length === 0) {
       // All cards in this batch reached pass threshold!
+      const nextMastered = new Set(masteredCardIds)
       currentBatch.forEach(c => {
-        setMasteredCardIds(prev => new Set([...prev, c.id]))
+        nextMastered.add(c.id)
       })
+      setMasteredCardIds(nextMastered)
+
       playSfx('batch')
       showXpGain(15) // Bonus XP for finishing batch
+
+      // ── 1. CHECK PENDING QUEUE UPDATE (User changed order/scope mid-batch) ──
+      if (pendingQueueUpdateRef.current) {
+        const pending = pendingQueueUpdateRef.current
+        pendingQueueUpdateRef.current = null
+
+        const effectiveScope = pending.scope || hybridSettings.scope
+        const effectiveOrder = pending.order || hybridSettings.order
+        const effectiveReq = pending.required_correct || hybridSettings.required_correct
+
+        // Filter cards for the new scope
+        let newFiltered = filterCardsByScope(rawQuestions, effectiveScope, effectiveReq, nextMastered)
+        if (newFiltered.length === 0 && rawQuestions.length > 0) {
+          newFiltered = filterCardsByScope(rawQuestions, 'all', effectiveReq, nextMastered)
+        }
+
+        if (newFiltered.length === 0) {
+          setStage('complete')
+          playSfx('complete')
+          saveHybridProgress(0)
+          return
+        }
+
+        let newQueue: Question[] = []
+        if (effectiveOrder === 'random') {
+          // Prioritize unmastered cards first
+          const unmastered = newFiltered.filter(c => !nextMastered.has(c.id))
+          const mastered = newFiltered.filter(c => nextMastered.has(c.id))
+          const pool = unmastered.length > 0 ? unmastered : mastered
+          const copy = [...pool]
+          for (let i = copy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copy[i], copy[j]] = [copy[j], copy[i]];
+          }
+          newQueue = copy
+        } else {
+          newQueue = newFiltered
+        }
+
+        setScopedQuestions(newQueue)
+        setCurrentBatchIndex(0)
+        setSkimCardIndex(0)
+        setIsFlipped(false)
+        setStage('skim')
+        setDrillActiveCard(null)
+        setBatchCorrectCounts({})
+        saveHybridProgress(0, newQueue)
+        showLocalToast?.(`Starting next batch in ${effectiveOrder === 'random' ? 'Random' : 'Sequential'} mode! ⚡`, 'success')
+        return
+      }
+
+      // ── 2. NORMAL BATCH ADVANCE & CONTINUOUS RECALL FLOW ──
       const nextBatchIdx = currentBatchIndex + 1
       if (nextBatchIdx < totalBatches) {
         // Auto-advance seamlessly to the next batch (no blocking popup)
@@ -646,11 +720,48 @@ export default function HybridPlay() {
         setSkimCardIndex(0)
         setIsFlipped(false)
         setStage('skim')
+        setDrillActiveCard(null)
+        setBatchCorrectCounts({})
         saveHybridProgress(nextBatchIdx)
       } else {
-        setStage('complete')
-        playSfx('complete')
-        saveHybridProgress(0)
+        // Reached end of batches: Check if there are still unmastered cards in scope
+        const unmastered = scopedQuestions.filter(c => !nextMastered.has(c.id))
+        if (unmastered.length > 0) {
+          // Continuous learning flow: loop into unmastered cards!
+          if (hybridSettings.order === 'random') {
+            const copy = [...unmastered]
+            for (let i = copy.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            setScopedQuestions(copy)
+            setCurrentBatchIndex(0)
+            setSkimCardIndex(0)
+            setIsFlipped(false)
+            setStage('skim')
+            setDrillActiveCard(null)
+            setBatchCorrectCounts({})
+            saveHybridProgress(0, copy)
+            showLocalToast?.('Continuing with next round of cards! 🔥', 'info')
+          } else {
+            const smartIdx = findSmartSequentialIndex(scopedQuestions, hybridSettings.required_correct, nextMastered)
+            const targetBatchIdx = Math.floor(smartIdx / Math.max(1, hybridSettings.batch_size))
+            const safeBatchIdx = targetBatchIdx < totalBatches ? targetBatchIdx : 0
+            setCurrentBatchIndex(safeBatchIdx)
+            setSkimCardIndex(0)
+            setIsFlipped(false)
+            setStage('skim')
+            setDrillActiveCard(null)
+            setBatchCorrectCounts({})
+            saveHybridProgress(safeBatchIdx)
+            showLocalToast?.('Reviewing remaining unmastered cards! 🔥', 'info')
+          }
+        } else {
+          // 100% of cards in scope are mastered!
+          setStage('complete')
+          playSfx('complete')
+          saveHybridProgress(0)
+        }
       }
       return
     }
