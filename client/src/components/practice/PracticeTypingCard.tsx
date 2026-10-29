@@ -27,6 +27,8 @@ export interface PracticeTypingCardProps {
   onZoomImage?: (url: string) => void
   frontFontSize?: string
   showImages?: string | boolean
+  autoFocus?: boolean
+  hideInlineSubmit?: boolean
 }
 
 export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
@@ -46,20 +48,25 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   onPlayAudio,
   onZoomImage,
   frontFontSize = 'M',
-  showImages = 'always'
+  showImages = 'always',
+  autoFocus = false,
+  hideInlineSubmit = false
 }) => {
   const { question, correct_answer, question_key, answer_key } = practiceData
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Focus input automatically when ready to type
+  // Only auto-focus if explicitly requested and NOT on touch devices (to avoid popping up mobile keyboard)
   useEffect(() => {
-    if (!answered) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus()
-      }, 50)
-      return () => clearTimeout(timer)
+    if (autoFocus && !answered) {
+      const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+      if (!isTouch) {
+        const timer = setTimeout(() => {
+          inputRef.current?.focus()
+        }, 50)
+        return () => clearTimeout(timer)
+      }
     }
-  }, [currentIndex, answered])
+  }, [currentIndex, answered, autoFocus])
 
   const acceptableAnswers = useMemo(() => {
     const raw = practiceData.acceptable_answers && practiceData.acceptable_answers.length > 0
@@ -107,7 +114,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   }, [question_key, answer_key])
 
   return (
-    <div className="w-full h-full flex flex-col justify-between bg-white dark:bg-slate-900 md:rounded-[2rem] rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 sm:p-6 md:p-8 shadow-2xl shadow-indigo-100/30 dark:shadow-none min-h-0 overflow-y-auto custom-scrollbar relative">
+    <div className="w-full h-full flex flex-col justify-between bg-white dark:bg-slate-900 md:rounded-[2rem] rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 sm:p-6 md:p-8 shadow-2xl shadow-indigo-100/30 dark:shadow-none min-h-0 overflow-x-hidden overflow-y-auto custom-scrollbar relative">
       {/* ── Ambient Soft Glow ── */}
       <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-amber-200/20 via-orange-100/10 to-transparent dark:from-amber-500/5 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-100/20 via-slate-100/10 to-transparent dark:from-indigo-500/5 blur-3xl pointer-events-none" />
@@ -212,7 +219,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
             }}
             className="flex flex-col gap-3"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full min-w-0">
               <input
                 ref={inputRef}
                 type="text"
@@ -232,22 +239,27 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                className="flex-1 h-14 sm:h-16 px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-amber-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-amber-200/50 dark:focus:ring-amber-500/20 text-base sm:text-xl font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400 placeholder:font-normal"
+                className={cn(
+                  "h-12 sm:h-14 px-4 sm:px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-amber-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-amber-200/50 dark:focus:ring-amber-500/20 text-base sm:text-lg font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400 placeholder:font-normal min-w-0",
+                  hideInlineSubmit ? "w-full" : "flex-1"
+                )}
               />
 
-              <button
-                type="submit"
-                disabled={!typingInput || !typingInput.trim()}
-                className={cn(
-                  "h-14 sm:h-16 px-6 sm:px-8 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md select-none shrink-0",
-                  typingInput && typingInput.trim()
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/25 active:scale-95"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-700 cursor-not-allowed opacity-60"
-                )}
-              >
-                <span>Check</span>
-                <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
-              </button>
+              {!hideInlineSubmit && (
+                <button
+                  type="submit"
+                  disabled={!typingInput || !typingInput.trim()}
+                  className={cn(
+                    "h-12 sm:h-14 px-4 sm:px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md select-none shrink-0",
+                    typingInput && typingInput.trim()
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/25 active:scale-95"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-700 cursor-not-allowed opacity-60"
+                  )}
+                >
+                  <span>Check</span>
+                  <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400 select-none">

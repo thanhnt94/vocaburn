@@ -1461,6 +1461,8 @@ export default function HybridPlay() {
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                     frontFontSize={playSettings.frontFontSize}
                     showImages={playSettings.showImages}
+                    autoFocus={false}
+                    hideInlineSubmit={true}
                   />
                 )}
 
