@@ -1167,8 +1167,8 @@ export default function HybridPlay() {
         )}
       </AnimatePresence>
 
-      {/* ═══════════ DYNAMIC LIVE HUD HEADER ═══════════ */}
-      <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-3 sm:px-5 py-2 flex items-center justify-between gap-2.5 bg-white/95 border-b border-slate-100 shadow-xs">
+      {/* ═══════════ UNIFIED SINGLE-ROW HEADER HUD ═══════════ */}
+      <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-3 sm:px-5 py-2.5 flex items-center justify-between gap-3 bg-white/95 border-b border-slate-100 shadow-xs">
         {/* Underline Progress Bar for Total Batches */}
         <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-100 overflow-hidden">
           <motion.div
@@ -1185,7 +1185,7 @@ export default function HybridPlay() {
           />
         </div>
 
-        {/* Left: Exit, Title, Dynamic Stage Badge & Card Lifecycle Badge */}
+        {/* Left: Exit, Deck Title, Dynamic Stage Badge & Card Lifecycle Badge */}
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
@@ -1196,121 +1196,30 @@ export default function HybridPlay() {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div className="min-w-0 flex flex-col justify-center">
-            {/* Top row: Title + Stage Pill + Card Lifecycle Pill */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="font-black text-xs sm:text-sm text-slate-800 truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[220px]">
-                {session?.title || 'Hybrid Recall'}
-              </span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-black text-xs sm:text-sm text-slate-800 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-[320px]">
+              {session?.title || 'Hybrid Recall'}
+            </span>
 
-              {/* Dynamic Stage Pill */}
-              {stage === 'skim' ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-100/90 text-amber-800 border border-amber-200/70 shadow-2xs shrink-0">
-                  <Zap className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                  SKIM
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-rose-100/90 text-rose-800 border border-rose-200/70 shadow-2xs shrink-0">
-                  <Target className="w-2.5 h-2.5 text-rose-600" />
-                  DRILL
-                </span>
-              )}
-
-              {/* Active Card Lifecycle Pill */}
-              <CardLifecycleBadge
-                card={stage === 'skim' ? currentSkimQuestion : drillActiveCard}
-                targetDrillCount={hybridSettings.required_correct}
-                masteredCardIds={masteredCardIds}
-              />
-            </div>
-
-            {/* Bottom row: Dynamic Stage HUD (Story dashes in Skim, Micro-chips in Drill) */}
+            {/* Dynamic Stage Pill */}
             {stage === 'skim' ? (
-              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-bold text-slate-500 min-w-0">
-                <span className="text-slate-400 font-semibold shrink-0">
-                  Batch {currentBatchIndex + 1}/{totalBatches}
-                </span>
-                <span className="text-slate-300 shrink-0">•</span>
-                <div className="flex items-center gap-1 shrink-0">
-                  {currentBatch.map((c, idx) => {
-                    const isCurrent = idx === skimCardIndex
-                    const isPast = idx < skimCardIndex
-                    return (
-                      <button
-                        key={c.id || idx}
-                        type="button"
-                        onClick={() => {
-                          setSkimCardIndex(idx)
-                          setIsFlipped(false)
-                        }}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all duration-200 cursor-pointer",
-                          isCurrent
-                            ? "w-4 sm:w-5 bg-amber-500 shadow-2xs shadow-amber-300 ring-1 ring-amber-400/40"
-                            : isPast
-                              ? "w-2 sm:w-2.5 bg-amber-200 hover:bg-amber-300"
-                              : "w-1.5 sm:w-2 bg-slate-200 hover:bg-slate-300"
-                        )}
-                        title={`Card ${idx + 1}/${currentBatch.length}`}
-                      />
-                    )
-                  })}
-                </div>
-                <span className="text-amber-800 font-black text-[10px] shrink-0">
-                  {skimCardIndex + 1}/{currentBatch.length}
-                </span>
-                <span className="text-[9px] text-slate-400 font-medium hidden sm:inline shrink-0">
-                  • Preview batch
-                </span>
-              </div>
-            ) : stage === 'drill' ? (
-              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-bold text-slate-500 min-w-0 overflow-x-auto no-scrollbar py-0.5">
-                <span className="text-slate-400 font-semibold shrink-0">
-                  Batch {currentBatchIndex + 1}/{totalBatches}
-                </span>
-                <span className="text-slate-300 shrink-0">•</span>
-                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
-                  {currentBatch.map((card, idx) => {
-                    const cCount = batchCorrectCounts[card.id] || 0
-                    const isPassed = cCount >= hybridSettings.required_correct
-                    const isCurrent = card.id === drillActiveCard?.id
-                    return (
-                      <div
-                        key={card.id || idx}
-                        className={cn(
-                          "px-1.5 py-0.5 rounded-md text-[9px] font-black border transition-all flex items-center gap-1 select-none shrink-0",
-                          isPassed
-                            ? "bg-emerald-50 border-emerald-200/90 text-emerald-700"
-                            : isCurrent
-                              ? "bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-400/20"
-                              : "bg-slate-50 border-slate-200/80 text-slate-400"
-                        )}
-                        title={`Card #${idx + 1}: ${cCount}/${hybridSettings.required_correct} correct`}
-                      >
-                        {isPassed ? (
-                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                        ) : (
-                          <span
-                            className={cn(
-                              "w-1 h-1 rounded-full shrink-0",
-                              isCurrent ? "bg-rose-500" : "bg-slate-300"
-                            )}
-                          />
-                        )}
-                        <span>#{idx + 1}</span>
-                        <span className="font-mono text-[8px] opacity-75">
-                          {cCount}/{hybridSettings.required_correct}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100/90 text-amber-800 border border-amber-200/70 shadow-2xs shrink-0">
+                <Zap className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                SKIM
+              </span>
             ) : (
-              <span className="text-[10px] text-slate-400 font-bold truncate">
-                Batch {currentBatchIndex + 1}/{totalBatches} • {currentBatch.length} Cards • Scope: {hybridSettings.scope.toUpperCase()}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-100/90 text-rose-800 border border-rose-200/70 shadow-2xs shrink-0">
+                <Target className="w-2.5 h-2.5 text-rose-600" />
+                DRILL
               </span>
             )}
+
+            {/* Active Card Lifecycle Pill */}
+            <CardLifecycleBadge
+              card={stage === 'skim' ? currentSkimQuestion : drillActiveCard}
+              targetDrillCount={hybridSettings.required_correct}
+              masteredCardIds={masteredCardIds}
+            />
           </div>
         </div>
 
