@@ -3,6 +3,16 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-31]
+#### Đồng Bộ Hóa Thanh Thao Tác Đáy (Study Action Dock) & Tùy Chọn Ẩn/Hiện Tab Điều Hướng Đáy
+- **Chuẩn Hóa Thiết Kế Single-Row Action Dock Theo Phong Cách Hybrid Mode**:
+  - Tối ưu hóa không gian hiển thị trên thiết bị di động bằng việc ẩn thanh điều hướng 3 tab (`[ MAP | FLASHCARD | STATS ]`) theo mặc định (`show_bottom_nav_tabs: false`), tiết kiệm hơn 50px chiều cao màn hình.
+  - Tích hợp thanh kéo chỉ báo Android/iOS pill (`absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5`) cho phép chạm hoặc vuốt lên từ thanh điều khiển đáy để mở ngay Quick Settings.
+- **Tùy Chọn Bật/Tắt Bottom Navigation Tabs Trong Quick Settings**:
+  - Bổ sung nút toggle "Bottom Tabs" (SHOW / HIDE) trong cả `FlashcardQuickControlsSheet` và `PracticeQuickControlsSheet`.
+  - Lưu trữ cấu hình xuyên suốt phiên và thiết bị vào cơ sở dữ liệu (`user_global_settings.show_bottom_nav_tabs`) thông qua hook `usePlaySettings`, tuân thủ nghiêm ngặt nguyên tắc Zero localStorage.
+- **Phím Tắt Truy Cập Nhanh Question Map & Session Stats**:
+  - Tích hợp 2 nút bấm tiện ích truy cập trực tiếp "Card Map" / "Question Map" và "Session Stats" ngay trong Quick Settings Sheet, cho phép mở nhanh các bảng thống kê và bản đồ câu hỏi mà không cần mở lại 3 tab điều hướng.
+
 #### Tối Ưu Hóa Sâu Toàn Diện Tốc Độ Nạp Phiên Học (Audit Hiệu Năng Backend & Frontend)
 - **Backend `play_data.py` (Triệt tiêu 5 truy vấn thừa trên Critical Path)**:
   - **Permission Check Fast-Path**: Thay thế `DeckService.get_deck_by_id()` (tải toàn bộ tags, category) bằng câu truy vấn 3 cột siêu nhẹ `select(id, is_public, creator_id)` trên `FlashcardDeck`.

@@ -536,6 +536,8 @@ export default function PracticePlay() {
     setCardFlipTrigger,
     cardRatingMode: deckCardRatingMode,
     setCardRatingMode,
+    showBottomNavTabs,
+    setShowBottomNavTabs,
     isCustomized,
     settingOrigin,
     syncStudySettings,
@@ -543,6 +545,12 @@ export default function PracticePlay() {
     resetToCreatorDefaults,
     saveAsCreatorDefaults
   } = usePlaySettings(id || '', modeSettings, setModeSettings);
+
+  const handleToggleBottomNavTabs = useCallback(() => {
+    const nextVal = !showBottomNavTabs;
+    setShowBottomNavTabs(nextVal);
+    showLocalToast(nextVal ? "Bottom Navigation Tabs: SHOWN" : "Bottom Navigation Tabs: HIDDEN (Clean Single-Row Dock)", "info");
+  }, [showBottomNavTabs, setShowBottomNavTabs, showLocalToast]);
 
   const roadmapStatus: any = null
   const refetchRoadmap = async () => null
@@ -4995,6 +5003,7 @@ export default function PracticePlay() {
         <PracticeBottomBar
           isFeedbackOpen={isFeedbackOpen}
           activeBottomTab={activeBottomTab}
+          showBottomNavTabs={showBottomNavTabs}
           mainTab={mainTab}
           baseMode={baseMode}
           typingInput={typingInput}
@@ -6022,6 +6031,10 @@ export default function PracticePlay() {
             if (matchIdx !== -1) navigateToQuestion(matchIdx);
           }
         }}
+        showBottomNavTabs={showBottomNavTabs}
+        onToggleBottomNavTabs={handleToggleBottomNavTabs}
+        onOpenMap={() => setIsMapOpen(true)}
+        onOpenStats={() => setIsStatsOpen(true)}
       />
     </div>
   )

@@ -37,7 +37,8 @@ import {
   Check,
   ClipboardCopy,
   Gauge,
-  ArrowLeftRight
+  ArrowLeftRight,
+  LayoutGrid
 } from 'lucide-react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -278,6 +279,10 @@ export interface FlashcardQuickControlsSheetProps {
   onToggleFlipSides?: () => void
   tapToFlip?: boolean
   onToggleTapToFlip?: () => void
+  showBottomNavTabs?: boolean
+  onToggleBottomNavTabs?: () => void
+  onOpenMap?: () => void
+  onOpenStats?: () => void
 }
 
 const FLASHCARD_MODES = [
@@ -346,6 +351,10 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   onToggleFlipSides,
   tapToFlip = true,
   onToggleTapToFlip,
+  showBottomNavTabs = false,
+  onToggleBottomNavTabs,
+  onOpenMap,
+  onOpenStats,
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
@@ -1791,6 +1800,63 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                                 </span>
                               </div>
                             </button>
+                          )}
+
+                          {/* 9. Bottom Navigation Tabs Toggle */}
+                          {onToggleBottomNavTabs !== undefined && (
+                            <button
+                              type="button"
+                              onClick={onToggleBottomNavTabs}
+                              className={cn(
+                                "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                                showBottomNavTabs
+                                  ? "bg-amber-50 border-amber-300 text-amber-700 shadow-2xs"
+                                  : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                              )}
+                              title={`Bottom Navigation Tabs: ${showBottomNavTabs ? 'SHOWN' : 'HIDDEN'}`}
+                            >
+                              <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", showBottomNavTabs ? "bg-amber-500 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                                <LayoutGrid className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex flex-col items-center leading-none gap-0.5">
+                                <span className="text-[9.5px] font-bold tracking-tight">Bottom Tabs</span>
+                                <span className={cn("text-[8px] font-black uppercase tracking-wider", showBottomNavTabs ? "text-amber-600" : "text-slate-400")}>
+                                  {showBottomNavTabs ? "SHOW" : "HIDE"}
+                                </span>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* Quick Jump: Map & Stats Shortcuts */}
+                          {(onOpenMap || onOpenStats) && (
+                            <div className="col-span-4 flex items-center gap-2 pt-2 mt-1 border-t border-slate-100 dark:border-slate-800">
+                              {onOpenMap && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onClose();
+                                    onOpenMap();
+                                  }}
+                                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-amber-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                                >
+                                  <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>Card Map</span>
+                                </button>
+                              )}
+                              {onOpenStats && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onClose();
+                                    onOpenStats();
+                                  }}
+                                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-indigo-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                                >
+                                  <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                                  <span>Session Stats</span>
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

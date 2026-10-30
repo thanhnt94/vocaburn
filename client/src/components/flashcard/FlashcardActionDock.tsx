@@ -61,6 +61,7 @@ export interface FlashcardActionDockProps {
   isLoadingAudio?: boolean
   isPlayingAudio?: boolean
   getFSRSIntervals: (fsrs?: any) => Record<number, string>
+  showBottomNavTabs?: boolean
 }
 
 export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
@@ -101,7 +102,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   isLoadingAudio = false,
   isPlayingAudio = false,
   getFSRSIntervals,
-  showActionDock = true
+  showActionDock = true,
+  showBottomNavTabs = false
 }) => {
   const touchStartYRef = useRef<number | null>(null)
   const touchStartXRef = useRef<number | null>(null)
@@ -146,20 +148,30 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   const hasHintContent = Boolean(showingHint && currentQuestion?.hint && !isFlipped);
 
   return (
-    <footer className={cn(
-      "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)] relative",
-      (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
-      !hasActionButtons && !hasHintContent && "md:hidden"
-    )}>
-      {/* Desktop Quick Settings Grabber Pill */}
+    <footer 
+      onTouchStart={!showBottomNavTabs ? handleBarTouchStart : undefined}
+      onTouchEnd={!showBottomNavTabs ? handleBarTouchEnd : undefined}
+      onPointerDown={!showBottomNavTabs ? handleBarTouchStart : undefined}
+      onPointerUp={!showBottomNavTabs ? handleBarTouchEnd : undefined}
+      className={cn(
+        "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)] relative touch-pan-x",
+        (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
+        !hasActionButtons && !hasHintContent && "md:hidden"
+      )}
+      title={!showBottomNavTabs ? "Swipe up for Quick Settings" : undefined}
+    >
+      {/* Quick Settings Grabber Pill (Visible on mobile when no bottom tabs; on desktop always visible) */}
       {onOpenQuickSettings && (
         <div 
           onClick={(e) => {
             e.stopPropagation();
             onOpenQuickSettings();
           }}
-          className="hidden md:block absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/80 hover:bg-slate-400 dark:bg-slate-600 cursor-pointer transition-all active:scale-95 z-30"
-          title="Click for Quick Settings"
+          className={cn(
+            "absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/80 hover:bg-slate-400 dark:bg-slate-600 cursor-pointer transition-all active:scale-95 z-30",
+            !showBottomNavTabs ? "block" : "hidden md:block"
+          )}
+          title="Click or swipe up for Quick Settings"
         />
       )}
       <div className="max-w-2xl mx-auto w-full flex flex-col">
@@ -624,97 +636,99 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
           </>
         )}
 
-        {/* Interactive Navigation Tabs (Always Accessible on Mobile) - Swipe up to open Quick Settings */}
-        <div 
-          onTouchStart={handleBarTouchStart}
-          onTouchEnd={handleBarTouchEnd}
-          onPointerDown={handleBarTouchStart}
-          onPointerUp={handleBarTouchEnd}
-          className="w-full h-12 grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden select-none touch-pan-x"
-          title="Swipe up for Quick Settings"
-        >
-          {/* Subtle Pull-up Indicator Pill */}
+        {/* Interactive Navigation Tabs (Conditional on showBottomNavTabs) */}
+        {showBottomNavTabs && (
           <div 
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenQuickSettings?.();
-            }}
-            className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/90 dark:bg-slate-600 cursor-pointer hover:bg-slate-400 active:scale-95 transition-all z-20"
-            title="Swipe up or tap for Quick Settings"
-          />
-          {/* 1. Card Map Tab */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenMap();
-            }}
-            className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-            title="Card Map"
+            onTouchStart={handleBarTouchStart}
+            onTouchEnd={handleBarTouchEnd}
+            onPointerDown={handleBarTouchStart}
+            onPointerUp={handleBarTouchEnd}
+            className="w-full h-12 grid grid-cols-3 bg-white border-t border-slate-100 p-0 relative md:hidden select-none touch-pan-x"
+            title="Swipe up for Quick Settings"
           >
-            {activeBottomTab === 'map' && (
-              <motion.div
-                layoutId="activeBottomTabBg"
-                className="absolute inset-0 bg-amber-500/10"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <span className={cn(
-              "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-              activeBottomTab === 'map' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-            )}>
-              <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-              MAP
-            </span>
-          </button>
-          {/* 2. Flashcard Active View Tab */}
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenFlashcard();
-            }}
-            className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
-            title="Current Flashcard"
-          >
-            {activeBottomTab === 'flashcard' && (
-              <motion.div
-                layoutId="activeBottomTabBg"
-                className="absolute inset-0 bg-amber-500/10"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <span className={cn(
-              "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-              activeBottomTab === 'flashcard' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-            )}>
-              <BookOpen className="w-3.5 h-3.5 shrink-0" />
-              FLASHCARD
-            </span>
-          </button>
-          {/* 3. Card Hub Tab (Replaced STATS) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenStats();
-            }}
-            className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden cursor-pointer"
-            title="Card Hub & Stats"
-          >
-            {activeBottomTab === 'stats' && (
-              <motion.div
-                layoutId="activeBottomTabBg"
-                className="absolute inset-0 bg-amber-500/10"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <span className={cn(
-              "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
-              activeBottomTab === 'stats' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
-            )}>
-              <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-              CARD HUB
-            </span>
-          </button>
-        </div>
+            {/* Subtle Pull-up Indicator Pill */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenQuickSettings?.();
+              }}
+              className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/90 dark:bg-slate-600 cursor-pointer hover:bg-slate-400 active:scale-95 transition-all z-20"
+              title="Swipe up or tap for Quick Settings"
+            />
+            {/* 1. Card Map Tab */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenMap();
+              }}
+              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
+              title="Card Map"
+            >
+              {activeBottomTab === 'map' && (
+                <motion.div
+                  layoutId="activeBottomTabBg"
+                  className="absolute inset-0 bg-amber-500/10"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span className={cn(
+                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
+                activeBottomTab === 'map' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
+              )}>
+                <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
+                MAP
+              </span>
+            </button>
+            {/* 2. Flashcard Active View Tab */}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenFlashcard();
+              }}
+              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden"
+              title="Current Flashcard"
+            >
+              {activeBottomTab === 'flashcard' && (
+                <motion.div
+                  layoutId="activeBottomTabBg"
+                  className="absolute inset-0 bg-amber-500/10"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span className={cn(
+                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
+                activeBottomTab === 'flashcard' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
+              )}>
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                FLASHCARD
+              </span>
+            </button>
+            {/* 3. Card Hub Tab (Replaced STATS) */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenStats();
+              }}
+              className="relative flex items-center justify-center gap-1.5 py-3 px-1 transition-all active:scale-95 overflow-hidden cursor-pointer"
+              title="Card Hub & Stats"
+            >
+              {activeBottomTab === 'stats' && (
+                <motion.div
+                  layoutId="activeBottomTabBg"
+                  className="absolute inset-0 bg-amber-500/10"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span className={cn(
+                "relative z-10 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider truncate transition-colors duration-200",
+                activeBottomTab === 'stats' ? "text-amber-600 font-black" : "text-slate-400 hover:text-slate-600"
+              )}>
+                <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                CARD HUB
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </footer>
   )

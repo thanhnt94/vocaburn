@@ -327,6 +327,7 @@ SYSTEM_STUDY_DEFAULTS = {
     "card_rating_mode": "both",     # 'both' | 'buttons' | 'swipe_4way' | 'swipe_2way'
     "show_action_dock": True,       # boolean
     "swipe_to_rate": True,          # boolean
+    "show_bottom_nav_tabs": False,  # boolean: Show 3-tab bar (Map, Card, Stats) at bottom on mobile
     "audio_speed": 1.0,             # float
     "flip_sides": False             # boolean
 }
@@ -540,7 +541,7 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         if val_str in ("back", "mặt sau", "sau", "chỉ mặt sau"):
             return "back"
         return "always"
-    if key in ("random_enabled", "sfx_enabled", "haptic_enabled", "quick_learn_enabled", "show_fsrs", "show_action_dock", "swipe_to_rate"):
+    if key in ("random_enabled", "sfx_enabled", "haptic_enabled", "quick_learn_enabled", "show_fsrs", "show_action_dock", "swipe_to_rate", "show_bottom_nav_tabs"):
         if isinstance(val, bool):
             return val
         val_str = str(val).lower().strip()

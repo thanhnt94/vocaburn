@@ -34,6 +34,7 @@ export interface StudySettingsState {
   tap_to_flip?: boolean
   show_action_dock?: boolean
   swipe_to_rate?: boolean
+  show_bottom_nav_tabs?: boolean
 }
 
 export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
@@ -60,7 +61,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   card_rating_mode: 'both',
   tap_to_flip: true,
   show_action_dock: true,
-  swipe_to_rate: true
+  swipe_to_rate: true,
+  show_bottom_nav_tabs: false
 }
 
 export function usePlaySettings(
@@ -91,6 +93,7 @@ export function usePlaySettings(
   const [tapToFlip, setTapToFlipState] = useState<boolean | undefined>(undefined)
   const [showActionDock, setShowActionDockState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_action_dock ?? true)
   const [swipeToRate, setSwipeToRateState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.swipe_to_rate ?? true)
+  const [showBottomNavTabs, setShowBottomNavTabsState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_bottom_nav_tabs ?? false)
   const [audioSpeed, setAudioSpeedState] = useState<number>(DEFAULT_STUDY_SETTINGS.audio_speed ?? 1.0)
   const [flipSides, setFlipSidesState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.flip_sides ?? false)
 
@@ -242,6 +245,10 @@ export function usePlaySettings(
       if (effectiveSettings.swipe_to_rate !== undefined) {
         setSwipeToRateState(Boolean(effectiveSettings.swipe_to_rate))
       }
+
+      if (effectiveSettings.show_bottom_nav_tabs !== undefined) {
+        setShowBottomNavTabsState(Boolean(effectiveSettings.show_bottom_nav_tabs))
+      }
     }
   }, [])
 
@@ -290,6 +297,7 @@ export function usePlaySettings(
     if (updates.swipe_to_rate !== undefined) setSwipeToRateState(updates.swipe_to_rate)
     if (updates.audio_speed !== undefined) setAudioSpeedState(Number(updates.audio_speed) || 1.0)
     if (updates.flip_sides !== undefined) setFlipSidesState(Boolean(updates.flip_sides))
+    if (updates.show_bottom_nav_tabs !== undefined) setShowBottomNavTabsState(Boolean(updates.show_bottom_nav_tabs))
 
     setIsCustomized(true)
     setSettingOrigin('deck_override')
@@ -557,6 +565,11 @@ export function usePlaySettings(
     setShowActionDock,
     swipeToRate,
     setSwipeToRate,
+    showBottomNavTabs,
+    setShowBottomNavTabs: (show: boolean) => {
+      setShowBottomNavTabsState(show)
+      saveGeneralSettings({ show_bottom_nav_tabs: show })
+    },
     audioSpeed,
     setAudioSpeed: (speed: number) => {
       setAudioSpeedState(speed)

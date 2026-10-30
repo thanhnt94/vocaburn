@@ -311,6 +311,8 @@ export default function FlashcardPlay() {
     setFlipSides,
     tapToFlip: deckTapToFlip,
     setTapToFlip,
+    showBottomNavTabs,
+    setShowBottomNavTabs,
     creatorDefaults,
     isCustomized,
     settingOrigin,
@@ -326,6 +328,12 @@ export default function FlashcardPlay() {
   const effectiveCardRatingMode: 'both' | 'swipe_4way' | 'buttons' =
     (deckCardRatingMode as any) || (showActionDock && swipeToRate ? 'both' : showActionDock ? 'buttons' : 'swipe_4way');
   const effectiveShowFsrs = showFsrs;
+
+  const handleToggleBottomNavTabs = useCallback(() => {
+    const nextVal = !showBottomNavTabs;
+    setShowBottomNavTabs(nextVal);
+    showLocalToast(nextVal ? "Bottom Navigation Tabs: SHOWN" : "Bottom Navigation Tabs: HIDDEN (Clean Single-Row Dock)", "info");
+  }, [showBottomNavTabs, setShowBottomNavTabs, showLocalToast]);
 
   const handleToggleActionDock = useCallback(() => {
     if (showActionDock && !swipeToRate) {
@@ -4060,6 +4068,7 @@ export default function FlashcardPlay() {
         showingHint={showingHint}
         setShowingHint={setShowingHint}
         showActionDock={showActionDock}
+        showBottomNavTabs={showBottomNavTabs}
         currentQuestion={currentQuestion}
         isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
@@ -4361,6 +4370,10 @@ export default function FlashcardPlay() {
           saveGeneralSettings({ tap_to_flip: nextVal, card_flip_trigger: nextVal ? 'both' : 'button_only' });
           showLocalToast(`Tap Card to Flip: ${nextVal ? 'ON' : 'OFF (Buttons Only)'}`, 'info');
         }}
+        showBottomNavTabs={showBottomNavTabs}
+        onToggleBottomNavTabs={handleToggleBottomNavTabs}
+        onOpenMap={() => setIsMapOpen(true)}
+        onOpenStats={() => handleOpenCardHub('stats')}
       />
     </div>
   )

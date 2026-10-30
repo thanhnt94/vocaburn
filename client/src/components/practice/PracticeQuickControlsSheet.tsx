@@ -27,7 +27,9 @@ import {
   BookOpen, 
   FolderTree,
   Image as ImageIcon,
-  Type
+  Type,
+  LayoutGrid,
+  TrendingUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Question } from '@/types/flashcard'
@@ -70,6 +72,10 @@ export interface PracticeQuickControlsSheetProps {
   subLessons?: string[]
   selectedSubLesson?: string | null
   onSelectSubLesson?: (subLesson: string | null) => void
+  showBottomNavTabs?: boolean
+  onToggleBottomNavTabs?: () => void
+  onOpenMap?: () => void
+  onOpenStats?: () => void
 }
 
 export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProps> = ({
@@ -107,6 +113,10 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
   subLessons = [],
   selectedSubLesson = null,
   onSelectSubLesson,
+  showBottomNavTabs = false,
+  onToggleBottomNavTabs,
+  onOpenMap,
+  onOpenStats,
 }) => {
   const [copiedQuestion, setCopiedQuestion] = useState(false)
   const [copiedAnswer, setCopiedAnswer] = useState(false)
@@ -632,7 +642,63 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                       {hapticEnabled ? 'ON' : 'OFF'}
                     </span>
                   </button>
+
+                  {/* Bottom Navigation Tabs */}
+                  {onToggleBottomNavTabs !== undefined && (
+                    <button
+                      type="button"
+                      onClick={onToggleBottomNavTabs}
+                      className={cn(
+                        "flex items-center justify-between p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs col-span-2",
+                        showBottomNavTabs
+                          ? "bg-amber-50/70 border-amber-300 text-amber-800"
+                          : "bg-slate-50 border-slate-200/70 text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", showBottomNavTabs ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-500")}>
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[11px] font-bold truncate">Bottom Navigation Tabs</span>
+                      </div>
+                      <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md shrink-0", showBottomNavTabs ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-600")}>
+                        {showBottomNavTabs ? 'SHOW' : 'HIDE'}
+                      </span>
+                    </button>
+                  )}
                 </div>
+
+                {/* Quick Shortcuts: Map & Stats */}
+                {(onOpenMap || onOpenStats) && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    {onOpenMap && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenMap();
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-amber-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Question Map</span>
+                      </button>
+                    )}
+                    {onOpenStats && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenStats();
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-indigo-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      >
+                        <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>Session Stats</span>
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* ── Direct Font Scale Selector (Optional Quick Pick) ── */}
                 {setFontSize && (
