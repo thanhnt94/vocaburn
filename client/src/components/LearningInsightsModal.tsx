@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickyNote, ChevronLeft, ChevronRight, ChevronDown, Edit2, X, Volume2 } from 'lucide-react'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { speakWithEdgeTTS } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 
 // Helper to parse BBCode to HTML
 const parseBBCodeToHtml = (text: string): string => {
@@ -179,22 +180,14 @@ export default function LearningInsightsModal({
   const [cardNote, setCardNote] = useState<string>('');
   const [isEditingNote, setIsEditingNote] = useState<boolean>(false);
   const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Prevent mobile browser pull-to-refresh while modal is open
-  useEffect(() => {
-    if (Boolean(card)) {
-      document.body.style.overscrollBehavior = 'none'
-      document.documentElement.style.overscrollBehavior = 'none'
-    } else {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-
-    return () => {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-  }, [Boolean(card)])
+  // Prevent mobile browser pull-to-refresh while modal is open and handle swipe-down to close
+  usePreventPullToRefresh({
+    isOpen: Boolean(card),
+    drawerRef: modalRef,
+    onClose,
+  });
 
   // Fetch personal note when card changes
   useEffect(() => {
@@ -351,6 +344,7 @@ export default function LearningInsightsModal({
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-md overscroll-none touch-none"
         />
         <motion.div
+          ref={modalRef}
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}

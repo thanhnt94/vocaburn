@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 import { 
   Brain, 
   Route, 
@@ -155,22 +156,14 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<PlaySettingsTab>('mode')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [copied, setCopied] = useState<boolean>(false)
+  const modalRef = useRef<HTMLDivElement>(null)
 
-  // Prevent mobile browser pull-to-refresh while settings modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overscrollBehavior = 'none'
-      document.documentElement.style.overscrollBehavior = 'none'
-    } else {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-
-    return () => {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-  }, [isOpen])
+  // Prevent mobile browser pull-to-refresh while settings modal is open and handle swipe-down to close
+  usePreventPullToRefresh({
+    isOpen,
+    drawerRef: modalRef,
+    onClose,
+  })
 
   const starred = isStarred ?? Boolean(currentQuestion?.is_starred)
 
@@ -229,6 +222,7 @@ export const PlaySettingsModal: React.FC<PlaySettingsModalProps> = ({
 
           {/* Modal Container */}
           <motion.div 
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}

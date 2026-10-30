@@ -94,3 +94,16 @@ Vocaburn tách biệt nghiêm ngặt miền nghiệp vụ giữa 8 module trong 
   * Cấu hình này thuộc về **Deck Settings** và đã có UI riêng.
   * Màn hình Play chỉ được phép gọi API tải cấu hình (`/practice-settings`) và sử dụng tự động. Phải chú ý merge state (`setModeSettings(prev => ({ ...prev, ...parsed }))`) để không làm mất cấu trúc mặc định, tránh lỗi `Cannot read properties of undefined` khiến UI tự động fallback sai lệch (như kẹt ở trạng thái Front/Back thay vì lấy đúng cấu hình người dùng).
 * Hãy tôn trọng tuyệt đối logic của các chức năng hiện có, không tự ý bịa đặt UI thừa thãi khi người dùng yêu cầu "lấy đúng cấu hình đã setting ra".
+
+---
+
+## 10. Khóa Pull-to-Refresh Khi Mở Quick Controls / Modal & Đóng Bằng Vuốt Xuống (Pull-To-Refresh Lock Directive)
+
+* **BẮT BUỘC KHÓA REFRESH KHI MỞ SHEET / MODAL**:
+  * Khi bất kỳ Bottom Sheet, Quick Settings hay Modal nào đang mở (`isOpen === true`):
+    * **BẮT BUỘC** khóa hành vi pull-to-refresh của trình duyệt di động: đặt `overscrollBehavior = 'none'` và `overscrollBehaviorY = 'none'` trên `document.body` và `document.documentElement`.
+    * **BẮT BUỘC** chặn sự kiện `touchmove` kéo xuống khi phần tử ở đỉnh (`scrollTop <= 0`) bằng listener `{ passive: false }` (`e.preventDefault()`). Nhờ đó, khi người dùng vuốt xuống để đóng sheet/modal, trình duyệt di động (Chrome Android / Safari iOS) **TUYỆT ĐỐI KHÔNG BỊ RELOAD TRANG**.
+* **TỰ ĐỘNG KHÔI PHỤC KHI ĐÓNG SHEET / MODAL**:
+  * Khi đóng sheet/modal (`isOpen === false` hoặc unmount): Khôi phục ngay lập tức `overscrollBehavior = 'auto'` để người dùng có thể vuốt để refresh trang bình thường trong giao diện học chính.
+* **Single Source of Truth**: Tất cả các Bottom Sheet và Modal (`FlashcardQuickControlsSheet`, `HybridQuickControlsSheet`, `PracticeQuickControlsSheet`, `PlaySettingsModal`, `LearningInsightsModal`, `PlayStatsDrawer`) đều phải sử dụng hook chuẩn hóa `usePreventPullToRefresh({ isOpen, drawerRef, backdropRef, onClose })`.
+

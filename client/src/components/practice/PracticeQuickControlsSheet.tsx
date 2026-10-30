@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
+import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 import { 
   Sliders, 
   X, 
@@ -111,6 +112,16 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
   const [copiedAnswer, setCopiedAnswer] = useState(false)
   const [quickTab, setQuickTab] = useState<'preferences' | 'actions'>('preferences')
   const dragControls = useDragControls()
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
+
+  // Prevent mobile browser pull-to-refresh strictly while sheet is open and handle swipe-down to close
+  usePreventPullToRefresh({
+    isOpen,
+    drawerRef,
+    backdropRef,
+    onClose,
+  })
 
   const handleCopyQuestion = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -159,11 +170,12 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
         <div className="fixed inset-0 z-[300] flex flex-col justify-end pointer-events-auto">
           {/* Dimmed Backdrop */}
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs overscroll-none touch-none"
             onClick={(e) => {
               e.stopPropagation()
               onClose()
@@ -172,6 +184,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
 
           {/* Bottom Drawer Container with Swipe-Down Gesture */}
           <motion.div
+            ref={drawerRef}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -187,7 +200,7 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-6 flex flex-col gap-3 select-none z-10 max-h-[88vh] overflow-y-auto touch-pan-y"
+            className="relative w-full max-w-lg mx-auto bg-white rounded-t-[2rem] border-t border-slate-200/90 shadow-2xl p-3 sm:p-4 pb-6 flex flex-col gap-3 select-none z-10 max-h-[88vh] overflow-y-auto overscroll-contain overscroll-none touch-pan-y"
           >
             {/* Drag Handle Bar */}
             <div 

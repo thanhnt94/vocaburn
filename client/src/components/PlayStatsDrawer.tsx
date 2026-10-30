@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 import { 
   X, TrendingUp, Target, Trophy, Flame, ChevronLeft, Crown, Medal, Award, 
   Brain, Clock, Zap, Sparkles, BookOpen, Layers, CheckCircle2, XCircle, 
@@ -89,21 +90,14 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     }
   }, [initialCardSubTab])
 
-  // Prevent mobile browser pull-to-refresh while drawer is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overscrollBehavior = 'none'
-      document.documentElement.style.overscrollBehavior = 'none'
-    } else {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
+  const drawerRef = useRef<HTMLDivElement>(null)
 
-    return () => {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-  }, [isOpen])
+  // Prevent mobile browser pull-to-refresh while drawer is open
+  usePreventPullToRefresh({
+    isOpen,
+    drawerRef,
+    onClose,
+  })
 
   // Detailed data states
   const [cardDetails, setCardDetails] = useState<any>(null)
@@ -255,6 +249,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div 
+          ref={drawerRef}
           initial={{ opacity: 0, y: 30 }} 
           animate={{ opacity: 1, y: 0 }} 
           exit={{ opacity: 0, y: 30 }} 

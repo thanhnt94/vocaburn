@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 
 export interface FlashcardFlyToolbarProps {
   isCardSlot?: boolean
@@ -356,61 +357,13 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   const touchStartTimeRef = useRef<number>(0)
   const backdropTouchStartY = useRef<number | null>(null)
 
-  // Prevent mobile browser pull-to-refresh strictly while quick controls sheet is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overscrollBehavior = 'none'
-      document.documentElement.style.overscrollBehavior = 'none'
-    } else {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-
-    return () => {
-      document.body.style.overscrollBehavior = 'auto'
-      document.documentElement.style.overscrollBehavior = 'auto'
-    }
-  }, [isOpen])
-
-  // Attach non-passive touchmove listeners to cancel browser reload when dragging down
-  useEffect(() => {
-    if (!isOpen) return
-
-    const drawerEl = drawerRef.current
-    const backdropEl = backdropRef.current
-
-    const handleTouchMoveNonPassive = (e: TouchEvent) => {
-      if (touchStartYRef.current !== null && drawerEl && drawerEl.scrollTop <= 0) {
-        const currentY = e.touches[0].clientY
-        const deltaY = currentY - touchStartYRef.current
-        if (deltaY > 0 && e.cancelable) {
-          e.preventDefault()
-        }
-      }
-    }
-
-    const handleBackdropTouchMoveNonPassive = (e: TouchEvent) => {
-      if (e.cancelable) {
-        e.preventDefault()
-      }
-    }
-
-    if (drawerEl) {
-      drawerEl.addEventListener('touchmove', handleTouchMoveNonPassive, { passive: false })
-    }
-    if (backdropEl) {
-      backdropEl.addEventListener('touchmove', handleBackdropTouchMoveNonPassive, { passive: false })
-    }
-
-    return () => {
-      if (drawerEl) {
-        drawerEl.removeEventListener('touchmove', handleTouchMoveNonPassive)
-      }
-      if (backdropEl) {
-        backdropEl.removeEventListener('touchmove', handleBackdropTouchMoveNonPassive)
-      }
-    }
-  }, [isOpen])
+  // Prevent mobile browser pull-to-refresh strictly while quick controls sheet is open and handle swipe-down to close
+  usePreventPullToRefresh({
+    isOpen,
+    drawerRef,
+    backdropRef,
+    onClose,
+  })
 
   const handleBackdropTouchStart = (e: React.TouchEvent) => {
     backdropTouchStartY.current = e.touches[0].clientY
