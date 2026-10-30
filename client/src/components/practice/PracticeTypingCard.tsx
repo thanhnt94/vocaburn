@@ -201,6 +201,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
           <form
             onSubmit={(e) => {
               e.preventDefault()
+              e.stopPropagation()
               if (typingInput && typingInput.trim()) {
                 onCheckTyping()
               }
@@ -216,6 +217,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
+                    e.stopPropagation()
                     if (typingInput && typingInput.trim()) {
                       onCheckTyping()
                     }

@@ -290,6 +290,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
+                  e.stopPropagation()
                   if (typingInput && typingInput.trim() && onCheckTyping) {
                     onCheckTyping()
                   }
@@ -302,6 +303,15 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     type="text"
                     value={typingInput}
                     onChange={(e) => setTypingInput && setTypingInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (typingInput && typingInput.trim() && onCheckTyping) {
+                          onCheckTyping()
+                        }
+                      }
+                    }}
                     placeholder="Listen and type the word..."
                     enterKeyHint="go"
                     autoComplete="off"

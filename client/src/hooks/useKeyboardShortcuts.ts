@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface KeyboardShortcutsParams {
   mainTab: string;
@@ -49,6 +49,8 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
     activeMode
   } = params;
 
+  const lastAnswerSubmittedAtRef = useRef<number>(0);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -68,16 +70,27 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      
+
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        if (e.key === 'Enter' && mainTab === 'practice' && practiceSubMode === 'typing') {
+          e.preventDefault();
+          if (!showFeedback) {
+            lastAnswerSubmittedAtRef.current = Date.now();
+            handleTypingAnswer();
+          }
+        }
+        return;
+      }
+
       const activeElement = document.activeElement;
       if (activeElement) {
         const tagName = activeElement.tagName.toLowerCase();
         if (tagName === 'input' || tagName === 'textarea' || activeElement.getAttribute('contenteditable') === 'true') {
           if (e.key === 'Enter' && mainTab === 'practice' && practiceSubMode === 'typing') {
             e.preventDefault();
-            if (showFeedback) {
-              handleNext();
-            } else {
+            if (!showFeedback) {
+              lastAnswerSubmittedAtRef.current = Date.now();
               handleTypingAnswer();
             }
           }
@@ -102,6 +115,10 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(practiceSubMode)) {
           if (e.key === 'Enter' || e.key === ' ' || key === 'n') {
+            if (Date.now() - lastAnswerSubmittedAtRef.current < 400) {
+              e.preventDefault();
+              return;
+            }
             if (showFeedback) {
               e.preventDefault();
               handleNext();
@@ -111,6 +128,7 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
             const keyNum = parseInt(e.key);
             if (!isNaN(keyNum) && keyNum >= 1 && keyNum <= currentPracticeChoicesCount) {
               e.preventDefault();
+              lastAnswerSubmittedAtRef.current = Date.now();
               handleMCQAnswer(keyNum - 1);
               return;
             }
@@ -118,12 +136,17 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
             const charCode = key.charCodeAt(0);
             if (key.length === 1 && charCode >= 97 && charCode < 97 + currentPracticeChoicesCount) {
               e.preventDefault();
+              lastAnswerSubmittedAtRef.current = Date.now();
               handleMCQAnswer(charCode - 97);
               return;
             }
           }
         } else if (practiceSubMode === 'typing') {
           if (e.key === 'Enter' || e.key === ' ' || key === 'n') {
+            if (Date.now() - lastAnswerSubmittedAtRef.current < 400) {
+              e.preventDefault();
+              return;
+            }
             if (showFeedback) {
               e.preventDefault();
               handleNext();

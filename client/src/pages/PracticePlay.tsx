@@ -88,6 +88,7 @@ export default function PracticePlay() {
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
+  const lastAnswerSubmittedAtRef = useRef<number>(0)
 
   const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
     if (!currentQuestion) return;
@@ -1188,6 +1189,11 @@ export default function PracticePlay() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
 
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
       const activeElement = document.activeElement;
       if (activeElement) {
         const tagName = activeElement.tagName.toLowerCase();
@@ -1213,6 +1219,10 @@ export default function PracticePlay() {
       if (mainTab === 'practice') {
         if (['mcq', 'listening'].includes(baseMode)) {
           if (e.key === 'Enter' || key === 'n' || e.key === ' ') {
+            if (Date.now() - lastAnswerSubmittedAtRef.current < 400) {
+              e.preventDefault();
+              return;
+            }
             if (showFeedback) {
               e.preventDefault();
               handleNext();
@@ -1227,6 +1237,10 @@ export default function PracticePlay() {
           }
         } else if (baseMode === 'typing') {
           if (e.key === 'Enter' || key === 'n' || e.key === ' ') {
+            if (Date.now() - lastAnswerSubmittedAtRef.current < 400) {
+              e.preventDefault();
+              return;
+            }
             if (showFeedback) {
               e.preventDefault();
               handleNext();
@@ -2302,6 +2316,7 @@ export default function PracticePlay() {
 
   const handleMCQAnswer = async (choiceIdx: number) => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
+    lastAnswerSubmittedAtRef.current = Date.now();
 
     setSelectedOption(choiceIdx);
     setShowFeedback(true);
@@ -2503,6 +2518,7 @@ export default function PracticePlay() {
 
   const handleTypingAnswer = async () => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
+    lastAnswerSubmittedAtRef.current = Date.now();
 
     const normalizeAnswer = (str: string) => {
       return str

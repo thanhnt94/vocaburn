@@ -38,6 +38,16 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
   typingInput = '',
   onCheckTyping
 }) => {
+  const prevAnsweredRef = React.useRef(hasAnsweredPractice);
+  const justAnsweredAtRef = React.useRef(0);
+
+  React.useEffect(() => {
+    if (!prevAnsweredRef.current && hasAnsweredPractice) {
+      justAnsweredAtRef.current = Date.now();
+    }
+    prevAnsweredRef.current = hasAnsweredPractice;
+  }, [hasAnsweredPractice]);
+
   return (
     <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
       {/* Audio Button */}
@@ -77,7 +87,10 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
       {mainTab === 'practice' ? (
         hasAnsweredPractice ? (
           <button
-            onClick={() => onNext()}
+            onClick={() => {
+              if (Date.now() - justAnsweredAtRef.current < 400) return;
+              onNext();
+            }}
             className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 dark:shadow-none flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
           >
             <span>Continue</span>
@@ -95,7 +108,8 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
             <button
               onClick={() => {
                 if (typingInput && typingInput.trim() && onCheckTyping) {
-                  onCheckTyping()
+                  justAnsweredAtRef.current = Date.now();
+                  onCheckTyping();
                 }
               }}
               disabled={!typingInput || !typingInput.trim()}

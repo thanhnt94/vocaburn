@@ -3244,6 +3244,7 @@ export default function FlashcardPlay() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     if (typingInput && typingInput.trim()) {
                       handleTypingAnswer();
                     }
@@ -3257,6 +3258,7 @@ export default function FlashcardPlay() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
+                        e.stopPropagation();
                         if (typingInput && typingInput.trim()) {
                           handleTypingAnswer();
                         }
