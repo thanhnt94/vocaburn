@@ -55,13 +55,12 @@ export interface Flashcard3DCardProps {
   setShowAbsoluteFirst: React.Dispatch<React.SetStateAction<boolean>>
   showAbsoluteLast: boolean
   setShowAbsoluteLast: React.Dispatch<React.SetStateAction<boolean>>
-  renderFlyToolbarNode?: (isCardSlot: boolean) => React.ReactNode
-  hideFlyToolbar?: boolean
   activeMode?: string
   handleNext?: () => void
   isFlyingOut?: boolean
   flipSides?: boolean
   handleOpenCardHub?: (tab?: 'stats' | 'insight' | 'note' | 'community') => void
+  onOpenInsights?: () => void
   onTriggerPlayAudio?: () => void
   isLoadingAudio?: boolean
   isPlayingAudio?: boolean
@@ -107,11 +106,10 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   setShowAbsoluteFirst,
   showAbsoluteLast,
   setShowAbsoluteLast,
-  renderFlyToolbarNode,
-  hideFlyToolbar = false,
   activeMode,
   handleNext,
   handleOpenCardHub,
+  onOpenInsights,
   onTriggerPlayAudio,
   isLoadingAudio,
   isPlayingAudio,
@@ -241,6 +239,20 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               title={currentQuestion.is_starred ? "Unstar Card" : "Star Card"}
             >
               <Star className={cn("w-3.5 h-3.5", currentQuestion.is_starred && "fill-amber-500 text-amber-500")} />
+            </button>
+          )}
+          {/* Lightbulb Insights button */}
+          {currentQuestion && onOpenInsights && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenInsights();
+              }}
+              className="w-7 sm:w-7.5 h-7 sm:h-7.5 flex items-center justify-center rounded-xl border border-slate-200/70 bg-slate-50/80 text-amber-500 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all active:scale-90 shadow-2xs cursor-pointer"
+              title="Card Insights & AI Explanation (💡)"
+            >
+              <Lightbulb className="w-3.5 h-3.5 fill-amber-400/20" />
             </button>
           )}
         </div>
@@ -422,43 +434,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* ── FLOATING FLY TOOLBAR ON FRONT FACE (Bottom-Left) ── */}
-            {!hideFlyToolbar && (
-              <div 
-                className="absolute bottom-3.5 left-3.5 z-30 pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {renderFlyToolbarNode ? (
-                  renderFlyToolbarNode(true)
-                ) : onTriggerPlayAudio ? (
-                  <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTriggerPlayAudio();
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-                        isPlayingAudio
-                          ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
-                          : isLoadingAudio
-                          ? "bg-indigo-100 text-indigo-700 animate-pulse"
-                          : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
-                      )}
-                      title={isLoadingAudio ? "Generating audio..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
-                    >
-                      {isLoadingAudio ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      ) : (
-                        <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
-                      )}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            )}
           </div>
 
           {/* ═══════════ BACK SIDE ═══════════ */}
@@ -811,43 +786,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 </div>
               );
             })()}
-
-            {/* ── FLOATING ACTION OVERLAY (Fly Toolbar on Back Face - Bottom Left) ── */}
-            {!hideFlyToolbar && (!hasRated || selectedOption === null) && (
-              <div 
-                className="absolute bottom-3.5 left-3.5 z-30 pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {renderFlyToolbarNode ? (
-                  renderFlyToolbarNode(true)
-                ) : onTriggerPlayAudio ? (
-                  <div className="flex items-center gap-1.5 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTriggerPlayAudio();
-                      }}
-                      className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-                        isPlayingAudio
-                          ? "bg-indigo-600 text-white ring-2 ring-indigo-300 animate-pulse"
-                          : isLoadingAudio
-                          ? "bg-indigo-100 text-indigo-700 animate-pulse"
-                          : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
-                      )}
-                      title={isLoadingAudio ? "Generating audio..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
-                    >
-                      {isLoadingAudio ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      ) : (
-                        <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
-                      )}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            )}
           </div>
         </div>
 

@@ -165,6 +165,7 @@ export interface LearningInsightsModalProps {
   canEdit?: boolean;
   onEditCard?: (card: any) => void;
   insightsColumns?: string[];
+  initialTab?: 'content' | 'stats';
 }
 
 export default function LearningInsightsModal({
@@ -174,13 +175,21 @@ export default function LearningInsightsModal({
   onSelectCard,
   canEdit = false,
   onEditCard,
-  insightsColumns
+  insightsColumns,
+  initialTab
 }: LearningInsightsModalProps) {
-  const [cardModalTab, setCardModalTab] = useState<'content' | 'stats'>('content');
+  const [cardModalTab, setCardModalTab] = useState<'content' | 'stats'>(initialTab || 'content');
   const [cardNote, setCardNote] = useState<string>('');
   const [isEditingNote, setIsEditingNote] = useState<boolean>(false);
   const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Sync initial tab when changed or card opened
+  useEffect(() => {
+    if (initialTab) {
+      setCardModalTab(initialTab);
+    }
+  }, [initialTab, card?.id]);
 
   // Prevent mobile browser pull-to-refresh while modal is open and handle swipe-down to close
   usePreventPullToRefresh({

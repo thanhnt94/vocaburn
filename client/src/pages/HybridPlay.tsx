@@ -1488,8 +1488,7 @@ export default function HybridPlay() {
                 setShowAbsoluteFirst={() => {}}
                 showAbsoluteLast={false}
                 setShowAbsoluteLast={() => {}}
-                renderFlyToolbarNode={() => null}
-                hideFlyToolbar={true}
+                onOpenInsights={() => setPreviewInsightCard(currentSkimQuestion)}
                 setIsFlyToolbarOpen={() => {}}
                 setShowFeedback={() => {}}
                 setJustAnswered={() => {}}

@@ -59,13 +59,13 @@ import {
   SessionStatsWidget,
   FlashcardHeader,
   FlashcardActionDock,
-  FlashcardFlyToolbar,
   FlashcardQuickControlsSheet,
   Flashcard3DCard,
   FlashcardDesktopLeftAside,
   FlashcardDesktopRightAside,
   FlashcardModalsContainer
 } from '@/components/flashcard'
+import LearningInsightsModal from '@/components/LearningInsightsModal'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useCardAI } from '@/hooks/useCardAI'
 import { useFlashcardGestures } from '@/hooks/useFlashcardGestures'
@@ -460,8 +460,19 @@ export default function FlashcardPlay() {
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
   const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
+  const [previewInsightCard, setPreviewInsightCard] = useState<any | null>(null)
+  const [previewInsightTab, setPreviewInsightTab] = useState<'content' | 'stats'>('content')
+
+  const handleOpenInsights = (card: any = currentQuestion, tab: 'content' | 'stats' = 'content') => {
+    setPreviewInsightTab(tab);
+    setPreviewInsightCard(card || currentQuestion);
+  };
 
   const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'note' | 'community' = 'stats') => {
+    if (subTab === 'insight' || subTab === 'note' || subTab === 'stats') {
+      handleOpenInsights(currentQuestion, subTab === 'stats' ? 'stats' : 'content');
+      return;
+    }
     if (isFeedbackOpen && activeFeedbackTab === subTab) {
       setIsFeedbackOpen(false)
       return
@@ -2792,7 +2803,7 @@ export default function FlashcardPlay() {
     },
     onUndo: handleUndoRating,
     onToggleStar: handleStarQuestion,
-    onToggleHint: handleToggleHint
+    onToggleHint: () => handleOpenInsights(currentQuestion, 'content')
   });
 
   const openEditModal = () => {
@@ -3585,42 +3596,6 @@ export default function FlashcardPlay() {
     )
   };
 
-  {/* ═══════════ LEFT-SIDE EXPANDABLE FLY TOOLBAR (Horizontal Quick Bar) ═══════════ */}
-  const renderFlyToolbar = (isEmbedded = false) => {
-    if (!currentQuestion) return null;
-
-    const triggerPlayAudio = async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (mainTab === 'practice') {
-        const practiceData = currentPracticeData;
-        if (practiceData) {
-          const { question: qText, question_key: qKey } = practiceData;
-          if (qKey === 'front') await playCardAudio('front');
-          else if (qKey === 'back') await playCardAudio('back');
-          else await speakWithEdgeTTS(qText);
-        }
-      } else {
-        const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
-        await playCardAudio(targetFace);
-      }
-    };
-
-    return (
-      <FlashcardFlyToolbar
-        isCardSlot={isEmbedded}
-        setIsFlyToolbarOpen={setIsFlyToolbarOpen}
-        triggerPlayAudio={triggerPlayAudio}
-        isLoadingAudio={isLoadingAudio}
-        isPlayingAudio={isPlayingAudio}
-        currentQuestion={currentQuestion}
-        isFlipped={isFlipped}
-        flipSides={flipSides}
-        showLocalToast={showLocalToast}
-      />
-    );
-  };
-
-
   if (!session || currentIndex < 0) return <SessionLoadingScreen />
 
   return (
@@ -4016,11 +3991,10 @@ export default function FlashcardPlay() {
                   setShowAbsoluteFirst={setShowAbsoluteFirst}
                   showAbsoluteLast={showAbsoluteLast}
                   setShowAbsoluteLast={setShowAbsoluteLast}
-                  renderFlyToolbarNode={undefined}
-                  hideFlyToolbar={showActionDock}
                   activeMode={effectiveCardMode}
                   handleNext={handleNext}
                   handleOpenCardHub={handleOpenCardHub}
+                  onOpenInsights={() => handleOpenInsights(currentQuestion, 'content')}
                   onTriggerPlayAudio={() => {
                     const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
                     playCardAudio(targetFace);
@@ -4095,13 +4069,15 @@ export default function FlashcardPlay() {
           setIsFeedbackOpen(false);
         }}
         onOpenStats={() => {
-          handleOpenCardHub('stats');
+          setIsStatsOpen(true);
+          setIsMapOpen(false);
+          setIsFeedbackOpen(false);
         }}
         onOpenQuickSettings={() => {
           setIsFlyToolbarOpen(true);
         }}
         onOpenInsights={() => {
-          handleOpenCardHub('insight');
+          handleOpenInsights(currentQuestion, 'content');
         }}
         onTriggerPlayAudio={() => {
           const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
@@ -4122,6 +4098,23 @@ export default function FlashcardPlay() {
         sessionXP={sessionXP}
         milestonesHit={milestonesHit}
         onNavigateToDeck={() => navigate(`/decks/${id}`)}
+      />
+
+      {/* 💡 LEARNING INSIGHTS MODAL (When clicking Lightbulb or Card Insights) */}
+      <LearningInsightsModal
+        card={previewInsightCard}
+        onClose={() => setPreviewInsightCard(null)}
+        allQuestions={session?.questions || []}
+        onSelectCard={(c) => {
+          setPreviewInsightCard(c);
+        }}
+        canEdit={canEdit}
+        onEditCard={(c) => {
+          setEditFormData(c);
+          setIsEditModalOpen(true);
+        }}
+        initialTab={previewInsightTab}
+        insightsColumns={(session as any)?.creator_settings?.insights_columns || (session as any)?.practice_settings?.insights_columns}
       />
 
       <FlashcardModalsContainer

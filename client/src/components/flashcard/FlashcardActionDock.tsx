@@ -145,8 +145,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
     )
   );
 
-  const hasHintContent = Boolean(showingHint && currentQuestion?.hint && !isFlipped);
-
   return (
     <footer 
       onTouchStart={!showBottomNavTabs ? handleBarTouchStart : undefined}
@@ -156,7 +154,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
       className={cn(
         "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)] relative touch-pan-x",
         (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
-        !hasActionButtons && !hasHintContent && "md:hidden"
+        !hasActionButtons && "md:hidden"
       )}
       title={!showBottomNavTabs ? "Swipe up for Quick Settings" : undefined}
     >
@@ -177,36 +175,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
           <>
-            {/* Hint Popup Bubble */}
-            <AnimatePresence>
-              {hasHintContent && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="mx-3 sm:mx-4 mt-3 p-3.5 bg-amber-50 border border-amber-100 rounded-2xl shadow-md text-xs font-semibold text-amber-850 leading-relaxed relative flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="w-5.5 h-5.5 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm text-white font-black text-xs">
-                    💡
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="font-black text-[9px] uppercase tracking-wider text-amber-600 block mb-0.5">💡 AI Hint</span>
-                    {currentQuestion.hint}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowingHint(false);
-                    }}
-                    className="text-amber-400 hover:text-amber-600 active:scale-95 transition-all p-0.5 hover:bg-amber-100 rounded-lg"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* PRIMARY ACTION ZONE (Single Clean Thumb-Reachable 1-Row Action Bar) */}
             {hasActionButtons && (
               <div className="w-full px-3 sm:px-4 py-2">
@@ -492,6 +460,21 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                       ) : (
                         <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
                       )}
+                    </button>
+                  )}
+
+                  {/* Lightbulb (Insights & AI Explanation) */}
+                  {onOpenInsights && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenInsights();
+                      }}
+                      className="h-full px-3.5 sm:px-4 rounded-2xl bg-white hover:bg-amber-50 text-amber-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
+                      title="Card Insights & AI Explanation (💡)"
+                    >
+                      <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
                     </button>
                   )}
 
