@@ -402,36 +402,41 @@ async def get_deck_play_data(
 ):
     user_id = AuthService.get_user_id(request)
     
-    # --- Permission check: lightweight single query (no selectinload for cards) ---
-    from app.modules.deck.models import FlashcardDeck as FDeckCheck, DeckCollaborator
+    from app.modules.deck.models import (
+        FlashcardDeck, Flashcard, Tag, DeckCollaborator, UserCardMastery, UserDeckSettings
+    )
     from app.modules.auth.models import User as UserDB
-    perm_deck_res = await db.execute(select(FDeckCheck.id, FDeckCheck.is_public, FDeckCheck.creator_id).where(FDeckCheck.id == deck_id))
-    perm_deck = perm_deck_res.one_or_none()
-    if not perm_deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
+    from app.modules.gamification.models import XPTransaction, UserGamification
+    from app.modules.deck.models import UserAnswer, DeckAttempt
+
+    # 1. Fetch deck with cards and tags in 1 optimized query
+    deck_query = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
+        selectinload(FlashcardDeck.cards),
+        selectinload(FlashcardDeck.tags)
+    )
+    deck_res = await db.execute(deck_query)
+    deck = deck_res.scalar_one_or_none()
+    if not deck:
+        return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
     is_collaborator = False
     is_admin = False
     if user_id:
-        collab_res = await db.execute(select(DeckCollaborator.id).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id).limit(1))
+        collab_res = await db.execute(
+            select(DeckCollaborator).where(
+                DeckCollaborator.deck_id == deck_id,
+                DeckCollaborator.user_id == user_id
+            )
+        )
         is_collaborator = collab_res.scalar() is not None
         user_res = await db.execute(select(UserDB.role).where(UserDB.id == user_id))
         user_role = user_res.scalar_one_or_none()
-        is_admin = user_role == "admin"
+        is_admin = (user_role == "admin")
 
-    if not perm_deck.is_public and perm_deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
+    if not deck.is_public and deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
         return JSONResponse(status_code=403, content={"error": "This is a private deck"})
 
     if lightweight:
-        from app.modules.deck.models import FlashcardDeck
-        result = await db.execute(
-            select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
-                selectinload(FlashcardDeck.cards),
-                selectinload(FlashcardDeck.tags)
-            )
-        )
-        deck = result.scalar_one_or_none()
-        if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
-        
         source_cards = deck.cards or []
         if sub_col and sub_val is not None:
             def matches_sub_light(c):
@@ -481,20 +486,6 @@ async def get_deck_play_data(
         }
 
     is_practice = mode in ("mcq", "typing", "listening")
-    
-    from app.modules.deck.models import FlashcardDeck, Flashcard, Tag, DeckCollaborator, UserCardMastery, UserDeckSettings
-    from app.modules.gamification.models import XPTransaction, UserGamification
-    from app.modules.deck.models import UserAnswer, DeckAttempt
-
-    # 1. Fetch deck with cards and tags in 1 optimized query
-    deck_query = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
-        selectinload(FlashcardDeck.cards),
-        selectinload(FlashcardDeck.tags)
-    )
-
-    deck_res = await db.execute(deck_query)
-    deck = deck_res.scalar_one_or_none()
-    if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
     user_sett = None
     user_total_xp = 0
