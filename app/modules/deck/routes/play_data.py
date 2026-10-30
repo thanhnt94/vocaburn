@@ -287,10 +287,10 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
     review_times_res = await db.execute(review_times_stmt)
     review_times_map = {row[0]: (row[1], row[2]) for row in review_times_res.all()}
     
-    # 6. Fetch gamification stats
-    from app.modules.gamification.interface import GamificationInterface
-    user_stats = await GamificationInterface.get_user_stats(db, user_id)
-    user_total_xp = user_stats.get("xp", 0)
+    # 6. Fetch XP directly — no streak update cascade on card load
+    from app.modules.gamification.models import UserGamification
+    user_xp_res = await db.execute(select(UserGamification.xp).where(UserGamification.user_id == user_id))
+    user_total_xp = user_xp_res.scalar() or 0
     
     from app.modules.gamification.models import XPTransaction
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -302,17 +302,13 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
         DeckAttempt.user_id == user_id,
         UserAnswer.created_at >= today_start
     )
-    all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
-        DeckAttempt.user_id == user_id
-    )
     
     today_xp_res = await db.execute(today_xp_stmt)
     today_time_res = await db.execute(today_time_stmt)
-    all_time_time_res = await db.execute(all_time_time_stmt)
     
     user_today_xp = today_xp_res.scalar() or 0
     user_today_time = today_time_res.scalar() or 0
-    user_all_time_time = all_time_time_res.scalar() or 0
+    user_all_time_time = user_today_time  # All-time deferred to dashboard
     
     default_new_intervals = {1: "1m", 2: "5m", 3: "10m", 4: "4d"}
     
@@ -406,20 +402,23 @@ async def get_deck_play_data(
 ):
     user_id = AuthService.get_user_id(request)
     
-    # Check if deck exists and enforce privacy
-    deck_check = await DeckService.get_deck_by_id(db, deck_id)
-    if not deck_check: return JSONResponse(status_code=404, content={"error": "Deck not found"})
-    
-    from app.modules.deck.models import DeckCollaborator
-    collab_res = await db.execute(select(DeckCollaborator).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id))
-    is_collaborator = collab_res.scalar() is not None
-
+    # --- Permission check: lightweight single query (no selectinload for cards) ---
+    from app.modules.deck.models import FlashcardDeck as FDeckCheck, DeckCollaborator
     from app.modules.auth.models import User as UserDB
-    user_res = await db.execute(select(UserDB).where(UserDB.id == user_id))
-    user_obj = user_res.scalar_one_or_none()
-    is_admin = user_obj and user_obj.role == "admin"
+    perm_deck_res = await db.execute(select(FDeckCheck.id, FDeckCheck.is_public, FDeckCheck.creator_id).where(FDeckCheck.id == deck_id))
+    perm_deck = perm_deck_res.one_or_none()
+    if not perm_deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
-    if not deck_check.is_public and deck_check.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
+    is_collaborator = False
+    is_admin = False
+    if user_id:
+        collab_res = await db.execute(select(DeckCollaborator.id).where(DeckCollaborator.deck_id == deck_id, DeckCollaborator.user_id == user_id).limit(1))
+        is_collaborator = collab_res.scalar() is not None
+        user_res = await db.execute(select(UserDB.role).where(UserDB.id == user_id))
+        user_role = user_res.scalar_one_or_none()
+        is_admin = user_role == "admin"
+
+    if not perm_deck.is_public and perm_deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
         return JSONResponse(status_code=403, content={"error": "This is a private deck"})
 
     if lightweight:
@@ -498,44 +497,25 @@ async def get_deck_play_data(
     if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
     user_sett = None
-    is_collaborator = False
     user_total_xp = 0
     user_today_xp = 0
     user_today_time = 0
     user_all_time_time = 0
 
     if user_id:
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        # Only fetch user deck settings — critical for card filtering/display
         user_sett_stmt = select(UserDeckSettings).where(
             UserDeckSettings.user_id == user_id,
             UserDeckSettings.deck_id == deck_id
         ).order_by(UserDeckSettings.id.desc()).limit(1)
-        collab_stmt = select(DeckCollaborator).where(
-            DeckCollaborator.deck_id == deck_id, 
-            DeckCollaborator.user_id == user_id
-        )
-        today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
-            XPTransaction.user_id == user_id,
-            XPTransaction.created_at >= today_start
-        )
-        today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
-            DeckAttempt.user_id == user_id,
-            UserAnswer.created_at >= today_start
-        )
-        user_xp_stmt = select(UserGamification.xp).where(UserGamification.user_id == user_id)
-
         user_sett_res = await db.execute(user_sett_stmt)
-        collab_res = await db.execute(collab_stmt)
-        today_xp_res = await db.execute(today_xp_stmt)
-        today_time_res = await db.execute(today_time_stmt)
-        user_xp_res = await db.execute(user_xp_stmt)
-
         user_sett = user_sett_res.scalar_one_or_none()
-        is_collaborator = collab_res.scalar() is not None
+
+        # XP/time stats are deferred — frontend uses Zustand store values
+        # and refreshes them lazily from /api/v1/gamification/stats
+        user_xp_stmt = select(UserGamification.xp).where(UserGamification.user_id == user_id)
+        user_xp_res = await db.execute(user_xp_stmt)
         user_total_xp = user_xp_res.scalar() or 0
-        user_today_xp = today_xp_res.scalar() or 0
-        user_today_time = today_time_res.scalar() or 0
-        user_all_time_time = user_today_time
 
     source_cards = deck.cards or []
     if sub_col and sub_val is not None:

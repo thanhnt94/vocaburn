@@ -3,6 +3,18 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-31]
+#### Tối Ưu Hóa Sâu Toàn Diện Tốc Độ Nạp Phiên Học (Audit Hiệu Năng Backend & Frontend)
+- **Backend `play_data.py` (Triệt tiêu 5 truy vấn thừa trên Critical Path)**:
+  - **Permission Check Fast-Path**: Thay thế `DeckService.get_deck_by_id()` (tải toàn bộ tags, category) bằng câu truy vấn 3 cột siêu nhẹ `select(id, is_public, creator_id)` trên `FlashcardDeck`.
+  - **Deduplication Collaborator Check**: Tái sử dụng kết quả kiểm tra `is_collaborator`, loại bỏ hoàn toàn câu lệnh truy vấn lặp lại `DeckCollaborator`.
+  - **Khử bỏ Aggregate tính thời gian và điểm ngày**: Gỡ bỏ các phép tính `SUM(XPTransaction)` và `JOIN(UserAnswer, DeckAttempt)` ra khỏi luồng tải thẻ ban đầu (frontend HUD tận dụng dữ liệu đồng bộ sẵn từ Zustand Store).
+  - **Tối ưu Quick Play (`quick-play-data`)**: Loại bỏ `GamificationInterface.get_user_stats()` (vốn kích hoạt chuỗi 5-7 query `update_streak` và khóa ghi SQLite WAL); gỡ bỏ `all_time_time_stmt` quét toàn bảng `UserAnswer`.
+- **Backend `play_session.py` (`next-card` Single SQL Outerjoin)**:
+  - Hợp nhất 2 câu truy vấn tuần tự (`Flashcard.id` và `UserCardMastery.in_`) thành 1 câu lệnh `outerjoin` duy nhất, cắt giảm 50% thời gian tìm kiếm thẻ tiếp theo.
+- **Frontend `FlashcardPlay.tsx` & `PracticePlay.tsx` (Lazy Note & Defer Settings)**:
+  - Chuyển `fetchNote()` sang cơ chế Lazy-loading: Chỉ kích hoạt nạp ghi chú khi người dùng mở drawer Feedback / Note / Insights (`isFeedbackOpen === true`), loại bỏ hoàn toàn request gọi ngầm mỗi khi chuyển thẻ.
+  - Trì hoãn `updateUserSettings({ last_deck_id })` 1.5 giây sau mount (`setTimeout`) để dành 100% băng thông mạng cho việc hiển thị thẻ học đầu tiên.
+
 #### Khắc Phục Lỗi Rớt Phiên Học FSRS (`play-data` AttributeError) & Phòng Vệ Type Safety
 - **Sửa lỗi `AttributeError: type object 'UserGamification' has no attribute 'total_xp'`**:
   - Trong `app/modules/deck/routes/play_data.py`: sửa `UserGamification.total_xp` thành `UserGamification.xp` (theo đúng schema định nghĩa trong `models.py`).

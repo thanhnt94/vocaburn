@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 from app.modules.auth.services.auth_service import AuthService
 from app.modules.auth.services.user_settings_service import UserSettingsService
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, Integer, or_, desc
+from sqlalchemy import select, delete, func, Integer, or_, and_, desc
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.modules.deck.services.excel_service import ExcelDeckService
@@ -78,39 +78,42 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     random_enabled = data.get("random_enabled", False)
     scope = data.get("scope", "all")
 
-    from app.modules.deck.models import Flashcard
-    cards_res = await db.execute(
-        select(Flashcard.id).where(Flashcard.deck_id == deck_id).order_by(Flashcard.id.asc())
-    )
-    card_ids = cards_res.scalars().all()
-    total = len(card_ids)
-    if total == 0:
-        return {"next_index": 0}
-
-    from app.modules.deck.models import UserCardMastery
-    mastery_res = await db.execute(
+    from app.modules.deck.models import Flashcard, UserCardMastery
+    stmt = (
         select(
-            UserCardMastery.card_id,
+            Flashcard.id,
             UserCardMastery.state,
             UserCardMastery.stability,
             UserCardMastery.due,
             UserCardMastery.last_review,
             UserCardMastery.is_ignored
-        ).where(
-            UserCardMastery.user_id == user_id,
-            UserCardMastery.card_id.in_(card_ids)
         )
+        .outerjoin(
+            UserCardMastery,
+            and_(
+                UserCardMastery.card_id == Flashcard.id,
+                UserCardMastery.user_id == user_id
+            )
+        )
+        .where(Flashcard.deck_id == deck_id)
+        .order_by(Flashcard.id.asc())
     )
-    mastery_map = {
-        r.card_id: {
-            "state": r.state or 0,
-            "stability": r.stability,
-            "due": r.due,
-            "last_review": r.last_review,
-            "is_ignored": bool(r.is_ignored)
-        }
-        for r in mastery_res.all()
-    }
+    rows = (await db.execute(stmt)).all()
+    if not rows:
+        return {"next_index": 0}
+
+    card_ids = [r[0] for r in rows]
+    total = len(card_ids)
+    mastery_map = {}
+    for r in rows:
+        if r[1] is not None or r[3] is not None or r[4] is not None or r[5]:
+            mastery_map[r[0]] = {
+                "state": r[1] or 0,
+                "stability": r[2],
+                "due": r[3],
+                "last_review": r[4],
+                "is_ignored": bool(r[5])
+            }
 
     ignored_indexes = set()
     for idx, c_id in enumerate(card_ids):

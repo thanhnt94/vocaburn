@@ -82,7 +82,10 @@ export default function PracticePlay() {
 
   useEffect(() => {
     if (id && id !== 'quick' && !isNaN(Number(id))) {
-      updateUserSettings({ last_deck_id: Number(id) });
+      const timer = setTimeout(() => {
+        updateUserSettings({ last_deck_id: Number(id) });
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [id]);
 
@@ -1314,10 +1317,10 @@ export default function PracticePlay() {
   ])
 
   useEffect(() => {
-    if (currentQuestion) {
+    if (currentQuestion && isFeedbackOpen) {
       fetchNote()
     }
-  }, [currentIndex, currentQuestion])
+  }, [currentIndex, currentQuestion, isFeedbackOpen])
 
   useEffect(() => {
     if (mainTab === 'practice' && baseMode === 'listening' && currentPracticeData) {

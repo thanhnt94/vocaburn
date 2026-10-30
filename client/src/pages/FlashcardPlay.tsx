@@ -97,7 +97,10 @@ export default function FlashcardPlay() {
 
   useEffect(() => {
     if (id && id !== 'quick' && !isNaN(Number(id))) {
-      updateUserSettings({ last_deck_id: Number(id) });
+      const timer = setTimeout(() => {
+        updateUserSettings({ last_deck_id: Number(id) });
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [id]);
 
@@ -994,10 +997,10 @@ export default function FlashcardPlay() {
 
 
   useEffect(() => {
-    if (currentQuestion) {
+    if (currentQuestion && isFeedbackOpen) {
       fetchNote()
     }
-  }, [currentIndex, currentQuestion])
+  }, [currentIndex, currentQuestion, isFeedbackOpen])
 
   useEffect(() => {
     if (mainTab === 'practice' && practiceSubMode === 'listening' && currentPracticeData) {
