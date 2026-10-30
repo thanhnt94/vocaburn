@@ -15,7 +15,6 @@ import {
   RotateCw,
   RotateCcw,
   Volume2,
-  Sliders,
   RefreshCw,
   Lightbulb,
   Check
@@ -148,10 +147,21 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
 
   return (
     <footer className={cn(
-      "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]",
+      "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)] relative",
       (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
       !hasActionButtons && !hasHintContent && "md:hidden"
     )}>
+      {/* Desktop Quick Settings Grabber Pill */}
+      {onOpenQuickSettings && (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenQuickSettings();
+          }}
+          className="hidden md:block absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/80 hover:bg-slate-400 dark:bg-slate-600 cursor-pointer transition-all active:scale-95 z-30"
+          title="Click for Quick Settings"
+        />
+      )}
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
           <>
@@ -387,21 +397,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
-                  {/* 3. Quick Settings Button */}
-                  {onOpenQuickSettings && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onOpenQuickSettings()
-                      }}
-                      className="w-10 sm:w-11 h-full rounded-2xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
-                      title="Quick Settings"
-                    >
-                      <Sliders className="w-4 h-4" />
-                    </button>
-                  )}
-
                   {/* Vertical Divider */}
                   <div className="w-[1.5px] h-6 bg-slate-200/80 shrink-0 mx-0.5" />
 
@@ -485,21 +480,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                       ) : (
                         <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
                       )}
-                    </button>
-                  )}
-
-                  {/* Quick Settings Button */}
-                  {onOpenQuickSettings && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenQuickSettings();
-                      }}
-                      className="h-full px-3 sm:px-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
-                      title="Quick Settings"
-                    >
-                      <Sliders className="w-4 h-4" />
                     </button>
                   )}
 
@@ -616,21 +596,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
-                  {/* Quick Settings Button */}
-                  {onOpenQuickSettings && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenQuickSettings();
-                      }}
-                      className="h-full px-3 sm:px-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
-                      title="Quick Settings"
-                    >
-                      <Sliders className="w-4 h-4" />
-                    </button>
-                  )}
-
                   {/* If card was rated, show Undo ONLY */}
                   {activelyRatedCurrentCard && hasRated && (
                     <button
@@ -669,7 +634,14 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
           title="Swipe up for Quick Settings"
         >
           {/* Subtle Pull-up Indicator Pill */}
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-300/80 pointer-events-none" />
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenQuickSettings?.();
+            }}
+            className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/90 dark:bg-slate-600 cursor-pointer hover:bg-slate-400 active:scale-95 transition-all z-20"
+            title="Swipe up or tap for Quick Settings"
+          />
           {/* 1. Card Map Tab */}
           <button
             onClick={(e) => {

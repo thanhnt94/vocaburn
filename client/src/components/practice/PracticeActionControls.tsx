@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Volume2, Lightbulb, ChevronRight, RefreshCw, Check } from 'lucide-react';
+import { Volume2, Lightbulb, ChevronRight, RefreshCw, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/types/flashcard';
 
@@ -40,18 +40,6 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
 }) => {
   return (
     <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
-      {/* Settings Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onOpenSettings();
-        }}
-        className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 rounded-2xl shadow-sm active:scale-95 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all cursor-pointer"
-        title="Practice settings"
-      >
-        <Settings className="w-5.5 h-5.5 text-indigo-600 dark:text-indigo-400" />
-      </button>
-
       {/* Audio Button */}
       {currentQuestion && (mainTab !== 'practice' || hasAnsweredPractice) && (
         <button

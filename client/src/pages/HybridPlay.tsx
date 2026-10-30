@@ -21,11 +21,9 @@ import {
   RefreshCw,
   Award,
   Flame,
-  Settings,
   HelpCircle,
   Layers,
   CheckCircle2,
-  Sliders,
   Play,
   Shuffle,
   ListOrdered,
@@ -1384,18 +1382,8 @@ export default function HybridPlay() {
           </div>
         </div>
 
-        {/* Right: Settings & Stats */}
+        {/* Right: Stats */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Quick Settings Gear */}
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition-all cursor-pointer"
-            title="Configure Hybrid Recall Settings"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-
           {/* Session XP Pill */}
           <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 font-black text-xs shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
@@ -1684,8 +1672,21 @@ export default function HybridPlay() {
         <footer
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onPointerDown={handleTouchStart}
+          onPointerUp={handleTouchEnd}
           className="shrink-0 z-[110] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/80 dark:border-slate-800 py-2 sm:py-2.5 px-3 sm:px-4 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] relative touch-pan-x"
+          title="Swipe up for Quick Settings"
         >
+          {/* Pull-up Indicator Pill */}
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsSettingsOpen(true)
+            }}
+            className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/90 dark:bg-slate-600 cursor-pointer hover:bg-slate-400 active:scale-95 transition-all z-20"
+            title="Swipe up or tap for Quick Settings"
+          />
+
           <div className="max-w-xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
             {/* 1. Quick Tools: Audio */}
             <button
@@ -1722,16 +1723,6 @@ export default function HybridPlay() {
                 <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
               </button>
             )}
-
-            {/* 3. Quick Tools: Settings */}
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0 group"
-              title="Quick Controls & Settings"
-            >
-              <Sliders className="w-4 h-4 text-slate-600 group-hover:rotate-45 transition-transform duration-300" />
-            </button>
 
             {/* Vertical Divider */}
             <div className="w-[1.5px] h-6 bg-slate-200/80 dark:bg-slate-700 shrink-0 mx-0.5" />
@@ -1809,8 +1800,21 @@ export default function HybridPlay() {
         <footer
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onPointerDown={handleTouchStart}
+          onPointerUp={handleTouchEnd}
           className="shrink-0 z-[110] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-rose-100/70 dark:border-slate-800 py-2 sm:py-2.5 px-3 sm:px-4 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] relative touch-pan-x"
+          title="Swipe up for Quick Settings"
         >
+          {/* Pull-up Indicator Pill */}
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsSettingsOpen(true)
+            }}
+            className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/90 dark:bg-slate-600 cursor-pointer hover:bg-slate-400 active:scale-95 transition-all z-20"
+            title="Swipe up or tap for Quick Settings"
+          />
+
           <div className="max-w-xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
             {/* 1. Drill Tool: Audio */}
             <button
@@ -1849,16 +1853,6 @@ export default function HybridPlay() {
                 <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
               </button>
             )}
-
-            {/* 3. Drill Tool: Settings */}
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0 group"
-              title="Quick Controls & Settings"
-            >
-              <Sliders className="w-4 h-4 text-slate-600 group-hover:rotate-45 transition-transform duration-300" />
-            </button>
 
             {/* Vertical Divider */}
             <div className="w-[1.5px] h-6 bg-slate-200/80 dark:bg-slate-700 shrink-0 mx-0.5" />

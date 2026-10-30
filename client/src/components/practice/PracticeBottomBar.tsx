@@ -60,6 +60,17 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
 
   return (
     <footer className="relative w-full flex-shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-100/80 dark:border-slate-800 px-0 pt-0 pb-0 z-[300] shadow-[0_-4px_24px_rgba(99,102,241,0.06)]">
+      {/* Desktop Quick Settings Grabber Pill */}
+      {onOpenSettings && (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenSettings();
+          }}
+          className="hidden md:block absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/80 hover:bg-slate-400 dark:bg-slate-600 cursor-pointer transition-all active:scale-95 z-30"
+          title="Click for Practice Settings"
+        />
+      )}
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
           <PracticeActionControls
@@ -84,6 +95,7 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
         <PracticeMobileTabs
           activeBottomTab={activeBottomTab}
           onTabChange={onTabChange}
+          onOpenSettings={onOpenSettings}
         />
       </div>
     </footer>

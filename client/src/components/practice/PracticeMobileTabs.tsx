@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { LayoutGrid, BookOpen, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -6,14 +6,56 @@ import { cn } from '@/lib/utils';
 export interface PracticeMobileTabsProps {
   activeBottomTab: 'map' | 'flashcard' | 'stats';
   onTabChange: (tab: 'map' | 'flashcard' | 'stats') => void;
+  onOpenSettings?: () => void;
 }
 
 export const PracticeMobileTabs: React.FC<PracticeMobileTabsProps> = ({
   activeBottomTab,
-  onTabChange
+  onTabChange,
+  onOpenSettings
 }) => {
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+
+  const handleBarTouchStart = (e: React.TouchEvent | React.PointerEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.PointerEvent).clientY;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.PointerEvent).clientX;
+    touchStartYRef.current = clientY;
+    touchStartXRef.current = clientX;
+  };
+
+  const handleBarTouchEnd = (e: React.TouchEvent | React.PointerEvent) => {
+    if (touchStartYRef.current === null) return;
+    const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as React.PointerEvent).clientY;
+    const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.PointerEvent).clientX;
+    const deltaY = touchStartYRef.current - clientY;
+    const deltaX = Math.abs(clientX - (touchStartXRef.current || 0));
+    touchStartYRef.current = null;
+    touchStartXRef.current = null;
+
+    if (deltaY > 35 && deltaY > deltaX * 0.8) {
+      onOpenSettings?.();
+    }
+  };
+
   return (
-    <div className="w-full grid grid-cols-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-0 relative md:hidden">
+    <div 
+      onTouchStart={handleBarTouchStart}
+      onTouchEnd={handleBarTouchEnd}
+      onPointerDown={handleBarTouchStart}
+      onPointerUp={handleBarTouchEnd}
+      className="w-full h-12 grid grid-cols-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-0 relative md:hidden select-none touch-pan-x"
+      title="Swipe up for Quick Settings"
+    >
+      {/* Subtle Pull-up Indicator Pill */}
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpenSettings?.();
+        }}
+        className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-9 h-1.5 rounded-full bg-slate-300/90 dark:bg-slate-600 cursor-pointer hover:bg-slate-400 active:scale-95 transition-all z-20"
+        title="Swipe up or tap for Quick Settings"
+      />
       <button
         onClick={(e) => {
           e.stopPropagation();

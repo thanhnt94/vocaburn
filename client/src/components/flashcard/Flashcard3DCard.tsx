@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye, Lightbulb, Volume2, Sliders, RefreshCw } from 'lucide-react'
+import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye, Lightbulb, Volume2, RefreshCw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -455,24 +455,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                         <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
                       )}
                     </button>
-                    {(onOpenStudySettings || onOpenQuickSettings) && (
-                      <>
-                        <div className="w-[1px] h-3 bg-slate-200/80" />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onOpenStudySettings) onOpenStudySettings();
-                            else if (onOpenQuickSettings) onOpenQuickSettings();
-                            else setIsFlyToolbarOpen(true);
-                          }}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
-                          title="Quick Controls & Settings"
-                        >
-                          <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                        </button>
-                      </>
-                    )}
                   </div>
                 ) : null}
               </div>
@@ -862,24 +844,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                         <Volume2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
                       )}
                     </button>
-                    {(onOpenStudySettings || onOpenQuickSettings) && (
-                      <>
-                        <div className="w-[1px] h-3 bg-slate-200/80" />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onOpenStudySettings) onOpenStudySettings();
-                            else if (onOpenQuickSettings) onOpenQuickSettings();
-                            else setIsFlyToolbarOpen(true);
-                          }}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group"
-                          title="Quick Controls & Settings"
-                        >
-                          <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                        </button>
-                      </>
-                    )}
                   </div>
                 ) : null}
               </div>

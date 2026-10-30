@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Settings, Volume2, Lightbulb, ChevronRight } from 'lucide-react';
+import { Volume2, Lightbulb, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/types/flashcard';
 
@@ -55,19 +55,6 @@ export const PracticeTypingInput: React.FC<PracticeTypingInputProps> = ({
           }}
           className="w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5"
         >
-          {/* Settings Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenSettings();
-            }}
-            className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 rounded-2xl shadow-xs active:scale-95 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all cursor-pointer"
-            title="Practice settings"
-          >
-            <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-          </button>
-
           {!hasAnsweredPractice ? (
             <>
               {/* Virtual Keyboard-Friendly Typing Input */}
