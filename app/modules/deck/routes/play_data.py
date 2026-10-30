@@ -484,56 +484,58 @@ async def get_deck_play_data(
     is_practice = mode in ("mcq", "typing", "listening")
     
     from app.modules.deck.models import FlashcardDeck, Flashcard, Tag, DeckCollaborator, UserCardMastery, UserDeckSettings
-    from app.modules.gamification.models import XPTransaction
+    from app.modules.gamification.models import XPTransaction, UserGamification
     from app.modules.deck.models import UserAnswer, DeckAttempt
-    from app.modules.gamification.interface import GamificationInterface
 
     # 1. Fetch deck with cards and tags in 1 optimized query
     deck_query = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(
         selectinload(FlashcardDeck.cards),
         selectinload(FlashcardDeck.tags)
     )
-    
-    # 2. Prepare parallel tasks for user stats, mastery, and settings
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    user_sett_stmt = select(UserDeckSettings).where(
-        UserDeckSettings.user_id == user_id,
-        UserDeckSettings.deck_id == deck_id
-    ).order_by(UserDeckSettings.id.desc()).limit(1)
-    collab_stmt = select(DeckCollaborator).where(
-        DeckCollaborator.deck_id == deck_id, 
-        DeckCollaborator.user_id == user_id
-    )
-    today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
-        XPTransaction.user_id == user_id,
-        XPTransaction.created_at >= today_start
-    )
-    today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
-        DeckAttempt.user_id == user_id,
-        UserAnswer.created_at >= today_start
-    )
-    all_time_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
-        DeckAttempt.user_id == user_id
-    )
 
     deck_res = await db.execute(deck_query)
     deck = deck_res.scalar_one_or_none()
     if not deck: return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
-    user_sett_res = await db.execute(user_sett_stmt)
-    collab_res = await db.execute(collab_stmt)
-    user_stats = await GamificationInterface.get_user_stats(db, user_id)
-    today_xp_res = await db.execute(today_xp_stmt)
-    today_time_res = await db.execute(today_time_stmt)
-    all_time_time_res = await db.execute(all_time_time_stmt)
+    user_sett = None
+    is_collaborator = False
+    user_total_xp = 0
+    user_today_xp = 0
+    user_today_time = 0
+    user_all_time_time = 0
 
-    user_sett = user_sett_res.scalar_one_or_none()
-    is_collaborator = collab_res.scalar() is not None
-    user_total_xp = user_stats.get("xp", 0)
-    user_today_xp = today_xp_res.scalar() or 0
-    user_today_time = today_time_res.scalar() or 0
-    user_all_time_time = all_time_time_res.scalar() or 0
+    if user_id:
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        user_sett_stmt = select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        ).order_by(UserDeckSettings.id.desc()).limit(1)
+        collab_stmt = select(DeckCollaborator).where(
+            DeckCollaborator.deck_id == deck_id, 
+            DeckCollaborator.user_id == user_id
+        )
+        today_xp_stmt = select(func.sum(XPTransaction.amount)).where(
+            XPTransaction.user_id == user_id,
+            XPTransaction.created_at >= today_start
+        )
+        today_time_stmt = select(func.sum(UserAnswer.active_time)).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+            DeckAttempt.user_id == user_id,
+            UserAnswer.created_at >= today_start
+        )
+        user_xp_stmt = select(UserGamification.total_xp).where(UserGamification.user_id == user_id)
+
+        user_sett_res = await db.execute(user_sett_stmt)
+        collab_res = await db.execute(collab_stmt)
+        today_xp_res = await db.execute(today_xp_stmt)
+        today_time_res = await db.execute(today_time_stmt)
+        user_xp_res = await db.execute(user_xp_stmt)
+
+        user_sett = user_sett_res.scalar_one_or_none()
+        is_collaborator = collab_res.scalar() is not None
+        user_total_xp = user_xp_res.scalar() or 0
+        user_today_xp = today_xp_res.scalar() or 0
+        user_today_time = today_time_res.scalar() or 0
+        user_all_time_time = user_today_time
 
     source_cards = deck.cards or []
     if sub_col and sub_val is not None:
@@ -788,8 +790,11 @@ async def get_deck_play_data(
                 "others": fix_static_urls(c.others)
             })
         
-    user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
-    user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
+    if user_id:
+        user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
+        user_global_sett_dict = UserSettingsService.to_dict(user_global_sett_obj)
+    else:
+        user_global_sett_dict = {}
 
     study_resolved = resolve_effective_study_settings(
         deck.practice_settings,

@@ -1012,18 +1012,7 @@ export default function FlashcardPlay() {
     }
   }, [currentIndex, mainTab, practiceSubMode, currentPracticeData])
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get('/api/v1/dashboard/data')
-        if (!user) setUser(res.data.user)
-        setGamify(res.data.gamify)
-      } catch (e) {
-        console.error("Failed to fetch user dashboard data:", e)
-      }
-    }
-    fetchUser()
-  }, [user, setUser, setGamify])
+
 
   const fetchSession = async (activeTab: 'fsrs' | 'practice' = mainTab, subMode = practiceSubMode) => {
     try {
@@ -1073,7 +1062,28 @@ export default function FlashcardPlay() {
         fetchUrl += `${delimiter}limit=30&offset=0&include_distractors=true`
       }
 
-      const quizRes = await axios.get(fetchUrl)
+      const isSpecialDeck = id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'));
+      const rawUrlMode = currentSearchParams.get('mode');
+      const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
+      const effectiveMode = urlMode || rawMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
+
+      const nextCardPromise = (isSpecialDeck || isPractice)
+        ? Promise.resolve({ data: null })
+        : axios.post(`/api/v1/deck/${id}/next-card`, {
+            mode: effectiveMode,
+            step_type: undefined,
+            answered_indexes: [],
+            current_index: 0,
+            random_enabled: isRandom
+          }).catch(err => {
+            console.error("Failed to fetch initial next card from backend", err);
+            return { data: null };
+          });
+
+      const [quizRes, nextCardRes] = await Promise.all([
+        axios.get(fetchUrl),
+        nextCardPromise
+      ]);
       let questions = quizRes.data.questions || quizRes.data.cards || []
 
       const shuffleCards = (arr: any[]) => {
@@ -1160,8 +1170,6 @@ export default function FlashcardPlay() {
       const origin = quizRes.data.setting_origin;
       syncStudySettings(effectiveStudy, creatorStudyDefs, userStudyOverrides, isCustom, origin);
 
-      const rawUrlMode = currentSearchParams.get('mode');
-      const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
       let targetActiveMode = activeMode;
       if (urlMode && ['new', 'fsrs', 'roadmap', 'review', 'skim', 'autoplay'].includes(urlMode)) {
         setActiveMode(urlMode);
@@ -1212,27 +1220,12 @@ export default function FlashcardPlay() {
         };
       } else if (id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'))) {
         curIdx = 0;
-      } else {
-        const effectiveMode = urlMode || targetActiveMode || userSettings.quiz_learning_mode || 'fsrs';
-        try {
-          const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
-            mode: effectiveMode,
-            step_type: undefined,
-            answered_indexes: [],
-            current_index: 0,
-            random_enabled: effectiveRandom
-          });
-          if (res.data) {
-            if (res.data.is_all_completed || res.data.next_index === -1) {
-              completionData = res.data;
-              curIdx = 0;
-            } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
-              curIdx = res.data.next_index;
-            }
-          }
-        } catch (err) {
-          console.error("Failed to fetch initial next card from backend", err);
+      } else if (nextCardRes?.data) {
+        if (nextCardRes.data.is_all_completed || nextCardRes.data.next_index === -1) {
+          completionData = nextCardRes.data;
           curIdx = 0;
+        } else if (nextCardRes.data.next_index !== undefined && nextCardRes.data.next_index >= 0 && nextCardRes.data.next_index < questions.length) {
+          curIdx = nextCardRes.data.next_index;
         }
       }
 

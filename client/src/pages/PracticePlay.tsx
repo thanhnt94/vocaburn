@@ -324,7 +324,7 @@ export default function PracticePlay() {
   const [activeStatsTab, setActiveStatsTab] = useState<'performance' | 'goals' | 'leaderboard'>('performance')
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
   const [dailyComparisonAvg, setDailyComparisonAvg] = useState<any | null>(null)
-  const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
+  const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('insight')
@@ -957,6 +957,7 @@ export default function PracticePlay() {
   }
 
   useEffect(() => {
+    if (!isStatsOpen && !leaderboardData) return;
     let isMounted = true
     const loadLeaderboard = async () => {
       setIsLeaderboardLoading(true)
@@ -979,7 +980,22 @@ export default function PracticePlay() {
     return () => {
       isMounted = false
     }
-  }, [leaderboardTimeFilter])
+  }, [leaderboardTimeFilter, isStatsOpen])
+
+  // Lazy-load Daily Comparison stats only when the Stats drawer is actually opened
+  useEffect(() => {
+    if (isStatsOpen && dailyComparisonData === null && !isDailyComparisonLoading) {
+      setIsDailyComparisonLoading(true);
+      axios.get('/api/v1/stats/daily-comparison').then(res => {
+        setDailyComparisonData(res.data?.days || []);
+        setDailyComparisonAvg(res.data?.all_time_avg || null);
+        setIsDailyComparisonLoading(false);
+      }).catch(e => {
+        console.error("Failed to load daily comparison", e);
+        setIsDailyComparisonLoading(false);
+      });
+    }
+  }, [isStatsOpen, dailyComparisonData, isDailyComparisonLoading]);
 
   const isDueInFuture = useMemo(() => {
     if (!currentQuestion || !currentQuestion.fsrs || !currentQuestion.fsrs.due) return false;
@@ -1310,16 +1326,7 @@ export default function PracticePlay() {
     }
   }, [currentIndex, mainTab, practiceSubMode, currentPracticeData])
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get('/api/v1/dashboard/data')
-        if (!user) setUser(res.data.user)
-        setGamify(res.data.gamify)
-      } catch (e) { }
-    }
-    fetchUser()
-  }, [user, setUser, setGamify])
+
 
   // Continuous Streaming Batch Queue for Practice Mode
   const prefetchNextPracticeBatch = useCallback(async () => {
@@ -1417,17 +1424,6 @@ export default function PracticePlay() {
       const results = await Promise.all(fetchPromises)
       const quizRes = results[0]
       
-      // Leaderboard is fetched via dynamic useEffect depending on time filter
-
-      axios.get('/api/v1/stats/daily-comparison').then(res => {
-        setDailyComparisonData(res.data?.days || [])
-        setDailyComparisonAvg(res.data?.all_time_avg || null)
-        setIsDailyComparisonLoading(false)
-      }).catch(e => {
-        console.error("Failed to load daily comparison", e)
-        setIsDailyComparisonLoading(false)
-      })
-
       const questions = quizRes.data.questions || []
       paginationRef.current = quizRes.data.pagination || null
       setSession({ ...quizRes.data, questions })
