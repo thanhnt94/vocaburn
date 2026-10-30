@@ -2,6 +2,17 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-30]
+#### Khắc Phục Lỗi Tự Động Next Ở Mode Typing & Chặn Kéo Thả Refresh Khi Mở Quick Settings
+- **Sửa lỗi Typing tự động Next không hiện kết quả (Đồng bộ với Hybrid mode)**:
+  - Bổ sung `e.stopPropagation()` trong `onKeyDown` và `onSubmit` của `PracticeTypingCard.tsx`, `PracticeListeningCard.tsx`, `FlashcardPlay.tsx` nhằm ngăn sự kiện Enter tiếp tục nổi bọt lên window.
+  - Sửa logic kiểm tra `(e.target as HTMLElement).tagName` trong `PracticePlay.tsx` và `useKeyboardShortcuts.ts` để chặn ngay khi event xuất phát từ ô `<input>`.
+  - Bổ sung `lastAnswerSubmittedAtRef` và khóa debounce **400ms**: Phím Enter / Space không thể kích hoạt `handleNext()` trong 400ms sau khi vừa nộp bài.
+  - Bổ sung bộ đệm thời gian chống click ảo (ghost touch) trên nút "Continue" tại `PracticeActionControls.tsx`.
+- **Khóa Pull-to-Refresh khi mở Quick Settings Sheet / Modals (Rule 13 Master Rules)**:
+  - Tạo hook chuẩn hóa `usePreventPullToRefresh.ts` và áp dụng trên tất cả các modal / drawer (`PracticeQuickControlsSheet`, `FlashcardFlyToolbar`, `HybridQuickControlsSheet`, `PlaySettingsModal`, `LearningInsightsModal`, `PlayStatsDrawer`).
+  - Tự động chặn `overscroll-behavior: none` và chặn touchmove kéo xuống tại `scrollTop <= 0` khi mở sheet, tự động hoàn trả `overscrollBehavior: auto` khi đóng sheet.
+
 ### [2026-10-26]
 #### Nâng Cấp Bảo Mật VPS, Triển Khai PWA Di Động & Phân Rã God-Components Frontend (FlashcardPlay & PracticePlay)
 - **1. Phân Rã & Tinh Gọn God-Components Frontend (`FlashcardPlay.tsx` & `PracticePlay.tsx`)**:
