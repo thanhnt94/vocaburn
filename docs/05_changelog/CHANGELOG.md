@@ -2,6 +2,16 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-10-31]
+#### Khắc Phục Lỗi Rớt Phiên Học FSRS (`play-data` AttributeError) & Phòng Vệ Type Safety
+- **Sửa lỗi `AttributeError: type object 'UserGamification' has no attribute 'total_xp'`**:
+  - Trong `app/modules/deck/routes/play_data.py`: sửa `UserGamification.total_xp` thành `UserGamification.xp` (theo đúng schema định nghĩa trong `models.py`).
+  - Lỗi này trước đó gây mã lỗi HTTP 500 khi người dùng vào phiên học FSRS (`/flashcard/:id`), kích hoạt toast lỗi `"Failed to load deck data"` và đẩy người dùng ra ngoài thư viện deck.
+- **Bảo vệ an toàn khởi tạo cấu hình người dùng (`play_data.py`)**:
+  - Thêm điều kiện kiểm tra `if user_id:` trước khi gọi `UserSettingsService.get_or_create_settings(db, user_id)` để ngăn chặn lỗi `IntegrityError: NOT NULL constraint failed: user_global_settings.user_id` trong các phiên khách (guest / unauthenticated).
+- **Phòng vệ Type Safety tại Frontend (`FlashcardPlay.tsx`)**:
+  - Sử dụng optional chaining `userSettings?.quiz_learning_mode` tránh lỗi runtime crash khi `userSettings` chưa kịp nạp từ store.
+
 ### [2026-10-30]
 #### Đột Phá Hiệu Năng: Tăng Tốc Tức Thì Tải Phiên Học Study & Practice (~10x Speedup)
 - **Triệt tiêu gọi thừa `/dashboard/data` trên màn hình học tập**:

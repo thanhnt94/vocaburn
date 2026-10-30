@@ -522,7 +522,7 @@ async def get_deck_play_data(
             DeckAttempt.user_id == user_id,
             UserAnswer.created_at >= today_start
         )
-        user_xp_stmt = select(UserGamification.total_xp).where(UserGamification.user_id == user_id)
+        user_xp_stmt = select(UserGamification.xp).where(UserGamification.user_id == user_id)
 
         user_sett_res = await db.execute(user_sett_stmt)
         collab_res = await db.execute(collab_stmt)

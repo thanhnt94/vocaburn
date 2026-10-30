@@ -1065,7 +1065,7 @@ export default function FlashcardPlay() {
       const isSpecialDeck = id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'));
       const rawUrlMode = currentSearchParams.get('mode');
       const urlMode = (rawUrlMode === 'speed_skim' || rawUrlMode === 'flip') ? 'skim' : rawUrlMode;
-      const effectiveMode = urlMode || rawMode || activeMode || userSettings.quiz_learning_mode || 'fsrs';
+      const effectiveMode = urlMode || rawMode || activeMode || userSettings?.quiz_learning_mode || 'fsrs';
 
       const nextCardPromise = (isSpecialDeck || isPractice)
         ? Promise.resolve({ data: null })
