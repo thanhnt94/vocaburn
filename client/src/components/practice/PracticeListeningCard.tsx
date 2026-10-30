@@ -138,20 +138,6 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
-          {!hideHeaderActions && onPreviewInsight && currentQuestion && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPreviewInsight(currentQuestion)
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-600 bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100/90 border border-amber-200/60 dark:border-amber-800/60 transition-all active:scale-95 cursor-pointer shadow-2xs"
-              title="Card Insights & Mnemonics (💡)"
-            >
-              <Lightbulb className="w-4 h-4 fill-amber-400/30" />
-            </button>
-          )}
-
           <button
             type="button"
             onClick={(e) => {

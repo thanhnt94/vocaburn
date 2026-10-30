@@ -1711,15 +1711,17 @@ export default function HybridPlay() {
               )}
             </button>
 
-            {/* 2. Quick Tools: Insight */}
-            <button
-              type="button"
-              onClick={() => setPreviewInsightCard(currentSkimQuestion)}
-              className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/80 hover:border-amber-200 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0"
-              title="Card Insights & Explanation (Lightbulb)"
-            >
-              <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
-            </button>
+            {/* 2. Quick Tools: Insight (only after card is flipped) */}
+            {isFlipped && (
+              <button
+                type="button"
+                onClick={() => setPreviewInsightCard(currentSkimQuestion)}
+                className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/80 hover:border-amber-200 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0"
+                title="Card Insights & Explanation (Lightbulb)"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+              </button>
+            )}
 
             {/* 3. Quick Tools: Settings */}
             <button
@@ -1834,17 +1836,19 @@ export default function HybridPlay() {
               )}
             </button>
 
-            {/* 2. Drill Tool: Insight */}
-            <button
-              type="button"
-              onClick={() => {
-                if (drillActiveCard) setPreviewInsightCard(drillActiveCard)
-              }}
-              className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/80 hover:border-amber-200 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0"
-              title="Card Insights & Explanation (Lightbulb)"
-            >
-              <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
-            </button>
+            {/* 2. Drill Tool: Insight (only after question is answered) */}
+            {answered && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (drillActiveCard) setPreviewInsightCard(drillActiveCard)
+                }}
+                className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/80 hover:border-amber-200 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0"
+                title="Card Insights & Explanation (Lightbulb)"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+              </button>
+            )}
 
             {/* 3. Drill Tool: Settings */}
             <button

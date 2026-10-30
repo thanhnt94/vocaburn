@@ -141,20 +141,6 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
         {/* Right Action Icons */}
         <div className="flex items-center gap-1">
-          {!hideHeaderActions && onPreviewInsight && currentQuestion && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPreviewInsight(currentQuestion)
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-              title="View Card Insights & Explanation"
-            >
-              <Lightbulb className="w-4 h-4 fill-amber-400/20" />
-            </button>
-          )}
-
           {!hideHeaderActions && onPlayAudio && (
             <button
               type="button"

@@ -190,14 +190,29 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
               <div className="w-full px-3 sm:px-4 py-2">
               {mainTab === 'practice' ? (
                 practiceAnswers[currentIndex] !== undefined ? (
-                  <button 
-                    onClick={handleNext}
-                    className="w-full h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
-                  >
-                    <span>Continue</span>
-                    <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-2 w-full h-12">
+                    {onOpenInsights && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onOpenInsights()
+                        }}
+                        className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-500 hover:text-amber-600 transition-all active:scale-95 shadow-xs cursor-pointer"
+                        title="Card Insights & AI Explanation"
+                      >
+                        <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+                      </button>
+                    )}
+                    <button 
+                      onClick={handleNext}
+                      className="flex-1 h-12 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-300/50 flex items-center justify-center gap-2.5 uppercase tracking-widest active:scale-[0.98] transition-all hover:shadow-emerald-400/60 hover:shadow-xl cursor-pointer"
+                    >
+                      <span>Continue</span>
+                      <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 ) : practiceSubMode === 'typing' ? (
                   <div className="flex gap-2 h-12 w-full">
                     <button
@@ -357,8 +372,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
-                  {/* 2. Lightbulb (Insights / Card Explanation) */}
-                  {onOpenInsights && (
+                  {/* 2. Lightbulb (Insights / Card Explanation - only after flipped or rated) */}
+                  {onOpenInsights && (isFlipped || hasRated) && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -470,21 +485,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                       ) : (
                         <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
                       )}
-                    </button>
-                  )}
-
-                  {/* Lightbulb (Insights / Card Explanation) */}
-                  {onOpenInsights && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenInsights();
-                      }}
-                      className="h-full px-3 sm:px-3.5 rounded-2xl bg-white hover:bg-amber-50 text-amber-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
-                      title="Card Insights & Explanation"
-                    >
-                      <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
                     </button>
                   )}
 

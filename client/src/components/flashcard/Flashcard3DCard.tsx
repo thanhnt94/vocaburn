@@ -228,19 +228,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           )}
           {currentQuestion && (
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenCardHub?.('insight');
-              }}
-              className="w-7 sm:w-7.5 h-7 sm:h-7.5 flex items-center justify-center rounded-xl border border-amber-200/80 bg-amber-50/80 hover:bg-amber-100 text-amber-500 hover:text-amber-600 transition-all active:scale-90 shadow-2xs cursor-pointer"
-              title="Card Insights & Mnemonics (💡)"
-            >
-              <Lightbulb className="w-3.5 h-3.5 fill-amber-400/30" />
-            </button>
-          )}
-          {currentQuestion && (
-            <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleStarQuestion();
