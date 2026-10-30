@@ -1068,6 +1068,9 @@ export default function FlashcardPlay() {
         if (extraParams.length > 0) {
           fetchUrl += `${delimiter}${extraParams.join('&')}`
         }
+      } else if (isPractice && !isFolder && !isGlobalFocus && id !== 'quick') {
+        const delimiter = fetchUrl.includes('?') ? '&' : '?'
+        fetchUrl += `${delimiter}limit=30&offset=0&include_distractors=true`
       }
 
       const quizRes = await axios.get(fetchUrl)

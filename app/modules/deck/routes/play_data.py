@@ -396,9 +396,12 @@ async def get_deck_play_data(
     mode: Optional[str] = None,
     scope: Optional[str] = Query(None),
     limit: Optional[int] = Query(None),
+    offset: Optional[int] = Query(0),
     lightweight: Optional[bool] = None,
     sub_col: Optional[str] = Query(None),
     sub_val: Optional[str] = Query(None),
+    include_distractors: Optional[bool] = Query(None),
+    include_map_skeleton: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     user_id = AuthService.get_user_id(request)
@@ -585,21 +588,74 @@ async def get_deck_play_data(
                 return (m.difficulty and m.difficulty >= 6.0) or (m.lapses and m.lapses > 0) or m.is_starred
             source_cards = [c for c in source_cards if is_card_hard(c)]
 
-        if limit and limit > 0:
-            source_cards = source_cards[:limit]
+    now_utc_naive = datetime.utcnow()
+    # Compute live scope counts across deck
+    scope_counts = None
+    if mastery_records:
+        new_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)))
+        due_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) and mastery_records.get(c.id).due and mastery_records.get(c.id).due <= now_utc_naive))
+        rev_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) and mastery_records.get(c.id).state > 0))
+        undrilled_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) is None or mastery_records.get(c.id).state < 2))
+        scope_counts = {
+            "all": len(deck.cards or []),
+            "new": new_cnt,
+            "due": due_cnt,
+            "review": rev_cnt,
+            "undrilled": undrilled_cnt
+        }
 
-        active_card_ids = [c.id for c in source_cards]
-        if active_card_ids:
-            from app.modules.deck.models import UserPracticeStats
-            p_stats_stmt = select(UserPracticeStats).where(
-                UserPracticeStats.user_id == user_id,
-                UserPracticeStats.card_id.in_(active_card_ids)
-            )
-            p_stats_res = await db.execute(p_stats_stmt)
-            for ps in p_stats_res.scalars().all():
-                if ps.card_id not in practice_records:
-                    practice_records[ps.card_id] = []
-                practice_records[ps.card_id].append(ps)
+    # Generate lightweight distractor pool across entire deck if practice, hybrid, or requested
+    distractor_pool = []
+    if is_practice or mode in ("mcq", "listening", "hybrid", "drill") or include_distractors:
+        all_deck_cards = deck.cards or []
+        import random
+        sample_size = min(len(all_deck_cards), 70)
+        sampled_cands = random.sample(all_deck_cards, sample_size) if len(all_deck_cards) > sample_size else all_deck_cards
+        for sc in sampled_cands:
+            sc_others = sc.others if isinstance(sc.others, dict) else {}
+            distractor_pool.append({
+                "id": sc.id,
+                "front": sc.content,
+                "back": sc.explanation,
+                "others": {
+                    "type": sc_others.get("type", "") or sc_others.get("pos", ""),
+                    "pos": sc_others.get("pos", "")
+                } if sc_others else None
+            })
+
+    total_matching = len(source_cards)
+
+    # Optional map skeleton (only IDs and status markers for high-speed map modal)
+    map_skeleton = None
+    if include_map_skeleton:
+        map_skeleton = []
+        for idx, sc in enumerate(source_cards):
+            m_sc = mastery_records.get(sc.id) if mastery_records else None
+            map_skeleton.append({
+                "id": sc.id,
+                "original_index": idx + 1,
+                "state": m_sc.state if m_sc else 0,
+                "is_due": bool(m_sc and m_sc.due and m_sc.due <= now_utc_naive),
+                "is_starred": bool(m_sc and m_sc.is_starred)
+            })
+
+    # Apply batch slicing / pagination across all study and practice modes
+    start_offset = max(0, offset or 0)
+    if limit and limit > 0:
+        source_cards = source_cards[start_offset : start_offset + limit]
+
+    active_card_ids = [c.id for c in source_cards]
+    if active_card_ids and not is_practice:
+        from app.modules.deck.models import UserPracticeStats
+        p_stats_stmt = select(UserPracticeStats).where(
+            UserPracticeStats.user_id == user_id,
+            UserPracticeStats.card_id.in_(active_card_ids)
+        )
+        p_stats_res = await db.execute(p_stats_stmt)
+        for ps in p_stats_res.scalars().all():
+            if ps.card_id not in practice_records:
+                practice_records[ps.card_id] = []
+            practice_records[ps.card_id].append(ps)
 
     # Check settings if practice mode
     practice_needs_setup = False
@@ -760,7 +816,18 @@ async def get_deck_play_data(
         "has_mcq_setup": check_has_mcq_setup(deck.practice_settings),
         "practice_needs_setup": practice_needs_setup,
         "practice_disabled": not check_has_practice_setup(deck.practice_settings),
+        "total_cards": total_matching,
         "questions": cards_list, # compatibility
+        "distractor_pool": distractor_pool,
+        "map_skeleton": map_skeleton,
+        "scope_counts": scope_counts,
+        "pagination": {
+            "total": total_matching,
+            "offset": start_offset,
+            "limit": limit,
+            "has_more": (start_offset + len(cards_list)) < total_matching if limit else False,
+            "next_offset": (start_offset + len(cards_list)) if (limit and ((start_offset + len(cards_list)) < total_matching)) else None
+        } if limit else None,
         "practice_settings": deck.practice_settings,
         "user_settings": user_sett.settings if user_sett else None,
         "study_defaults": study_resolved["creator_study_defaults"],

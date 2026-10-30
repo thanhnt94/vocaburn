@@ -228,6 +228,8 @@ export default function HybridPlay() {
   // Drill active timing & round-robin cursor refs
   const drillCardShownAtRef = useRef<number>(Date.now())
   const drillCursorRef = useRef<number>(-1)
+  const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number | null } | null>(null)
+  const isFetchingNextBatchRef = useRef<boolean>(false)
 
   // ── Session Statistics ──
   const [sessionXP, setSessionXP] = useState(0)
@@ -409,12 +411,14 @@ export default function HybridPlay() {
         setIsLoading(true)
         setIsLoadError(false)
 
+        const scopeParam = urlScope && urlScope !== 'all' ? `&scope=${encodeURIComponent(urlScope)}` : ''
         const [quizRes, settingsRes] = await Promise.all([
-          axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid`),
+          axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}&include_distractors=true`),
           axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: {} }))
         ])
         if (!isMounted) return
 
+        paginationRef.current = quizRes.data.pagination || null
         const questions: Question[] = quizRes.data.questions || quizRes.data.cards || []
 
         // If returned 0 questions but attempt < 3, retry once after 600ms (handles server warm-up/DB lock)
@@ -594,6 +598,16 @@ export default function HybridPlay() {
 
   // ── 2. Live Scope Counts & Auto-Save Hybrid Settings (Zero localStorage) ──
   const scopeCounts = useMemo(() => {
+    if ((session as any)?.scope_counts) {
+      const sc = (session as any).scope_counts
+      return {
+        all: sc.all || 0,
+        new: sc.new || 0,
+        undrilled: sc.undrilled || 0,
+        review: sc.review || 0,
+        due: sc.due || 0
+      }
+    }
     return {
       all: rawQuestions.length,
       new: filterCardsByScope(rawQuestions, 'new', hybridSettings.required_correct, masteredCardIds).length,
@@ -601,7 +615,67 @@ export default function HybridPlay() {
       review: filterCardsByScope(rawQuestions, 'review', hybridSettings.required_correct, masteredCardIds).length,
       due: filterCardsByScope(rawQuestions, 'due', hybridSettings.required_correct, masteredCardIds).length
     }
-  }, [rawQuestions, hybridSettings.required_correct, masteredCardIds])
+  }, [session, rawQuestions, hybridSettings.required_correct, masteredCardIds])
+
+  // Continuous Streaming Batch Queue: Prefetch next batch in background
+  const prefetchNextHybridBatch = useCallback(async () => {
+    if (isFetchingNextBatchRef.current) return
+    const p = paginationRef.current
+    if (!p || !p.has_more) return
+
+    isFetchingNextBatchRef.current = true
+    try {
+      const scopeParam = hybridSettings.scope ? `&scope=${hybridSettings.scope}` : ''
+      const res = await axios.get(
+        `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=${p.next_offset}${scopeParam}&include_distractors=true`
+      )
+      if (res.data?.questions && res.data.questions.length > 0) {
+        const newQuestions: Question[] = res.data.questions
+        paginationRef.current = res.data.pagination
+
+        setRawQuestions(prev => {
+          const existingIds = new Set(prev.map(q => q.id))
+          const fresh = newQuestions.filter(q => !existingIds.has(q.id))
+          return [...prev, ...fresh]
+        })
+
+        setScopedQuestions(prev => {
+          const existingIds = new Set(prev.map(q => q.id))
+          const fresh = newQuestions.filter(q => !existingIds.has(q.id))
+          return [...prev, ...fresh]
+        })
+
+        if (res.data.distractor_pool?.length > 0) {
+          setSession((prev: any) => ({
+            ...prev,
+            distractor_pool: [
+              ...(prev?.distractor_pool || []),
+              ...res.data.distractor_pool.filter(
+                (dp: any) => !(prev?.distractor_pool || []).some((old: any) => old.id === dp.id)
+              )
+            ]
+          }))
+        }
+      } else {
+        if (paginationRef.current) {
+          paginationRef.current.has_more = false
+        }
+      }
+    } catch (err) {
+      console.warn('[HybridPlay] Failed to prefetch next batch:', err)
+    } finally {
+      isFetchingNextBatchRef.current = false
+    }
+  }, [id, hybridSettings.scope])
+
+  // Prefetch next batch when approaching end of loaded batches
+  useEffect(() => {
+    if (batches.length > 0 && currentBatchIndex >= batches.length - 2) {
+      if (paginationRef.current?.has_more && !isFetchingNextBatchRef.current) {
+        prefetchNextHybridBatch()
+      }
+    }
+  }, [currentBatchIndex, batches.length, prefetchNextHybridBatch])
 
   const handleUpdateHybridSettings = useCallback(async (partial: Partial<HybridSettings>) => {
     const updated: HybridSettings = {
@@ -776,6 +850,22 @@ export default function HybridPlay() {
         setBatchCorrectCounts({})
         drillCursorRef.current = -1
         saveHybridProgress(nextBatchIdx)
+      } else if (paginationRef.current?.has_more) {
+        // Continuous Streaming: Load next batch from server seamlessly
+        prefetchNextHybridBatch().then(() => {
+          setCurrentBatchIndex(nextBatchIdx)
+          setSkimCardIndex(0)
+          setIsFlipped(false)
+          setStage('skim')
+          setDrillActiveCard(null)
+          setBatchCorrectCounts({})
+          drillCursorRef.current = -1
+          saveHybridProgress(nextBatchIdx)
+        }).catch(() => {
+          setStage('complete')
+          playSfx('complete')
+          saveHybridProgress(0)
+        })
       } else {
         // Reached end of batches: Check if there are still unmastered cards in scope
         const unmastered = scopedQuestions.filter(c => !nextMastered.has(c.id))
@@ -898,7 +988,10 @@ export default function HybridPlay() {
     const correctAns = getVal(q, primary_answer_key) || q.explanation || (q as any).back || ''
 
     if (chosenMode === 'mcq' || chosenMode === 'listening') {
-      const poolSource = rawQuestions.length >= 10 ? rawQuestions : (scopedQuestions.length > 0 ? scopedQuestions : rawQuestions)
+      const serverDistractors = (session as any)?.distractor_pool || []
+      const poolSource = serverDistractors.length >= 10
+        ? serverDistractors
+        : (rawQuestions.length >= 10 ? rawQuestions : (scopedQuestions.length > 0 ? scopedQuestions : rawQuestions))
       
       // Build candidate distractor pool
       const distractor_pool: any[] = []
@@ -1148,9 +1241,19 @@ export default function HybridPlay() {
     pickNextDrillCard(batchCorrectCounts)
   }
 
-  const handleProceedToNextBatch = () => {
+  const handleProceedToNextBatch = async () => {
     const nextBatchIdx = currentBatchIndex + 1
     if (nextBatchIdx < totalBatches) {
+      setCurrentBatchIndex(nextBatchIdx)
+      setSkimCardIndex(0)
+      setIsFlipped(false)
+      setStage('skim')
+      setDrillActiveCard(null)
+      setBatchCorrectCounts({})
+      drillCursorRef.current = -1
+      saveHybridProgress(nextBatchIdx)
+    } else if (paginationRef.current?.has_more) {
+      await prefetchNextHybridBatch()
       setCurrentBatchIndex(nextBatchIdx)
       setSkimCardIndex(0)
       setIsFlipped(false)

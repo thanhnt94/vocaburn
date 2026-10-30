@@ -209,6 +209,8 @@ export default function PracticePlay() {
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
   const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
+  const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number } | null>(null)
+  const isFetchingNextBatchRef = useRef<boolean>(false)
 
   useEffect(() => {
     setShowAbsoluteFirst(false)
@@ -766,8 +768,12 @@ export default function PracticePlay() {
     const item_back = getVal(qObj, 'back');
 
     if (subMode === 'mcq' || subMode === 'listening_mcq') {
-      // Build candidate pool
-      const all_items_data = session.questions.map((q: any) => ({
+      // Build candidate pool from server-provided distractor pool or fallback to questions
+      const poolSource = (session?.distractor_pool && session.distractor_pool.length >= 10)
+        ? session.distractor_pool
+        : session.questions;
+
+      const all_items_data = poolSource.map((q: any) => ({
         id: q.id,
         front: getVal(q, 'front'),
         back: getVal(q, 'back'),
@@ -1301,6 +1307,56 @@ export default function PracticePlay() {
     fetchUser()
   }, [user, setUser, setGamify])
 
+  // Continuous Streaming Batch Queue for Practice Mode
+  const prefetchNextPracticeBatch = useCallback(async () => {
+    if (isFetchingNextBatchRef.current) return
+    const p = paginationRef.current
+    if (!p || !p.has_more) return
+
+    isFetchingNextBatchRef.current = true
+    try {
+      const modeParam = `?mode=${practiceSubMode}`
+      const subParam = (subCol && subVal !== null) ? `&sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}` : ''
+      const res = await axios.get(
+        `/api/v1/deck/${id}/play-data${modeParam}&limit=30&offset=${p.next_offset}${subParam}&include_distractors=true`
+      )
+      if (res.data?.questions && res.data.questions.length > 0) {
+        const newQuestions = res.data.questions
+        paginationRef.current = res.data.pagination
+
+        setSession((prev: any) => {
+          if (!prev) return prev
+          const existingIds = new Set((prev.questions || []).map((q: any) => q.id))
+          const fresh = newQuestions.filter((q: any) => !existingIds.has(q.id))
+          return {
+            ...prev,
+            questions: [...(prev.questions || []), ...fresh],
+            distractor_pool: [
+              ...(prev.distractor_pool || []),
+              ...(res.data.distractor_pool || []).filter(
+                (dp: any) => !(prev.distractor_pool || []).some((old: any) => old.id === dp.id)
+              )
+            ]
+          }
+        })
+      } else {
+        if (paginationRef.current) paginationRef.current.has_more = false
+      }
+    } catch (err) {
+      console.warn('[PracticePlay] Failed to prefetch next practice batch:', err)
+    } finally {
+      isFetchingNextBatchRef.current = false
+    }
+  }, [id, practiceSubMode, subCol, subVal])
+
+  useEffect(() => {
+    if (session?.questions && currentIndex >= session.questions.length - 6) {
+      if (paginationRef.current?.has_more && !isFetchingNextBatchRef.current) {
+        prefetchNextPracticeBatch()
+      }
+    }
+  }, [currentIndex, session?.questions?.length, prefetchNextPracticeBatch])
+
   const fetchSession = async (activeTab = mainTab, subMode: string = practiceSubMode) => {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
@@ -1317,6 +1373,11 @@ export default function PracticePlay() {
       if (subCol && subVal !== null) {
         const delimiter = playDataUrl.includes('?') ? '&' : '?'
         playDataUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
+      }
+
+      if (isPractice && !isFolder && !isRoadmapTestMode && id !== 'quick') {
+        const delimiter = playDataUrl.includes('?') ? '&' : '?'
+        playDataUrl += `${delimiter}limit=30&offset=0&include_distractors=true`
       }
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
@@ -1354,6 +1415,7 @@ export default function PracticePlay() {
       })
 
       const questions = quizRes.data.questions || []
+      paginationRef.current = quizRes.data.pagination || null
       setSession({ ...quizRes.data, questions })
 
       const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};

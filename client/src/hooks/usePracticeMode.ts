@@ -152,8 +152,12 @@ export function usePracticeMode(
     const item_back = getVal(qObj, 'back');
 
     if (subMode === 'mcq' || subMode === 'listening_mcq') {
-      // Build candidate pool
-      const all_items_data = session.questions.map((q: any) => ({
+      // Build candidate pool from server-provided distractor pool or fallback to questions
+      const poolSource = (session?.distractor_pool && session.distractor_pool.length >= 10)
+        ? session.distractor_pool
+        : session.questions;
+
+      const all_items_data = poolSource.map((q: any) => ({
         id: q.id,
         front: getVal(q, 'front'),
         back: getVal(q, 'back'),
