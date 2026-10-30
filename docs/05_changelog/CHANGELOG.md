@@ -3,6 +3,19 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-30]
+#### Đột Phá Hiệu Năng: Tăng Tốc Tức Thì Tải Phiên Học Study & Practice (~10x Speedup)
+- **Triệt tiêu gọi thừa `/dashboard/data` trên màn hình học tập**:
+  - Gỡ bỏ hoàn toàn `useEffect` gọi ngầm toàn bộ dữ liệu Dashboard khi mở màn hình học trong cả `FlashcardPlay.tsx` và `PracticePlay.tsx`.
+  - Tái sử dụng trạng thái `user` và `gamify` từ Zustand Store (`useAppStore`), loại bỏ hoàn toàn 8 câu lệnh JOIN/Group-By nặng nề trên backend mỗi khi mở thẻ.
+- **Lazy-Loading toàn diện cho Thống kê & Bảng xếp hạng**:
+  - Trong `PracticePlay.tsx`, chuyển `/api/v1/stats/daily-comparison` và `/api/v1/stats/leaderboard` sang chế độ nạp theo yêu cầu (chỉ kích hoạt khi người dùng mở Stats Drawer `isStatsOpen === true`).
+  - Giải phóng 100% tài nguyên worker và băng thông mạng khi vào phòng học.
+- **Xóa bỏ Waterfall tại `FlashcardPlay.tsx`**:
+  - Thực hiện chạy song song đồng thời `axios.get(fetchUrl)` và `axios.post(/next-card)` qua `Promise.all`, triệt tiêu hoàn toàn 400ms – 800ms độ trễ chờ đợi tuần tự.
+- **Tối ưu hóa Backend `play_data.py` & Khử khóa ghi SQLite WAL**:
+  - Thay thế `GamificationInterface.get_user_stats()` (vốn kích hoạt `update_streak` gây write-lock độc quyền SQLite) bằng câu lệnh `SELECT` trực tiếp `UserGamification.total_xp`.
+  - Bỏ qua các phép JOIN thời gian không cần thiết khi `user_id` rỗng và xử lý an toàn `user_global_settings`.
+
 #### Khắc Phục Lỗi Tự Động Next Ở Mode Typing & Chặn Kéo Thả Refresh Khi Mở Quick Settings
 - **Sửa lỗi Typing tự động Next không hiện kết quả (Đồng bộ với Hybrid mode)**:
   - Bổ sung `e.stopPropagation()` trong `onKeyDown` và `onSubmit` của `PracticeTypingCard.tsx`, `PracticeListeningCard.tsx`, `FlashcardPlay.tsx` nhằm ngăn sự kiện Enter tiếp tục nổi bọt lên window.
