@@ -3241,22 +3241,39 @@ export default function FlashcardPlay() {
           {practiceSubMode === 'typing' && (
             <div className="space-y-4 mb-4">
               {!answered ? (
-                <div className="flex gap-2">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (typingInput && typingInput.trim()) {
+                      handleTypingAnswer();
+                    }
+                  }}
+                  className="w-full flex flex-col gap-2"
+                >
                   <input
                     type="text"
                     value={typingInput}
                     onChange={(e) => setTypingInput(e.target.value)}
-                    placeholder="Type the word..."
-                    autoFocus
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (typingInput && typingInput.trim()) {
+                          handleTypingAnswer();
+                        }
+                      }
+                    }}
+                    placeholder="Type your answer..."
+                    enterKeyHint="go"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
                   />
-                  <button
-                    onClick={handleTypingAnswer}
-                    className="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-100 active:scale-95 transition-all"
-                  >
-                    Check
-                  </button>
-                </div>
+                  <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400 select-none">
+                    <span>Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Enter ↵</kbd> to submit</span>
+                  </div>
+                </form>
               ) : typingFeedback && (
                 <div className="space-y-3">
                   <div className={cn(
@@ -4034,6 +4051,9 @@ export default function FlashcardPlay() {
         shouldShowFsrsCompleteScreen={shouldShowFsrsCompleteScreen}
         mainTab={mainTab}
         practiceNeedsSetup={practiceNeedsSetup}
+        practiceSubMode={practiceSubMode}
+        typingInput={typingInput}
+        handleTypingAnswer={handleTypingAnswer}
         practiceAnswers={practiceAnswers}
         currentIndex={currentIndex}
         totalCards={session?.questions?.length || 0}

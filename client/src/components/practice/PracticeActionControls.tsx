@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Volume2, Lightbulb, ChevronRight, RefreshCw } from 'lucide-react';
+import { Settings, Volume2, Lightbulb, ChevronRight, RefreshCw, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/types/flashcard';
 
@@ -114,12 +114,12 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
               className={cn(
                 "flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all",
                 typingInput && typingInput.trim()
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/25 active:scale-95 cursor-pointer"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/25 active:scale-95 cursor-pointer"
                   : "bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-750 cursor-not-allowed opacity-60"
               )}
             >
-              <span>Check</span>
-              <ChevronRight className="w-4 h-4" />
+              <span>Submit Answer</span>
+              <Check className="w-4 h-4" />
             </button>
           </div>
         ) : (

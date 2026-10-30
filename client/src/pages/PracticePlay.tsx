@@ -3642,6 +3642,8 @@ export default function PracticePlay() {
           frontFontSize={currentFrontFontSize}
           showImages={showImages}
           onPreviewInsight={setPreviewInsightCard}
+          autoFocus={false}
+          hideInlineSubmit={true}
         />
       );
     }
@@ -3670,6 +3672,8 @@ export default function PracticePlay() {
           onNext={() => handleNext()}
           onZoomImage={(url) => setZoomedImage(url)}
           frontFontSize={currentFrontFontSize}
+          autoFocus={false}
+          hideInlineSubmit={true}
         />
       );
     }

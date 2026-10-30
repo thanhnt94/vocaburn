@@ -17,7 +17,8 @@ import {
   Volume2,
   Sliders,
   RefreshCw,
-  Lightbulb
+  Lightbulb,
+  Check
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,9 @@ export interface FlashcardActionDockProps {
   shouldShowFsrsCompleteScreen?: boolean
   mainTab: string
   practiceNeedsSetup: boolean
+  practiceSubMode?: string
+  typingInput?: string
+  handleTypingAnswer?: () => void
   practiceAnswers: Record<number, any>
   currentIndex: number
   totalCards?: number
@@ -64,6 +68,9 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   shouldShowFsrsCompleteScreen = false,
   mainTab,
   practiceNeedsSetup,
+  practiceSubMode,
+  typingInput,
+  handleTypingAnswer,
   practiceAnswers,
   currentIndex,
   totalCards,
@@ -191,6 +198,32 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     <kbd className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">Space / ↵</kbd>
                     <ChevronRight className="w-4 h-4" />
                   </button>
+                ) : practiceSubMode === 'typing' ? (
+                  <div className="flex gap-2 h-12 w-full">
+                    <button
+                      onClick={handleNext}
+                      className="w-24 h-12 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 font-black text-xs rounded-2xl flex items-center justify-center gap-1 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      Skip
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (typingInput && typingInput.trim() && handleTypingAnswer) {
+                          handleTypingAnswer()
+                        }
+                      }}
+                      disabled={!typingInput || !typingInput.trim()}
+                      className={cn(
+                        "flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer",
+                        typingInput && typingInput.trim()
+                          ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/25 active:scale-95"
+                          : "bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-750 cursor-not-allowed opacity-60"
+                      )}
+                    >
+                      <span>Submit Answer</span>
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex gap-2 h-12 w-full">
                     <button

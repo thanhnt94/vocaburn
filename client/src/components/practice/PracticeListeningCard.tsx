@@ -29,6 +29,8 @@ export interface PracticeListeningCardProps {
   onZoomImage?: (url: string) => void
   frontFontSize?: string
   hideHeaderActions?: boolean
+  hideInlineSubmit?: boolean
+  autoFocus?: boolean
 }
 
 export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
@@ -52,7 +54,9 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
   onNext,
   onZoomImage,
   frontFontSize = 'M',
-  hideHeaderActions = false
+  hideHeaderActions = false,
+  hideInlineSubmit = false,
+  autoFocus = false
 }) => {
   const { question, correct_answer, choices, correct_index, question_key, answer_key, choice_item_ids } = practiceData
   const [isPlaying, setIsPlaying] = useState(false)
@@ -318,22 +322,27 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
-                    className="flex-1 h-14 sm:h-16 px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-cyan-200/50 text-base sm:text-xl font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400"
+                    className={cn(
+                      "h-14 sm:h-16 px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-cyan-200/50 text-base sm:text-xl font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400 min-w-0",
+                      hideInlineSubmit ? "w-full" : "flex-1"
+                    )}
                   />
 
-                  <button
-                    type="submit"
-                    disabled={!typingInput || !typingInput.trim()}
-                    className={cn(
-                      "h-14 sm:h-16 px-6 sm:px-8 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md select-none shrink-0",
-                      typingInput && typingInput.trim()
-                        ? "bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-white shadow-cyan-500/25 active:scale-95"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 cursor-not-allowed opacity-60"
-                    )}
-                  >
-                    <span>Check</span>
-                    <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
-                  </button>
+                  {!hideInlineSubmit && (
+                    <button
+                      type="submit"
+                      disabled={!typingInput || !typingInput.trim()}
+                      className={cn(
+                        "h-14 sm:h-16 px-6 sm:px-8 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md select-none shrink-0",
+                        typingInput && typingInput.trim()
+                          ? "bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-white shadow-cyan-500/25 active:scale-95"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 cursor-not-allowed opacity-60"
+                      )}
+                    >
+                      <span>Check</span>
+                      <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
+                    </button>
+                  )}
                 </div>
               </form>
             ) : (
