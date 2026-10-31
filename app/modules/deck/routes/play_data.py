@@ -726,11 +726,15 @@ async def get_deck_play_data(
             if card_p_stats:
                 total_attempts = sum((ps.correct_count or 0) + (ps.wrong_count or 0) for ps in card_p_stats)
                 drill_correct = sum((ps.correct_count or 0) for ps in card_p_stats if ps.practice_mode == "hybrid_drill")
+                has_hybrid_drill = any(ps.practice_mode == "hybrid_drill" for ps in card_p_stats)
+                has_practice = any(ps.practice_mode != "hybrid_drill" for ps in card_p_stats)
                 p_dates = [ps.last_practiced for ps in card_p_stats if ps.last_practiced]
                 last_practiced_dt = max(p_dates) if p_dates else None
                 practice_summary = {
                     "total_attempts": total_attempts,
                     "drill_correct": drill_correct,
+                    "has_hybrid_drill": has_hybrid_drill,
+                    "has_practice": has_practice,
                     "last_practiced": last_practiced_dt.isoformat() if last_practiced_dt else None
                 }
             else:

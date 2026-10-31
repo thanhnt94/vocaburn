@@ -69,4 +69,4 @@ export type CardLifecycleState = 'due' | 'learn' | 'drill' | 'practice' | 'skim'
 
 export type LearningMode = 'fsrs' | 'skim' | 'review' | 'speed_skim' | 'new' | 'flip'
 export type CardBoxId = 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed'
-export type FilterMapMode = 'all' | CardBoxId
+export type FilterMapMode = 'all' | CardLifecycleState | 'starred' | 'ignored' | 'hard' | CardBoxId

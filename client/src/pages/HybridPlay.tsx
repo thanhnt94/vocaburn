@@ -350,6 +350,30 @@ export default function HybridPlay() {
     }
   }, [isFlipped, stage, currentSkimQuestion?.id, playSettings.autoPlayAudio])
 
+  // Track and record skim view for pre-study waterfall classification
+  const skimmedCardIdsRef = useRef<Set<number>>(new Set())
+  useEffect(() => {
+    if (stage === 'skim' && currentSkimQuestion && currentSkimQuestion.id) {
+      const cId = currentSkimQuestion.id
+      if (!skimmedCardIdsRef.current.has(cId)) {
+        skimmedCardIdsRef.current.add(cId)
+        try {
+          axios.post('/api/v1/deck/record_answer', {
+            attempt_id: null,
+            card_id: cId,
+            deck_id: Number(id),
+            is_correct: true,
+            is_practice: false,
+            mode: 'speed_skim',
+            attempt_mode: 'speed_skim',
+            rating: -2,
+            time_spent: 1
+          }).catch(() => {})
+        } catch (e) {}
+      }
+    }
+  }, [stage, currentSkimQuestion?.id, id])
+
   // Web Audio Tone SFX
   const playSfx = (type: 'correct' | 'wrong' | 'flip' | 'complete' | 'batch') => {
     try {

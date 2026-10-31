@@ -16,10 +16,10 @@ export interface CardLifecycleMeta {
 export const CARD_LIFECYCLE_META: Record<CardLifecycleState, CardLifecycleMeta> = {
   due: {
     id: 'due',
-    label: 'Due for Review',
-    shortLabel: 'Due',
+    label: 'Due Recall',
+    shortLabel: 'Due Recall',
     description: 'Scheduled for FSRS spaced repetition review today',
-    badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60',
+    badgeClass: 'bg-rose-50 text-rose-700 border-rose-300 shadow-2xs dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60',
     pillClass: 'bg-rose-500 text-white',
     borderClass: 'border-rose-300 dark:border-rose-700',
     textClass: 'text-rose-600 dark:text-rose-400',
@@ -27,54 +27,54 @@ export const CARD_LIFECYCLE_META: Record<CardLifecycleState, CardLifecycleMeta> 
   },
   learn: {
     id: 'learn',
-    label: 'Learned (Retained)',
-    shortLabel: 'Learned',
-    description: 'Active FSRS memory retention (not due yet)',
-    badgeClass: 'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
-    pillClass: 'bg-blue-500 text-white',
-    borderClass: 'border-blue-300 dark:border-blue-700',
-    textClass: 'text-blue-600 dark:text-blue-400',
-    dotClass: 'bg-blue-500'
-  },
-  drill: {
-    id: 'drill',
-    label: 'Drilled (Mastered)',
-    shortLabel: 'Drilled',
-    description: 'Deeply ingrained via Hybrid Recall active drills',
-    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60',
+    label: 'Retained',
+    shortLabel: 'Retained',
+    description: 'Active FSRS memory retention (not due today)',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60',
     pillClass: 'bg-emerald-500 text-white',
     borderClass: 'border-emerald-300 dark:border-emerald-700',
     textClass: 'text-emerald-600 dark:text-emerald-400',
     dotClass: 'bg-emerald-500'
   },
-  practice: {
-    id: 'practice',
-    label: 'Practiced',
-    shortLabel: 'Practice',
-    description: 'Attempted in practice exercises but not fully drilled',
-    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60',
-    pillClass: 'bg-amber-500 text-white',
-    borderClass: 'border-amber-300 dark:border-amber-700',
-    textClass: 'text-amber-600 dark:text-amber-400',
-    dotClass: 'bg-amber-500'
-  },
-  skim: {
-    id: 'skim',
-    label: 'Skimmed',
-    shortLabel: 'Skim',
-    description: 'Glanced over in Speed Skim or Skim Preview',
-    badgeClass: 'bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60',
+  drill: {
+    id: 'drill',
+    label: 'Reinforced',
+    shortLabel: 'Reinforced',
+    description: 'Studied via Hybrid Recall active drills',
+    badgeClass: 'bg-purple-50 text-purple-700 border-purple-300 shadow-2xs dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60',
     pillClass: 'bg-purple-500 text-white',
     borderClass: 'border-purple-300 dark:border-purple-700',
     textClass: 'text-purple-600 dark:text-purple-400',
     dotClass: 'bg-purple-500'
   },
+  practice: {
+    id: 'practice',
+    label: 'Practiced',
+    shortLabel: 'Practiced',
+    description: 'Attempted in practice exercises (MCQ / Typing)',
+    badgeClass: 'bg-sky-50 text-sky-700 border-sky-300 shadow-2xs dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/60',
+    pillClass: 'bg-sky-500 text-white',
+    borderClass: 'border-sky-300 dark:border-sky-700',
+    textClass: 'text-sky-600 dark:text-sky-400',
+    dotClass: 'bg-sky-500'
+  },
+  skim: {
+    id: 'skim',
+    label: 'Previewed',
+    shortLabel: 'Previewed',
+    description: 'Browsed in Speed Skim or Skim Preview',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-300 shadow-2xs dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60',
+    pillClass: 'bg-amber-500 text-white',
+    borderClass: 'border-amber-300 dark:border-amber-700',
+    textClass: 'text-amber-600 dark:text-amber-400',
+    dotClass: 'bg-amber-500'
+  },
   new: {
     id: 'new',
-    label: 'Fresh New',
-    shortLabel: 'New',
+    label: 'Fresh',
+    shortLabel: 'Fresh',
     description: 'Brand new card, never viewed or tested',
-    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-300 shadow-2xs dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     pillClass: 'bg-slate-500 text-white',
     borderClass: 'border-slate-300 dark:border-slate-700',
     textClass: 'text-slate-600 dark:text-slate-400',
@@ -84,18 +84,18 @@ export const CARD_LIFECYCLE_META: Record<CardLifecycleState, CardLifecycleMeta> 
 
 /**
  * Evaluates the strict waterfall lifecycle state for a given card.
- * Priority: Due > Learn > Drill > Practice > Skim > New
+ * Priority: Due Recall > Retained > Reinforced > Practiced > Previewed > Fresh
  */
 export function getCardLifecycleState(
-  card: Question,
-  targetDrillCount = 2,
+  card: Question | any,
+  targetDrillCount = 1,
   masteredCardIds?: Set<number>
 ): CardLifecycleState {
   if (!card) return 'new'
 
-  // Level 6 & 5: FSRS Spaced Repetition evaluation
-  if (card.fsrs?.last_review) {
-    if (card.fsrs.due) {
+  // Branch 1: FSRS Spaced Repetition (Due Recall vs Retained)
+  if (card.fsrs?.last_review || (card.fsrs?.state !== undefined && card.fsrs?.state > 0)) {
+    if (card.fsrs?.due) {
       const dueTime = new Date(card.fsrs.due).getTime()
       if (!isNaN(dueTime) && dueTime <= Date.now()) {
         return 'due'
@@ -104,25 +104,33 @@ export function getCardLifecycleState(
     return 'learn'
   }
 
-  // Level 4: Drill mastery (Hybrid Recall pass target)
+  // Branch 2: Pre-Review Waterfall Priority
+  // Priority 1: Reinforced (Hybrid Recall pass target or hybrid_drill)
   const isMasteredInSet = masteredCardIds ? masteredCardIds.has(card.id) : false
   const drillCorrect = card.practice_summary?.drill_correct ?? 0
-  if (isMasteredInSet || drillCorrect >= targetDrillCount) {
+  const hasHybrid = Boolean(card.practice_summary?.has_hybrid_drill || drillCorrect >= targetDrillCount || isMasteredInSet)
+  if (hasHybrid) {
     return 'drill'
   }
 
-  // Level 3: Practice attempts (standalone MCQ/Typing/Listening)
+  // Priority 2: Practiced (MCQ/Typing/Listening)
   const totalPracticeAttempts = card.practice_summary?.total_attempts ?? 0
-  if (totalPracticeAttempts > 0) {
+  const hasPractice = Boolean(card.practice_summary?.has_practice || totalPracticeAttempts > 0)
+  if (hasPractice) {
     return 'practice'
   }
 
-  // Level 2: Skimmed (previewed or viewed)
-  if (card.stats?.last_answered || (card.stats?.total ?? 0) > 0) {
+  // Priority 3: Previewed (Speed Skim)
+  const isPreviewed = Boolean(
+    card.stats?.last_answered ||
+    (card.stats?.total ?? 0) > 0 ||
+    card.fsrs?.first_learned
+  )
+  if (isPreviewed) {
     return 'skim'
   }
 
-  // Level 1: Brand new
+  // Priority 4: Fresh
   return 'new'
 }
 

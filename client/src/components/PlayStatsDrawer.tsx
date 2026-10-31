@@ -640,27 +640,27 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                 {/* 3. Four Category Summary Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-emerald-600 uppercase">Mastered (Box 5)</span>
+                    <span className="text-[8px] font-black text-emerald-600 uppercase">Retained</span>
                     <span className="text-base font-black text-emerald-700">{deckSummary?.fsrs_distribution?.mastered ?? 0}</span>
                     <span className="text-[8px] font-bold text-emerald-500">{deckSummary?.mastery_percentage ?? 0}% of deck</span>
                   </div>
 
                   <div className="p-2.5 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-indigo-600 uppercase">Learning (Box 1-4)</span>
+                    <span className="text-[8px] font-black text-indigo-600 uppercase">In Progress</span>
                     <span className="text-base font-black text-indigo-700">{deckSummary?.fsrs_distribution?.learning ?? 0}</span>
                     <span className="text-[8px] font-bold text-indigo-500">cards in progress</span>
                   </div>
 
-                  <div className="p-2.5 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-blue-600 uppercase">Unlearned (New)</span>
-                    <span className="text-base font-black text-blue-700">{deckSummary?.fsrs_distribution?.new ?? 0}</span>
-                    <span className="text-[8px] font-bold text-blue-500">new cards pending</span>
+                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+                    <span className="text-[8px] font-black text-slate-600 uppercase">Fresh (New)</span>
+                    <span className="text-base font-black text-slate-700">{deckSummary?.fsrs_distribution?.new ?? 0}</span>
+                    <span className="text-[8px] font-bold text-slate-400">new cards pending</span>
                   </div>
 
                   <div className="p-2.5 rounded-2xl bg-rose-50 border border-rose-100 flex flex-col items-center text-center">
-                    <span className="text-[8px] font-black text-rose-600 uppercase">Due Today</span>
+                    <span className="text-[8px] font-black text-rose-600 uppercase">Due Recall</span>
                     <span className="text-base font-black text-rose-700">{deckSummary?.fsrs_distribution?.due_today ?? 0}</span>
-                    <span className="text-[8px] font-bold text-rose-500">FSRS review due 🔥</span>
+                    <span className="text-[8px] font-bold text-rose-500">review due today 🔥</span>
                   </div>
                 </div>
 

@@ -20,8 +20,10 @@ import {
   formatRelativeTime,
   formatOverdueTime,
   getMapTitleInfo,
-  getFSRSIntervals
+  getFSRSIntervals,
+  getMasteryPill
 } from '@/lib/flashcard-utils'
+import { getCardLifecycleState } from '@/utils/cardLifecycle'
 import { MarkdownComponents } from '@/lib/markdown'
 import { SessionLoadingScreen } from '@/components/flashcard'
 import { FeedbackArea } from '@/components/FeedbackArea'
@@ -1034,24 +1036,7 @@ export default function PracticePlay() {
   const getCardBoxId = (item: any) => {
     if (item.is_ignored) return 'ignored';
     if (item.is_starred) return 'starred';
-    
-    const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 };
-    const total = stats.total || 0;
-    const again = stats.again_count || 0;
-    const hard = stats.hard_count || 0;
-    const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
-      ? (
-          item.fsrs.difficulty >= 8.0 &&
-          (item.fsrs.stability === undefined || item.fsrs.stability === null || item.fsrs.stability < 5.0) &&
-          total >= 20 &&
-          ((again + hard) / total >= 0.4)
-        )
-      : (total >= 20 && (again + hard) >= 8 && ((again + hard) / total >= 0.4));
-      
-    if (isHard) return 'hard';
-    if (item.box_level === 5 && total >= 4) return 'mastered';
-    if (total === 0) return 'unseen';
-    return 'learning';
+    return getCardLifecycleState(item);
   };
 
   const getFilteredCount = (mode: string) => {
@@ -1061,48 +1046,6 @@ export default function PracticePlay() {
     if (mode === 'ignored') return session.questions.filter((q: any) => Boolean(q.is_ignored)).length;
     return session.questions.filter((q: any) => getCardBoxId(q) === mode).length;
   };
-
-  const getMasteryPill = (q: any) => {
-    const boxId = getCardBoxId(q);
-    switch (boxId) {
-      case 'ignored':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-sm">
-            🚫 IGNORED
-          </span>
-        );
-      case 'starred':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white border border-amber-600 shadow-sm">
-            ★ STARRED
-          </span>
-        );
-      case 'hard':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-sm">
-            ⚠️ HARD
-          </span>
-        );
-      case 'mastered':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-            🏆 MASTERED
-          </span>
-        );
-      case 'learning':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-sm">
-            🌱 LEARNING
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-600 border border-slate-500/20 shadow-sm">
-            ⭐ NEW
-          </span>
-        );
-    }
-  }
 
   const getBadgeIcon = (badgeId: string) => {
     switch (badgeId) {

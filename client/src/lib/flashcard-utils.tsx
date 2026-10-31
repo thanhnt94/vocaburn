@@ -10,6 +10,7 @@ import {
   Award
 } from 'lucide-react'
 import type { Question, CardBoxId } from '@/types/flashcard'
+import { getCardLifecycleState } from '@/utils/cardLifecycle'
 
 export const parseUTCDate = (dateStr: string | null | undefined): Date => {
   if (!dateStr) return new Date()
@@ -128,25 +129,43 @@ export function formatOverdueTime(dueIsoStr?: string | null): { relative: string
 
 export const getMapTitleInfo = (mode: string) => {
   switch (mode) {
-    case 'unseen':
+    case 'due':
       return {
-        title: "Unseen",
-        subtitle: "Brand new cards not yet studied"
+        title: "Due Recall",
+        subtitle: "Cards scheduled for FSRS spaced repetition review today"
       }
+    case 'learn':
+    case 'mastered':
+      return {
+        title: "Retained",
+        subtitle: "Cards with active FSRS memory retention (not due today)"
+      }
+    case 'drill':
+      return {
+        title: "Reinforced",
+        subtitle: "Cards studied via Hybrid Recall active drills"
+      }
+    case 'practice':
+      return {
+        title: "Practiced",
+        subtitle: "Cards attempted in practice exercises (MCQ / Typing)"
+      }
+    case 'skim':
     case 'skimmed':
       return {
-        title: "Skimmed",
-        subtitle: "Cards previewed or browsed without active grading"
+        title: "Previewed",
+        subtitle: "Cards glanced over in Speed Skim or Skim Preview"
+      }
+    case 'new':
+    case 'unseen':
+      return {
+        title: "Fresh",
+        subtitle: "Brand new cards, never viewed or tested"
       }
     case 'learning':
       return {
-        title: "Learning",
-        subtitle: "Cards currently in progress across retention stages"
-      }
-    case 'mastered':
-      return {
-        title: "Mastered",
-        subtitle: "Cards fully memorized and retained"
+        title: "In Progress",
+        subtitle: "Cards currently in learning across retention stages"
       }
     case 'hard':
       return {
@@ -190,57 +209,59 @@ export const getCardBoxId = (item: any): CardBoxId => {
     : (total >= 20 && (again + hard) >= 8 && ((again + hard) / total >= 0.4))
     
   if (isHard) return 'hard'
-  if (item.box_level === 5 && total >= 4) return 'mastered'
-  const hasLearned = Boolean(item.fsrs?.last_review || (item.fsrs?.state !== undefined && item.fsrs?.state > 0) || total > 0);
-  if (hasLearned) return 'learning'
-  const isSkimmed = Boolean(item.stats?.last_answered || item.fsrs?.first_learned);
-  if (isSkimmed) return 'skimmed'
+  const state = getCardLifecycleState(item)
+  if (state === 'due' || state === 'learn') return 'mastered'
+  if (state === 'drill' || state === 'practice') return 'learning'
+  if (state === 'skim') return 'skimmed'
   return 'unseen'
 }
 
 export const getMasteryPill = (q: any): React.ReactElement => {
-  const boxId = getCardBoxId(q)
-  switch (boxId) {
-    case 'ignored':
+  if (q?.is_ignored) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-2xs animate-fadeIn">
+        🚫 IGNORED
+      </span>
+    )
+  }
+
+  const state = getCardLifecycleState(q)
+  switch (state) {
+    case 'due':
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-slate-200 text-slate-500 border border-slate-300 shadow-2xs animate-fadeIn">
-          🚫 IGNORED
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-300/80 shadow-2xs animate-pulse">
+          ⏰ DUE RECALL
         </span>
       )
-    case 'starred':
+    case 'learn':
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-amber-500 text-white border border-amber-600 shadow-2xs animate-fadeIn">
-          ★ STARRED
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300/80 shadow-2xs animate-fadeIn">
+          🌱 RETAINED
         </span>
       )
-    case 'hard':
+    case 'drill':
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-2xs animate-fadeIn">
-          ⚠️ HARD
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-300/80 shadow-2xs animate-fadeIn">
+          ⚡ REINFORCED
         </span>
       )
-    case 'mastered':
+    case 'practice':
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-2xs animate-fadeIn">
-          🏆 MASTERED
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-300/80 shadow-2xs animate-fadeIn">
+          🎯 PRACTICED
         </span>
       )
-    case 'learning':
+    case 'skim':
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 shadow-2xs animate-fadeIn">
-          🌱 LEARNING
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-300/80 shadow-2xs animate-fadeIn">
+          👀 PREVIEWED
         </span>
       )
-    case 'skimmed':
-      return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-2xs animate-fadeIn">
-          ⚡ SKIMMED
-        </span>
-      )
+    case 'new':
     default:
       return (
-        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-600 border border-slate-500/20 shadow-2xs animate-fadeIn">
-          ⭐ NEW
+        <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-300 shadow-2xs animate-fadeIn">
+          ✨ FRESH
         </span>
       )
   }

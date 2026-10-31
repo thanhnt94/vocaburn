@@ -18,8 +18,13 @@ import {
   ArrowRight,
   X,
   Zap,
+  Clock,
+  Target,
+  ShieldCheck,
+  Eye
 } from 'lucide-react'
-import type { FilterMapMode } from '@/types/flashcard'
+import type { FilterMapMode, CardLifecycleState } from '@/types/flashcard'
+import { getCardLifecycleState } from '@/utils/cardLifecycle'
 
 interface Question {
   id?: number
@@ -60,8 +65,8 @@ interface QuestionMapGridProps {
   currentIndex: number
   navigateToQuestion: (index: number) => void
   setIsMapOpen: (open: boolean) => void
-  filterMode?: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed'
-  setFilterMode?: (mode: 'all' | 'unseen' | 'learning' | 'mastered' | 'hard' | 'starred' | 'ignored' | 'skimmed') => void
+  filterMode?: FilterMapMode
+  setFilterMode?: (mode: FilterMapMode) => void
   showFiltersInline?: boolean
   subLessonGrouping?: { enabled?: boolean; column?: string; hide_uncategorized?: boolean }
   onSwitchGroup?: (col: string | null, val: string | null) => void
@@ -313,30 +318,11 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     return () => clearTimeout(timer)
   }, [currentIndex, activeFilterMode, selectedGroupVal])
 
-  const getBaseLearningStatus = (item: Question): 'hard' | 'mastered' | 'unseen' | 'learning' | 'skimmed' => {
-    const stats = item.stats || { total: 0, again_count: 0, hard_count: 0 }
-    const total = stats.total || 0
-    const again = stats.again_count || 0
-    const hard = stats.hard_count || 0
-    const isHard = (item.fsrs?.difficulty !== undefined && item.fsrs.difficulty !== null)
-      ? (
-          item.fsrs.difficulty >= 8.0 &&
-          (item.fsrs.stability === undefined || item.fsrs.stability === null || item.fsrs.stability < 5.0) &&
-          total >= 20 &&
-          ((again + hard) / total >= 0.4)
-        )
-      : (total >= 20 && (again + hard) >= 8 && ((again + hard) / total >= 0.4))
-
-    if (isHard) return 'hard'
-    if ((item.box_level === 5 && total >= 4) || item.fsrs?.state === 2) return 'mastered'
-    const hasLearned = Boolean(item.fsrs?.last_review || (item.fsrs?.state !== undefined && item.fsrs?.state > 0) || total > 0)
-    if (hasLearned) return 'learning'
-    const isSkimmed = Boolean(item.stats?.last_answered || item.fsrs?.first_learned)
-    if (isSkimmed) return 'skimmed'
-    return 'unseen'
+  const getBaseLearningStatus = (item: Question): CardLifecycleState => {
+    return getCardLifecycleState(item)
   }
 
-  const getCardStatus = (item: Question): 'ignored' | 'starred' | 'hard' | 'mastered' | 'unseen' | 'learning' | 'skimmed' => {
+  const getCardStatus = (item: Question): 'ignored' | 'starred' | CardLifecycleState => {
     if (item.is_ignored) return 'ignored'
     if (item.is_starred) return 'starred'
     return getBaseLearningStatus(item)
@@ -344,11 +330,12 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
 
   // Status distribution calculated on categoryFilteredQuestions
   const statusCounts = useMemo(() => {
-    let mastered = 0
-    let learning = 0
-    let skimmed = 0
-    let unseen = 0
-    let hard = 0
+    let due = 0
+    let learn = 0
+    let drill = 0
+    let practice = 0
+    let skim = 0
+    let fresh = 0
     let starred = 0
     let ignored = 0
 
@@ -356,30 +343,34 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       if (q.is_starred) starred++
       if (q.is_ignored) ignored++
       const st = getBaseLearningStatus(q)
-      if (st === 'mastered') mastered++
-      else if (st === 'hard') hard++
-      else if (st === 'learning') learning++
-      else if (st === 'skimmed') skimmed++
-      else unseen++
+      if (st === 'due') due++
+      else if (st === 'learn') learn++
+      else if (st === 'drill') drill++
+      else if (st === 'practice') practice++
+      else if (st === 'skim') skim++
+      else fresh++
     })
 
     return {
       all: categoryFilteredQuestions.length,
-      mastered,
-      learning,
-      skimmed,
-      unseen,
-      hard,
+      due,
+      learn,
+      drill,
+      practice,
+      skim,
+      new: fresh,
       starred,
       ignored,
     }
   }, [categoryFilteredQuestions])
 
   const totalCards = categoryFilteredQuestions.length
-  const masteredPct = totalCards > 0 ? Math.round((statusCounts.mastered / totalCards) * 100) : 0
-  const learningPct = totalCards > 0 ? Math.round((statusCounts.learning / totalCards) * 100) : 0
-  const skimmedPct = totalCards > 0 ? Math.round((statusCounts.skimmed / totalCards) * 100) : 0
-  const unseenPct = Math.max(0, 100 - masteredPct - learningPct - skimmedPct)
+  const duePct = totalCards > 0 ? Math.round((statusCounts.due / totalCards) * 100) : 0
+  const learnPct = totalCards > 0 ? Math.round((statusCounts.learn / totalCards) * 100) : 0
+  const drillPct = totalCards > 0 ? Math.round((statusCounts.drill / totalCards) * 100) : 0
+  const practicePct = totalCards > 0 ? Math.round((statusCounts.practice / totalCards) * 100) : 0
+  const skimPct = totalCards > 0 ? Math.round((statusCounts.skim / totalCards) * 100) : 0
+  const freshPct = Math.max(0, 100 - duePct - learnPct - drillPct - practicePct - skimPct)
 
   // Filtered list with active status mode applied
   const filteredQuestions = useMemo(() => {
@@ -407,11 +398,12 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
   const FILTER_PILLS = [
     { id: 'all' as const, label: 'All', icon: LayoutGrid, count: statusCounts.all, activeColor: 'bg-slate-900 text-white shadow-xs' },
     { id: 'starred' as const, label: 'Starred', icon: Star, count: statusCounts.starred, activeColor: 'bg-amber-500 text-white shadow-xs' },
-    { id: 'mastered' as const, label: 'Mastered', icon: Trophy, count: statusCounts.mastered, activeColor: 'bg-emerald-600 text-white shadow-xs' },
-    { id: 'learning' as const, label: 'Learning', icon: Brain, count: statusCounts.learning, activeColor: 'bg-indigo-600 text-white shadow-xs' },
-    { id: 'skimmed' as const, label: 'Skimmed', icon: Zap, count: statusCounts.skimmed, activeColor: 'bg-amber-600 text-white shadow-xs' },
-    { id: 'unseen' as const, label: 'Unseen', icon: BookOpen, count: statusCounts.unseen, activeColor: 'bg-slate-600 text-white shadow-xs' },
-    { id: 'hard' as const, label: 'Hard', icon: Flame, count: statusCounts.hard, activeColor: 'bg-rose-600 text-white shadow-xs' },
+    { id: 'due' as const, label: 'Due Recall', icon: Clock, count: statusCounts.due, activeColor: 'bg-rose-600 text-white shadow-xs' },
+    { id: 'learn' as const, label: 'Retained', icon: ShieldCheck, count: statusCounts.learn, activeColor: 'bg-emerald-600 text-white shadow-xs' },
+    { id: 'drill' as const, label: 'Reinforced', icon: Zap, count: statusCounts.drill, activeColor: 'bg-purple-600 text-white shadow-xs' },
+    { id: 'practice' as const, label: 'Practiced', icon: Target, count: statusCounts.practice, activeColor: 'bg-sky-600 text-white shadow-xs' },
+    { id: 'skim' as const, label: 'Previewed', icon: Eye, count: statusCounts.skim, activeColor: 'bg-amber-600 text-white shadow-xs' },
+    { id: 'new' as const, label: 'Fresh', icon: Sparkles, count: statusCounts.new, activeColor: 'bg-slate-600 text-white shadow-xs' },
     ...(statusCounts.ignored > 0 ? [{ id: 'ignored' as const, label: 'Ignored', icon: EyeOff, count: statusCounts.ignored, activeColor: 'bg-slate-500 text-white shadow-xs' }] : []),
   ]
 
@@ -569,31 +561,37 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
       )}
 
       {/* ── Retention Progress Distribution Bar ── */}
-      <div className="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 shadow-xs flex-shrink-0 space-y-2">
-        <div className="flex items-center justify-between text-[10.5px] font-bold">
-          <span className="flex items-center gap-1.5 text-emerald-700">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/40" />
-            <span>Mastered</span>
-            <span className="font-extrabold text-slate-800">{statusCounts.mastered}</span>
-            <span className="text-slate-400 font-medium">({masteredPct}%)</span>
+      <div className="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-2.5 sm:p-3 shadow-xs flex-shrink-0 space-y-2">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-[9.5px] sm:text-[10px] font-bold">
+          <span className="flex items-center gap-1 text-emerald-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>Retained:</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.learn}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-indigo-700">
-            <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-xs shadow-indigo-500/40" />
-            <span>Learning</span>
-            <span className="font-extrabold text-slate-800">{statusCounts.learning}</span>
-            <span className="text-slate-400 font-medium">({learningPct}%)</span>
+          <span className="flex items-center gap-1 text-rose-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
+            <span>Due:</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.due}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-amber-700">
-            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs shadow-amber-500/40" />
-            <span>Skimmed</span>
-            <span className="font-extrabold text-slate-800">{statusCounts.skimmed}</span>
-            <span className="text-slate-400 font-medium">({skimmedPct}%)</span>
+          <span className="flex items-center gap-1 text-purple-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+            <span>Drill:</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.drill}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-slate-600">
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
-            <span>Unseen</span>
-            <span className="font-extrabold text-slate-800">{statusCounts.unseen}</span>
-            <span className="text-slate-400 font-medium">({unseenPct}%)</span>
+          <span className="flex items-center gap-1 text-sky-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+            <span>Practice:</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.practice}</span>
+          </span>
+          <span className="flex items-center gap-1 text-amber-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>Preview:</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.skim}</span>
+          </span>
+          <span className="flex items-center gap-1 text-slate-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
+            <span>Fresh:</span>
+            <span className="font-extrabold text-slate-800">{statusCounts.new}</span>
           </span>
 
           {/* Quick Starred Chip in Retention Bar */}
@@ -622,27 +620,49 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
         </div>
 
         {/* Multi-Segment Track */}
-        <div className="h-2 rounded-full bg-slate-100 overflow-hidden flex shadow-inner gap-0.5 p-0.5">
-          <div
-            style={{ width: `${masteredPct}%` }}
-            className="bg-emerald-500 rounded-full transition-all duration-500 min-w-[3px]"
-            title={`Mastered: ${statusCounts.mastered} cards`}
-          />
-          <div
-            style={{ width: `${learningPct}%` }}
-            className="bg-indigo-500 rounded-full transition-all duration-500 min-w-[3px]"
-            title={`Learning: ${statusCounts.learning} cards`}
-          />
-          <div
-            style={{ width: `${skimmedPct}%` }}
-            className="bg-amber-500 rounded-full transition-all duration-500 min-w-[3px]"
-            title={`Skimmed: ${statusCounts.skimmed} cards`}
-          />
-          <div
-            style={{ width: `${unseenPct}%` }}
-            className="bg-slate-300 rounded-full transition-all duration-500 min-w-[3px]"
-            title={`Unseen: ${statusCounts.unseen} cards`}
-          />
+        <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden flex shadow-inner gap-0.5 p-0.5">
+          {freshPct > 0 && (
+            <div
+              style={{ width: `${freshPct}%` }}
+              className="bg-slate-300 rounded-xs transition-all duration-300"
+              title={`Fresh: ${statusCounts.new} cards`}
+            />
+          )}
+          {skimPct > 0 && (
+            <div
+              style={{ width: `${skimPct}%` }}
+              className="bg-amber-400 rounded-xs transition-all duration-300"
+              title={`Previewed: ${statusCounts.skim} cards`}
+            />
+          )}
+          {practicePct > 0 && (
+            <div
+              style={{ width: `${practicePct}%` }}
+              className="bg-sky-500 rounded-xs transition-all duration-300"
+              title={`Practiced: ${statusCounts.practice} cards`}
+            />
+          )}
+          {drillPct > 0 && (
+            <div
+              style={{ width: `${drillPct}%` }}
+              className="bg-purple-500 rounded-xs transition-all duration-300"
+              title={`Reinforced: ${statusCounts.drill} cards`}
+            />
+          )}
+          {learnPct > 0 && (
+            <div
+              style={{ width: `${learnPct}%` }}
+              className="bg-emerald-500 rounded-xs transition-all duration-300"
+              title={`Retained: ${statusCounts.learn} cards`}
+            />
+          )}
+          {duePct > 0 && (
+            <div
+              style={{ width: `${duePct}%` }}
+              className="bg-rose-500 rounded-xs transition-all duration-300 animate-pulse"
+              title={`Due Recall: ${statusCounts.due} cards`}
+            />
+          )}
         </div>
       </div>
 
@@ -804,14 +824,18 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                 } else {
                   tileClass = "bg-indigo-50 border-indigo-300 text-indigo-950 font-black shadow-2xs"
                 }
-              } else if (st === 'mastered') {
+              } else if (st === 'due') {
+                tileClass = "bg-rose-50/80 border-rose-300 text-rose-950 hover:bg-rose-100 hover:border-rose-400 shadow-2xs"
+              } else if (st === 'learn') {
                 tileClass = "bg-emerald-50/70 border-emerald-200/90 text-emerald-950 hover:bg-emerald-100/70 hover:border-emerald-300 shadow-2xs"
-              } else if (st === 'learning') {
-                tileClass = "bg-indigo-50/60 border-indigo-200/80 text-indigo-950 hover:bg-indigo-100/60 hover:border-indigo-300 shadow-2xs"
-              } else if (st === 'skimmed') {
+              } else if (st === 'drill') {
+                tileClass = "bg-purple-50/70 border-purple-200/90 text-purple-950 hover:bg-purple-100/70 hover:border-purple-300 shadow-2xs"
+              } else if (st === 'practice') {
+                tileClass = "bg-sky-50/70 border-sky-200/90 text-sky-950 hover:bg-sky-100/70 hover:border-sky-300 shadow-2xs"
+              } else if (st === 'skim') {
                 tileClass = "bg-amber-50/70 border-amber-200/90 text-amber-950 hover:bg-amber-100/70 hover:border-amber-300 shadow-2xs"
-              } else if (st === 'hard') {
-                tileClass = "bg-rose-50/60 border-rose-200/80 text-rose-950 hover:bg-rose-100/60 hover:border-rose-300 shadow-2xs"
+              } else {
+                tileClass = "bg-slate-50 border-slate-200/80 text-slate-800 hover:bg-slate-100 hover:border-slate-300 shadow-2xs"
               }
 
               return (
@@ -865,30 +889,35 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
                          selectedOptIdx === 2 ? "GOOD" : "EASY"}
                       </span>
                     )
-                  ) : st === 'mastered' ? (
+                  ) : st === 'due' ? (
+                    <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-rose-600 mt-1 leading-none animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                      Due
+                    </span>
+                  ) : st === 'learn' ? (
                     <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-emerald-700 mt-1 leading-none">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      Done
+                      Retain
                     </span>
-                  ) : st === 'learning' ? (
-                    <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-indigo-600 mt-1 leading-none">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                      Learn
+                  ) : st === 'drill' ? (
+                    <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-purple-700 mt-1 leading-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+                      Drill
                     </span>
-                  ) : st === 'skimmed' ? (
+                  ) : st === 'practice' ? (
+                    <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-sky-700 mt-1 leading-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                      Prac
+                    </span>
+                  ) : st === 'skim' ? (
                     <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-amber-600 mt-1 leading-none">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                       Skim
                     </span>
-                  ) : st === 'hard' ? (
-                    <span className="flex items-center gap-0.5 text-[7.5px] font-extrabold uppercase tracking-tight text-rose-600 mt-1 leading-none">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                      Hard
-                    </span>
                   ) : (
                     <span className="flex items-center gap-0.5 text-[7.5px] font-bold tracking-tight text-slate-400 mt-1 leading-none">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-200 shrink-0" />
-                      New
+                      Fresh
                     </span>
                   )}
                 </button>

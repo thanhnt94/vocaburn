@@ -102,7 +102,7 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
         <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mt-2 px-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Mastered: <strong className="text-slate-800">{mastered}</strong> ({masteredPct}%)
+            Retained: <strong className="text-slate-800">{mastered}</strong> ({masteredPct}%)
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
@@ -110,7 +110,7 @@ export function DeckFsrsStatsCard({ stats, isLoading, totalCards }: DeckFsrsStat
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-slate-300" />
-            New: <strong className="text-slate-800">{newCount}</strong>
+            Fresh: <strong className="text-slate-800">{newCount}</strong>
           </span>
         </div>
       </div>

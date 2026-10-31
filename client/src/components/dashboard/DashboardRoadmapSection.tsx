@@ -11,7 +11,8 @@ import {
   Sparkles,
   SlidersHorizontal,
   User,
-  Calendar
+  Calendar,
+  Clock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -575,13 +576,13 @@ export function DashboardRoadmapSection({
                 </div>
               </div>
 
-              {/* GAMIFIED MASTERY & QUEST HUD */}
+              {/* GAMIFIED MASTERY & CARD LIFECYCLE HUD */}
               <div className="bg-gradient-to-r from-orange-500/10 via-amber-400/15 to-emerald-500/15 border-2 border-orange-300/80 rounded-2xl p-2.5 sm:p-3 shadow-xs relative overflow-hidden backdrop-blur-xs">
                 {/* Decorative background glow */}
                 <div className="absolute -right-6 -top-6 w-20 h-20 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
                 <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-emerald-400/15 rounded-full blur-xl pointer-events-none" />
 
-                {/* Top Row: Fiery Quest Badge + Status + Glowing Percentage */}
+                {/* Top Row: Fiery Quest Badge + Status + Glowing Status Badge */}
                 <div className="flex items-center justify-between gap-2 mb-2 relative z-10">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 text-white flex items-center justify-center font-black shadow-md shadow-orange-500/30 shrink-0 text-sm">
@@ -597,121 +598,120 @@ export function DashboardRoadmapSection({
                     </div>
                   </div>
 
-                  {/* High-impact Vibrant Percentage Badge */}
-                  <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs sm:text-[13px] font-black shadow-sm shadow-emerald-500/25 flex items-center gap-1 shrink-0">
-                    <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{pct}% Learned</span>
-                  </div>
+                  {/* High-impact Status Badge */}
+                  {dueRecallCount > 0 ? (
+                    <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-rose-500 to-red-500 text-white text-xs sm:text-[13px] font-black shadow-sm shadow-rose-500/25 flex items-center gap-1 shrink-0 animate-pulse">
+                      <Clock className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>{dueRecallCount} Due Recall</span>
+                    </div>
+                  ) : (
+                    <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs sm:text-[13px] font-black shadow-sm shadow-emerald-500/25 flex items-center gap-1 shrink-0">
+                      <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>{pct}% Retained</span>
+                    </div>
+                  )}
                 </div>
                 
-                {/* 3D Chunky Video Game XP Bar */}
-                <div className="h-3.5 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/80 shadow-inner relative z-10">
-                  <div 
-                    className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 transition-all duration-500 relative shadow-xs"
-                    style={{ width: `${Math.max(pct, 4)}%` }}
-                  >
-                    {/* Gloss Reflection Top Layer for Juicy 3D Feel */}
-                    <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
-                  </div>
+                {/* Unified Master 6-State Flow Bar */}
+                <div className="h-3.5 w-full bg-white/90 rounded-full overflow-hidden p-0.5 border border-orange-200/80 shadow-inner flex gap-0.5 relative z-10">
+                  {/* 1. Fresh (slate) */}
+                  {freshCount > 0 && (
+                    <div 
+                      style={{ width: `${(freshCount / Math.max(1, totalCards)) * 100}%` }} 
+                      className="h-full bg-slate-300 transition-all duration-300 rounded-xs relative overflow-hidden" 
+                      title={`Fresh: ${freshCount.toLocaleString()} cards`} 
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                    </div>
+                  )}
+                  {/* 2. Previewed (amber) */}
+                  {previewedCount > 0 && (
+                    <div 
+                      style={{ width: `${(previewedCount / Math.max(1, totalCards)) * 100}%` }} 
+                      className="h-full bg-amber-400 transition-all duration-300 rounded-xs relative overflow-hidden" 
+                      title={`Previewed: ${previewedCount.toLocaleString()} cards`} 
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                    </div>
+                  )}
+                  {/* 3. Practiced (sky) */}
+                  {practicedCount > 0 && (
+                    <div 
+                      style={{ width: `${(practicedCount / Math.max(1, totalCards)) * 100}%` }} 
+                      className="h-full bg-sky-500 transition-all duration-300 rounded-xs relative overflow-hidden" 
+                      title={`Practiced: ${practicedCount.toLocaleString()} cards`} 
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                    </div>
+                  )}
+                  {/* 4. Reinforced (purple) */}
+                  {reinforcedCount > 0 && (
+                    <div 
+                      style={{ width: `${(reinforcedCount / Math.max(1, totalCards)) * 100}%` }} 
+                      className="h-full bg-purple-500 transition-all duration-300 rounded-xs relative overflow-hidden" 
+                      title={`Reinforced: ${reinforcedCount.toLocaleString()} cards`} 
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                    </div>
+                  )}
+                  {/* 5. Retained (emerald) */}
+                  {retainedCount > 0 && (
+                    <div 
+                      style={{ width: `${(retainedCount / Math.max(1, totalCards)) * 100}%` }} 
+                      className="h-full bg-emerald-500 transition-all duration-300 rounded-xs relative overflow-hidden" 
+                      title={`Retained: ${retainedCount.toLocaleString()} cards`} 
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                    </div>
+                  )}
+                  {/* 6. Due Recall (rose) */}
+                  {dueRecallCount > 0 && (
+                    <div 
+                      style={{ width: `${(dueRecallCount / Math.max(1, totalCards)) * 100}%` }} 
+                      className="h-full bg-rose-500 transition-all duration-300 rounded-xs animate-pulse relative overflow-hidden" 
+                      title={`Due Recall: ${dueRecallCount.toLocaleString()} cards`} 
+                    >
+                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/40 rounded-t-full pointer-events-none" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Row: Milestone Metrics Summary */}
-                <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] font-bold text-slate-600 mt-1.5 px-0.5 relative z-10">
-                  <span className="flex items-center gap-1.5 text-slate-500 font-bold">
+                <div className="flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-bold text-slate-600 mt-1.5 px-0.5 relative z-10">
+                  <span className="flex items-center gap-1.5 text-slate-600 font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    Overall Mastery Progress
+                    Retained: <strong className="text-emerald-700 font-extrabold">{retainedCount.toLocaleString()}</strong>
+                    <span className="text-slate-300">•</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+                    Due: <strong className={dueRecallCount > 0 ? "text-rose-600 font-extrabold" : "text-slate-700"}>{dueRecallCount.toLocaleString()}</strong>
                   </span>
-                  <span className="flex items-center gap-1 text-slate-700 font-extrabold">
-                    <strong>{hasExplicitMastered ? masteredCount : learnedCards}</strong> / <strong>{totalCards}</strong> cards memorized
+                  <span className="flex items-center gap-1 text-slate-500 font-bold">
+                    Acquisition: <strong className="text-slate-700 font-extrabold">{(freshCount + previewedCount + practicedCount + reinforcedCount).toLocaleString()}</strong>
+                    <span className="text-slate-300">•</span>
+                    Total: <strong className="text-slate-800 font-extrabold">{totalCards.toLocaleString()}</strong>
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* 2. LOWER BODY (LEFT: Description & 4-Metric Grid | RIGHT: Mascot Anchored Bottom-Right) */}
+            {/* 2. LOWER BODY (LEFT: 6-Stage Priority Grid | RIGHT: Mascot Anchored Bottom-Right) */}
             <div className="relative z-10 flex-1 flex flex-row items-end justify-between min-h-0 pt-2 gap-2">
               
               {/* Left Column (~58% - 62% width): Balanced Center Stack to Eliminate Gaps */}
-              <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-center h-full py-1 text-left gap-2">
+              <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-center h-full py-1 text-left gap-1.5">
                 
-                {/* 1. Card Lifecycle Flow & Distribution Header */}
-                <div className="bg-white/92 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2 sm:p-2.5 shadow-2xs flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider text-orange-600">
-                      <span>📊</span>
-                      <span>Card Lifecycle</span>
-                    </div>
-                    <span className="text-[8.5px] font-bold text-slate-400">
-                      <strong className="text-slate-600 font-extrabold">{totalCards.toLocaleString()}</strong> cards
-                    </span>
+                {/* Header: Card Progression Matrix */}
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1 text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider text-orange-600">
+                    <span>⚡</span>
+                    <span>Card Progression Matrix</span>
                   </div>
-
-                  {/* Multi-segment 6-State Flow Bar */}
-                  <div className="w-full h-2 rounded-full bg-slate-100/90 overflow-hidden flex shadow-inner gap-0.5">
-                    {/* 1. Fresh (slate) */}
-                    {freshCount > 0 && (
-                      <div 
-                        style={{ width: `${(freshCount / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-slate-300 transition-all duration-300 rounded-xs" 
-                        title={`Fresh: ${freshCount} cards`} 
-                      />
-                    )}
-                    {/* 2. Previewed (amber) */}
-                    {previewedCount > 0 && (
-                      <div 
-                        style={{ width: `${(previewedCount / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-amber-400 transition-all duration-300 rounded-xs" 
-                        title={`Previewed (Skim): ${previewedCount} cards`} 
-                      />
-                    )}
-                    {/* 3. Practiced (sky) */}
-                    {practicedCount > 0 && (
-                      <div 
-                        style={{ width: `${(practicedCount / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-sky-500 transition-all duration-300 rounded-xs" 
-                        title={`Practiced: ${practicedCount} cards`} 
-                      />
-                    )}
-                    {/* 4. Reinforced (purple) */}
-                    {reinforcedCount > 0 && (
-                      <div 
-                        style={{ width: `${(reinforcedCount / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-purple-500 transition-all duration-300 rounded-xs" 
-                        title={`Reinforced (Hybrid): ${reinforcedCount} cards`} 
-                      />
-                    )}
-                    {/* 5. Retained (emerald) */}
-                    {retainedCount > 0 && (
-                      <div 
-                        style={{ width: `${(retainedCount / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-emerald-500 transition-all duration-300 rounded-xs" 
-                        title={`Retained: ${retainedCount} cards`} 
-                      />
-                    )}
-                    {/* 6. Due Recall (rose) */}
-                    {dueRecallCount > 0 && (
-                      <div 
-                        style={{ width: `${(dueRecallCount / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-rose-500 transition-all duration-300 rounded-xs animate-pulse" 
-                        title={`Due Recall: ${dueRecallCount} cards`} 
-                      />
-                    )}
-                  </div>
-
-                  {/* Dual-Branch Memory Summary */}
-                  <div className="flex items-center justify-between text-[8px] sm:text-[8.5px] font-bold text-slate-500 px-0.5">
-                    <span className="flex items-center gap-1" title="Unreviewed cards (Acquisition phase)">
-                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
-                      Acquisition: <strong className="text-slate-700">{(freshCount + previewedCount + practicedCount + reinforcedCount).toLocaleString()}</strong>
-                    </span>
-                    <span className="flex items-center gap-1" title="FSRS Spaced Repetition cards (Retention phase)">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                      In FSRS: <strong className="text-emerald-700 font-extrabold">{(retainedCount + dueRecallCount).toLocaleString()}</strong>
-                    </span>
-                  </div>
+                  <span className="text-[8.5px] font-bold text-slate-400">
+                    Priority Flow
+                  </span>
                 </div>
 
-                {/* 2. 6-Stage Waterfall Priority Grid (2 Cols x 3 Rows) */}
+                {/* 6-Stage Waterfall Priority Grid (2 Cols x 3 Rows) */}
                 <div className="grid grid-cols-2 gap-1 sm:gap-1.5 shrink-0">
                   {/* 1. Fresh */}
                   <div 
