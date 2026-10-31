@@ -7,7 +7,7 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 - **Đồng Bộ Hóa Hiển Thị Bóng Đèn (💡 Insights Modal) Với Hybrid/Practice**:
   - Tích hợp `LearningInsightsModal` hiện đại vào `FlashcardPlay.tsx`: Thay thế hoàn toàn drawer `FeedbackArea` cũ (vốn bị hở 48px đáy `bottom-12` và làm mất thanh dock dưới khi ẩn bottom tabs).
   - Modal mới hiển thị mượt mà dạng Bottom Sheet trượt lên (`z-[1000]`), hỗ trợ đầy đủ các tab: Mặt trước, Mặt sau, Cột thông tin bổ sung, Ghi chú cá nhân (cho phép chỉnh sửa trực tiếp), và Thống kê FSRS chi tiết.
-  - Tích hợp phím bấm bóng đèn (💡) trực tiếp trên góc phải đầu thẻ (`Flashcard3DCard`) và trên thanh điều khiển đáy ở cả mặt trước lẫn mặt sau. Phím tắt `H` trên bàn phím cũng tự động kích hoạt modal này.
+  - Tích hợp phím bấm bóng đèn (💡) duy nhất trực tiếp trên góc phải đầu thẻ (`Flashcard3DCard`), loại bỏ hoàn toàn nút bóng đèn thừa ở thanh điều khiển đáy (`FlashcardActionDock`), giúp thanh đáy gọn gàng, rộng rãi và không bị lặp nút. Phím tắt `H` trên bàn phím cũng tự động kích hoạt modal này.
 - **Loại Bỏ Hoàn Toàn Flybar Trôi Nổi (Obsolete Micro-Pill Floating Overlays)**:
   - Dọn dẹp triệt để `FlashcardFlyToolbar` micro-pill cũ và các khối overlay trôi nổi góc dưới thẻ trong `Flashcard3DCard.tsx` và `FlashcardPlay.tsx`.
   - Toàn bộ thao tác âm thanh, sao chép và cài đặt nhanh giờ đây được tập trung 100% tại thanh điều khiển đáy thumb-reachable và Quick Settings Sheet.
