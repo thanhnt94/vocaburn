@@ -771,7 +771,7 @@ export function DashboardRoadmapSection({
 
                   {/* 5. Retained */}
                   <div 
-                    title="Retained: Memorized in FSRS, memory interval still active (not due today)" 
+                    title="Retained: Memorized in FSRS, memory interval still active (not due yet)" 
                     className="bg-white/85 border border-emerald-200/70 rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs"
                   >
                     <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
@@ -785,7 +785,7 @@ export function DashboardRoadmapSection({
 
                   {/* 6. Due Recall */}
                   <div 
-                    title="Due Recall: Due for spaced repetition review today" 
+                    title="Due Recall: Currently due for spaced repetition review right now" 
                     className={`rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs transition-all ${
                       dueRecallCount > 0 
                         ? 'bg-rose-50/90 border border-rose-300/80 shadow-rose-100/50' 
@@ -855,7 +855,7 @@ export function DashboardRoadmapSection({
           <div className="grid grid-cols-3 gap-2 shrink-0">
             {/* Due for Review */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Cards currently due for review right now">
                 Due for Review
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-0.5">
@@ -871,7 +871,7 @@ export function DashboardRoadmapSection({
 
             {/* Fresh / Brand-New Cards */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Untouched fresh cards">
                 Fresh Cards
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-0.5">
@@ -884,7 +884,7 @@ export function DashboardRoadmapSection({
 
             {/* Learned / FSRS Cards */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Total cards memorized in FSRS (Retained + Due Recall)">
                 {hasExplicitMastered ? 'Mastered' : 'Learned (FSRS)'}
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-0.5">

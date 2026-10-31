@@ -60,6 +60,7 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
         now_utc = datetime.now(timezone.utc)
         day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
         day_end = day_start + timedelta(days=1) - timedelta(microseconds=1)
+        now_naive = now_utc.replace(tzinfo=None)
 
         # Batch Query 1: Total cards per deck
         total_cards_res = await db.execute(
@@ -93,7 +94,7 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
         )
         reviewed_map = {row[0]: row[1] for row in reviewed_res.all()}
 
-        # Batch Query 3: Due Recall today (Rule 11: due <= day_end, exclude reviewed today)
+        # Batch Query 3: Due Recall (thẻ hiện đang đến hạn cần ôn tập: due <= now_naive)
         due_res = await db.execute(
             select(Flashcard.deck_id, func.count(UserCardMastery.id))
             .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
@@ -102,8 +103,7 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                 UserCardMastery.user_id == user_id,
                 UserCardMastery.state > 0,
                 UserCardMastery.last_review.isnot(None),
-                UserCardMastery.due <= day_end,
-                or_(UserCardMastery.last_review.is_(None), UserCardMastery.last_review < day_start),
+                UserCardMastery.due <= now_naive,
                 or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
             )
             .group_by(Flashcard.deck_id)
@@ -688,6 +688,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
     now_utc = datetime.now(timezone.utc)
     day_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     day_end = day_start + timedelta(days=1) - timedelta(microseconds=1)
+    now_naive = now_utc.replace(tzinfo=None)
 
     total_cnt = await db.scalar(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id)) or 0
     
@@ -713,7 +714,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
         )
     ) or 0
 
-    # 2. Due Recall (đến hạn ôn hôm nay)
+    # 2. Due Recall (thẻ hiện đang đến hạn cần ôn tập: due <= now_naive)
     due_recall_cnt = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
@@ -722,8 +723,7 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
             UserCardMastery.user_id == user_id,
             UserCardMastery.state > 0,
             UserCardMastery.last_review.isnot(None),
-            UserCardMastery.due <= day_end,
-            or_(UserCardMastery.last_review.is_(None), UserCardMastery.last_review < day_start),
+            UserCardMastery.due <= now_naive,
             or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
         )
     ) or 0

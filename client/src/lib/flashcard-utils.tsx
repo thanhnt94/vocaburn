@@ -132,13 +132,13 @@ export const getMapTitleInfo = (mode: string) => {
     case 'due':
       return {
         title: "Due Recall",
-        subtitle: "Cards scheduled for FSRS spaced repetition review today"
+        subtitle: "Cards currently due for FSRS spaced repetition review"
       }
     case 'learn':
     case 'mastered':
       return {
         title: "Retained",
-        subtitle: "Cards with active FSRS memory retention (not due today)"
+        subtitle: "Cards with active FSRS memory retention (in interval, not due yet)"
       }
     case 'drill':
       return {
