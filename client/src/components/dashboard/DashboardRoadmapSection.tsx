@@ -869,27 +869,27 @@ export function DashboardRoadmapSection({
               </div>
             </div>
 
-            {/* Unlearned / New Cards */}
+            {/* Fresh / Brand-New Cards */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
               <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                Unlearned
+                Fresh Cards
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-0.5">
                 <span className="text-base sm:text-lg font-black text-orange-600 tabular-nums">
-                  {unlearnedCards}
+                  {freshCount.toLocaleString()}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">cards</span>
               </div>
             </div>
 
-            {/* Learned / Mastered Cards */}
+            {/* Learned / FSRS Cards */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
               <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                {hasExplicitMastered ? 'Mastered' : 'Learned'}
+                {hasExplicitMastered ? 'Mastered' : 'Learned (FSRS)'}
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-0.5">
                 <span className="text-base sm:text-lg font-black text-emerald-600 tabular-nums">
-                  {hasExplicitMastered ? masteredCount : learnedCards}
+                  {(hasExplicitMastered ? masteredCount : learnedCards).toLocaleString()}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">cards</span>
               </div>
