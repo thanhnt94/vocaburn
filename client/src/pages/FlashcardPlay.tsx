@@ -1056,7 +1056,9 @@ export default function FlashcardPlay() {
             mode: effectiveMode,
             step_type: undefined,
             answered_indexes: [],
+            answered_ids: [],
             current_index: 0,
+            current_card_id: undefined,
             random_enabled: isRandom
           }).catch(err => {
             console.error("Failed to fetch initial next card from backend", err);
@@ -1105,7 +1107,9 @@ export default function FlashcardPlay() {
       } else {
         // urlScope === 'all'
         if (isFsrsMode) {
-          // FSRS All mode: Interleave due cards (due <= now) with new cards (4 due : 1 new)
+          // FSRS All mode: Strict spaced repetition queue
+          // Priority 1: ALL due cards (due <= now) MUST be reviewed first
+          // Priority 2: Only after all due cards are reviewed do new cards appear
           let dueCards = questions.filter((q: any) => isCardReview(q))
           let newCards = questions.filter((q: any) => isCardNew(q))
 
@@ -1120,24 +1124,8 @@ export default function FlashcardPlay() {
             })
           }
 
-          if (dueCards.length > 0 && newCards.length > 0) {
-            const interleaved: any[] = []
-            let dIdx = 0
-            let nIdx = 0
-            while (dIdx < dueCards.length || nIdx < newCards.length) {
-              for (let k = 0; k < 4 && dIdx < dueCards.length; k++) {
-                interleaved.push(dueCards[dIdx++])
-              }
-              if (nIdx < newCards.length) {
-                interleaved.push(newCards[nIdx++])
-              }
-            }
-            questions = interleaved
-          } else if (dueCards.length > 0) {
-            questions = dueCards
-          } else if (newCards.length > 0) {
-            questions = newCards
-          }
+          // Strict priority: ALL due cards first, followed by new cards
+          questions = [...dueCards, ...newCards]
         } else {
           // Skim or AutoPlay All mode: scan all cards
           if (isRandom) {
@@ -1206,6 +1194,12 @@ export default function FlashcardPlay() {
       } else if (nextCardRes?.data) {
         if (nextCardRes.data.is_all_completed || nextCardRes.data.next_index === -1) {
           completionData = nextCardRes.data;
+          curIdx = 0;
+        } else if (nextCardRes.data.card_id) {
+          const targetIdx = questions.findIndex((q: any) => q.id === nextCardRes.data.card_id);
+          curIdx = targetIdx !== -1 ? targetIdx : 0;
+        } else if (isFsrsMode) {
+          // In FSRS mode, if due cards exist, ALWAYS start with the first due card (index 0)
           curIdx = 0;
         } else if (nextCardRes.data.next_index !== undefined && nextCardRes.data.next_index >= 0 && nextCardRes.data.next_index < questions.length) {
           curIdx = nextCardRes.data.next_index;
@@ -2416,12 +2410,17 @@ export default function FlashcardPlay() {
         return;
       }
 
+      const answeredIds = answeredIndexes.map(idx => questions[idx]?.id).filter(Boolean);
+      const currentCardId = currentQuestion?.id;
+
       const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
         mode: effectiveMode,
         scope: cardScope,
         step_type: activeStepType,
         answered_indexes: answeredIndexes,
+        answered_ids: answeredIds,
         current_index: currentIndex,
+        current_card_id: currentCardId,
         random_enabled: Boolean(randomEnabled)
       });
       if (res.data) {
@@ -2437,7 +2436,14 @@ export default function FlashcardPlay() {
           return;
         } else {
           setFsrsCompletionData(null);
-          if (res.data.next_index !== undefined) {
+          if (res.data.card_id) {
+            const mapped = questions.findIndex((q: any) => q.id === res.data.card_id);
+            if (mapped !== -1) {
+              nextIdx = mapped;
+            } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
+              nextIdx = res.data.next_index;
+            }
+          } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
             nextIdx = res.data.next_index;
           }
         }
@@ -2606,10 +2612,14 @@ export default function FlashcardPlay() {
       targetIdx = currentIndex
     } else {
       try {
+        const answeredIds = answeredIndexes.map(idx => session.questions[idx]?.id).filter(Boolean);
+        const currentCardId = currentQuestion?.id;
         const res = await axios.post(`/api/v1/deck/${id}/next-card`, {
           mode: mode,
           answered_indexes: answeredIndexes,
+          answered_ids: answeredIds,
           current_index: currentIndex,
+          current_card_id: currentCardId,
           random_enabled: effectiveRandom
         })
         if (res.data) {
@@ -2619,7 +2629,14 @@ export default function FlashcardPlay() {
             return;
           } else {
             setFsrsCompletionData(null);
-            if (res.data.next_index !== undefined) {
+            if (res.data.card_id) {
+              const mapped = session.questions.findIndex((q: any) => q.id === res.data.card_id);
+              if (mapped !== -1) {
+                targetIdx = mapped;
+              } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < session.questions.length) {
+                targetIdx = res.data.next_index;
+              }
+            } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < session.questions.length) {
               targetIdx = res.data.next_index;
             }
           }

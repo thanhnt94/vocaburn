@@ -74,7 +74,9 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     user_id = AuthService.get_user_id(request)
     mode = data.get("mode", "fsrs")
     answered_indexes = data.get("answered_indexes", [])
+    answered_ids = set(data.get("answered_ids", []))
     current_index = data.get("current_index", 0)
+    current_card_id = data.get("current_card_id")
     random_enabled = data.get("random_enabled", False)
     scope = data.get("scope", "all")
 
@@ -121,7 +123,19 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         if m and m["is_ignored"]:
             ignored_indexes.add(idx)
 
-    effective_answered = set(answered_indexes) | ignored_indexes
+    # Support answered_ids for seamless matching when frontend reorders/filters questions
+    if answered_ids:
+        answered_indexes_set = {idx for idx, c_id in enumerate(card_ids) if c_id in answered_ids or idx in answered_indexes}
+    else:
+        answered_indexes_set = set(answered_indexes)
+
+    effective_answered = answered_indexes_set | ignored_indexes
+
+    # Map current_card_id to canonical card_ids index if supplied
+    if current_card_id is not None:
+        matched_cur = next((idx for idx, c_id in enumerate(card_ids) if c_id == current_card_id), None)
+        if matched_cur is not None:
+            current_index = matched_cur
 
     learned_cards_all = []
     new_cards_all = []
@@ -180,11 +194,12 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
         if random_enabled and len(candidates) > 1:
             import random
             other = [idx for idx in candidates if idx != current_index]
-            return {"next_index": random.choice(other) if other else candidates[0], "phase": "autoplay"}
+            chosen = random.choice(other) if other else candidates[0]
+            return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "autoplay"}
 
         forward = [idx for idx in candidates if idx > current_index]
         next_seq = forward[0] if forward else candidates[0]
-        return {"next_index": next_seq, "phase": "autoplay"}
+        return {"next_index": next_seq, "card_id": card_ids[next_seq], "phase": "autoplay"}
 
     if target_mode == "review":
         learned_cards = []
@@ -227,6 +242,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     next_idx = forward[0] if forward else candidates[0]
             return {
                 "next_index": next_idx,
+                "card_id": card_ids[next_idx],
                 "phase": "review",
                 "learned_cards": len(learned_cards),
                 "total_cards": total
@@ -245,6 +261,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
         return {
             "next_index": next_idx,
+            "card_id": card_ids[next_idx],
             "phase": "review",
             "learned_cards": len(learned_cards),
             "total_cards": total
@@ -282,6 +299,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                     next_idx = forward[0] if forward else candidates[0]
             return {
                 "next_index": next_idx,
+                "card_id": card_ids[next_idx],
                 "phase": "new",
                 "unlearned_count": len(all_new),
                 "total_cards": total
@@ -315,15 +333,19 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             if unanswered_new:
                 if random_enabled:
                     import random
-                    return {"next_index": random.choice(unanswered_new), "phase": "speed_skim"}
+                    chosen = random.choice(unanswered_new)
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "speed_skim"}
                 else:
-                    return {"next_index": unanswered_new[0], "phase": "speed_skim"}
+                    chosen = unanswered_new[0]
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "speed_skim"}
             elif all_new:
                 if random_enabled:
                     import random
-                    return {"next_index": random.choice(all_new), "phase": "speed_skim"}
+                    chosen = random.choice(all_new)
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "speed_skim"}
                 else:
-                    return {"next_index": all_new[0], "phase": "speed_skim"}
+                    chosen = all_new[0]
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "speed_skim"}
             else:
                 return {
                     "next_index": -1,
@@ -344,19 +366,23 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             if len(answered_indexes) == 0:
                 if random_enabled:
                     import random
-                    return {"next_index": random.choice(unanswered_all), "phase": "skim"}
+                    chosen = random.choice(unanswered_all)
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "skim"}
                 else:
-                    return {"next_index": unanswered_all[0], "phase": "skim"}
+                    chosen = unanswered_all[0]
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "skim"}
             else:
                 candidates = [idx for idx in unanswered_all if idx != current_index]
                 if not candidates:
                     candidates = unanswered_all
                 if random_enabled:
                     import random
-                    return {"next_index": random.choice(candidates), "phase": "skim"}
+                    chosen = random.choice(candidates)
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "skim"}
                 else:
                     forward = [idx for idx in candidates if idx > current_index]
-                    return {"next_index": forward[0] if forward else candidates[0], "phase": "skim"}
+                    chosen = forward[0] if forward else candidates[0]
+                    return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "skim"}
 
         # When all cards in scope have been skimmed in session, loop continuously in a cycle
         all_candidates = [idx for idx in scope_pool if idx not in ignored_indexes and idx != current_index]
@@ -366,10 +392,12 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             all_candidates = [idx for idx in range(total) if idx not in ignored_indexes] or [0]
         if random_enabled:
             import random
-            return {"next_index": random.choice(all_candidates), "phase": "skim"}
+            chosen = random.choice(all_candidates)
+            return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "skim"}
         else:
             forward = [idx for idx in all_candidates if idx > current_index]
-            return {"next_index": forward[0] if forward else (all_candidates[0] if all_candidates else 0), "phase": "skim"}
+            chosen = forward[0] if forward else (all_candidates[0] if all_candidates else 0)
+            return {"next_index": chosen, "card_id": card_ids[chosen], "phase": "skim"}
 
     elif target_mode in ("fsrs", "fsrs_review"):
         pipeline = user_settings_dict.get("pipeline", []) if isinstance(user_settings_dict, dict) else []
@@ -461,6 +489,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
             return {
                 "next_index": selected["idx"],
+                "card_id": card_ids[selected["idx"]],
                 "phase": "review",
                 "due_count": len(unanswered_due),
                 "total_due": len(due_cards),
@@ -524,6 +553,7 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                         next_idx = forward_new[0] if forward_new else unanswered_new[0]
                 return {
                     "next_index": next_idx,
+                    "card_id": card_ids[next_idx],
                     "phase": "new",
                     "due_count": 0,
                     "total_due": len(due_cards),
@@ -589,23 +619,28 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 import random
                 candidates.sort(key=lambda x: (x["ratio"], -x["wrongs"]))
                 top_n = candidates[:min(len(candidates), 5)]
-                return {"next_index": random.choice(top_n)["idx"]}
+                chosen_idx = random.choice(top_n)["idx"]
+                return {"next_index": chosen_idx, "card_id": card_ids[chosen_idx]}
             else:
                 candidates.sort(key=lambda x: (x["ratio"], -x["wrongs"]))
-                return {"next_index": candidates[0]["idx"]}
+                chosen_idx = candidates[0]["idx"]
+                return {"next_index": chosen_idx, "card_id": card_ids[chosen_idx]}
 
         unanswered = [idx for idx in range(total) if idx not in effective_answered]
         if unanswered:
             if random_enabled:
                 import random
-                return {"next_index": random.choice(unanswered)}
+                chosen_idx = random.choice(unanswered)
+                return {"next_index": chosen_idx, "card_id": card_ids[chosen_idx]}
             else:
-                return {"next_index": unanswered[0]}
+                chosen_idx = unanswered[0]
+                return {"next_index": chosen_idx, "card_id": card_ids[chosen_idx]}
 
-        return {"next_index": min(current_index + 1, total - 1)}
+        fallback_idx = min(current_index + 1, total - 1)
+        return {"next_index": fallback_idx, "card_id": card_ids[fallback_idx]}
 
-        
-    return {"next_index": min(current_index + 1, total - 1)}
+    fallback_idx = min(current_index + 1, total - 1)
+    return {"next_index": fallback_idx, "card_id": card_ids[fallback_idx]}
 
 async def _generate_ai_task(deck_id: int, card_id: int, prompt_template: Optional[str] = None):
     from app.core.db import AsyncSession, engine
