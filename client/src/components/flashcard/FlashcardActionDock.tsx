@@ -349,8 +349,8 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                     </button>
                   )}
 
-                  {/* 2. Lightbulb (Insights / Card Explanation) */}
-                  {onOpenInsights && (
+                  {/* 2. Lightbulb (Insights / Card Explanation - only after flipped or rated) */}
+                  {onOpenInsights && (isFlipped || hasRated) && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -447,21 +447,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
                       ) : (
                         <Volume2 className={cn("w-4 h-4", isPlayingAudio && "animate-pulse")} />
                       )}
-                    </button>
-                  )}
-
-                  {/* Lightbulb (Insights & AI Explanation) */}
-                  {onOpenInsights && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenInsights();
-                      }}
-                      className="h-full px-3.5 sm:px-4 rounded-2xl bg-white hover:bg-amber-50 text-amber-600 border border-slate-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
-                      title="Card Insights & AI Explanation (💡)"
-                    >
-                      <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
                     </button>
                   )}
 

@@ -6,7 +6,7 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 #### Chuẩn Hóa Vị Trí Nút Bóng Đèn Thanh Đáy & Dọn Dẹp Header Hybrid Recall
 - **Khôi Phục Nút Bóng Đèn (💡) Tại Thanh Điều Khiển Đáy & Bỏ Nút Trên Đầu Thẻ**:
   - Gỡ bỏ hoàn toàn nút bóng đèn ở góc trên bên phải đầu thẻ (`Flashcard3DCard`), trả lại đầu thẻ sạch sẽ chỉ gồm nút trạng thái học và nút gắn sao (⭐).
-  - Đặt nút bóng đèn (💡) duy nhất ở thanh điều khiển đáy (`FlashcardActionDock`) kế bên nút loa âm thanh (`[ 🔊 ] [ 💡 ]`), đồng bộ 100% với giao diện của Hybrid Mode (`HybridPlay.tsx`). Bấm vào mở ngay `LearningInsightsModal`.
+  - Đặt nút bóng đèn (💡) duy nhất ở thanh điều khiển đáy (`FlashcardActionDock`) kế bên nút loa âm thanh (`[ 🔊 ] [ 💡 ]`), CHỈ HIỂN THỊ SAU KHI ĐÃ ĐÁNH GIÁ THẺ (`hasRated`), ẩn hoàn toàn khi chưa đánh giá (mặt trước / đang chọn điểm), đồng bộ 100% với logic của Hybrid Mode (`HybridPlay.tsx`). Bấm vào mở ngay `LearningInsightsModal`.
 - **Dọn Dẹp Tiêu Đề Header Chế Độ Hybrid (`HybridPlay.tsx`)**:
   - Gỡ bỏ hoàn toàn 2 huy hiệu `🎯 DRILL` (stage pill) và `🟢 DRILLED` (`CardLifecycleBadge`) khỏi thanh tiêu đề trên cùng, giúp thanh header thoáng đãng và hiển thị tên bộ thẻ đầy đủ.
 
