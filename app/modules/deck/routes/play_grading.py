@@ -266,9 +266,15 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 
             next_intervals = estimate_intervals(scheduler, updated_card, now_utc)
 
-            # Skip first and last review timestamps query to save DB IO (not needed in record_answer real-time)
-            first_learned = None
-            last_reviewed = None
+            due_iso = None
+            if mastery.due:
+                d_str = mastery.due.isoformat()
+                due_iso = d_str if (d_str.endswith("Z") or "+" in d_str) else f"{d_str}Z"
+
+            last_review_iso = None
+            if mastery.last_review:
+                lr_str = mastery.last_review.isoformat()
+                last_review_iso = lr_str if (lr_str.endswith("Z") or "+" in lr_str) else f"{lr_str}Z"
 
             mastery_update_info = {
                 "old_level": old_box_level,
@@ -278,9 +284,10 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 "state": mastery.state,
                 "stability": mastery.stability,
                 "difficulty": mastery.difficulty,
-                "due": mastery.due.isoformat() if mastery.due else None,
-                "first_learned": first_learned.isoformat() if first_learned else None,
-                "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
+                "due": due_iso,
+                "first_learned": (first_learned.isoformat() + "Z") if first_learned else None,
+                "last_review": last_review_iso,
+                "last_reviewed": last_review_iso,
                 "intervals": next_intervals
             }
         elif is_speed_skim:

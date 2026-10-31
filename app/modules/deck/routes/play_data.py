@@ -33,6 +33,12 @@ import os
 import asyncio
 from datetime import datetime, timezone, date, timedelta
 
+def format_utc_iso(dt):
+    if not dt:
+        return None
+    s = dt.isoformat()
+    return s if (s.endswith("Z") or "+" in s) else f"{s}Z"
+
 router = APIRouter(tags=["Deck Play"])
 
 @router.get("/{deck_id}/data")
@@ -354,10 +360,10 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
                 "state": m_state,
                 "stability": m_stability,
                 "difficulty": m_difficulty,
-                "due": m_due.isoformat() if m_due else None,
-                "last_review": m_last_review.isoformat() if m_last_review else None,
-                "first_learned": first_learned.isoformat() if first_learned else None,
-                "last_reviewed": last_reviewed.isoformat() if last_reviewed else None,
+                "due": format_utc_iso(m_due),
+                "last_review": format_utc_iso(m_last_review),
+                "first_learned": format_utc_iso(first_learned),
+                "last_reviewed": format_utc_iso(last_reviewed),
                 "intervals": intervals
             },
             "options": [],
@@ -764,10 +770,10 @@ async def get_deck_play_data(
                     "state": m_state,
                     "stability": m_stability,
                     "difficulty": m_difficulty,
-                    "due": m_due.isoformat() if m_due else None,
-                    "last_review": m_last_review.isoformat() if m_last_review else None,
-                    "first_learned": m.last_answered.isoformat() if (m and m.state > 0 and m.last_answered) else None,
-                    "last_reviewed": m_last_review.isoformat() if m_last_review else None,
+                    "due": format_utc_iso(m_due),
+                    "last_review": format_utc_iso(m_last_review),
+                    "first_learned": format_utc_iso(m.last_answered) if (m and m.state > 0) else None,
+                    "last_reviewed": format_utc_iso(m_last_review),
                     "intervals": intervals
                 },
                 "options": [],

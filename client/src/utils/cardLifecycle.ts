@@ -82,6 +82,36 @@ export const CARD_LIFECYCLE_META: Record<CardLifecycleState, CardLifecycleMeta> 
   }
 }
 
+export function parseUTCDate(dateStr: string | null | undefined): Date {
+  if (!dateStr) return new Date()
+  try {
+    let formatted = String(dateStr).trim().replace(' ', 'T')
+    const tIndex = formatted.indexOf('T')
+    if (tIndex !== -1) {
+      const timePart = formatted.slice(tIndex)
+      if (!timePart.includes('Z') && !timePart.includes('+') && !timePart.includes('-')) {
+        const dotIndex = formatted.indexOf('.')
+        if (dotIndex !== -1) {
+          const parts = formatted.split('.')
+          const base = parts[0]
+          let ms = parts[1] || ''
+          ms = ms.substring(0, 3)
+          formatted = `${base}.${ms}Z`
+        } else {
+          formatted = `${formatted}Z`
+        }
+      }
+    } else if (!formatted.includes('Z') && !formatted.includes('+') && !formatted.includes('-')) {
+      formatted = `${formatted}Z`
+    }
+    const d = new Date(formatted)
+    if (!isNaN(d.getTime())) return d
+  } catch (e) {
+    console.error("parseUTCDate error:", e)
+  }
+  return new Date()
+}
+
 /**
  * Evaluates the strict waterfall lifecycle state for a given card.
  * Priority: Due Recall > Retained > Reinforced > Practiced > Previewed > Fresh
@@ -96,7 +126,7 @@ export function getCardLifecycleState(
   // Branch 1: FSRS Spaced Repetition (Due Recall vs Retained)
   if (card.fsrs?.last_review || (card.fsrs?.state !== undefined && card.fsrs?.state > 0)) {
     if (card.fsrs?.due) {
-      const dueTime = new Date(card.fsrs.due).getTime()
+      const dueTime = parseUTCDate(card.fsrs.due).getTime()
       if (!isNaN(dueTime) && dueTime <= Date.now()) {
         return 'due'
       }

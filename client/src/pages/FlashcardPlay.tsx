@@ -487,9 +487,9 @@ export default function FlashcardPlay() {
     const hasReviewed = Boolean(q.fsrs?.last_review || (q.fsrs?.state !== undefined && q.fsrs?.state > 0));
     if (!hasReviewed) return false;
 
-    // Check if due date is today or overdue
+    // Check if card is currently due for review right now (due <= Date.now())
     if (q.fsrs?.due) {
-      return new Date(q.fsrs.due).getTime() <= Date.now();
+      return parseUTCDate(q.fsrs.due).getTime() <= Date.now();
     }
     return true;
   }, []);
@@ -1090,8 +1090,8 @@ export default function FlashcardPlay() {
           questions = shuffleCards(dueCards)
         } else {
           questions = dueCards.sort((a: any, b: any) => {
-            const timeA = a.fsrs?.due ? new Date(a.fsrs.due).getTime() : 0
-            const timeB = b.fsrs?.due ? new Date(b.fsrs.due).getTime() : 0
+            const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
+            const timeB = b.fsrs?.due ? parseUTCDate(b.fsrs.due).getTime() : 0
             return timeA - timeB
           })
         }
@@ -1114,8 +1114,8 @@ export default function FlashcardPlay() {
             newCards = shuffleCards(newCards)
           } else {
             dueCards.sort((a: any, b: any) => {
-              const timeA = a.fsrs?.due ? new Date(a.fsrs.due).getTime() : 0
-              const timeB = b.fsrs?.due ? new Date(b.fsrs.due).getTime() : 0
+              const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
+              const timeB = b.fsrs?.due ? parseUTCDate(b.fsrs.due).getTime() : 0
               return timeA - timeB
             })
           }
@@ -1651,6 +1651,7 @@ export default function FlashcardPlay() {
                 difficulty: masteryUpdate.difficulty !== undefined ? masteryUpdate.difficulty : updatedQuestions[currentIndex].fsrs?.difficulty,
                 due: masteryUpdate.due !== undefined ? masteryUpdate.due : updatedQuestions[currentIndex].fsrs?.due,
                 first_learned: masteryUpdate.first_learned !== undefined ? masteryUpdate.first_learned : updatedQuestions[currentIndex].fsrs?.first_learned,
+                last_review: masteryUpdate.last_review !== undefined ? masteryUpdate.last_review : (masteryUpdate.last_reviewed !== undefined ? masteryUpdate.last_reviewed : updatedQuestions[currentIndex].fsrs?.last_review),
                 last_reviewed: masteryUpdate.last_reviewed !== undefined ? masteryUpdate.last_reviewed : updatedQuestions[currentIndex].fsrs?.last_reviewed,
                 intervals: masteryUpdate.intervals !== undefined ? masteryUpdate.intervals : updatedQuestions[currentIndex].fsrs?.intervals,
               }
