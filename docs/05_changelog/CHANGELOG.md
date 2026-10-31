@@ -3,27 +3,26 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-31]
-#### Bảng Phân Loại Chu Trình Vòng Đời Thẻ (Card Pipeline Lifecycle HUD) Trên Spotlight Dashboard
-- **Thay Thế Khối Giới Thiệu Tĩnh Bằng Bảng Phân Loại Chu Trình Vòng Đời Thẻ Trực Quan**:
-  - Loại bỏ hoàn toàn khối mô tả tĩnh ("About this deck") và 4 ô chỉ số chung không cần thiết (`Engine: FSRS v6`, `Est. Time`, `Retention Rate`, `Total Cards`) tại banner nổi bật Spotlight Deck (`DashboardRoadmapSection.tsx`).
-  - Thay thế bằng **Card Pipeline Lifecycle Breakdown** thể hiện chính xác phân bổ thẻ theo từng giai đoạn học tập chuẩn xác:
-    - **Thanh Tiến Trình Đa Màu (Multi-Segment Flow Bar)**: Biểu thị tỷ lệ % trực quan toàn bộ bộ thẻ theo 5 trạng thái liên hoàn:
-      - ⚪ Xám: `Fresh / Unseen` (Thẻ mới chưa từng học/tương tác)
-      - 🟡 Vàng cam: `Pre-Studied` (Thẻ đã lướt xem trước qua Speed Skim nhưng chưa làm bài tập / chưa vào FSRS)
-      - 🔵 Xanh dương: `Practiced` (Thẻ đã làm trắc nghiệm/gõ từ/nghe trong Quiz nhưng chưa đánh giá FSRS)
-      - 🟢 Xanh ngọc: `In Interval` (Thẻ đã học FSRS, đang trong chu kỳ nhớ giãn cách, chưa đến hạn ôn)
-      - 🔴 Đỏ hồng: `Due Review` (Thẻ FSRS đã tới hạn ôn tập hôm nay - có hiệu ứng nhịp đập pulse khi > 0)
-    - **Lưới 4 Trạng Thái Học Tập Cốt Lõi (2x2 Grid)** theo đúng thứ tự chu trình:
-      1. `⚡ Pre-Studied`: Đã lướt làm quen (Speed Skim).
-      2. `🎯 Practiced`: Đã luyện bài tập Quiz.
-      3. `🌱 In Interval`: Đang nhớ trong chu kỳ FSRS.
-      4. `⏰ Due Review`: Cần ôn tập hôm nay (viền hồng nổi bật khi có thẻ).
-    - **Nhãn Tóm Tắt Phụ**: Hiển thị số thẻ `Fresh` và số thẻ `Mastered` (cấp thuần thục `box_level >= 4`), tổng số thẻ luôn khớp 100% với `total_cards`.
+#### Chuẩn Hóa Toàn Diện Vòng Đời Thẻ Thống Nhất Theo Phương Án 2 (Action-Oriented Waterfall Priority)
+- **Kiến Trúc Phân Loại Ưu Tiên Ngắt Tầng Tuyệt Đối (Single State Invariant)**:
+  - Bãi bỏ hoàn toàn các phân loại cũ phân mảnh (`box_level` 1-5, `mastered`, `waiting_review`, `pre-studied`...).
+  - Thiết lập chu trình vòng đời 6 trạng thái độc bản, không trùng lặp và tổng số thẻ luôn khớp 100% `total_cards`:
+    $$\text{Total} = \text{Fresh} + \text{Previewed} + \text{Practiced} + \text{Reinforced} + \text{Retained} + \text{Due Recall}$$
+  - **Nhánh Chưa Review (Pre-Review Acquisition)**: Thứ tự ưu tiên ngắt tầng:
+    1. `Reinforced`: Đã học chế độ kết hợp Hybrid Recall (ưu tiên cao nhất nhóm chưa review).
+    2. `Practiced`: Đã làm bài tập Quiz (trắc nghiệm, gõ từ), ưu tiên hơn Previewed.
+    3. `Previewed`: Mới chỉ lướt qua xem trước ở Speed Skim.
+    4. `Fresh`: Thẻ mới tinh 100%, chưa từng tương tác.
+  - **Nhánh Đã Review (FSRS Retention Cycle)**:
+    5. `Due Recall`: Thẻ FSRS đã tới hạn ôn tập hôm nay (`due <= day_end` UTC+0 theo Rule 11).
+    6. `Retained`: Thẻ FSRS đang trong chu kỳ ghi nhớ tốt, chưa đến hạn.
+- **Frontend HUD Spotlight Deck (`DashboardRoadmapSection.tsx`)**:
+  - **Thanh dòng chảy 6 màu (6-State Flow Bar)**: Phản chiếu chính xác tỷ lệ phân bổ của bộ thẻ qua 6 dải màu chuẩn: `Fresh` (Xám), `Previewed` (Vàng), `Practiced` (Xanh dương), `Reinforced` (Tím), `Retained` (Xanh ngọc), `Due Recall` (Đỏ nhịp pulse).
+  - **Lưới 6 chỉ số 2 cột x 3 hàng**: Bố trí nhỏ gọn, đối xứng, không che khuất linh vật bên phải.
+  - Tích hợp tooltip chi tiết và nhãn phân định rõ 2 giai đoạn: `Acquisition` (Chưa Review) và `In FSRS` (Đã Review).
 - **Backend `roadmap.py` Batch Query & Roadmap Status**:
-  - Bổ sung truy vấn gom nhóm `practiced_count` (`UserPracticeStats` chưa có trong `UserCardMastery.state > 0`) và `skimmed_count` (thẻ skimmed qua `UserAnswer` hoặc `last_answered` mà chưa practice/learned) trong cả 2 API:
-    - `GET /api/v1/deck/roadmap/decks`
-    - `GET /api/v1/deck/{deck_id}/roadmap-status`
-  - Đảm bảo tính toán loại trừ thẻ fresh và thẻ in-interval tuân thủ nghiêm ngặt nguyên tắc múi giờ UTC+0 (Rule 11).
+  - Tối ưu hóa truy vấn SQL tính toán độc lập 6 nhóm thẻ cho toàn bộ active decks trong 1 lượt batch duy nhất.
+  - Đồng bộ cả 2 endpoint `GET /api/v1/deck/roadmap/decks` và `GET /api/v1/deck/{deck_id}/roadmap-status`.
 
 #### Đồng Bộ Hóa Toàn Diện Bảng Quick Controls Giữa 3 Chế Độ (Flashcard, Practice, Hybrid)
 - **Chuẩn Hóa Giao Diện Control Center Chuẩn iOS Trên Cả 3 Chế Độ**:

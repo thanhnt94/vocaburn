@@ -69,25 +69,31 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
         )
         total_map = {row[0]: row[1] for row in total_cards_res.all()}
 
-        # Batch Query 2: Mastery progress (learned & mastered)
-        mastery_res = await db.execute(
-            select(
-                Flashcard.deck_id,
-                func.count(UserCardMastery.id),
-                func.sum(case((UserCardMastery.box_level >= 4, 1), else_=0))
+        # Batch Query 2: Reviewed cards in FSRS (last_review is not None & state > 0)
+        reviewed_card_sub = (
+            select(UserCardMastery.card_id)
+            .where(
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.state > 0,
+                UserCardMastery.last_review.isnot(None),
+                UserCardMastery.card_id.isnot(None)
             )
+        )
+        reviewed_res = await db.execute(
+            select(Flashcard.deck_id, func.count(UserCardMastery.id))
             .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
             .where(
                 Flashcard.deck_id.in_(active_deck_ids),
                 UserCardMastery.user_id == user_id,
                 UserCardMastery.state > 0,
+                UserCardMastery.last_review.isnot(None),
                 or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
             )
             .group_by(Flashcard.deck_id)
         )
-        mastery_map = {row[0]: (row[1] or 0, row[2] or 0) for row in mastery_res.all()}
+        reviewed_map = {row[0]: row[1] for row in reviewed_res.all()}
 
-        # Batch Query 3: Due reviews today (Rule 11: due <= day_end, exclude reviewed today)
+        # Batch Query 3: Due Recall today (Rule 11: due <= day_end, exclude reviewed today)
         due_res = await db.execute(
             select(Flashcard.deck_id, func.count(UserCardMastery.id))
             .join(UserCardMastery, UserCardMastery.card_id == Flashcard.id)
@@ -95,13 +101,14 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                 Flashcard.deck_id.in_(active_deck_ids),
                 UserCardMastery.user_id == user_id,
                 UserCardMastery.state > 0,
+                UserCardMastery.last_review.isnot(None),
                 UserCardMastery.due <= day_end,
                 or_(UserCardMastery.last_review.is_(None), UserCardMastery.last_review < day_start),
                 or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
             )
             .group_by(Flashcard.deck_id)
         )
-        due_map = {row[0]: row[1] for row in due_res.all()}
+        due_recall_map = {row[0]: row[1] for row in due_res.all()}
 
         # Batch Query 4: Streak counts
         goals_res = await db.execute(
@@ -113,28 +120,51 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
         )
         streak_map = {row[0]: (row[1] or 0) for row in goals_res.all()}
 
-        # Batch Query 5: Practiced cards (user practiced Quiz/MCQ/typing, but not yet evaluated in FSRS state > 0)
-        learned_card_sub = (
-            select(UserCardMastery.card_id)
+        # Batch Query 5: Reinforced cards (Hybrid Recall: practice_mode == 'hybrid_drill', not reviewed)
+        hybrid_card_sub = (
+            select(UserPracticeStats.card_id)
             .where(
-                UserCardMastery.user_id == user_id,
-                UserCardMastery.state > 0,
-                UserCardMastery.card_id.isnot(None)
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.practice_mode == 'hybrid_drill',
+                UserPracticeStats.card_id.isnot(None)
             )
         )
-        practiced_res = await db.execute(
-            select(Flashcard.deck_id, func.count(func.distinct(UserPracticeStats.card_id)))
-            .join(Flashcard, Flashcard.id == UserPracticeStats.card_id)
+        reinforced_res = await db.execute(
+            select(Flashcard.deck_id, func.count(func.distinct(Flashcard.id)))
+            .join(UserPracticeStats, UserPracticeStats.card_id == Flashcard.id)
             .where(
                 Flashcard.deck_id.in_(active_deck_ids),
                 UserPracticeStats.user_id == user_id,
-                UserPracticeStats.card_id.not_in(learned_card_sub)
+                UserPracticeStats.practice_mode == 'hybrid_drill',
+                Flashcard.id.not_in(reviewed_card_sub)
+            )
+            .group_by(Flashcard.deck_id)
+        )
+        reinforced_map = {row[0]: row[1] for row in reinforced_res.all()}
+
+        # Batch Query 6: Practiced cards (Quiz: practice_mode != 'hybrid_drill', not reviewed, not hybrid)
+        practiced_res = await db.execute(
+            select(Flashcard.deck_id, func.count(func.distinct(Flashcard.id)))
+            .join(UserPracticeStats, UserPracticeStats.card_id == Flashcard.id)
+            .where(
+                Flashcard.deck_id.in_(active_deck_ids),
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.practice_mode != 'hybrid_drill',
+                Flashcard.id.not_in(reviewed_card_sub),
+                Flashcard.id.not_in(hybrid_card_sub)
             )
             .group_by(Flashcard.deck_id)
         )
         practiced_map = {row[0]: row[1] for row in practiced_res.all()}
 
-        # Batch Query 6: Skimmed cards (pre-studied, not yet practiced, not yet evaluated in FSRS)
+        # Batch Query 7: Previewed cards (Speed Skim: not reviewed, not hybrid, not practiced)
+        any_practice_sub = (
+            select(UserPracticeStats.card_id)
+            .where(
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.card_id.isnot(None)
+            )
+        )
         skim_sub = (
             select(UserAnswer.card_id)
             .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
@@ -144,25 +174,21 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                 UserAnswer.card_id.isnot(None)
             )
         )
-        practiced_card_sub = (
-            select(UserPracticeStats.card_id)
-            .where(UserPracticeStats.user_id == user_id, UserPracticeStats.card_id.isnot(None))
-        )
-        skimmed_res = await db.execute(
+        previewed_res = await db.execute(
             select(Flashcard.deck_id, func.count(func.distinct(Flashcard.id)))
             .outerjoin(UserCardMastery, and_(UserCardMastery.card_id == Flashcard.id, UserCardMastery.user_id == user_id))
             .where(
                 Flashcard.deck_id.in_(active_deck_ids),
                 or_(
-                    and_(UserCardMastery.last_answered.isnot(None), or_(UserCardMastery.state == 0, UserCardMastery.state.is_(None))),
+                    UserCardMastery.last_answered.isnot(None),
                     Flashcard.id.in_(skim_sub)
                 ),
-                Flashcard.id.not_in(learned_card_sub),
-                Flashcard.id.not_in(practiced_card_sub)
+                Flashcard.id.not_in(reviewed_card_sub),
+                Flashcard.id.not_in(any_practice_sub)
             )
             .group_by(Flashcard.deck_id)
         )
-        skimmed_map = {row[0]: row[1] for row in skimmed_res.all()}
+        previewed_map = {row[0]: row[1] for row in previewed_res.all()}
 
         for deck in decks:
             u_sett = user_setts_map.get(deck.id, {})
@@ -185,25 +211,30 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
             )
 
             total_cnt = total_map.get(deck.id, 0)
-            learned_cnt, mastered_cnt = mastery_map.get(deck.id, (0, 0))
-            unlearned_cnt = max(0, total_cnt - learned_cnt)
-            due_cnt = due_map.get(deck.id, 0)
-            deck_streak = streak_map.get(deck.id, 0)
+            reviewed_cnt = reviewed_map.get(deck.id, 0)
+            due_recall_cnt = due_recall_map.get(deck.id, 0)
+            retained_cnt = max(0, reviewed_cnt - due_recall_cnt)
+
+            reinforced_cnt = reinforced_map.get(deck.id, 0)
             practiced_cnt = practiced_map.get(deck.id, 0)
-            skimmed_cnt = skimmed_map.get(deck.id, 0)
-            waiting_cnt = max(0, learned_cnt - due_cnt)
-            fresh_cnt = max(0, total_cnt - learned_cnt - practiced_cnt - skimmed_cnt)
+            previewed_cnt = previewed_map.get(deck.id, 0)
+            fresh_cnt = max(0, total_cnt - (reviewed_cnt + reinforced_cnt + practiced_cnt + previewed_cnt))
+            deck_streak = streak_map.get(deck.id, 0)
 
             status = {
                 "total_cards": total_cnt,
-                "learned_cards": learned_cnt,
-                "mastered_count": mastered_cnt,
-                "unlearned_cards": unlearned_cnt,
-                "review_due_today": due_cnt,
-                "waiting_review_count": waiting_cnt,
+                # Option 2 (Action-Oriented) Unified Lifecycle:
+                "fresh_count": fresh_cnt,
+                "previewed_count": previewed_cnt,
                 "practiced_count": practiced_cnt,
-                "skimmed_count": skimmed_cnt,
-                "new_cards": fresh_cnt,
+                "reinforced_count": reinforced_cnt,
+                "retained_count": retained_cnt,
+                "due_recall_count": due_recall_cnt,
+                # Legacy / Backwards-compatible aliases:
+                "learned_cards": reviewed_cnt,
+                "unlearned_cards": max(0, total_cnt - reviewed_cnt),
+                "review_due_today": due_recall_cnt,
+                "waiting_review_count": retained_cnt,
                 "streak": deck_streak,
                 "is_frozen": is_frozen,
                 "disabled_modes": disabled_modes,
@@ -659,54 +690,86 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
     day_end = day_start + timedelta(days=1) - timedelta(microseconds=1)
 
     total_cnt = await db.scalar(select(func.count(Flashcard.id)).where(Flashcard.deck_id == deck_id)) or 0
-    learned_cnt = await db.scalar(
+    
+    # 1. Thẻ đã review FSRS
+    reviewed_card_sub = (
+        select(UserCardMastery.card_id)
+        .where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            UserCardMastery.last_review.isnot(None),
+            UserCardMastery.card_id.isnot(None)
+        )
+    )
+    reviewed_cnt = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
         .where(
             Flashcard.deck_id == deck_id,
             UserCardMastery.user_id == user_id,
             UserCardMastery.state > 0,
+            UserCardMastery.last_review.isnot(None),
             or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
         )
     ) or 0
-    unlearned_cnt = max(0, total_cnt - learned_cnt)
 
-    due_cnt = await db.scalar(
+    # 2. Due Recall (đến hạn ôn hôm nay)
+    due_recall_cnt = await db.scalar(
         select(func.count(UserCardMastery.id))
         .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
         .where(
             Flashcard.deck_id == deck_id,
             UserCardMastery.user_id == user_id,
             UserCardMastery.state > 0,
+            UserCardMastery.last_review.isnot(None),
             UserCardMastery.due <= day_end,
             or_(UserCardMastery.last_review.is_(None), UserCardMastery.last_review < day_start),
             or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
         )
     ) or 0
+    retained_cnt = max(0, reviewed_cnt - due_recall_cnt)
 
-    streak = await db.scalar(
-        select(UserDeckGoal.streak_count)
-        .where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id)
-    ) or 0
-
-    learned_card_sub = (
-        select(UserCardMastery.card_id)
+    # 3. Reinforced (chưa review, có hybrid_drill)
+    hybrid_card_sub = (
+        select(UserPracticeStats.card_id)
         .where(
-            UserCardMastery.user_id == user_id,
-            UserCardMastery.state > 0,
-            UserCardMastery.card_id.isnot(None)
+            UserPracticeStats.user_id == user_id,
+            UserPracticeStats.practice_mode == 'hybrid_drill',
+            UserPracticeStats.card_id.isnot(None)
         )
     )
-    practiced_cnt = await db.scalar(
-        select(func.count(func.distinct(UserPracticeStats.card_id)))
-        .join(Flashcard, Flashcard.id == UserPracticeStats.card_id)
+    reinforced_cnt = await db.scalar(
+        select(func.count(func.distinct(Flashcard.id)))
+        .join(UserPracticeStats, UserPracticeStats.card_id == Flashcard.id)
         .where(
             Flashcard.deck_id == deck_id,
             UserPracticeStats.user_id == user_id,
-            UserPracticeStats.card_id.not_in(learned_card_sub)
+            UserPracticeStats.practice_mode == 'hybrid_drill',
+            Flashcard.id.not_in(reviewed_card_sub)
         )
     ) or 0
 
+    # 4. Practiced (chưa review, chưa hybrid, có practice thường)
+    practiced_cnt = await db.scalar(
+        select(func.count(func.distinct(Flashcard.id)))
+        .join(UserPracticeStats, UserPracticeStats.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserPracticeStats.user_id == user_id,
+            UserPracticeStats.practice_mode != 'hybrid_drill',
+            Flashcard.id.not_in(reviewed_card_sub),
+            Flashcard.id.not_in(hybrid_card_sub)
+        )
+    ) or 0
+
+    # 5. Previewed (chưa review, chưa hybrid, chưa practice, có skim)
+    any_practice_sub = (
+        select(UserPracticeStats.card_id)
+        .where(
+            UserPracticeStats.user_id == user_id,
+            UserPracticeStats.card_id.isnot(None)
+        )
+    )
     skim_sub = (
         select(UserAnswer.card_id)
         .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
@@ -716,56 +779,49 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
             UserAnswer.card_id.isnot(None)
         )
     )
-    practiced_card_sub = (
-        select(UserPracticeStats.card_id)
-        .where(UserPracticeStats.user_id == user_id, UserPracticeStats.card_id.isnot(None))
-    )
-    skimmed_cnt = await db.scalar(
+    previewed_cnt = await db.scalar(
         select(func.count(func.distinct(Flashcard.id)))
         .outerjoin(UserCardMastery, and_(UserCardMastery.card_id == Flashcard.id, UserCardMastery.user_id == user_id))
         .where(
             Flashcard.deck_id == deck_id,
             or_(
-                and_(UserCardMastery.last_answered.isnot(None), or_(UserCardMastery.state == 0, UserCardMastery.state.is_(None))),
+                UserCardMastery.last_answered.isnot(None),
                 Flashcard.id.in_(skim_sub)
             ),
-            Flashcard.id.not_in(learned_card_sub),
-            Flashcard.id.not_in(practiced_card_sub)
+            Flashcard.id.not_in(reviewed_card_sub),
+            Flashcard.id.not_in(any_practice_sub)
         )
     ) or 0
 
-    mastered_cnt = await db.scalar(
-        select(func.count(UserCardMastery.id))
-        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
-        .where(
-            Flashcard.deck_id == deck_id,
-            UserCardMastery.user_id == user_id,
-            UserCardMastery.state > 0,
-            UserCardMastery.box_level >= 4,
-            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
-        )
-    ) or 0
+    # 6. Fresh
+    fresh_cnt = max(0, total_cnt - (reviewed_cnt + reinforced_cnt + practiced_cnt + previewed_cnt))
 
-    waiting_cnt = max(0, learned_cnt - due_cnt)
-    fresh_cnt = max(0, total_cnt - learned_cnt - practiced_cnt - skimmed_cnt)
+    streak = await db.scalar(
+        select(UserDeckGoal.streak_count)
+        .where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id)
+    ) or 0
 
     return {
         "deck_title": deck_obj.title,
         "total_cards": total_cnt,
-        "learned_cards": learned_cnt,
-        "mastered_count": mastered_cnt,
-        "unlearned_cards": unlearned_cnt,
-        "review_due_today": due_cnt,
-        "waiting_review_count": waiting_cnt,
+        # Option 2 (Action-Oriented) Unified Lifecycle:
+        "fresh_count": fresh_cnt,
+        "previewed_count": previewed_cnt,
         "practiced_count": practiced_cnt,
-        "skimmed_count": skimmed_cnt,
-        "new_cards": fresh_cnt,
+        "reinforced_count": reinforced_cnt,
+        "retained_count": retained_cnt,
+        "due_recall_count": due_recall_cnt,
+        # Backwards compatible:
+        "learned_cards": reviewed_cnt,
+        "unlearned_cards": max(0, total_cnt - reviewed_cnt),
+        "review_due_today": due_recall_cnt,
+        "waiting_review_count": retained_cnt,
         "streak": streak,
         "is_frozen": is_frozen,
         "disabled_modes": disabled_modes,
         "is_practice_disabled": ("practice" in disabled_modes or "all_practice" in disabled_modes),
         "retention_rate": 90,
-        "all_done": due_cnt == 0,
+        "all_done": due_recall_cnt == 0,
         "stage_1_done": True,
         "stage_2_done": True,
     }

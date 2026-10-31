@@ -151,3 +151,4 @@ skim_sub = (
 | 4 | **Hybrid** | `Hybrid` | `Reinforced` | Đã Học Sâu |
 | 5 | **Learned** | `Learned` | `Retained` | Đang Ghi Nhớ |
 | 6 | **Review** | `Due Review` | `Due Recall` | Cần Ôn Tập |
+

@@ -79,11 +79,13 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
   const estimatedMins = Math.max(2, Math.round(dueRemaining * 0.12))
   const retentionRate = Math.min(100, Math.max(70, Number(st.retention_rate || 90)))
 
-  // Card Pipeline Lifecycle Breakdown
-  const waitingReview = Number(st.waiting_review_count ?? Math.max(0, learnedCards - dueRemaining))
+  // Option 2 (Action-Oriented) Unified Waterfall Priority Lifecycle
+  const dueRecallCount = Number(st.due_recall_count ?? st.review_due_today ?? deck?.review_remaining ?? 0)
+  const retainedCount = Number(st.retained_count ?? Math.max(0, learnedCards - dueRecallCount))
+  const reinforcedCount = Number(st.reinforced_count ?? 0)
   const practicedCount = Number(st.practiced_count ?? 0)
-  const skimmedCount = Number(st.skimmed_count ?? 0)
-  const newCardsCount = Number(st.new_cards ?? Math.max(0, totalCards - learnedCards - practicedCount - skimmedCount))
+  const previewedCount = Number(st.previewed_count ?? st.skimmed_count ?? 0)
+  const freshCount = Number(st.fresh_count ?? Math.max(0, totalCards - (retainedCount + dueRecallCount + reinforcedCount + practicedCount + previewedCount)))
 
   const authorName = deck?.creator_name || deck?.creator_username || deck?.creator?.username || user?.username || 'tnhnaht'
   const createdAtStr = deck?.created_at 
@@ -162,11 +164,16 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
     totalCards,
     learnedCards,
     unlearnedCards,
-    dueRemaining,
-    waitingReview,
+    dueRemaining: dueRecallCount,
+    waitingReview: retainedCount,
     practicedCount,
-    skimmedCount,
-    newCardsCount,
+    skimmedCount: previewedCount,
+    newCardsCount: freshCount,
+    freshCount,
+    previewedCount,
+    reinforcedCount,
+    retainedCount,
+    dueRecallCount,
     streak,
     masteredCount,
     hasExplicitMastered,
@@ -435,10 +442,12 @@ export function DashboardRoadmapSection({
     learnedCards,
     unlearnedCards,
     dueRemaining,
-    waitingReview,
+    freshCount,
+    previewedCount,
     practicedCount,
-    skimmedCount,
-    newCardsCount,
+    reinforcedCount,
+    retainedCount,
+    dueRecallCount,
     masteredCount,
     hasExplicitMastered,
     pct,
@@ -625,34 +634,34 @@ export function DashboardRoadmapSection({
               {/* Left Column (~58% - 62% width): Balanced Center Stack to Eliminate Gaps */}
               <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-center h-full py-1 text-left gap-2">
                 
-                {/* 1. Card Pipeline Flow & Distribution Header */}
+                {/* 1. Card Lifecycle Flow & Distribution Header */}
                 <div className="bg-white/92 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2 sm:p-2.5 shadow-2xs flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider text-orange-600">
                       <span>📊</span>
-                      <span>Card Pipeline</span>
+                      <span>Card Lifecycle</span>
                     </div>
                     <span className="text-[8.5px] font-bold text-slate-400">
                       <strong className="text-slate-600 font-extrabold">{totalCards.toLocaleString()}</strong> cards
                     </span>
                   </div>
 
-                  {/* Multi-segment Lifecycle Flow Bar */}
+                  {/* Multi-segment 6-State Flow Bar */}
                   <div className="w-full h-2 rounded-full bg-slate-100/90 overflow-hidden flex shadow-inner gap-0.5">
                     {/* 1. Fresh (slate) */}
-                    {newCardsCount > 0 && (
+                    {freshCount > 0 && (
                       <div 
-                        style={{ width: `${(newCardsCount / Math.max(1, totalCards)) * 100}%` }} 
+                        style={{ width: `${(freshCount / Math.max(1, totalCards)) * 100}%` }} 
                         className="h-full bg-slate-300 transition-all duration-300 rounded-xs" 
-                        title={`Fresh / Unseen: ${newCardsCount} cards`} 
+                        title={`Fresh: ${freshCount} cards`} 
                       />
                     )}
-                    {/* 2. Pre-Studied (amber) */}
-                    {skimmedCount > 0 && (
+                    {/* 2. Previewed (amber) */}
+                    {previewedCount > 0 && (
                       <div 
-                        style={{ width: `${(skimmedCount / Math.max(1, totalCards)) * 100}%` }} 
+                        style={{ width: `${(previewedCount / Math.max(1, totalCards)) * 100}%` }} 
                         className="h-full bg-amber-400 transition-all duration-300 rounded-xs" 
-                        title={`Pre-Studied (Skim): ${skimmedCount} cards`} 
+                        title={`Previewed (Skim): ${previewedCount} cards`} 
                       />
                     )}
                     {/* 3. Practiced (sky) */}
@@ -660,108 +669,144 @@ export function DashboardRoadmapSection({
                       <div 
                         style={{ width: `${(practicedCount / Math.max(1, totalCards)) * 100}%` }} 
                         className="h-full bg-sky-500 transition-all duration-300 rounded-xs" 
-                        title={`Practiced (Quiz): ${practicedCount} cards`} 
+                        title={`Practiced: ${practicedCount} cards`} 
                       />
                     )}
-                    {/* 4. In Interval (teal) */}
-                    {waitingReview > 0 && (
+                    {/* 4. Reinforced (purple) */}
+                    {reinforcedCount > 0 && (
                       <div 
-                        style={{ width: `${(waitingReview / Math.max(1, totalCards)) * 100}%` }} 
-                        className="h-full bg-teal-500 transition-all duration-300 rounded-xs" 
-                        title={`In Interval: ${waitingReview} cards`} 
+                        style={{ width: `${(reinforcedCount / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-purple-500 transition-all duration-300 rounded-xs" 
+                        title={`Reinforced (Hybrid): ${reinforcedCount} cards`} 
                       />
                     )}
-                    {/* 5. Due Review (rose) */}
-                    {dueRemaining > 0 && (
+                    {/* 5. Retained (emerald) */}
+                    {retainedCount > 0 && (
                       <div 
-                        style={{ width: `${(dueRemaining / Math.max(1, totalCards)) * 100}%` }} 
+                        style={{ width: `${(retainedCount / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-emerald-500 transition-all duration-300 rounded-xs" 
+                        title={`Retained: ${retainedCount} cards`} 
+                      />
+                    )}
+                    {/* 6. Due Recall (rose) */}
+                    {dueRecallCount > 0 && (
+                      <div 
+                        style={{ width: `${(dueRecallCount / Math.max(1, totalCards)) * 100}%` }} 
                         className="h-full bg-rose-500 transition-all duration-300 rounded-xs animate-pulse" 
-                        title={`Due Review: ${dueRemaining} cards`} 
+                        title={`Due Recall: ${dueRecallCount} cards`} 
                       />
                     )}
                   </div>
 
-                  {/* Auxiliary Milestone Labels */}
-                  <div className="flex items-center justify-between text-[8.5px] font-bold text-slate-500 px-0.5">
-                    <span className="flex items-center gap-1" title="Cards never seen or practiced">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
-                      Fresh: <strong className="text-slate-700">{newCardsCount.toLocaleString()}</strong>
+                  {/* Dual-Branch Memory Summary */}
+                  <div className="flex items-center justify-between text-[8px] sm:text-[8.5px] font-bold text-slate-500 px-0.5">
+                    <span className="flex items-center gap-1" title="Unreviewed cards (Acquisition phase)">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
+                      Acquisition: <strong className="text-slate-700">{(freshCount + previewedCount + practicedCount + reinforcedCount).toLocaleString()}</strong>
                     </span>
-                    <span className="flex items-center gap-1" title="Deep memory mastered (Box 4+)">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                      Mastered: <strong className="text-amber-600 font-extrabold">{masteredCount.toLocaleString()}</strong>
+                    <span className="flex items-center gap-1" title="FSRS Spaced Repetition cards (Retention phase)">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                      In FSRS: <strong className="text-emerald-700 font-extrabold">{(retainedCount + dueRecallCount).toLocaleString()}</strong>
                     </span>
                   </div>
                 </div>
 
-                {/* 2. 4-Stage Lifecycle Grid (In Strict Pipeline Order) */}
-                <div className="grid grid-cols-2 gap-1.5 shrink-0">
-                  {/* Stage 1: Pre-Studied (Speed Skim) */}
+                {/* 2. 6-Stage Waterfall Priority Grid (2 Cols x 3 Rows) */}
+                <div className="grid grid-cols-2 gap-1 sm:gap-1.5 shrink-0">
+                  {/* 1. Fresh */}
                   <div 
-                    title="Pre-Studied: Cards browsed in Speed Skim but not yet tested or evaluated in FSRS" 
-                    className="bg-white/85 border border-amber-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs"
+                    title="Fresh: Untouched new cards, never studied or practiced" 
+                    className="bg-white/85 border border-slate-200/80 rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs"
                   >
-                    <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                      ⚡
+                    <div className="w-5 h-5 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      ✨
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8px] sm:text-[8.5px] font-extrabold uppercase text-amber-700/80 block leading-tight">Pre-Studied</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{skimmedCount.toLocaleString()}</span>
+                      <span className="text-[7.5px] sm:text-[8px] font-extrabold uppercase text-slate-400 block leading-tight">Fresh</span>
+                      <span className="text-[10.5px] sm:text-[11px] font-black text-slate-800 leading-tight truncate block">{freshCount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Stage 2: Practiced Only (Quiz / MCQ / Typing) */}
+                  {/* 2. Previewed */}
                   <div 
-                    title="Practiced: Cards answered in Quiz/Typing drills, not yet scheduled in FSRS spaced repetition" 
-                    className="bg-white/85 border border-sky-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs"
+                    title="Previewed: Browsed in Speed Skim to get familiar" 
+                    className="bg-white/85 border border-amber-200/70 rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      👀
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[7.5px] sm:text-[8px] font-extrabold uppercase text-amber-700/80 block leading-tight">Previewed</span>
+                      <span className="text-[10.5px] sm:text-[11px] font-black text-slate-800 leading-tight truncate block">{previewedCount.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Practiced */}
+                  <div 
+                    title="Practiced: Answered in Quiz/Typing drills (overrides Previewed)" 
+                    className="bg-white/85 border border-sky-200/70 rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs"
                   >
                     <div className="w-5 h-5 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       🎯
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8px] sm:text-[8.5px] font-extrabold uppercase text-sky-700/80 block leading-tight">Practiced</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{practicedCount.toLocaleString()}</span>
+                      <span className="text-[7.5px] sm:text-[8px] font-extrabold uppercase text-sky-700/80 block leading-tight">Practiced</span>
+                      <span className="text-[10.5px] sm:text-[11px] font-black text-slate-800 leading-tight truncate block">{practicedCount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Stage 3: In Interval (FSRS Memory Maturing) */}
+                  {/* 4. Reinforced */}
                   <div 
-                    title="In Interval: Cards active in FSRS whose memory interval has not yet expired" 
-                    className="bg-white/85 border border-teal-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs"
+                    title="Reinforced: Studied in Hybrid Recall mode (overrides Practiced & Previewed)" 
+                    className="bg-white/85 border border-purple-200/70 rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs"
                   >
-                    <div className="w-5 h-5 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                    <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      ⚡
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[7.5px] sm:text-[8px] font-extrabold uppercase text-purple-700/80 block leading-tight">Reinforced</span>
+                      <span className="text-[10.5px] sm:text-[11px] font-black text-slate-800 leading-tight truncate block">{reinforcedCount.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* 5. Retained */}
+                  <div 
+                    title="Retained: Memorized in FSRS, memory interval still active (not due today)" 
+                    className="bg-white/85 border border-emerald-200/70 rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       🌱
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8px] sm:text-[8.5px] font-extrabold uppercase text-teal-700/80 block leading-tight">In Interval</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{waitingReview.toLocaleString()}</span>
+                      <span className="text-[7.5px] sm:text-[8px] font-extrabold uppercase text-emerald-700/80 block leading-tight">Retained</span>
+                      <span className="text-[10.5px] sm:text-[11px] font-black text-slate-800 leading-tight truncate block">{retainedCount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Stage 4: Due Review (Due Today) */}
+                  {/* 6. Due Recall */}
                   <div 
-                    title="Due Review: Cards due for spaced recall review today" 
-                    className={`rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs transition-all ${
-                      dueRemaining > 0 
+                    title="Due Recall: Due for spaced repetition review today" 
+                    className={`rounded-xl p-1 sm:p-1.5 flex items-center gap-1.5 shadow-2xs transition-all ${
+                      dueRecallCount > 0 
                         ? 'bg-rose-50/90 border border-rose-300/80 shadow-rose-100/50' 
                         : 'bg-white/85 border border-slate-200/70'
                     }`}
                   >
                     <div className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] shrink-0 font-black ${
-                      dueRemaining > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'
+                      dueRecallCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'
                     }`}>
                       ⏰
                     </div>
                     <div className="min-w-0">
-                      <span className={`text-[8px] sm:text-[8.5px] font-extrabold uppercase block leading-tight ${
-                        dueRemaining > 0 ? 'text-rose-600 font-extrabold' : 'text-slate-400'
+                      <span className={`text-[7.5px] sm:text-[8px] font-extrabold uppercase block leading-tight ${
+                        dueRecallCount > 0 ? 'text-rose-600 font-extrabold' : 'text-slate-400'
                       }`}>
-                        Due Review
+                        Due Recall
                       </span>
-                      <span className={`text-[11px] font-black leading-tight truncate block ${
-                        dueRemaining > 0 ? 'text-rose-700' : 'text-slate-800'
+                      <span className={`text-[10.5px] sm:text-[11px] font-black leading-tight truncate block ${
+                        dueRecallCount > 0 ? 'text-rose-700' : 'text-slate-800'
                       }`}>
-                        {dueRemaining.toLocaleString()}
+                        {dueRecallCount.toLocaleString()}
                       </span>
                     </div>
                   </div>
