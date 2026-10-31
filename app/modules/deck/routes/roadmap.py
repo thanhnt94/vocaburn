@@ -113,6 +113,57 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
         )
         streak_map = {row[0]: (row[1] or 0) for row in goals_res.all()}
 
+        # Batch Query 5: Practiced cards (user practiced Quiz/MCQ/typing, but not yet evaluated in FSRS state > 0)
+        learned_card_sub = (
+            select(UserCardMastery.card_id)
+            .where(
+                UserCardMastery.user_id == user_id,
+                UserCardMastery.state > 0,
+                UserCardMastery.card_id.isnot(None)
+            )
+        )
+        practiced_res = await db.execute(
+            select(Flashcard.deck_id, func.count(func.distinct(UserPracticeStats.card_id)))
+            .join(Flashcard, Flashcard.id == UserPracticeStats.card_id)
+            .where(
+                Flashcard.deck_id.in_(active_deck_ids),
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.card_id.not_in(learned_card_sub)
+            )
+            .group_by(Flashcard.deck_id)
+        )
+        practiced_map = {row[0]: row[1] for row in practiced_res.all()}
+
+        # Batch Query 6: Skimmed cards (pre-studied, not yet practiced, not yet evaluated in FSRS)
+        skim_sub = (
+            select(UserAnswer.card_id)
+            .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+            .where(
+                DeckAttempt.user_id == user_id,
+                DeckAttempt.mode.in_(["speed_skim", "skim", "flip"]),
+                UserAnswer.card_id.isnot(None)
+            )
+        )
+        practiced_card_sub = (
+            select(UserPracticeStats.card_id)
+            .where(UserPracticeStats.user_id == user_id, UserPracticeStats.card_id.isnot(None))
+        )
+        skimmed_res = await db.execute(
+            select(Flashcard.deck_id, func.count(func.distinct(Flashcard.id)))
+            .outerjoin(UserCardMastery, and_(UserCardMastery.card_id == Flashcard.id, UserCardMastery.user_id == user_id))
+            .where(
+                Flashcard.deck_id.in_(active_deck_ids),
+                or_(
+                    and_(UserCardMastery.last_answered.isnot(None), or_(UserCardMastery.state == 0, UserCardMastery.state.is_(None))),
+                    Flashcard.id.in_(skim_sub)
+                ),
+                Flashcard.id.not_in(learned_card_sub),
+                Flashcard.id.not_in(practiced_card_sub)
+            )
+            .group_by(Flashcard.deck_id)
+        )
+        skimmed_map = {row[0]: row[1] for row in skimmed_res.all()}
+
         for deck in decks:
             u_sett = user_setts_map.get(deck.id, {})
             creator_sett = deck.practice_settings if isinstance(deck.practice_settings, dict) else {}
@@ -138,6 +189,10 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
             unlearned_cnt = max(0, total_cnt - learned_cnt)
             due_cnt = due_map.get(deck.id, 0)
             deck_streak = streak_map.get(deck.id, 0)
+            practiced_cnt = practiced_map.get(deck.id, 0)
+            skimmed_cnt = skimmed_map.get(deck.id, 0)
+            waiting_cnt = max(0, learned_cnt - due_cnt)
+            fresh_cnt = max(0, total_cnt - learned_cnt - practiced_cnt - skimmed_cnt)
 
             status = {
                 "total_cards": total_cnt,
@@ -145,6 +200,10 @@ async def get_roadmap_decks(request: Request, db: AsyncSession = Depends(get_db)
                 "mastered_count": mastered_cnt,
                 "unlearned_cards": unlearned_cnt,
                 "review_due_today": due_cnt,
+                "waiting_review_count": waiting_cnt,
+                "practiced_count": practiced_cnt,
+                "skimmed_count": skimmed_cnt,
+                "new_cards": fresh_cnt,
                 "streak": deck_streak,
                 "is_frozen": is_frozen,
                 "disabled_modes": disabled_modes,
@@ -630,12 +689,77 @@ async def get_deck_roadmap_status(request: Request, deck_id: int, target_date: O
         .where(UserDeckGoal.user_id == user_id, UserDeckGoal.deck_id == deck_id)
     ) or 0
 
+    learned_card_sub = (
+        select(UserCardMastery.card_id)
+        .where(
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            UserCardMastery.card_id.isnot(None)
+        )
+    )
+    practiced_cnt = await db.scalar(
+        select(func.count(func.distinct(UserPracticeStats.card_id)))
+        .join(Flashcard, Flashcard.id == UserPracticeStats.card_id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserPracticeStats.user_id == user_id,
+            UserPracticeStats.card_id.not_in(learned_card_sub)
+        )
+    ) or 0
+
+    skim_sub = (
+        select(UserAnswer.card_id)
+        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
+        .where(
+            DeckAttempt.user_id == user_id,
+            DeckAttempt.mode.in_(["speed_skim", "skim", "flip"]),
+            UserAnswer.card_id.isnot(None)
+        )
+    )
+    practiced_card_sub = (
+        select(UserPracticeStats.card_id)
+        .where(UserPracticeStats.user_id == user_id, UserPracticeStats.card_id.isnot(None))
+    )
+    skimmed_cnt = await db.scalar(
+        select(func.count(func.distinct(Flashcard.id)))
+        .outerjoin(UserCardMastery, and_(UserCardMastery.card_id == Flashcard.id, UserCardMastery.user_id == user_id))
+        .where(
+            Flashcard.deck_id == deck_id,
+            or_(
+                and_(UserCardMastery.last_answered.isnot(None), or_(UserCardMastery.state == 0, UserCardMastery.state.is_(None))),
+                Flashcard.id.in_(skim_sub)
+            ),
+            Flashcard.id.not_in(learned_card_sub),
+            Flashcard.id.not_in(practiced_card_sub)
+        )
+    ) or 0
+
+    mastered_cnt = await db.scalar(
+        select(func.count(UserCardMastery.id))
+        .join(Flashcard, UserCardMastery.card_id == Flashcard.id)
+        .where(
+            Flashcard.deck_id == deck_id,
+            UserCardMastery.user_id == user_id,
+            UserCardMastery.state > 0,
+            UserCardMastery.box_level >= 4,
+            or_(UserCardMastery.is_ignored == False, UserCardMastery.is_ignored.is_(None))
+        )
+    ) or 0
+
+    waiting_cnt = max(0, learned_cnt - due_cnt)
+    fresh_cnt = max(0, total_cnt - learned_cnt - practiced_cnt - skimmed_cnt)
+
     return {
         "deck_title": deck_obj.title,
         "total_cards": total_cnt,
         "learned_cards": learned_cnt,
+        "mastered_count": mastered_cnt,
         "unlearned_cards": unlearned_cnt,
         "review_due_today": due_cnt,
+        "waiting_review_count": waiting_cnt,
+        "practiced_count": practiced_cnt,
+        "skimmed_count": skimmed_cnt,
+        "new_cards": fresh_cnt,
         "streak": streak,
         "is_frozen": is_frozen,
         "disabled_modes": disabled_modes,

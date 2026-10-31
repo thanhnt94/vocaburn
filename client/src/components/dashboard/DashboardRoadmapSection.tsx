@@ -79,6 +79,12 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
   const estimatedMins = Math.max(2, Math.round(dueRemaining * 0.12))
   const retentionRate = Math.min(100, Math.max(70, Number(st.retention_rate || 90)))
 
+  // Card Pipeline Lifecycle Breakdown
+  const waitingReview = Number(st.waiting_review_count ?? Math.max(0, learnedCards - dueRemaining))
+  const practicedCount = Number(st.practiced_count ?? 0)
+  const skimmedCount = Number(st.skimmed_count ?? 0)
+  const newCardsCount = Number(st.new_cards ?? Math.max(0, totalCards - learnedCards - practicedCount - skimmedCount))
+
   const authorName = deck?.creator_name || deck?.creator_username || deck?.creator?.username || user?.username || 'tnhnaht'
   const createdAtStr = deck?.created_at 
     ? new Date(deck.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
@@ -157,6 +163,10 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
     learnedCards,
     unlearnedCards,
     dueRemaining,
+    waitingReview,
+    practicedCount,
+    skimmedCount,
+    newCardsCount,
     streak,
     masteredCount,
     hasExplicitMastered,
@@ -425,6 +435,10 @@ export function DashboardRoadmapSection({
     learnedCards,
     unlearnedCards,
     dueRemaining,
+    waitingReview,
+    practicedCount,
+    skimmedCount,
+    newCardsCount,
     masteredCount,
     hasExplicitMastered,
     pct,
@@ -611,60 +625,144 @@ export function DashboardRoadmapSection({
               {/* Left Column (~58% - 62% width): Balanced Center Stack to Eliminate Gaps */}
               <div className="flex-1 max-w-[58%] sm:max-w-[62%] min-w-0 flex flex-col justify-center h-full py-1 text-left gap-2">
                 
-                {/* Deck Description Box */}
-                <div className="bg-white/90 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2.5 shadow-2xs">
-                  <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-orange-600 mb-0.5">
-                    <span>📖</span>
-                    <span>About this deck</span>
+                {/* 1. Card Pipeline Flow & Distribution Header */}
+                <div className="bg-white/92 backdrop-blur-xs border border-orange-200/80 rounded-2xl p-2 sm:p-2.5 shadow-2xs flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider text-orange-600">
+                      <span>📊</span>
+                      <span>Card Pipeline</span>
+                    </div>
+                    <span className="text-[8.5px] font-bold text-slate-400">
+                      <strong className="text-slate-600 font-extrabold">{totalCards.toLocaleString()}</strong> cards
+                    </span>
                   </div>
-                  <p className="text-[10.5px] sm:text-[11px] text-slate-700 font-medium leading-relaxed line-clamp-2">
-                    {deckDescription}
-                  </p>
+
+                  {/* Multi-segment Lifecycle Flow Bar */}
+                  <div className="w-full h-2 rounded-full bg-slate-100/90 overflow-hidden flex shadow-inner gap-0.5">
+                    {/* 1. Fresh (slate) */}
+                    {newCardsCount > 0 && (
+                      <div 
+                        style={{ width: `${(newCardsCount / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-slate-300 transition-all duration-300 rounded-xs" 
+                        title={`Fresh / Unseen: ${newCardsCount} cards`} 
+                      />
+                    )}
+                    {/* 2. Pre-Studied (amber) */}
+                    {skimmedCount > 0 && (
+                      <div 
+                        style={{ width: `${(skimmedCount / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-amber-400 transition-all duration-300 rounded-xs" 
+                        title={`Pre-Studied (Skim): ${skimmedCount} cards`} 
+                      />
+                    )}
+                    {/* 3. Practiced (sky) */}
+                    {practicedCount > 0 && (
+                      <div 
+                        style={{ width: `${(practicedCount / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-sky-500 transition-all duration-300 rounded-xs" 
+                        title={`Practiced (Quiz): ${practicedCount} cards`} 
+                      />
+                    )}
+                    {/* 4. In Interval (teal) */}
+                    {waitingReview > 0 && (
+                      <div 
+                        style={{ width: `${(waitingReview / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-teal-500 transition-all duration-300 rounded-xs" 
+                        title={`In Interval: ${waitingReview} cards`} 
+                      />
+                    )}
+                    {/* 5. Due Review (rose) */}
+                    {dueRemaining > 0 && (
+                      <div 
+                        style={{ width: `${(dueRemaining / Math.max(1, totalCards)) * 100}%` }} 
+                        className="h-full bg-rose-500 transition-all duration-300 rounded-xs animate-pulse" 
+                        title={`Due Review: ${dueRemaining} cards`} 
+                      />
+                    )}
+                  </div>
+
+                  {/* Auxiliary Milestone Labels */}
+                  <div className="flex items-center justify-between text-[8.5px] font-bold text-slate-500 px-0.5">
+                    <span className="flex items-center gap-1" title="Cards never seen or practiced">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
+                      Fresh: <strong className="text-slate-700">{newCardsCount.toLocaleString()}</strong>
+                    </span>
+                    <span className="flex items-center gap-1" title="Deep memory mastered (Box 4+)">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                      Mastered: <strong className="text-amber-600 font-extrabold">{masteredCount.toLocaleString()}</strong>
+                    </span>
+                  </div>
                 </div>
 
-                {/* Rich 4-Metric Grid (Hữu ích, không trùng lặp các ô bên dưới) */}
+                {/* 2. 4-Stage Lifecycle Grid (In Strict Pipeline Order) */}
                 <div className="grid grid-cols-2 gap-1.5 shrink-0">
-                  {/* 1. Total Vocab */}
-                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                    <div className="w-5 h-5 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                      📚
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Total Cards</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{totalCards.toLocaleString()} items</span>
-                    </div>
-                  </div>
-
-                  {/* 2. Algorithm */}
-                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                    <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                  {/* Stage 1: Pre-Studied (Speed Skim) */}
+                  <div 
+                    title="Pre-Studied: Cards browsed in Speed Skim but not yet tested or evaluated in FSRS" 
+                    className="bg-white/85 border border-amber-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
                       ⚡
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Engine</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">FSRS v6</span>
+                      <span className="text-[8px] sm:text-[8.5px] font-extrabold uppercase text-amber-700/80 block leading-tight">Pre-Studied</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{skimmedCount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* 3. Estimated Study Time Today */}
-                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                    <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                      ⏱️
+                  {/* Stage 2: Practiced Only (Quiz / MCQ / Typing) */}
+                  <div 
+                    title="Practiced: Cards answered in Quiz/Typing drills, not yet scheduled in FSRS spaced repetition" 
+                    className="bg-white/85 border border-sky-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <div className="w-5 h-5 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      🎯
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Est. Time</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">~{estimatedMins} mins</span>
+                      <span className="text-[8px] sm:text-[8.5px] font-extrabold uppercase text-sky-700/80 block leading-tight">Practiced</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{practicedCount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* 4. Target Retention Rate */}
-                  <div className="bg-white/85 border border-orange-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs">
-                    <div className="w-5 h-5 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] shrink-0 font-black">
-                      🧠
+                  {/* Stage 3: In Interval (FSRS Memory Maturing) */}
+                  <div 
+                    title="In Interval: Cards active in FSRS whose memory interval has not yet expired" 
+                    className="bg-white/85 border border-teal-200/70 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <div className="w-5 h-5 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-[10px] shrink-0 font-black">
+                      🌱
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8.5px] font-extrabold uppercase text-slate-400 block leading-tight">Retention</span>
-                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{retentionRate}% Rate</span>
+                      <span className="text-[8px] sm:text-[8.5px] font-extrabold uppercase text-teal-700/80 block leading-tight">In Interval</span>
+                      <span className="text-[11px] font-black text-slate-800 leading-tight truncate block">{waitingReview.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Stage 4: Due Review (Due Today) */}
+                  <div 
+                    title="Due Review: Cards due for spaced recall review today" 
+                    className={`rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xs transition-all ${
+                      dueRemaining > 0 
+                        ? 'bg-rose-50/90 border border-rose-300/80 shadow-rose-100/50' 
+                        : 'bg-white/85 border border-slate-200/70'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] shrink-0 font-black ${
+                      dueRemaining > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      ⏰
+                    </div>
+                    <div className="min-w-0">
+                      <span className={`text-[8px] sm:text-[8.5px] font-extrabold uppercase block leading-tight ${
+                        dueRemaining > 0 ? 'text-rose-600 font-extrabold' : 'text-slate-400'
+                      }`}>
+                        Due Review
+                      </span>
+                      <span className={`text-[11px] font-black leading-tight truncate block ${
+                        dueRemaining > 0 ? 'text-rose-700' : 'text-slate-800'
+                      }`}>
+                        {dueRemaining.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
