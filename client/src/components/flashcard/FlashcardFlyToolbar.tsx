@@ -358,7 +358,6 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
 }) => {
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
-  const [quickTab, setQuickTab] = useState<'actions' | 'preferences'>('preferences')
   const dragControls = useDragControls()
   const drawerRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -1155,194 +1154,9 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               }
 
               return (
-                <div className="flex flex-col gap-2">
-                  {/* Segmented Sub-Tab Switcher */}
-                  <div className="flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
-                    <button
-                      type="button"
-                      onClick={() => setQuickTab('actions')}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer select-none",
-                        quickTab === 'actions'
-                          ? "bg-white text-indigo-700 shadow-xs scale-[1.01]"
-                          : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <Zap className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Card Actions</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickTab('preferences')}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer select-none",
-                        quickTab === 'preferences'
-                          ? "bg-white text-indigo-700 shadow-xs scale-[1.01]"
-                          : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <Sliders className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Preferences</span>
-                    </button>
-                  </div>
-
-                  {/* ══════ TAB 1: CARD ACTIONS (Thao tác Thẻ hiện tại) ══════ */}
-                  {quickTab === 'actions' && (
-                    <div className="flex flex-col gap-1 text-left px-0.5">
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {/* 1. Edit Card */}
-                        <button
-                          type="button"
-                          disabled={!canEdit}
-                          onClick={() => {
-                            onClose()
-                            onOpenEditModal?.()
-                          }}
-                          className={cn(
-                            "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs min-h-[42px]",
-                            canEdit
-                              ? "bg-slate-50 hover:bg-blue-50/70 border-slate-200/80 hover:border-blue-300 cursor-pointer"
-                              : "bg-slate-50/60 border-slate-200/50 opacity-60 cursor-not-allowed"
-                          )}
-                          title={canEdit ? "Open Card Editor Modal" : "Card editing locked"}
-                        >
-                          <div className={cn(
-                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
-                            canEdit ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-400"
-                          )}>
-                            <Pencil className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-tight">
-                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Edit Card</span>
-                            <span className="text-[8px] text-slate-400 font-medium truncate">{canEdit ? "Editor" : "Locked"}</span>
-                          </div>
-                        </button>
-
-                        {/* 2. Card Note */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            onOpenCardHub?.('note')
-                          }}
-                          className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]"
-                          title="Open Personal Notes Drawer"
-                        >
-                          <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                            <FileText className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-tight">
-                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Note</span>
-                            <span className="text-[8px] text-slate-400 font-medium truncate">Notes</span>
-                          </div>
-                        </button>
-
-                        {/* 3. AI Explain */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            onOpenCardHub?.('insight')
-                          }}
-                          className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]"
-                          title="Open AI Explanations Drawer"
-                        >
-                          <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                            <Brain className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-tight">
-                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">AI Explain</span>
-                            <span className="text-[8px] text-slate-400 font-medium truncate">Insights</span>
-                          </div>
-                        </button>
-
-                        {/* 4. Card Stats */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose()
-                            onOpenCardHub?.('stats')
-                          }}
-                          className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]"
-                          title="Open Detailed Card Stats & History"
-                        >
-                          <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                            <TrendingUp className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-tight">
-                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">Card Stats</span>
-                            <span className="text-[8px] text-slate-400 font-medium truncate">FSRS</span>
-                          </div>
-                        </button>
-
-                        {/* 5. Copy Current Face */}
-                        <button
-                          type="button"
-                          onClick={handleCopyCurrentFace}
-                          className={cn(
-                            "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]",
-                            copiedFace
-                              ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
-                              : "bg-slate-50 hover:bg-emerald-50/70 border-slate-200/80 hover:border-emerald-300"
-                          )}
-                          title={isFlipped ? "Copy Back Face to clipboard (for AI Prompt)" : "Copy Front Face to clipboard (for AI Prompt)"}
-                        >
-                          <div className={cn(
-                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
-                            copiedFace
-                              ? "bg-emerald-600 text-white scale-105"
-                              : "bg-emerald-500 text-white"
-                          )}>
-                            {copiedFace ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-tight">
-                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
-                              {copiedFace ? "Copied!" : isFlipped ? "Copy Back" : "Copy Front"}
-                            </span>
-                            <span className="text-[8px] text-slate-400 font-medium truncate">
-                              {copiedFace ? "Ready" : isFlipped ? "Back Face" : "Front Face"}
-                            </span>
-                          </div>
-                        </button>
-
-                        {/* 6. Copy Full Card */}
-                        <button
-                          type="button"
-                          onClick={handleCopyFullCard}
-                          className={cn(
-                            "flex items-center gap-1.5 p-1.5 rounded-xl border transition-all active:scale-95 text-left select-none shadow-2xs cursor-pointer min-h-[42px]",
-                            copiedFull
-                              ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300"
-                              : "bg-slate-50 hover:bg-indigo-50/70 border-slate-200/80 hover:border-indigo-300"
-                          )}
-                          title="Copy both Front and Back content to clipboard (for AI Prompt)"
-                        >
-                          <div className={cn(
-                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-all",
-                            copiedFull
-                              ? "bg-indigo-600 text-white scale-105"
-                              : "bg-indigo-500 text-white"
-                          )}>
-                            {copiedFull ? <Check className="w-3.5 h-3.5" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
-                          </div>
-                          <div className="flex flex-col min-w-0 leading-tight">
-                            <span className="text-[10px] font-bold text-slate-800 tracking-tight truncate">
-                              {copiedFull ? "Copied!" : "Copy Full"}
-                            </span>
-                            <span className="text-[8px] text-slate-400 font-medium truncate">
-                              {copiedFull ? "Ready" : "Front & Back"}
-                            </span>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ══════ TAB 2: PREFERENCES (Tùy chọn Phiên học) ══════ */}
-                  {quickTab === 'preferences' && (
-                    <div className="flex flex-col gap-2.5">
-                      {/* 1. Audio & Haptics (Pure Sound & Feedback) */}
-                      <div className="flex flex-col gap-1 text-left px-0.5">
+                <div className="flex flex-col gap-2.5">
+                  {/* 1. Audio & Haptics (Pure Sound & Feedback) */}
+                  <div className="flex flex-col gap-1 text-left px-0.5">
                         <div className="flex items-center justify-between px-1">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                             Audio & Haptics
@@ -1826,44 +1640,182 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
                               </div>
                             </button>
                           )}
-
-                          {/* Quick Jump: Map & Stats Shortcuts */}
-                          {(onOpenMap || onOpenStats) && (
-                            <div className="col-span-4 flex items-center gap-2 pt-2 mt-1 border-t border-slate-100 dark:border-slate-800">
-                              {onOpenMap && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    onClose();
-                                    onOpenMap();
-                                  }}
-                                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-amber-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                                >
-                                  <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>Card Map</span>
-                                </button>
-                              )}
-                              {onOpenStats && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    onClose();
-                                    onOpenStats();
-                                  }}
-                                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-indigo-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
-                                >
-                                  <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
-                                  <span>Session Stats</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
+
+                      {/* Card Actions (Lightweight Icon Toolbar at Bottom) */}
+                      <div className="flex flex-col gap-1 text-left px-0.5 pt-1.5 border-t border-slate-100">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Card Actions
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            Quick Utilities
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-6 gap-1.5">
+                          {/* 1. Copy Face */}
+                          <button
+                            type="button"
+                            onClick={handleCopyCurrentFace}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-90 text-center min-h-[46px] gap-1 cursor-pointer select-none",
+                              copiedFace
+                                ? "bg-emerald-50 border-emerald-300 text-emerald-700 shadow-2xs"
+                                : "bg-slate-50 hover:bg-emerald-50/70 border-slate-200/80 text-slate-600 hover:text-emerald-700 hover:border-emerald-200"
+                            )}
+                            title={isFlipped ? "Copy Back Face (for AI)" : "Copy Front Face (for AI)"}
+                          >
+                            <div className={cn(
+                              "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                              copiedFace ? "bg-emerald-600 text-white" : "bg-white text-slate-500 border border-slate-200/60"
+                            )}>
+                              {copiedFace ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            </div>
+                            <span className="text-[8.5px] font-bold tracking-tight leading-none truncate max-w-full">
+                              {copiedFace ? "Copied" : isFlipped ? "Back" : "Front"}
+                            </span>
+                          </button>
+
+                          {/* 2. Copy Full */}
+                          <button
+                            type="button"
+                            onClick={handleCopyFullCard}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-90 text-center min-h-[46px] gap-1 cursor-pointer select-none",
+                              copiedFull
+                                ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
+                                : "bg-slate-50 hover:bg-indigo-50/70 border-slate-200/80 text-slate-600 hover:text-indigo-700 hover:border-indigo-200"
+                            )}
+                            title="Copy Full Card (Front & Back for AI)"
+                          >
+                            <div className={cn(
+                              "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                              copiedFull ? "bg-indigo-600 text-white" : "bg-white text-slate-500 border border-slate-200/60"
+                            )}>
+                              {copiedFull ? <Check className="w-3.5 h-3.5" /> : <ClipboardCopy className="w-3.5 h-3.5" />}
+                            </div>
+                            <span className="text-[8.5px] font-bold tracking-tight leading-none truncate max-w-full">
+                              {copiedFull ? "Copied" : "Full"}
+                            </span>
+                          </button>
+
+                          {/* 3. Card Note */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose()
+                              onOpenCardHub?.('note')
+                            }}
+                            className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-50 hover:bg-amber-50/70 border border-slate-200/80 hover:border-amber-200 text-slate-600 hover:text-amber-700 transition-all active:scale-90 text-center min-h-[46px] gap-1 cursor-pointer select-none"
+                            title="Open Personal Notes Drawer"
+                          >
+                            <div className="w-6 h-6 rounded-lg bg-white text-slate-500 border border-slate-200/60 flex items-center justify-center">
+                              <FileText className="w-3.5 h-3.5 text-amber-500" />
+                            </div>
+                            <span className="text-[8.5px] font-bold tracking-tight leading-none truncate max-w-full">
+                              Note
+                            </span>
+                          </button>
+
+                          {/* 4. AI Explain */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose()
+                              onOpenCardHub?.('insight')
+                            }}
+                            className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-200/80 hover:border-purple-200 text-slate-600 hover:text-purple-700 transition-all active:scale-90 text-center min-h-[46px] gap-1 cursor-pointer select-none"
+                            title="Open AI Explanations Drawer"
+                          >
+                            <div className="w-6 h-6 rounded-lg bg-white text-slate-500 border border-slate-200/60 flex items-center justify-center">
+                              <Brain className="w-3.5 h-3.5 text-purple-500" />
+                            </div>
+                            <span className="text-[8.5px] font-bold tracking-tight leading-none truncate max-w-full">
+                              Explain
+                            </span>
+                          </button>
+
+                          {/* 5. Card Stats */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose()
+                              onOpenCardHub?.('stats')
+                            }}
+                            className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-200 text-slate-600 hover:text-teal-700 transition-all active:scale-90 text-center min-h-[46px] gap-1 cursor-pointer select-none"
+                            title="Open Card FSRS Stats & Review History"
+                          >
+                            <div className="w-6 h-6 rounded-lg bg-white text-slate-500 border border-slate-200/60 flex items-center justify-center">
+                              <TrendingUp className="w-3.5 h-3.5 text-teal-500" />
+                            </div>
+                            <span className="text-[8.5px] font-bold tracking-tight leading-none truncate max-w-full">
+                              Stats
+                            </span>
+                          </button>
+
+                          {/* 6. Edit Card */}
+                          <button
+                            type="button"
+                            disabled={!canEdit}
+                            onClick={() => {
+                              onClose()
+                              onOpenEditModal?.()
+                            }}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all active:scale-90 text-center min-h-[46px] gap-1 select-none",
+                              canEdit
+                                ? "bg-slate-50 hover:bg-blue-50/70 border-slate-200/80 hover:border-blue-200 text-slate-600 hover:text-blue-700 cursor-pointer"
+                                : "bg-slate-50/50 border-slate-200/40 text-slate-300 opacity-50 cursor-not-allowed"
+                            )}
+                            title={canEdit ? "Edit Card Content" : "Editing locked"}
+                          >
+                            <div className={cn(
+                              "w-6 h-6 rounded-lg flex items-center justify-center",
+                              canEdit ? "bg-white text-slate-500 border border-slate-200/60" : "bg-slate-100 text-slate-300 border border-slate-200/40"
+                            )}>
+                              <Pencil className={cn("w-3.5 h-3.5", canEdit && "text-blue-500")} />
+                            </div>
+                            <span className="text-[8.5px] font-bold tracking-tight leading-none truncate max-w-full">
+                              Edit
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Quick Jump: Map & Stats Shortcuts */}
+                      {(onOpenMap || onOpenStats) && (
+                        <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                          {onOpenMap && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onOpenMap();
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-amber-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                            >
+                              <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
+                              <span>Card Map</span>
+                            </button>
+                          )}
+                          {onOpenStats && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onOpenStats();
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-indigo-700 border border-slate-200/80 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-2xs"
+                            >
+                              <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>Session Stats</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )
+                  )
             })()}
           </motion.div>
         </div>

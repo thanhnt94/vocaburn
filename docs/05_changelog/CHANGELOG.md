@@ -3,6 +3,23 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-31]
+#### Đồng Bộ Hóa Toàn Diện Bảng Quick Controls Giữa 3 Chế Độ (Flashcard, Practice, Hybrid)
+- **Chuẩn Hóa Giao Diện Control Center Chuẩn iOS Trên Cả 3 Chế Độ**:
+  - Loại bỏ hoàn toàn thanh chuyển tab phân mảnh `[ ⚡ Card Actions | 🎛️ Preferences ]` ở cả 3 chế độ (`FlashcardFlyToolbar.tsx`, `PracticeQuickControlsSheet.tsx`, `HybridQuickControlsSheet.tsx`), giúp người dùng truy cập trực tiếp các tùy chọn cấu hình mà không phải bấm chuyển qua lại giữa các tab.
+  - Chuẩn hóa layout nhóm:
+    - **Header**: Icon Sliders + tiêu đề Quick Controls + subtitle tương ứng + nút cài đặt bộ thẻ + nút đóng.
+    - **Top 4-Badge Quick Bar**: 4 nút thẻ bo góc hiển thị trạng thái chính: Chế độ (Mode), Bộ lọc phạm vi thẻ (Filter/Scope kèm số lượng trực tiếp), Thứ tự hàng đợi (Order SEQ/RAND), và Mặt thẻ/Mức mục tiêu (Sides/Target/Voice).
+    - **Audio & Haptics**: Lưới 4 nút đồng nhất 100% gồm Phát giọng đọc (Voice Play), Tốc độ phát (Speed), Hiệu ứng âm thanh (SFX Audio), và Rung phản hồi (Haptic).
+    - **Display & Gestures**: Lưới tùy chọn hiển thị ảnh (Images), kích thước font chữ (Font Scale), căn chỉnh lề (Align), và nút bật/tắt thanh điều hướng đáy (Bottom Tabs).
+- **Di Chuyển Thao Tác Thẻ Xuống Đáy Thành Thanh Icon Toolbar Nhỏ Gọn, Tinh Tế**:
+  - Đưa toàn bộ các thao tác với thẻ học xuống khu vực đáy ngay phía trên các nút `CARD MAP` và `SESSION STATS`.
+  - Thiết kế thành thanh icon toolbar siêu gọn nhẹ (`grid grid-cols-6` hoặc `grid grid-cols-5`) với icon tinh xảo, nhãn chữ ngắn gọn và tooltip rõ ràng:
+    - **Flashcard**: `Copy Front Face` (Copy), `Copy Full Card` (ClipboardCopy), `Card Note` (FileText), `AI Explain` (Brain), `Card Stats` (TrendingUp), `Edit Card` (Pencil).
+    - **Practice**: `Copy Question` (Copy), `Copy Answer` (ClipboardCopy), `Ignore Card` (EyeOff), `Edit Card` (Pencil), `Restart Practice` (RotateCcw), `Exit Session` (LogOut).
+    - **Hybrid**: `Copy Front Face` (Copy), `Copy Full Card` (ClipboardCopy), `AI Insight` (Brain), `Edit Card` (Pencil), `Save Baseline` (Bookmark).
+- **Phím Tắt Điều Hướng Đáy Đồng Bộ**:
+  - Duy trì cặp nút bấm lớn `[ ⊞ CARD MAP / QUESTION MAP ]` và `[ 📈 SESSION STATS ]` ở dưới cùng cho trải nghiệm điều hướng liền mạch, không bị gián đoạn.
+
 #### Chuẩn Hóa Vị Trí Nút Bóng Đèn Thanh Đáy & Dọn Dẹp Header Hybrid Recall
 - **Khôi Phục Nút Bóng Đèn (💡) Tại Thanh Điều Khiển Đáy & Bỏ Nút Trên Đầu Thẻ**:
   - Gỡ bỏ hoàn toàn nút bóng đèn ở góc trên bên phải đầu thẻ (`Flashcard3DCard`), trả lại đầu thẻ sạch sẽ chỉ gồm nút trạng thái học và nút gắn sao (⭐).

@@ -1898,6 +1898,8 @@ export default function HybridPlay() {
           }).catch(() => {})
         }}
         showLocalToast={showLocalToast}
+        currentQuestion={activeQuestionForAudio}
+        onOpenCardInsight={(card) => setPreviewInsightCard(card)}
       />
 
       {/* Floating Notification Toast */}
