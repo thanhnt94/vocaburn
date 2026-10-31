@@ -482,20 +482,25 @@ export default function FlashcardPlay() {
   });
 
   const isCardReview = useCallback((q: any) => {
-    if (!q) return false;
-    if (q.fsrs) {
-      if (q.fsrs.state === 0 && !q.fsrs.last_review) return false;
-      if (q.fsrs.due) {
-        return new Date(q.fsrs.due).getTime() <= Date.now();
-      }
-      return q.fsrs.state > 0;
+    if (!q || q.is_ignored) return false;
+    // Card has officially entered FSRS spaced repetition
+    const hasReviewed = Boolean(q.fsrs?.last_review || (q.fsrs?.state !== undefined && q.fsrs?.state > 0));
+    if (!hasReviewed) return false;
+
+    // Check if due date is today or overdue
+    if (q.fsrs?.due) {
+      return new Date(q.fsrs.due).getTime() <= Date.now();
     }
-    return !q.is_new && (q.stats?.total || 0) > 0;
+    return true;
   }, []);
 
   const isCardNew = useCallback((q: any) => {
-    if (!q) return false;
-    return q.fsrs ? (q.fsrs.state === 0 && q.fsrs.last_review === null) : (q.is_new || !q.stats?.total);
+    if (!q || q.is_ignored) return false;
+    // INVARIANT: If a card has NOT been rated/reviewed in FSRS yet,
+    // it MUST be pulled out for initial learning & evaluation in FSRS,
+    // regardless of whether it was fresh, previewed, practiced, or drilled in Hybrid!
+    const hasReviewed = Boolean(q.fsrs?.last_review || (q.fsrs?.state !== undefined && q.fsrs?.state > 0));
+    return !hasReviewed;
   }, []);
 
   const isCardMatchingScope = useCallback((q: any, scope: 'all' | 'review' | 'new') => {
@@ -3688,7 +3693,7 @@ export default function FlashcardPlay() {
               const learnedToday = currentStep.progress?.learned ?? roadmapStatus?.new_learned_today ?? 0;
               const newCardsInSession = Object.keys(sessionAnswers).filter(idxStr => {
                 const q = session?.questions?.[Number(idxStr)];
-                return q && (q.is_new || q.state === 0 || q.repetition === 0);
+                return q && isCardNew(q);
               }).length;
               subTotal = targetNew;
               subCurr = Math.max(learnedToday, newCardsInSession);
