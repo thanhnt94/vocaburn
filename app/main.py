@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, JSONResponse
 from app.core.config import settings
@@ -69,7 +68,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
 )
 
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# GZip compression handled by Nginx reverse proxy to prevent Python event loop blocking
 
 @app.middleware("http")
 async def clean_user_id_cookie(request: Request, call_next):

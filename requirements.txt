@@ -3,6 +3,7 @@
 fastapi
 uvicorn[standard]
 gunicorn>=21.2.0
+orjson>=3.9.0
 python-multipart
 python-dotenv==1.0.1
 httpx
