@@ -3,14 +3,12 @@
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
 ### [2026-10-31]
-#### Nâng Cấp Modal Bóng Đèn (Learning Insights Modal) & Loại Bỏ Hoàn Toàn Flybar Cũ
-- **Đồng Bộ Hóa Hiển Thị Bóng Đèn (💡 Insights Modal) Với Hybrid/Practice**:
-  - Tích hợp `LearningInsightsModal` hiện đại vào `FlashcardPlay.tsx`: Thay thế hoàn toàn drawer `FeedbackArea` cũ (vốn bị hở 48px đáy `bottom-12` và làm mất thanh dock dưới khi ẩn bottom tabs).
-  - Modal mới hiển thị mượt mà dạng Bottom Sheet trượt lên (`z-[1000]`), hỗ trợ đầy đủ các tab: Mặt trước, Mặt sau, Cột thông tin bổ sung, Ghi chú cá nhân (cho phép chỉnh sửa trực tiếp), và Thống kê FSRS chi tiết.
-  - Tích hợp phím bấm bóng đèn (💡) duy nhất trực tiếp trên góc phải đầu thẻ (`Flashcard3DCard`), loại bỏ hoàn toàn nút bóng đèn thừa ở thanh điều khiển đáy (`FlashcardActionDock`), giúp thanh đáy gọn gàng, rộng rãi và không bị lặp nút. Phím tắt `H` trên bàn phím cũng tự động kích hoạt modal này.
-- **Loại Bỏ Hoàn Toàn Flybar Trôi Nổi (Obsolete Micro-Pill Floating Overlays)**:
-  - Dọn dẹp triệt để `FlashcardFlyToolbar` micro-pill cũ và các khối overlay trôi nổi góc dưới thẻ trong `Flashcard3DCard.tsx` và `FlashcardPlay.tsx`.
-  - Toàn bộ thao tác âm thanh, sao chép và cài đặt nhanh giờ đây được tập trung 100% tại thanh điều khiển đáy thumb-reachable và Quick Settings Sheet.
+#### Chuẩn Hóa Vị Trí Nút Bóng Đèn Thanh Đáy & Dọn Dẹp Header Hybrid Recall
+- **Khôi Phục Nút Bóng Đèn (💡) Tại Thanh Điều Khiển Đáy & Bỏ Nút Trên Đầu Thẻ**:
+  - Gỡ bỏ hoàn toàn nút bóng đèn ở góc trên bên phải đầu thẻ (`Flashcard3DCard`), trả lại đầu thẻ sạch sẽ chỉ gồm nút trạng thái học và nút gắn sao (⭐).
+  - Đặt nút bóng đèn (💡) duy nhất ở thanh điều khiển đáy (`FlashcardActionDock`) kế bên nút loa âm thanh (`[ 🔊 ] [ 💡 ]`), đồng bộ 100% với giao diện của Hybrid Mode (`HybridPlay.tsx`). Bấm vào mở ngay `LearningInsightsModal`.
+- **Dọn Dẹp Tiêu Đề Header Chế Độ Hybrid (`HybridPlay.tsx`)**:
+  - Gỡ bỏ hoàn toàn 2 huy hiệu `🎯 DRILL` (stage pill) và `🟢 DRILLED` (`CardLifecycleBadge`) khỏi thanh tiêu đề trên cùng, giúp thanh header thoáng đãng và hiển thị tên bộ thẻ đầy đủ.
 
 #### Đồng Bộ Hóa Thanh Thao Tác Đáy (Study Action Dock) & Tùy Chọn Ẩn/Hiện Tab Điều Hướng Đáy
 - **Chuẩn Hóa Thiết Kế Single-Row Action Dock Theo Phong Cách Hybrid Mode**:

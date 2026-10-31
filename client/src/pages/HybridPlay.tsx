@@ -1356,29 +1356,9 @@ export default function HybridPlay() {
           </button>
 
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-black text-xs sm:text-sm text-slate-800 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-[320px]">
+            <span className="font-black text-xs sm:text-sm text-slate-800 truncate max-w-[200px] xs:max-w-[260px] sm:max-w-[360px]">
               {session?.title || 'Hybrid Recall'}
             </span>
-
-            {/* Dynamic Stage Pill */}
-            {stage === 'skim' ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100/90 text-amber-800 border border-amber-200/70 shadow-2xs shrink-0">
-                <Zap className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                SKIM
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-100/90 text-rose-800 border border-rose-200/70 shadow-2xs shrink-0">
-                <Target className="w-2.5 h-2.5 text-rose-600" />
-                DRILL
-              </span>
-            )}
-
-            {/* Active Card Lifecycle Pill */}
-            <CardLifecycleBadge
-              card={stage === 'skim' ? currentSkimQuestion : drillActiveCard}
-              targetDrillCount={hybridSettings.required_correct}
-              masteredCardIds={masteredCardIds}
-            />
           </div>
         </div>
 

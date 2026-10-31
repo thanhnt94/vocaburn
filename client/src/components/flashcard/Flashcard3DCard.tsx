@@ -241,20 +241,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               <Star className={cn("w-3.5 h-3.5", currentQuestion.is_starred && "fill-amber-500 text-amber-500")} />
             </button>
           )}
-          {/* Lightbulb Insights button */}
-          {currentQuestion && onOpenInsights && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenInsights();
-              }}
-              className="w-7 sm:w-7.5 h-7 sm:h-7.5 flex items-center justify-center rounded-xl border border-slate-200/70 bg-slate-50/80 text-amber-500 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all active:scale-90 shadow-2xs cursor-pointer"
-              title="Card Insights & AI Explanation (💡)"
-            >
-              <Lightbulb className="w-3.5 h-3.5 fill-amber-400/20" />
-            </button>
-          )}
         </div>
       </div>
     );
