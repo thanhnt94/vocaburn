@@ -461,29 +461,17 @@ export default function FlashcardPlay() {
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
   const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
   const [previewInsightCard, setPreviewInsightCard] = useState<any | null>(null)
-  const [previewInsightTab, setPreviewInsightTab] = useState<'content' | 'stats'>('content')
+  const [previewInsightTab, setPreviewInsightTab] = useState<'insight' | 'note' | 'social' | 'stats'>('insight')
 
-  const handleOpenInsights = (card: any = currentQuestion, tab: 'content' | 'stats' = 'content') => {
-    setPreviewInsightTab(tab);
+  const handleOpenInsights = (card: any = currentQuestion, tab: 'insight' | 'content' | 'note' | 'social' | 'community' | 'stats' = 'insight') => {
+    const resolvedTab = (tab === 'content' ? 'insight' : (tab === 'community' ? 'social' : tab)) as 'insight' | 'note' | 'social' | 'stats';
+    setPreviewInsightTab(resolvedTab);
     setPreviewInsightCard(card || currentQuestion);
   };
 
-  const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'note' | 'community' = 'stats') => {
-    if (subTab === 'insight' || subTab === 'note' || subTab === 'stats') {
-      handleOpenInsights(currentQuestion, subTab === 'stats' ? 'stats' : 'content');
-      return;
-    }
-    if (isFeedbackOpen && activeFeedbackTab === subTab) {
-      setIsFeedbackOpen(false)
-      return
-    }
-    setCardHubSubTab(subTab)
-    setActiveFeedbackTab(subTab)
-    setShowFeedback(true)
-    setIsFeedbackOpen(true)
-    setIsStatsOpen(false)
-    setIsMapOpen(false)
-  }
+  const handleOpenCardHub = (subTab: 'stats' | 'insight' | 'content' | 'note' | 'social' | 'community' = 'insight') => {
+    handleOpenInsights(currentQuestion, subTab as any);
+  };
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [activeUnlockedBadge, setActiveUnlockedBadge] = useState<any | null>(null)
