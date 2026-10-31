@@ -422,6 +422,7 @@ async def get_deck_play_data(
     card_stmt = select(Flashcard).where(Flashcard.deck_id == deck_id).order_by(Flashcard.id.asc())
     card_res = await db.execute(card_stmt)
     deck_cards = list(card_res.scalars().all())
+    deck.__dict__["cards"] = deck_cards
     deck.cards = deck_cards
 
     is_collaborator = False
@@ -442,7 +443,7 @@ async def get_deck_play_data(
         return JSONResponse(status_code=403, content={"error": "This is a private deck"})
 
     if lightweight:
-        source_cards = deck.cards or []
+        source_cards = deck_cards
         if sub_col and sub_val is not None:
             def matches_sub_light(c):
                 val = ""
@@ -514,7 +515,7 @@ async def get_deck_play_data(
         user_xp_res = await db.execute(user_xp_stmt)
         user_total_xp = user_xp_res.scalar() or 0
 
-    source_cards = deck.cards or []
+    source_cards = deck_cards
     if sub_col and sub_val is not None:
         def matches_sub(c):
             val = ""
@@ -572,12 +573,12 @@ async def get_deck_play_data(
     # Compute live scope counts across deck
     scope_counts = None
     if mastery_records:
-        new_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)))
-        due_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) and mastery_records.get(c.id).due and mastery_records.get(c.id).due <= now_utc_naive))
-        rev_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) and mastery_records.get(c.id).state > 0))
-        undrilled_cnt = sum(1 for c in (deck.cards or []) if (mastery_records.get(c.id) is None or mastery_records.get(c.id).state < 2))
+        new_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)))
+        due_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) and mastery_records.get(c.id).due and mastery_records.get(c.id).due <= now_utc_naive))
+        rev_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) and mastery_records.get(c.id).state > 0))
+        undrilled_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) is None or mastery_records.get(c.id).state < 2))
         scope_counts = {
-            "all": len(deck.cards or []),
+            "all": len(deck_cards),
             "new": new_cnt,
             "due": due_cnt,
             "review": rev_cnt,
@@ -587,7 +588,7 @@ async def get_deck_play_data(
     # Generate lightweight distractor pool across entire deck if practice, hybrid, or requested
     distractor_pool = []
     if is_practice or mode in ("mcq", "listening", "hybrid", "drill") or include_distractors:
-        all_deck_cards = deck.cards or []
+        all_deck_cards = deck_cards
         import random
         sample_size = min(len(all_deck_cards), 70)
         sampled_cands = random.sample(all_deck_cards, sample_size) if len(all_deck_cards) > sample_size else all_deck_cards
