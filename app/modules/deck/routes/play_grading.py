@@ -276,6 +276,11 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 lr_str = mastery.last_review.isoformat()
                 last_review_iso = lr_str if (lr_str.endswith("Z") or "+" in lr_str) else f"{lr_str}Z"
 
+            now_iso = now_utc.isoformat()
+            if not now_iso.endswith("Z") and "+" not in now_iso:
+                now_iso += "Z"
+            first_learned_iso = now_iso if is_originally_new else None
+
             mastery_update_info = {
                 "old_level": old_box_level,
                 "new_level": new_box_level,
@@ -285,7 +290,7 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
                 "stability": mastery.stability,
                 "difficulty": mastery.difficulty,
                 "due": due_iso,
-                "first_learned": (first_learned.isoformat() + "Z") if first_learned else None,
+                "first_learned": first_learned_iso,
                 "last_review": last_review_iso,
                 "last_reviewed": last_review_iso,
                 "intervals": next_intervals
