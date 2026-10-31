@@ -574,6 +574,19 @@ async def get_deck_play_data(
                     return False
                 return (m.difficulty and m.difficulty >= 6.0) or (m.lapses and m.lapses > 0) or m.is_starred
             source_cards = [c for c in source_cards if is_card_hard(c)]
+        elif (mode in ("fsrs", "review", "roadmap") or scope in (None, "all")) and mastery_records:
+            now_utc_naive = datetime.utcnow()
+            def get_card_sort_key(c):
+                m = mastery_records.get(c.id)
+                if not m or m.is_ignored:
+                    return (1, 0, c.id)
+                # If card is due for review -> Priority 0 (earliest due first)
+                if (m.state > 0 or m.last_review) and m.due and m.due <= now_utc_naive:
+                    due_ts = m.due.timestamp() if m.due else 0
+                    return (0, due_ts, c.id)
+                return (1, 0, c.id)
+
+            source_cards.sort(key=get_card_sort_key)
 
     now_utc_naive = datetime.utcnow()
     # Compute live scope counts across deck

@@ -481,6 +481,9 @@ export default function FlashcardPlay() {
     return 'all';
   });
 
+  const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number } | null>(null);
+  const isFetchingNextBatchRef = useRef<boolean>(false);
+
   const isCardReview = useCallback((q: any) => {
     if (!q || q.is_ignored) return false;
     // Card has officially entered FSRS spaced repetition
@@ -512,12 +515,19 @@ export default function FlashcardPlay() {
   }, [isCardReview, isCardNew]);
 
   const scopeCounts = useMemo(() => {
+    if (session?.scope_counts) {
+      return {
+        all: session.scope_counts.all || (session.total_cards || 0),
+        review: session.scope_counts.due ?? 0,
+        new: session.scope_counts.new ?? 0
+      };
+    }
     if (!session?.questions) return { all: 0, review: 0, new: 0 };
-    const all = session.questions.length;
+    const all = session.total_cards || session.questions.length;
     const review = session.questions.filter((q: any) => !q.is_ignored && isCardReview(q)).length;
     const newCount = session.questions.filter((q: any) => !q.is_ignored && isCardNew(q)).length;
     return { all, review, new: newCount };
-  }, [session?.questions, isCardReview, isCardNew]);
+  }, [session?.scope_counts, session?.total_cards, session?.questions, isCardReview, isCardNew]);
 
   const handleSelectCardScope = (newScope: 'all' | 'review' | 'new') => {
     setCardScope(newScope);
@@ -1027,10 +1037,10 @@ export default function FlashcardPlay() {
         fetchUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
       }
 
-      // Optimization: pass scope & mode to backend to slice study session directly on server
+      // Optimization: pass scope & mode to backend with lazy load slicing on server
       if (!isPractice && !isFolder && !isGlobalFocus && id !== 'quick') {
         const delimiter = fetchUrl.includes('?') ? '&' : '?'
-        const extraParams: string[] = []
+        const extraParams: string[] = ['limit=50', 'offset=0']
         if (urlScope && urlScope !== 'all') {
           extraParams.push(`scope=${encodeURIComponent(urlScope)}`)
         }
@@ -1069,6 +1079,7 @@ export default function FlashcardPlay() {
         axios.get(fetchUrl),
         nextCardPromise
       ]);
+      paginationRef.current = quizRes.data?.pagination || null;
       let questions = quizRes.data.questions || quizRes.data.cards || []
 
       const shuffleCards = (arr: any[]) => {
@@ -1221,6 +1232,56 @@ export default function FlashcardPlay() {
       }, 2500)
     }
   }
+
+  // Continuous Streaming Batch Queue for Flashcard / FSRS Play
+  const prefetchNextBatch = useCallback(async () => {
+    if (isFetchingNextBatchRef.current) return;
+    const p = paginationRef.current;
+    if (!p || !p.has_more || p.next_offset === null || p.next_offset === undefined) return;
+
+    isFetchingNextBatchRef.current = true;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlScope = searchParams.get('scope') || searchParams.get('filter') || cardScope || 'all';
+      const rawMode = searchParams.get('mode') || activeMode || 'fsrs';
+      const modeParam = rawMode ? `&mode=${encodeURIComponent(rawMode)}` : '';
+      const scopeParam = (urlScope && urlScope !== 'all') ? `&scope=${encodeURIComponent(urlScope)}` : '';
+      const subParam = (subCol && subVal !== null) ? `&sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}` : '';
+
+      const res = await axios.get(
+        `/api/v1/deck/${id}/play-data?limit=50&offset=${p.next_offset}${modeParam}${scopeParam}${subParam}`
+      );
+      if (res.data?.questions && res.data.questions.length > 0) {
+        const newQuestions = res.data.questions;
+        paginationRef.current = res.data.pagination || null;
+
+        setSession((prev: any) => {
+          if (!prev) return prev;
+          const existingIds = new Set((prev.questions || []).map((q: any) => q.id));
+          const fresh = newQuestions.filter((q: any) => !existingIds.has(q.id));
+          if (fresh.length === 0) return prev;
+          return {
+            ...prev,
+            questions: [...(prev.questions || []), ...fresh]
+          };
+        });
+      } else {
+        if (paginationRef.current) paginationRef.current.has_more = false;
+      }
+    } catch (err) {
+      console.warn('[FlashcardPlay] Failed to prefetch next batch:', err);
+    } finally {
+      isFetchingNextBatchRef.current = false;
+    }
+  }, [id, activeMode, cardScope, subCol, subVal]);
+
+  useEffect(() => {
+    if (session?.questions && session.questions.length > 0 && currentIndex >= session.questions.length - 10) {
+      if (paginationRef.current?.has_more && !isFetchingNextBatchRef.current) {
+        prefetchNextBatch();
+      }
+    }
+  }, [currentIndex, session?.questions?.length, prefetchNextBatch]);
 
 
   const fetchPracticeSettings = async () => {
@@ -2437,7 +2498,11 @@ export default function FlashcardPlay() {
         } else {
           setFsrsCompletionData(null);
           if (res.data.card_id) {
-            const mapped = questions.findIndex((q: any) => q.id === res.data.card_id);
+            let mapped = questions.findIndex((q: any) => q.id === res.data.card_id);
+            if (mapped === -1 && paginationRef.current?.has_more) {
+              await prefetchNextBatch();
+              mapped = (session?.questions || []).findIndex((q: any) => q.id === res.data.card_id);
+            }
             if (mapped !== -1) {
               nextIdx = mapped;
             } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
@@ -3582,7 +3647,7 @@ export default function FlashcardPlay() {
               style: 'bg-emerald-50 text-emerald-950 border border-emerald-300/80 shadow-2xs hover:bg-emerald-100/90'
             };
 
-            const totalDeckCards = session?.questions?.length || 0;
+            const totalDeckCards = session?.total_cards || session?.questions?.length || 0;
             const nowTime = new Date().getTime();
 
             // 1. Count total learned cards in the whole deck (from DB + session)
@@ -3606,9 +3671,10 @@ export default function FlashcardPlay() {
             const isCurrentCardActiveReview = dueCardsIndices.includes(currentIndex);
 
             if (isCurrentCardActiveReview) {
+              const totalDueInDeck = session?.scope_counts?.due ?? dueCardsIndices.length;
               const unreviewedDueCount = dueCardsIndices.filter((idx: number) => sessionAnswers[idx] === undefined).length;
               subCurr = unreviewedDueCount;
-              subTotal = dueCardsIndices.length > 0 ? dueCardsIndices.length : totalDeckCards;
+              subTotal = totalDueInDeck > 0 ? totalDueInDeck : totalDeckCards;
               progressPillText = `${unreviewedDueCount} left`;
             } else {
               subCurr = totalLearnedCards;
@@ -3743,7 +3809,7 @@ export default function FlashcardPlay() {
             const r = Array.isArray(val) ? val[val.length - 1] : val;
             return typeof r === 'number' && r >= 3;
           }).length;
-          const totalCards = session?.questions?.length || 0;
+          const totalCards = session?.total_cards || session?.questions?.length || 0;
           const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
 
           return (
