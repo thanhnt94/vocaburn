@@ -44,18 +44,6 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 
-export interface FlashcardFlyToolbarProps {
-  isCardSlot?: boolean
-  setIsFlyToolbarOpen: React.Dispatch<React.SetStateAction<boolean>>
-  triggerPlayAudio: (e: React.MouseEvent) => void
-  isLoadingAudio?: boolean
-  isPlayingAudio?: boolean
-  currentQuestion?: any
-  isFlipped?: boolean
-  flipSides?: boolean
-  showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning') => void
-}
-
 /**
  * Utility helpers to cleanly extract card content for AI assistance
  */
@@ -114,113 +102,6 @@ export const getCardFullText = (q: any): string => {
     return `[Front]\n${front}\n\n[Back]\n${back}`
   }
   return front || back || ''
-}
-
-/**
- * Collapsed micro-pill rendered on the card corner (or floating island in Practice mode)
- */
-export const FlashcardFlyToolbar: React.FC<FlashcardFlyToolbarProps> = ({
-  isCardSlot = false,
-  setIsFlyToolbarOpen,
-  triggerPlayAudio,
-  isLoadingAudio = false,
-  isPlayingAudio = false,
-  currentQuestion,
-  isFlipped = false,
-  flipSides = false,
-  showLocalToast,
-}) => {
-  const [copiedMini, setCopiedMini] = useState(false)
-
-  const handleMiniCopy = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    const text = isFlipped
-      ? (flipSides ? getCardFrontText(currentQuestion) : getCardBackText(currentQuestion))
-      : (flipSides ? getCardBackText(currentQuestion) : getCardFrontText(currentQuestion))
-    if (!text) {
-      showLocalToast?.("No content on this face to copy", "warning")
-      return
-    }
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedMini(true)
-      setTimeout(() => setCopiedMini(false), 1500)
-      showLocalToast?.(isFlipped ? "Copied Back Face to clipboard! ✓" : "Copied Front Face to clipboard! ✓", "success")
-    }).catch(() => {
-      showLocalToast?.("Failed to copy to clipboard", "warning")
-    })
-  }
-
-  return (
-    <div
-      className={cn(
-        "transition-all duration-300",
-        isCardSlot
-          ? "relative z-30"
-          : "fixed bottom-[84px] md:bottom-[90px] left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none"
-      )}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full border border-slate-200/90 shadow-[0_2px_12px_rgba(99,102,241,0.08)] p-1 pointer-events-auto transition-all duration-200 hover:shadow-md">
-        {/* 1. Audio Button */}
-        <button
-          type="button"
-          onClick={triggerPlayAudio}
-          className={cn(
-            "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-            isPlayingAudio
-              ? "bg-indigo-600 text-white ring-2 ring-indigo-300"
-              : isLoadingAudio
-              ? "bg-indigo-100 text-indigo-700 animate-pulse"
-              : "bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white"
-          )}
-          title={isLoadingAudio ? "Generating audio..." : isPlayingAudio ? "Playing audio (Click to replay)" : "Play Pronunciation (Audio)"}
-        >
-          {isLoadingAudio ? (
-            <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-indigo-600" />
-          ) : (
-            <Volume2 className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform", isPlayingAudio && "animate-pulse")} />
-          )}
-        </button>
-
-        <div className="w-[1px] h-3 bg-slate-200/80" />
-
-        {/* 2. One-Tap Quick Copy Button (Front if !isFlipped, Back if isFlipped) */}
-        <button
-          type="button"
-          onClick={handleMiniCopy}
-          className={cn(
-            "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 cursor-pointer shadow-2xs group",
-            copiedMini
-              ? "bg-emerald-600 text-white ring-2 ring-emerald-300"
-              : "bg-slate-50 hover:bg-emerald-600 text-slate-500 hover:text-white"
-          )}
-          title={copiedMini ? "Copied!" : (isFlipped ? "Copy Back Face (for AI)" : "Copy Front Face (for AI)")}
-        >
-          {copiedMini ? (
-            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-          ) : (
-            <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
-          )}
-        </button>
-
-        <div className="w-[1px] h-3 bg-slate-200/80" />
-
-        {/* 3. Quick Options Menu Button (Opens Bottom Sheet) */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFlyToolbarOpen(true);
-          }}
-          className="h-7 sm:h-8 px-2 rounded-full flex items-center gap-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all duration-150 active:scale-95 cursor-pointer text-[11px] font-bold"
-          title="Quick Controls"
-        >
-          <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          <span className="text-[10px] text-slate-400 font-bold leading-none">›</span>
-        </button>
-      </div>
-    </div>
-  )
 }
 
 export interface FlashcardQuickControlsSheetProps {

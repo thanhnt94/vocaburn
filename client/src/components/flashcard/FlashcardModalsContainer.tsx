@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
-import { FeedbackArea } from '@/components/FeedbackArea'
 import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import {
@@ -51,43 +50,6 @@ export interface FlashcardModalsContainerProps {
   leaderboardMsg: string
   currentQuestion: any
   renderSessionStats: () => React.ReactNode
-  cardHubSubTab?: 'stats' | 'insight' | 'note' | 'community'
-  setCardHubSubTab?: (tab: 'stats' | 'insight' | 'note' | 'community') => void
-
-  // Feedback Modal
-  isFeedbackOpen: boolean
-  setIsFeedbackOpen: (open: boolean) => void
-  showFeedback: boolean
-  activeFeedbackTab: any
-  setActiveFeedbackTab: (tab: any) => void
-  getInsightText: () => string
-  isEditingInsight: boolean
-  insightInput: string
-  setInsightInput: (val: string) => void
-  canEdit: boolean
-  clearAIExplanation: () => void
-  isEditingAI: boolean
-  setIsEditingAI: (val: boolean) => void
-  isEditingPrompt: boolean
-  setIsEditingPrompt: (val: boolean) => void
-  askAI: (query?: string) => void
-  isAskingAI: boolean
-  aiInput: string
-  setAiInput: (val: string) => void
-  promptInput: string
-  setPromptInput: (val: string) => void
-  savePrompt: () => void
-  saveNote: () => void
-  personalNote: string
-  setPersonalNote: (val: string) => void
-  isEditingNote: boolean
-  setIsEditingNote: (val: boolean) => void
-  handleEditCurrentTab: () => void
-  isCopyMenuOpen: boolean
-  setIsCopyMenuOpen: (val: boolean) => void
-  copyCurrentTabContent: (type?: any, activeTabId?: string) => void
-  isCopied: boolean
-  handleNext: () => void
 
   // Overdrive / Strike
   isLimitlessStrike: boolean
@@ -197,41 +159,6 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   leaderboardMsg,
   currentQuestion,
   renderSessionStats,
-  cardHubSubTab,
-  setCardHubSubTab,
-  isFeedbackOpen,
-  setIsFeedbackOpen,
-  showFeedback,
-  activeFeedbackTab,
-  setActiveFeedbackTab,
-  getInsightText,
-  isEditingInsight,
-  insightInput,
-  setInsightInput,
-  canEdit,
-  clearAIExplanation,
-  isEditingAI,
-  setIsEditingAI,
-  isEditingPrompt,
-  setIsEditingPrompt,
-  askAI,
-  isAskingAI,
-  aiInput,
-  setAiInput,
-  promptInput,
-  setPromptInput,
-  savePrompt,
-  saveNote,
-  personalNote,
-  setPersonalNote,
-  isEditingNote,
-  setIsEditingNote,
-  handleEditCurrentTab,
-  isCopyMenuOpen,
-  setIsCopyMenuOpen,
-  copyCurrentTabContent,
-  isCopied,
-  handleNext,
   isLimitlessStrike,
   showGoalCelebration,
   setShowGoalCelebration,
@@ -376,102 +303,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         currentIndex={currentIndex}
         session={session}
         sessionStatsNode={renderSessionStats()}
-        feedbackProps={{
-          showFeedback: true,
-          activeFeedbackTab,
-          setActiveFeedbackTab,
-          getInsightText,
-          isEditingInsight,
-          insightInput,
-          setInsightInput,
-          currentQuestion,
-          canEdit,
-          clearAIExplanation,
-          isEditingAI,
-          setIsEditingAI,
-          isEditingPrompt,
-          setIsEditingPrompt,
-          askAI,
-          isAskingAI,
-          aiInput,
-          setAiInput,
-          promptInput,
-          setPromptInput,
-          savePrompt,
-          saveNote,
-          personalNote,
-          setPersonalNote,
-          isEditingNote,
-          setIsEditingNote,
-          handleEditCurrentTab,
-          isCopyMenuOpen,
-          setIsCopyMenuOpen,
-          copyCurrentTabContent,
-          isCopied,
-          handleNext,
-          deckInfo: session
-        }}
-        initialCardSubTab={cardHubSubTab || (activeFeedbackTab as any) || 'stats'}
-        onCardSubTabChange={(subTab) => {
-          setCardHubSubTab?.(subTab);
-          if (subTab !== 'stats') {
-            setActiveFeedbackTab(subTab as any);
-          }
-        }}
       />
-
-      {/* 3. Mobile Feedback Modal */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 50 }} 
-            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
-          >
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <FeedbackArea
-                showFeedback={true}
-                activeFeedbackTab={activeFeedbackTab}
-                setActiveFeedbackTab={setActiveFeedbackTab}
-                getInsightText={getInsightText}
-                isEditingInsight={isEditingInsight}
-                insightInput={insightInput}
-                setInsightInput={setInsightInput}
-                currentQuestion={currentQuestion}
-                canEdit={canEdit}
-                clearAIExplanation={clearAIExplanation}
-                isEditingAI={isEditingAI}
-                setIsEditingAI={setIsEditingAI}
-                isEditingPrompt={isEditingPrompt}
-                setIsEditingPrompt={setIsEditingPrompt}
-                askAI={askAI}
-                isAskingAI={isAskingAI}
-                aiInput={aiInput}
-                setAiInput={setAiInput}
-                promptInput={promptInput}
-                setPromptInput={setPromptInput}
-                savePrompt={savePrompt}
-                saveNote={saveNote}
-                personalNote={personalNote}
-                setPersonalNote={setPersonalNote}
-                isEditingNote={isEditingNote}
-                setIsEditingNote={setIsEditingNote}
-                isMobile={true}
-                setIsFeedbackOpen={setIsFeedbackOpen}
-                handleEditCurrentTab={handleEditCurrentTab}
-                isCopyMenuOpen={isCopyMenuOpen}
-                setIsCopyMenuOpen={setIsCopyMenuOpen}
-                copyCurrentTabContent={copyCurrentTabContent}
-                isCopied={isCopied}
-                handleNext={handleNext}
-                deckInfo={session}
-                currentIndex={currentIndex}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 4. Limitless Strike Screen Flash */}
       <AnimatePresence>
@@ -509,7 +341,6 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         setSfxEnabled={setSfxEnabled}
         hapticEnabled={hapticEnabled}
         setHapticEnabled={setHapticEnabled}
-        showFeedback={showFeedback}
         copyQuestionToClipboard={copyQuestionToClipboard}
         currentQuestion={currentQuestion}
         handleIgnoreQuestion={handleIgnoreQuestion}

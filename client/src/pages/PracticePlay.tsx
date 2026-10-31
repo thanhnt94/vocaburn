@@ -24,14 +24,11 @@ import {
 } from '@/lib/flashcard-utils'
 import { MarkdownComponents } from '@/lib/markdown'
 import { SessionLoadingScreen } from '@/components/flashcard'
-import { TypewriterText } from '@/components/TypewriterText'
 import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
 import type { FilterMapMode } from '@/types/flashcard'
 import LearningInsightsModal from '@/components/LearningInsightsModal'
-import { MilestoneCelebration } from '@/components/MilestoneCelebration'
-import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
@@ -328,7 +325,6 @@ export default function PracticePlay() {
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
   const [dailyComparisonAvg, setDailyComparisonAvg] = useState<any | null>(null)
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(false)
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('insight')
   const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
@@ -1187,7 +1183,7 @@ export default function PracticePlay() {
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
   useEffect(() => {
-    if (isFeedbackOpen || isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
+    if (isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
       setGoalToast(prev => prev ? { ...prev, visible: false } : null)
       setShowGoalCelebration(false)
       setBadgeVisible(false)
@@ -1195,7 +1191,7 @@ export default function PracticePlay() {
       setActiveMasteryUpgrade(null)
       setLearningModeAlert(null)
     }
-  }, [isFeedbackOpen, isMapOpen, isStatsOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
+  }, [isMapOpen, isStatsOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -1229,7 +1225,7 @@ export default function PracticePlay() {
         }
       }
 
-      if (isSessionSummaryOpen || isQuitModalOpen || isEditModalOpen || isMapOpen || isStatsOpen || isFeedbackOpen) {
+      if (isSessionSummaryOpen || isQuitModalOpen || isEditModalOpen || isMapOpen || isStatsOpen) {
         return;
       }
 
@@ -1311,7 +1307,6 @@ export default function PracticePlay() {
     isQuitModalOpen,
     isEditModalOpen,
     isMapOpen,
-    isFeedbackOpen,
     currentIndex,
     sessionAnswers,
     activeMode,
@@ -1323,12 +1318,6 @@ export default function PracticePlay() {
     showImages,
     setShowImages
   ])
-
-  useEffect(() => {
-    if (currentQuestion && isFeedbackOpen) {
-      fetchNote()
-    }
-  }, [currentIndex, currentQuestion, isFeedbackOpen])
 
   useEffect(() => {
     if (mainTab === 'practice' && baseMode === 'listening' && currentPracticeData) {
@@ -5001,7 +4990,6 @@ export default function PracticePlay() {
 
       {!shouldShowRoadmapTestSummary && (mainTab !== 'practice' || (mainTab === 'practice' && !practiceNeedsSetup)) && (
         <PracticeBottomBar
-          isFeedbackOpen={isFeedbackOpen}
           activeBottomTab={activeBottomTab}
           showBottomNavTabs={showBottomNavTabs}
           mainTab={mainTab}
@@ -5035,10 +5023,9 @@ export default function PracticePlay() {
             }
           }}
           onOpenFeedback={() => {
-            if (mainTab === 'practice') {
-              setShowFeedback(true);
+            if (currentQuestion) {
+              setPreviewInsightCard(currentQuestion);
             }
-            setIsFeedbackOpen(true);
           }}
           onNext={() => handleNext()}
           onFlip={() => {
@@ -5053,15 +5040,12 @@ export default function PracticePlay() {
             if (tab === 'map') {
               setIsStatsOpen(false);
               setIsMapOpen(true);
-              setIsFeedbackOpen(false);
             } else if (tab === 'flashcard') {
               setIsMapOpen(false);
               setIsStatsOpen(false);
-              setIsFeedbackOpen(false);
             } else if (tab === 'stats') {
               setIsMapOpen(false);
               setIsStatsOpen(true);
-              setIsFeedbackOpen(false);
             }
           }}
         />
@@ -5260,102 +5244,7 @@ export default function PracticePlay() {
             </div>
           </div>
         }
-        feedbackProps={{
-          showFeedback: true,
-          activeFeedbackTab,
-          setActiveFeedbackTab,
-          selectedChoiceData,
-          getInsightText,
-          isEditingInsight,
-          insightInput,
-          setInsightInput,
-          currentQuestion,
-          canEdit,
-          clearAIExplanation,
-          isEditingAI,
-          setIsEditingAI,
-          isEditingPrompt,
-          setIsEditingPrompt,
-          askAI,
-          isAskingAI,
-          aiInput,
-          setAiInput,
-          promptInput,
-          setPromptInput,
-          savePrompt,
-          saveNote,
-          personalNote,
-          setPersonalNote,
-          isEditingNote,
-          setIsEditingNote,
-          handleEditCurrentTab,
-          isCopyMenuOpen,
-          setIsCopyMenuOpen,
-          copyCurrentTabContent,
-          isCopied,
-          handleNext,
-          deckInfo: session
-        }}
-        initialCardSubTab={activeFeedbackTab || 'stats'}
-        onCardSubTabChange={(subTab: any) => {
-          if (subTab !== 'stats') {
-            setActiveFeedbackTab(subTab as any);
-          }
-        }}
       />
-
-      {/* Mobile Feedback Modal */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] xl:hidden flex flex-col"
-          >
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <FeedbackArea
-                showFeedback={true}
-                activeFeedbackTab={activeFeedbackTab}
-                setActiveFeedbackTab={setActiveFeedbackTab}
-                selectedChoiceData={selectedChoiceData}
-                getInsightText={getInsightText}
-                isEditingInsight={isEditingInsight}
-                insightInput={insightInput}
-                setInsightInput={setInsightInput}
-                currentQuestion={currentQuestion}
-                canEdit={canEdit}
-                clearAIExplanation={clearAIExplanation}
-                isEditingAI={isEditingAI}
-                setIsEditingAI={setIsEditingAI}
-                isEditingPrompt={isEditingPrompt}
-                setIsEditingPrompt={setIsEditingPrompt}
-                askAI={askAI}
-                isAskingAI={isAskingAI}
-                aiInput={aiInput}
-                setAiInput={setAiInput}
-                promptInput={promptInput}
-                setPromptInput={setPromptInput}
-                savePrompt={savePrompt}
-                saveNote={saveNote}
-                personalNote={personalNote}
-                setPersonalNote={setPersonalNote}
-                isEditingNote={isEditingNote}
-                setIsEditingNote={setIsEditingNote}
-                isMobile={true}
-                setIsFeedbackOpen={setIsFeedbackOpen}
-                handleEditCurrentTab={handleEditCurrentTab}
-                isCopyMenuOpen={isCopyMenuOpen}
-                setIsCopyMenuOpen={setIsCopyMenuOpen}
-                copyCurrentTabContent={copyCurrentTabContent}
-                isCopied={isCopied}
-                handleNext={handleNext}
-                deckInfo={session}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ⚡ LIMITLESS MODE SCREEN FLASH OVERLAY */}
       <AnimatePresence>

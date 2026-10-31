@@ -10,7 +10,7 @@ interface KeyboardShortcutsParams {
   isQuitModalOpen: boolean;
   isEditModalOpen: boolean;
   isMapOpen: boolean;
-  isFeedbackOpen: boolean;
+  isFeedbackOpen?: boolean;
   currentPracticeChoicesCount: number;
   openEditModal: () => void;
   handleNext: () => void;
@@ -35,7 +35,7 @@ export function useKeyboardShortcuts(params: KeyboardShortcutsParams) {
     isQuitModalOpen,
     isEditModalOpen,
     isMapOpen,
-    isFeedbackOpen,
+    isFeedbackOpen = false,
     currentPracticeChoicesCount,
     openEditModal,
     handleNext,

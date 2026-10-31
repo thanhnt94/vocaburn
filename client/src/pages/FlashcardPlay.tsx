@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, Timer, Flame, Trophy, Check, X, Sparkles, Lightbulb, StickyNote, Play, Target, CheckCircle2, XCircle, Clock, BookOpen, Hash, Copy, MousePointer, Edit3, Brain, FileText, HelpCircle, Sliders, ListOrdered, Shuffle, Eye, EyeOff, AlertCircle, TrendingUp, Award, Lock, Keyboard, Volume2, VolumeX, RefreshCw, Undo2, Settings, Star, Zap, ArrowRight, RotateCcw } from 'lucide-react'
+import { Timer, Flame, Trophy, Check, X, Sparkles, Play, Target, Clock, Copy, HelpCircle, Sliders, Shuffle, Lock, Keyboard, Settings, Star } from 'lucide-react'
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -21,41 +21,30 @@ import {
   getMapTitleInfo,
   getCardBoxId,
   getMasteryPill,
-  getBadgeIcon,
   formatHeaderTime,
   getFSRSIntervals
 } from '@/lib/flashcard-utils'
 import type { Option, Question } from '@/types/flashcard'
 import { TypewriterText } from '@/components/TypewriterText'
-import { FeedbackArea } from '@/components/FeedbackArea'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
-import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import { useFlashcardAudio } from '@/hooks/useFlashcardAudio'
 import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
-import { FSRSActionButtons } from '@/components/FSRSActionButtons'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { splitImageUrls } from '@/lib/image-utils'
-import DailyComparisonChart from '@/components/DailyComparisonChart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
-import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import {
-  TimerWidget,
   SessionLoadingScreen,
   FsrsCompleteScreen,
-  StudyConsoleModal,
-  ImageZoomOverlay,
   FloatingToasts,
-  GoalCelebrationModal,
-  QuitSessionModal,
   SessionStatsWidget,
   FlashcardHeader,
   FlashcardActionDock,
@@ -91,8 +80,6 @@ export default function FlashcardPlay() {
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
   const [showAbsoluteLast, setShowAbsoluteLast] = useState(false)
-  const [showingHint, setShowingHint] = useState(false)
-  const [isAskingHint, setIsAskingHint] = useState(false)
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -114,7 +101,6 @@ export default function FlashcardPlay() {
   useEffect(() => {
     setShowAbsoluteFirst(false)
     setShowAbsoluteLast(false)
-    setShowingHint(false)
   }, [currentIndex])
 
   // Asset preloading for the next 2-3 cards (image & audio) to ensure instant playback without delay
@@ -182,12 +168,6 @@ export default function FlashcardPlay() {
   const [badgeVisible, setBadgeVisible] = useState(false)
   const [badgeMessage, setBadgeMessage] = useState("")
   const [isSelectMode, setIsSelectMode] = useState(false)
-
-  useEffect(() => {
-    if (isFlipped) {
-      setShowingHint(false)
-    }
-  }, [isFlipped])
   
   // Toast Notification System
   const [localToast, setLocalToast] = useState<{
@@ -456,10 +436,8 @@ export default function FlashcardPlay() {
   const [dailyComparisonData, setDailyComparisonData] = useState<any[] | null>(null)
   const [dailyComparisonAvg, setDailyComparisonAvg] = useState<any | null>(null)
   const [isDailyComparisonLoading, setIsDailyComparisonLoading] = useState(true)
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isQuitModalOpen, setIsQuitModalOpen] = useState(false)
   const [activeFeedbackTab, setActiveFeedbackTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
-  const [cardHubSubTab, setCardHubSubTab] = useState<'stats' | 'insight' | 'note' | 'community'>('stats')
   const [previewInsightCard, setPreviewInsightCard] = useState<any | null>(null)
   const [previewInsightTab, setPreviewInsightTab] = useState<'insight' | 'note' | 'social' | 'stats'>('insight')
 
@@ -656,7 +634,7 @@ export default function FlashcardPlay() {
 
   const fetchRoadmapStatus = () => refetchRoadmap();
 
-  const activeBottomTab = isMapOpen ? 'map' : (isFeedbackOpen ? 'stats' : 'flashcard');
+  const activeBottomTab = isMapOpen ? 'map' : (isStatsOpen ? 'stats' : 'flashcard');
 
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
@@ -989,7 +967,7 @@ export default function FlashcardPlay() {
 
   // Tự động đóng toàn bộ các popup/toast khi người dùng click mở bất kỳ khung thông tin hoặc modal phụ nào
   useEffect(() => {
-    if (isFeedbackOpen || isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
+    if (isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
       setGoalToast(prev => prev ? { ...prev, visible: false } : null)
       setShowGoalCelebration(false)
       setBadgeVisible(false)
@@ -997,17 +975,7 @@ export default function FlashcardPlay() {
       setActiveMasteryUpgrade(null)
       setLearningModeAlert(null)
     }
-  }, [isFeedbackOpen, isMapOpen, isStatsOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
-
-
-
-
-
-  useEffect(() => {
-    if (currentQuestion && isFeedbackOpen) {
-      fetchNote()
-    }
-  }, [currentIndex, currentQuestion, isFeedbackOpen])
+  }, [isMapOpen, isStatsOpen, isEditModalOpen, isQuitModalOpen, isSessionSummaryOpen])
 
   useEffect(() => {
     if (mainTab === 'practice' && practiceSubMode === 'listening' && currentPracticeData) {
@@ -1338,45 +1306,6 @@ export default function FlashcardPlay() {
   ) => {
     // Dynamic realtime queue: answers are persisted directly via /record_answer or /save-rating
   }
-
-  const handleToggleHint = async (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (!currentQuestion) return;
-    if (showingHint) {
-      setShowingHint(false);
-      return;
-    }
-    if (currentQuestion.hint) {
-      setShowingHint(true);
-      return;
-    }
-    
-    setIsAskingHint(true);
-    try {
-      const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, {
-        question_id: currentQuestion.id,
-        field: 'hint',
-        sync: true
-      });
-      const generatedHint = res.data.hint;
-      if (generatedHint) {
-        setSession((prev: any) => {
-          if (!prev) return prev;
-          const newQs = [...prev.questions];
-          const targetIdx = newQs.findIndex(q => q.id === currentQuestion.id);
-          if (targetIdx !== -1) {
-            newQs[targetIdx] = { ...newQs[targetIdx], hint: generatedHint };
-          }
-          return { ...prev, questions: newQs };
-        });
-        setShowingHint(true);
-      }
-    } catch (err) {
-      console.error("Failed to fetch/generate hint:", err);
-    } finally {
-      setIsAskingHint(false);
-    }
-  };
 
   const handleReviewRating = async (rating: number, autoAdvance?: boolean) => {
     if (!currentQuestion) return
@@ -2211,7 +2140,6 @@ export default function FlashcardPlay() {
     setIsFlipped(false)
     setActivelyRatedCurrentCard(false)
     setJustAnswered(false)
-    setShowingHint(false)
     setTypingInput('')
     setTypingFeedback(null)
     setSelectedOption(null)
@@ -2596,7 +2524,6 @@ export default function FlashcardPlay() {
       isFlyToolbarOpen ||
       isSettingsModalOpen ||
       isQuitModalOpen ||
-      isFeedbackOpen ||
       isMapOpen ||
       isStatsOpen ||
       isSessionSummaryOpen
@@ -2637,7 +2564,6 @@ export default function FlashcardPlay() {
     isFlyToolbarOpen,
     isSettingsModalOpen,
     isQuitModalOpen,
-    isFeedbackOpen,
     isMapOpen,
     isStatsOpen,
     isSessionSummaryOpen,
@@ -2762,7 +2688,6 @@ export default function FlashcardPlay() {
   // ── Desktop Keyboard Navigation Shortcuts ──
   useFlashcardKeyboard({
     isModalOpen: Boolean(
-      isFeedbackOpen ||
       isMapOpen ||
       isStatsOpen ||
       isEditModalOpen ||
@@ -3534,7 +3459,6 @@ export default function FlashcardPlay() {
     isQuitModalOpen,
     isEditModalOpen,
     isMapOpen,
-    isFeedbackOpen,
     currentPracticeChoicesCount: currentPracticeData?.choices?.length || 0,
     openEditModal,
     handleNext,
@@ -3823,7 +3747,7 @@ export default function FlashcardPlay() {
               onToggleTimeMode={toggleTimeMode}
               initialTodayTime={initialTodayTime}
               initialAllTimeTime={initialAllTimeTime}
-              showFeedback={isFeedbackOpen}
+              showFeedback={showFeedback}
               hasRated={selectedOption !== null}
               currentIndex={currentIndex}
               timeLeftRef={timeLeftRef}
@@ -3850,7 +3774,7 @@ export default function FlashcardPlay() {
 
       <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden touch-pan-y">
         <FlashcardDesktopLeftAside
-          showFeedback={showFeedback || isFeedbackOpen}
+          showFeedback={showFeedback}
           activeFeedbackTab={activeFeedbackTab}
           setActiveFeedbackTab={setActiveFeedbackTab}
           getInsightText={getInsightText}
@@ -4026,9 +3950,6 @@ export default function FlashcardPlay() {
         currentIndex={currentIndex}
         totalCards={session?.questions?.length || 0}
         activeBottomTab={activeBottomTab}
-        isFeedbackOpen={isFeedbackOpen}
-        showingHint={showingHint}
-        setShowingHint={setShowingHint}
         showActionDock={showActionDock}
         showBottomNavTabs={showBottomNavTabs}
         currentQuestion={currentQuestion}
@@ -4049,17 +3970,14 @@ export default function FlashcardPlay() {
         onOpenMap={() => {
           setIsMapOpen(true);
           setIsStatsOpen(false);
-          setIsFeedbackOpen(false);
         }}
         onOpenFlashcard={() => {
           setIsMapOpen(false);
           setIsStatsOpen(false);
-          setIsFeedbackOpen(false);
         }}
         onOpenStats={() => {
           setIsStatsOpen(true);
           setIsMapOpen(false);
-          setIsFeedbackOpen(false);
         }}
         onOpenQuickSettings={() => {
           setIsFlyToolbarOpen(true);
@@ -4127,11 +4045,9 @@ export default function FlashcardPlay() {
         setMobileMapFilterMode={setMobileMapFilterMode}
         getFilteredCount={getFilteredCount}
 
-        // Stats Drawer & Card Hub
+        // Stats Drawer
         isStatsOpen={isStatsOpen}
         setIsStatsOpen={setIsStatsOpen}
-        cardHubSubTab={cardHubSubTab}
-        setCardHubSubTab={setCardHubSubTab}
         activeStatsTab={activeStatsTab}
         setActiveStatsTab={setActiveStatsTab}
         dailyComparisonData={dailyComparisonData || []}
@@ -4144,41 +4060,6 @@ export default function FlashcardPlay() {
         leaderboardMsg={leaderboardMsg}
         currentQuestion={currentQuestion}
         renderSessionStats={renderSessionStats}
-
-        // Feedback Modal
-        isFeedbackOpen={isFeedbackOpen}
-        setIsFeedbackOpen={setIsFeedbackOpen}
-        showFeedback={showFeedback}
-        activeFeedbackTab={activeFeedbackTab}
-        setActiveFeedbackTab={setActiveFeedbackTab}
-        getInsightText={getInsightText}
-        isEditingInsight={isEditingInsight}
-        insightInput={insightInput}
-        setInsightInput={setInsightInput}
-        canEdit={canEdit}
-        clearAIExplanation={clearAIExplanation}
-        isEditingAI={isEditingAI}
-        setIsEditingAI={setIsEditingAI}
-        isEditingPrompt={isEditingPrompt}
-        setIsEditingPrompt={setIsEditingPrompt}
-        askAI={askAI}
-        isAskingAI={isAskingAI}
-        aiInput={aiInput}
-        setAiInput={setAiInput}
-        promptInput={promptInput}
-        setPromptInput={setPromptInput}
-        savePrompt={savePrompt}
-        saveNote={saveNote}
-        personalNote={personalNote}
-        setPersonalNote={setPersonalNote}
-        isEditingNote={isEditingNote}
-        setIsEditingNote={setIsEditingNote}
-        handleEditCurrentTab={handleEditCurrentTab}
-        isCopyMenuOpen={isCopyMenuOpen}
-        setIsCopyMenuOpen={setIsCopyMenuOpen}
-        copyCurrentTabContent={copyCurrentTabContent}
-        isCopied={isCopied}
-        handleNext={handleNext}
 
         // Overdrive Strike
         isLimitlessStrike={isLimitlessStrike}

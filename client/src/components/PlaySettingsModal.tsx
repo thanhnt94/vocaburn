@@ -58,7 +58,6 @@ interface PlaySettingsModalProps {
   setSfxEnabled: (enabled: boolean) => void;
   hapticEnabled: boolean;
   setHapticEnabled: (enabled: boolean) => void;
-  showFeedback?: boolean;
   copyQuestionToClipboard?: () => void;
   currentQuestion?: any;
   handleIgnoreQuestion?: () => void;

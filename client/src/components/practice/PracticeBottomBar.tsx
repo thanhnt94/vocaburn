@@ -7,7 +7,6 @@ import { PracticeActionControls } from './PracticeActionControls'
 import { PracticeMobileTabs } from './PracticeMobileTabs'
 
 export interface PracticeBottomBarProps {
-  isFeedbackOpen: boolean
   activeBottomTab: 'map' | 'flashcard' | 'stats'
   mainTab: 'practice' | 'fsrs'
   baseMode?: string
@@ -33,7 +32,6 @@ export interface PracticeBottomBarProps {
 }
 
 export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
-  isFeedbackOpen,
   activeBottomTab,
   mainTab,
   baseMode,
@@ -109,7 +107,7 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
         />
       )}
       <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
+        {activeBottomTab === 'flashcard' && (
           <PracticeActionControls
             mainTab={mainTab}
             hasAnsweredPractice={hasAnsweredPractice}

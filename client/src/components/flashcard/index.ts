@@ -1,4 +1,3 @@
-export * from './TimerWidget'
 export * from './SessionLoadingScreen'
 export * from './FsrsCompleteScreen'
 export * from './StudyConsoleModal'

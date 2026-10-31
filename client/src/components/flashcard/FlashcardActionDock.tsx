@@ -33,9 +33,6 @@ export interface FlashcardActionDockProps {
   currentIndex: number
   totalCards?: number
   activeBottomTab: 'map' | 'flashcard' | 'stats'
-  isFeedbackOpen: boolean
-  showingHint: boolean
-  setShowingHint: (val: boolean) => void
   showActionDock?: boolean
   currentQuestion: any
   isFlipped: boolean
@@ -75,9 +72,6 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
   currentIndex,
   totalCards,
   activeBottomTab,
-  isFeedbackOpen,
-  showingHint,
-  setShowingHint,
   currentQuestion,
   isFlipped,
   setIsFlipped,
@@ -153,7 +147,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
       onPointerUp={!showBottomNavTabs ? handleBarTouchEnd : undefined}
       className={cn(
         "w-full flex-shrink-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100/80 px-0 pt-0 pb-0 z-[250] shadow-[0_-4px_24px_rgba(99,102,241,0.06)] relative touch-pan-x",
-        (isFeedbackOpen || activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
+        (activeBottomTab === 'map' || activeBottomTab === 'stats') ? "fixed bottom-0 inset-x-0 md:relative" : "relative",
         !hasActionButtons && "md:hidden"
       )}
       title={!showBottomNavTabs ? "Swipe up for Quick Settings" : undefined}
@@ -173,7 +167,7 @@ export const FlashcardActionDock: React.FC<FlashcardActionDockProps> = ({
         />
       )}
       <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {activeBottomTab === 'flashcard' && !isFeedbackOpen && (
+        {activeBottomTab === 'flashcard' && (
           <>
             {/* PRIMARY ACTION ZONE (Single Clean Thumb-Reachable 1-Row Action Bar) */}
             {hasActionButtons && (

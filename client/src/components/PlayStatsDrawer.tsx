@@ -56,9 +56,6 @@ interface PlayStatsDrawerProps {
   session?: any
   sessionStatsNode?: React.ReactNode
   practiceStatsNode?: React.ReactNode
-  feedbackProps?: any
-  initialCardSubTab?: 'stats' | 'insight' | 'note' | 'community'
-  onCardSubTabChange?: (tab: 'stats' | 'insight' | 'note' | 'community') => void
 }
 
 export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
@@ -71,24 +68,12 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   user,
   currentCard,
   currentIndex = 0,
-  session,
-  feedbackProps,
-  initialCardSubTab = 'stats',
-  onCardSubTabChange
+  session
 }) => {
   const navigate = useNavigate()
   
   // Primary Tabs: 'card' (Card FSRS Stats) vs 'deck' (Entire Deck) vs 'rank' (Leaderboard & Goals)
   const [statsViewMode, setStatsViewMode] = useState<'card' | 'deck' | 'rank'>('deck')
-
-  // Sub-tabs for Card Hub: 'stats' | 'insight' | 'card' | 'note' | 'community'
-  const [cardSubTab, setCardSubTab] = useState<'stats' | 'insight' | 'card' | 'note' | 'community'>(initialCardSubTab)
-
-  useEffect(() => {
-    if (initialCardSubTab) {
-      setCardSubTab(initialCardSubTab)
-    }
-  }, [initialCardSubTab])
 
   const drawerRef = useRef<HTMLDivElement>(null)
 
