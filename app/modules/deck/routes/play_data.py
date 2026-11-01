@@ -579,11 +579,18 @@ async def get_deck_play_data(
             def get_card_sort_key(c):
                 m = mastery_records.get(c.id)
                 if not m or m.is_ignored:
+                    # New card -> Priority 1
                     return (1, 0, c.id)
-                # If card is due for review -> Priority 0 (earliest due first)
-                if (m.state > 0 or m.last_review) and m.due and m.due <= now_utc_naive:
+                is_reviewed = (m.state > 0 or m.last_review is not None)
+                if is_reviewed:
+                    # Due card -> Priority 0 (earliest due first)
+                    if m.due and m.due <= now_utc_naive:
+                        due_ts = m.due.timestamp() if m.due else 0
+                        return (0, due_ts, c.id)
+                    # Retained card (in FSRS, but not due yet) -> Priority 2
                     due_ts = m.due.timestamp() if m.due else 0
-                    return (0, due_ts, c.id)
+                    return (2, due_ts, c.id)
+                # Unreviewed card (e.g. only skimmed or practiced) -> Priority 1
                 return (1, 0, c.id)
 
             source_cards.sort(key=get_card_sort_key)

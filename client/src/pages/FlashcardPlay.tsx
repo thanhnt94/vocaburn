@@ -483,6 +483,11 @@ export default function FlashcardPlay() {
 
   const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number } | null>(null);
   const isFetchingNextBatchRef = useRef<boolean>(false);
+  const sessionQuestionsRef = useRef<any[]>([]);
+
+  useEffect(() => {
+    sessionQuestionsRef.current = session?.questions || [];
+  }, [session?.questions]);
 
   const isCardReview = useCallback((q: any) => {
     if (!q || q.is_ignored) return false;
@@ -494,7 +499,7 @@ export default function FlashcardPlay() {
     if (q.fsrs?.due) {
       return parseUTCDate(q.fsrs.due).getTime() <= Date.now();
     }
-    return true;
+    return false;
   }, []);
 
   const isCardNew = useCallback((q: any) => {
@@ -880,6 +885,7 @@ export default function FlashcardPlay() {
         return dueDate <= cutoffTimeUtc;
       }
 
+      if (!q.fsrs?.due) return false;
       const isDue = parseUTCDate(q.fsrs.due).getTime() - 30000 <= now;
       const hasAnswered = sessionAnswers[idx] !== undefined;
       
@@ -1121,12 +1127,15 @@ export default function FlashcardPlay() {
           // FSRS All mode: Strict spaced repetition queue
           // Priority 1: ALL due cards (due <= now) MUST be reviewed first
           // Priority 2: Only after all due cards are reviewed do new cards appear
+          // Priority 3: Retained cards (not due yet) placed at the end
           let dueCards = questions.filter((q: any) => isCardReview(q))
           let newCards = questions.filter((q: any) => isCardNew(q))
+          let retainedCards = questions.filter((q: any) => !isCardReview(q) && !isCardNew(q))
 
           if (isRandom) {
             dueCards = shuffleCards(dueCards)
             newCards = shuffleCards(newCards)
+            retainedCards = shuffleCards(retainedCards)
           } else {
             dueCards.sort((a: any, b: any) => {
               const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
@@ -1135,8 +1144,8 @@ export default function FlashcardPlay() {
             })
           }
 
-          // Strict priority: ALL due cards first, followed by new cards
-          questions = [...dueCards, ...newCards]
+          // Strict priority: ALL due cards first, followed by new cards, then retained cards
+          questions = [...dueCards, ...newCards, ...retainedCards]
         } else {
           // Skim or AutoPlay All mode: scan all cards
           if (isRandom) {
@@ -1234,10 +1243,10 @@ export default function FlashcardPlay() {
   }
 
   // Continuous Streaming Batch Queue for Flashcard / FSRS Play
-  const prefetchNextBatch = useCallback(async () => {
-    if (isFetchingNextBatchRef.current) return;
+  const prefetchNextBatch = useCallback(async (): Promise<any[]> => {
+    if (isFetchingNextBatchRef.current) return sessionQuestionsRef.current;
     const p = paginationRef.current;
-    if (!p || !p.has_more || p.next_offset === null || p.next_offset === undefined) return;
+    if (!p || !p.has_more || p.next_offset === null || p.next_offset === undefined) return sessionQuestionsRef.current;
 
     isFetchingNextBatchRef.current = true;
     try {
@@ -1255,16 +1264,20 @@ export default function FlashcardPlay() {
         const newQuestions = res.data.questions;
         paginationRef.current = res.data.pagination || null;
 
+        let combined = sessionQuestionsRef.current;
         setSession((prev: any) => {
           if (!prev) return prev;
           const existingIds = new Set((prev.questions || []).map((q: any) => q.id));
           const fresh = newQuestions.filter((q: any) => !existingIds.has(q.id));
           if (fresh.length === 0) return prev;
+          combined = [...(prev.questions || []), ...fresh];
           return {
             ...prev,
-            questions: [...(prev.questions || []), ...fresh]
+            questions: combined
           };
         });
+        sessionQuestionsRef.current = combined;
+        return combined;
       } else {
         if (paginationRef.current) paginationRef.current.has_more = false;
       }
@@ -1273,6 +1286,7 @@ export default function FlashcardPlay() {
     } finally {
       isFetchingNextBatchRef.current = false;
     }
+    return sessionQuestionsRef.current;
   }, [id, activeMode, cardScope, subCol, subVal]);
 
   useEffect(() => {
@@ -2498,17 +2512,18 @@ export default function FlashcardPlay() {
         } else {
           setFsrsCompletionData(null);
           if (res.data.card_id) {
-            let mapped = questions.findIndex((q: any) => q.id === res.data.card_id);
+            const currentQuestions = sessionQuestionsRef.current.length > 0 ? sessionQuestionsRef.current : questions;
+            let mapped = currentQuestions.findIndex((q: any) => q.id === res.data.card_id);
             if (mapped === -1 && paginationRef.current?.has_more) {
-              await prefetchNextBatch();
-              mapped = (session?.questions || []).findIndex((q: any) => q.id === res.data.card_id);
+              const updatedQs = await prefetchNextBatch();
+              mapped = updatedQs.findIndex((q: any) => q.id === res.data.card_id);
             }
             if (mapped !== -1) {
               nextIdx = mapped;
-            } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
+            } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < (sessionQuestionsRef.current.length || questions.length)) {
               nextIdx = res.data.next_index;
             }
-          } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < questions.length) {
+          } else if (res.data.next_index !== undefined && res.data.next_index >= 0 && res.data.next_index < (sessionQuestionsRef.current.length || questions.length)) {
             nextIdx = res.data.next_index;
           }
         }
