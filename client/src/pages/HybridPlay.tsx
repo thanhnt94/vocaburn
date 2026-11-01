@@ -489,13 +489,6 @@ export default function HybridPlay() {
           }
         })
 
-        // Check if chosen scope has cards; if 0 cards, fallback to 'all' so the session never displays 0 cards
-        const checkFiltered = filterCardsByScope(questions, chosenScope, reqCorrect, preMastered)
-        if (checkFiltered.length === 0 && questions.length > 0 && chosenScope !== 'all') {
-          console.warn(`[HybridPlay] Chosen scope '${chosenScope}' has 0 cards. Auto-switching to 'all'.`)
-          chosenScope = 'all'
-        }
-
         const mergedSettings: HybridSettings = {
           batch_size: Number(userSet.batch_size || creatorSet.batch_size || DEFAULT_HYBRID_SETTINGS.batch_size),
           required_correct: reqCorrect,
@@ -510,8 +503,17 @@ export default function HybridPlay() {
 
         // ── Card Order & Session Questions Initialization ──
         let initialFiltered = filterCardsByScope(questions, mergedSettings.scope, mergedSettings.required_correct, preMastered)
-        if (initialFiltered.length === 0 && questions.length > 0) {
+        if (initialFiltered.length === 0 && questions.length > 0 && mergedSettings.scope === 'all') {
           initialFiltered = questions
+        }
+
+        if (initialFiltered.length === 0) {
+          setStage('complete')
+          setSession({ ...quizRes.data, questions: [] })
+          setRawQuestions(questions)
+          setScopedQuestions([])
+          setIsLoading(false)
+          return
         }
 
         const savedProgress = userPracticeSettings?.hybrid_progress
@@ -717,7 +719,7 @@ export default function HybridPlay() {
     // If already at complete screen, immediately apply and restart fresh
     if (stage === 'complete') {
       let filtered = filterCardsByScope(rawQuestions, updated.scope, updated.required_correct, masteredCardIds)
-      if (filtered.length === 0 && rawQuestions.length > 0) {
+      if (filtered.length === 0 && rawQuestions.length > 0 && updated.scope === 'all') {
         filtered = rawQuestions
       }
 
@@ -752,17 +754,82 @@ export default function HybridPlay() {
       return
     }
 
-    // Mid-batch queue change: DO NOT destroy or abort current 5-card batch!
-    // Finish the current batch first; apply the new mode/order on the next batch!
-    if (partial.order !== undefined || partial.scope !== undefined || partial.batch_size !== undefined) {
+    // When user explicitly changes scope, immediately reload fresh cards from backend
+    if (partial.scope !== undefined && partial.scope !== hybridSettings.scope) {
+      const newScope = partial.scope
+      const searchParams = new URLSearchParams(window.location.search)
+      searchParams.set('scope', newScope)
+      const newPath = window.location.pathname + '?' + searchParams.toString()
+      window.history.replaceState(null, '', newPath)
+
+      setIsLoading(true)
+      try {
+        const scopeParam = newScope !== 'all' ? `&scope=${encodeURIComponent(newScope)}` : ''
+        const res = await axios.get(
+          `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}&include_distractors=true`
+        )
+        const questions: Question[] = res.data.questions || res.data.cards || []
+        paginationRef.current = res.data.pagination || null
+        setRawQuestions(questions)
+
+        const preMastered = new Set<number>()
+        questions.forEach(q => {
+          if ((q.practice_summary?.drill_correct ?? 0) >= updated.required_correct) {
+            preMastered.add(q.id)
+          }
+        })
+
+        let filtered = filterCardsByScope(questions, newScope, updated.required_correct, preMastered)
+        if (filtered.length === 0 && questions.length > 0 && newScope === 'all') {
+          filtered = questions
+        }
+
+        let newQuestions: Question[] = []
+        let newBatchIdx = 0
+        const bSize = Math.max(1, updated.batch_size)
+
+        if (updated.order === 'random') {
+          const copy = [...filtered]
+          for (let i = copy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copy[i], copy[j]] = [copy[j], copy[i]];
+          }
+          newQuestions = copy
+          newBatchIdx = 0
+        } else {
+          newQuestions = filtered
+          const smartIdx = findSmartSequentialIndex(newQuestions, updated.required_correct, preMastered)
+          const targetBatchIdx = Math.floor(smartIdx / bSize)
+          const totalB = Math.ceil(newQuestions.length / bSize)
+          newBatchIdx = targetBatchIdx < totalB ? targetBatchIdx : 0
+        }
+
+        setScopedQuestions(newQuestions)
+        setCurrentBatchIndex(newBatchIdx)
+        setSkimCardIndex(0)
+        setIsFlipped(false)
+        setStage(newQuestions.length > 0 ? 'skim' : 'complete')
+        setDrillActiveCard(null)
+        setBatchCorrectCounts({})
+        drillCursorRef.current = -1
+        saveHybridProgress(newBatchIdx, newQuestions)
+        showLocalToast?.(`Scope set to ${String(newScope).toUpperCase()} (${newQuestions.length} cards) ⚡`, 'success')
+      } catch (err) {
+        console.error('Failed to reload cards for scope:', err)
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+
+    // Mid-batch queue change for order/batch_size:
+    if (partial.order !== undefined || partial.batch_size !== undefined) {
       pendingQueueUpdateRef.current = {
         ...pendingQueueUpdateRef.current,
         ...partial
       }
       if (partial.order !== undefined) {
         showLocalToast?.(`Queue order set to ${partial.order === 'random' ? 'Random' : 'Sequential'} (will apply on next batch) ⚡`, 'info')
-      } else if (partial.scope !== undefined) {
-        showLocalToast?.(`Scope set to ${String(partial.scope).toUpperCase()} (will apply on next batch) ⚡`, 'info')
       } else if (partial.batch_size !== undefined) {
         showLocalToast?.(`Batch size set to ${partial.batch_size} cards (will apply on next batch) ⚡`, 'info')
       }
@@ -820,8 +887,8 @@ export default function HybridPlay() {
 
         // Filter cards for the new scope
         let newFiltered = filterCardsByScope(rawQuestions, effectiveScope, effectiveReq, nextMastered)
-        if (newFiltered.length === 0 && rawQuestions.length > 0) {
-          newFiltered = filterCardsByScope(rawQuestions, 'all', effectiveReq, nextMastered)
+        if (newFiltered.length === 0 && rawQuestions.length > 0 && effectiveScope === 'all') {
+          newFiltered = rawQuestions
         }
 
         if (newFiltered.length === 0) {

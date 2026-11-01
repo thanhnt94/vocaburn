@@ -547,8 +547,13 @@ async def get_deck_play_data(
         mastery_res = await db.execute(mastery_stmt)
         mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
 
+        effective_scope = scope
+        if not effective_scope and mode == "hybrid" and user_sett and user_sett.practice_settings:
+            ps = user_sett.practice_settings if isinstance(user_sett.practice_settings, dict) else {}
+            effective_scope = ps.get("hybrid", {}).get("scope")
+
         # Server-side Scope Filtering & Slicing for fast mobile loading
-        if scope in ("due", "review"):
+        if effective_scope in ("due", "review"):
             now_utc_naive = datetime.utcnow()
             def is_card_due(c):
                 m = mastery_records.get(c.id)
@@ -560,21 +565,24 @@ async def get_deck_play_data(
                     return m.due <= now_utc_naive
                 return m.state > 0
             source_cards = [c for c in source_cards if is_card_due(c)]
-        elif scope == "new":
+        elif effective_scope in ("new", "undrilled"):
             def is_card_new(c):
                 m = mastery_records.get(c.id)
                 if m and m.is_ignored:
                     return False
-                return (m is None) or (m.state == 0 and m.last_review is None)
+                # If card has entered FSRS (reviewed or state > 0), it is strictly NOT new
+                if m and (m.state > 0 or m.last_review is not None):
+                    return False
+                return True
             source_cards = [c for c in source_cards if is_card_new(c)]
-        elif scope == "hard":
+        elif effective_scope == "hard":
             def is_card_hard(c):
                 m = mastery_records.get(c.id)
                 if not m or m.is_ignored:
                     return False
                 return (m.difficulty and m.difficulty >= 6.0) or (m.lapses and m.lapses > 0) or m.is_starred
             source_cards = [c for c in source_cards if is_card_hard(c)]
-        elif (mode in ("fsrs", "review", "roadmap") or scope in (None, "all")) and mastery_records:
+        elif (mode in ("fsrs", "review", "roadmap") or (mode != "hybrid" and effective_scope in (None, "all"))) and mastery_records:
             now_utc_naive = datetime.utcnow()
             def get_card_sort_key(c):
                 m = mastery_records.get(c.id)
