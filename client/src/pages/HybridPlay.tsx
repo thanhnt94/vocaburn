@@ -1304,9 +1304,26 @@ export default function HybridPlay() {
       }
       if (e.code === 'ArrowRight' && stage === 'skim') {
         e.preventDefault()
-        if (skimCardIndex + 1 < currentBatch.length) {
+        if (!isFlipped) {
+          setIsFlipped(true)
+          playSfx('flip')
+        } else if (skimCardIndex + 1 < currentBatch.length) {
           setSkimCardIndex(prev => prev + 1)
           setIsFlipped(false)
+        } else {
+          startBatchDrill()
+        }
+      }
+      if (e.code === 'Enter' && stage === 'skim') {
+        e.preventDefault()
+        if (!isFlipped) {
+          setIsFlipped(true)
+          playSfx('flip')
+        } else if (skimCardIndex + 1 < currentBatch.length) {
+          setSkimCardIndex(prev => prev + 1)
+          setIsFlipped(false)
+        } else {
+          startBatchDrill()
         }
       }
       if (e.code === 'ArrowLeft' && stage === 'skim') {
@@ -1323,7 +1340,7 @@ export default function HybridPlay() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [stage, skimCardIndex, currentBatch.length, answered, batchCorrectCounts])
+  }, [stage, skimCardIndex, currentBatch.length, answered, batchCorrectCounts, isFlipped])
 
   if (isLoading) {
     return <SessionLoadingScreen />
@@ -1715,17 +1732,15 @@ export default function HybridPlay() {
               )}
             </button>
 
-            {/* 2. Quick Tools: Insight (only after card is flipped) */}
-            {isFlipped && (
-              <button
-                type="button"
-                onClick={() => setPreviewInsightCard(currentSkimQuestion)}
-                className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/80 hover:border-amber-200 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0"
-                title="Card Insights & Explanation (Lightbulb)"
-              >
-                <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
-              </button>
-            )}
+            {/* 2. Quick Tools: Insight (always visible on both faces in Hybrid mode) */}
+            <button
+              type="button"
+              onClick={() => setPreviewInsightCard(currentSkimQuestion)}
+              className="w-10 sm:w-11 h-10 sm:h-11 rounded-2xl flex items-center justify-center bg-slate-100/90 hover:bg-amber-50 text-slate-700 hover:text-amber-600 border border-slate-200/80 hover:border-amber-200 transition-all duration-200 active:scale-90 cursor-pointer shadow-2xs shrink-0"
+              title="Card Insights & Explanation (Lightbulb)"
+            >
+              <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+            </button>
 
             {/* Vertical Divider */}
             <div className="w-[1.5px] h-6 bg-slate-200/80 dark:bg-slate-700 shrink-0 mx-0.5" />
@@ -1769,15 +1784,32 @@ export default function HybridPlay() {
               <RotateCw className={cn("w-5 h-5 transition-transform duration-300", isFlipped && "rotate-180 text-rose-600")} />
             </button>
 
-            {/* 6. Nav: Next Card or Start Drill */}
-            {skimCardIndex + 1 < currentBatch.length ? (
+            {/* 6. Nav: Flip Card (when on front) or Next / Start Drill (when flipped to back) */}
+            {!isFlipped ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFlipped(true)
+                  playSfx('flip')
+                }}
+                className="flex-1 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/25 active:scale-95 transition-all duration-200 cursor-pointer"
+                title="Flip to back side to reveal answer"
+              >
+                <RotateCw className="w-4 h-4" />
+                <span>Flip Card</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono font-bold leading-none">
+                  {skimCardIndex + 1}/{currentBatch.length}
+                </span>
+              </button>
+            ) : skimCardIndex + 1 < currentBatch.length ? (
               <button
                 type="button"
                 onClick={() => {
                   setSkimCardIndex(prev => prev + 1)
                   setIsFlipped(false)
                 }}
-                className="flex-1 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/25 active:scale-95 transition-all duration-200 cursor-pointer"
+                className="flex-1 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/25 active:scale-95 transition-all duration-200 cursor-pointer animate-pulse"
+                title="Next Card"
               >
                 <span>Next</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono font-bold leading-none">
@@ -1790,6 +1822,7 @@ export default function HybridPlay() {
                 type="button"
                 onClick={startBatchDrill}
                 className="flex-1 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/30 active:scale-95 transition-all duration-200 cursor-pointer animate-pulse"
+                title="Complete batch preview and start drill"
               >
                 <span>Start Drill</span>
                 <Target className="w-4 h-4" />
