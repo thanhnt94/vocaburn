@@ -30,6 +30,8 @@ const parseBBCodeToHtml = (text: string): string => {
     .replace(/\[highlight\](.*?)\[\/highlight\]/gi, '<mark class="bg-amber-200 text-slate-900 px-1 rounded">$1</mark>')
     .replace(/\[align=(.*?)\](.*?)\[\/align\]/gi, '<div style="text-align: $1">$2</div>');
 
+  // Support Anki-style Furigana: 漢字[かんじ] -> <ruby>漢字<rt>かんじ</rt></ruby>
+  html = html.replace(/([\u4e00-\u9fff\u3400-\u4dbf\u3005][\u4e00-\u9fff\u3400-\u4dbf\u3005\u3040-\u309f\u30a0-\u30ff]*)\[([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
   // Support Ruby Furigana markdown: [漢字|かんじ] or [漢字](かんじ)
   html = html.replace(/\[([^\]|]+)\|([^\]]+)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
