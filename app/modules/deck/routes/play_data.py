@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks, Query, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, Request, BackgroundTasks, Query, HTTPException, Response
 from fastapi.responses import JSONResponse
 from typing import Optional
 import logging
@@ -460,7 +460,7 @@ async def get_deck_play_data(
                 if sub_val == "__empty__":
                     return not val
                 clean_sub = sub_val.strip() if hasattr(sub_val, "strip") else str(sub_val or "").strip()
-            return val == clean_sub
+                return val == clean_sub
             source_cards = [c for c in source_cards if matches_sub_light(c)]
 
         cards_list = [{
