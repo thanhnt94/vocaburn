@@ -539,22 +539,35 @@ async def get_deck_play_data(
     mastery_records = {}
     practice_records = {}
     if not is_practice and user_id and source_cards:
-        card_ids = [c.id for c in source_cards]
-        mastery_stmt = select(UserCardMastery).where(
+        scope_cards_base = list(source_cards)
+        card_ids_set = {c.id for c in source_cards}
+        mastery_stmt = select(UserCardMastery).join(
+            Flashcard, UserCardMastery.card_id == Flashcard.id
+        ).where(
             UserCardMastery.user_id == user_id,
-            UserCardMastery.card_id.in_(card_ids)
+            Flashcard.deck_id == deck_id
         )
         mastery_res = await db.execute(mastery_stmt)
-        mastery_records = {m.card_id: m for m in mastery_res.scalars().all()}
+        mastery_records = {m.card_id: m for m in mastery_res.scalars().all() if m.card_id in card_ids_set}
 
         effective_scope = scope
-        if not effective_scope and mode == "hybrid" and user_sett and user_sett.practice_settings:
-            ps = user_sett.practice_settings if isinstance(user_sett.practice_settings, dict) else {}
-            effective_scope = ps.get("hybrid", {}).get("scope")
+        if not effective_scope and mode == "hybrid":
+            user_ps = None
+            if user_sett and getattr(user_sett, "settings", None):
+                if isinstance(user_sett.settings, dict):
+                    user_ps = user_sett.settings
+                elif isinstance(user_sett.settings, str):
+                    try:
+                        import json
+                        user_ps = json.loads(user_sett.settings)
+                    except Exception:
+                        user_ps = {}
+            deck_ps = deck.practice_settings if (deck and isinstance(deck.practice_settings, dict)) else {}
+            effective_scope = (user_ps or {}).get("hybrid", {}).get("scope") or (deck_ps or {}).get("hybrid", {}).get("scope")
 
         # Server-side Scope Filtering & Slicing for fast mobile loading
-        if effective_scope in ("due", "review"):
-            now_utc_naive = datetime.utcnow()
+        now_utc_naive = datetime.utcnow()
+        if effective_scope == "due":
             def is_card_due(c):
                 m = mastery_records.get(c.id)
                 if not m or m.is_ignored:
@@ -565,6 +578,13 @@ async def get_deck_play_data(
                     return m.due <= now_utc_naive
                 return m.state > 0
             source_cards = [c for c in source_cards if is_card_due(c)]
+        elif effective_scope == "review":
+            def is_card_review(c):
+                m = mastery_records.get(c.id)
+                if not m or m.is_ignored:
+                    return False
+                return (m.state > 0 or m.last_review is not None)
+            source_cards = [c for c in source_cards if is_card_review(c)]
         elif effective_scope in ("new", "undrilled"):
             def is_card_new(c):
                 m = mastery_records.get(c.id)
@@ -583,7 +603,6 @@ async def get_deck_play_data(
                 return (m.difficulty and m.difficulty >= 6.0) or (m.lapses and m.lapses > 0) or m.is_starred
             source_cards = [c for c in source_cards if is_card_hard(c)]
         elif (mode in ("fsrs", "review", "roadmap") or (mode != "hybrid" and effective_scope in (None, "all"))) and mastery_records:
-            now_utc_naive = datetime.utcnow()
             def get_card_sort_key(c):
                 m = mastery_records.get(c.id)
                 if not m or m.is_ignored:
@@ -606,13 +625,13 @@ async def get_deck_play_data(
     now_utc_naive = datetime.utcnow()
     # Compute live scope counts across deck
     scope_counts = None
-    if mastery_records:
-        new_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)))
-        due_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) and mastery_records.get(c.id).due and mastery_records.get(c.id).due <= now_utc_naive))
-        rev_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) and mastery_records.get(c.id).state > 0))
-        undrilled_cnt = sum(1 for c in (deck_cards) if (mastery_records.get(c.id) is None or mastery_records.get(c.id).state < 2))
+    if mastery_records and 'scope_cards_base' in locals():
+        new_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)))
+        due_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) and mastery_records.get(c.id).due and mastery_records.get(c.id).due <= now_utc_naive and (mastery_records.get(c.id).state > 0 or mastery_records.get(c.id).last_review is not None)))
+        rev_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) and (mastery_records.get(c.id).state > 0 or mastery_records.get(c.id).last_review is not None)))
+        undrilled_cnt = new_cnt
         scope_counts = {
-            "all": len(deck_cards),
+            "all": len(scope_cards_base),
             "new": new_cnt,
             "due": due_cnt,
             "review": rev_cnt,

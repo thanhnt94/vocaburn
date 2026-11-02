@@ -575,9 +575,9 @@ export default function HybridPlay() {
           }).catch(() => {})
         }
 
-        // Guaranteed fallback: never allow 0 cards if deck has questions
-        if (finalQuestions.length === 0 && questions.length > 0) {
-          finalQuestions = questions
+        // Guaranteed fallback: never allow 0 cards if initialFiltered has questions
+        if (finalQuestions.length === 0 && initialFiltered.length > 0) {
+          finalQuestions = initialFiltered
         }
 
         // Atomic Hydration: Apply all states together before releasing loading spinner
@@ -666,7 +666,8 @@ export default function HybridPlay() {
         setScopedQuestions(prev => {
           const existingIds = new Set(prev.map(q => q.id))
           const fresh = newQuestions.filter(q => !existingIds.has(q.id))
-          return [...prev, ...fresh]
+          const scopedFresh = filterCardsByScope(fresh, hybridSettings.scope, hybridSettings.required_correct, masteredCardIds)
+          return [...prev, ...scopedFresh]
         })
 
         if (res.data.distractor_pool?.length > 0) {
