@@ -132,6 +132,8 @@ export default function HybridPlay() {
   const [searchParams] = useSearchParams()
   const urlScope = (searchParams.get('scope') || searchParams.get('filter')) as HybridScope | null
   const urlOrder = searchParams.get('order') as HybridOrder | null
+  const urlSubCol = searchParams.get('sub_col')
+  const urlSubVal = searchParams.get('sub_val')
   const { user, gamify, addXp } = useAppStore()
 
   // ── Session State ──
@@ -434,8 +436,9 @@ export default function HybridPlay() {
         setIsLoadError(false)
 
         const scopeParam = urlScope && urlScope !== 'all' ? `&scope=${encodeURIComponent(urlScope)}` : ''
+        const subParam = urlSubCol && urlSubVal ? `&sub_col=${encodeURIComponent(urlSubCol)}&sub_val=${encodeURIComponent(urlSubVal)}` : ''
         const [quizRes, settingsRes] = await Promise.all([
-          axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}&include_distractors=true`),
+          axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}${subParam}&include_distractors=true`),
           axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: {} }))
         ])
         if (!isMounted) return
@@ -650,8 +653,9 @@ export default function HybridPlay() {
     isFetchingNextBatchRef.current = true
     try {
       const scopeParam = hybridSettings.scope ? `&scope=${hybridSettings.scope}` : ''
+      const subParam = urlSubCol && urlSubVal ? `&sub_col=${encodeURIComponent(urlSubCol)}&sub_val=${encodeURIComponent(urlSubVal)}` : ''
       const res = await axios.get(
-        `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=${p.next_offset}${scopeParam}&include_distractors=true`
+        `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=${p.next_offset}${scopeParam}${subParam}&include_distractors=true`
       )
       if (res.data?.questions && res.data.questions.length > 0) {
         const newQuestions: Question[] = res.data.questions
@@ -755,7 +759,7 @@ export default function HybridPlay() {
       return
     }
 
-    // When user explicitly changes scope, immediately reload fresh cards from backend
+    // When user explicitly changes scope, do INSTANT in-memory filtering (0ms latency, zero screen flicker)
     if (partial.scope !== undefined && partial.scope !== hybridSettings.scope) {
       const newScope = partial.scope
       const searchParams = new URLSearchParams(window.location.search)
@@ -763,43 +767,26 @@ export default function HybridPlay() {
       const newPath = window.location.pathname + '?' + searchParams.toString()
       window.history.replaceState(null, '', newPath)
 
-      setIsLoading(true)
-      try {
-        const scopeParam = newScope !== 'all' ? `&scope=${encodeURIComponent(newScope)}` : ''
-        const res = await axios.get(
-          `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}&include_distractors=true`
-        )
-        const questions: Question[] = res.data.questions || res.data.cards || []
-        paginationRef.current = res.data.pagination || null
-        setRawQuestions(questions)
+      // 1. Instant local filter
+      let localFiltered = filterCardsByScope(rawQuestions, newScope, updated.required_correct, masteredCardIds)
+      if (localFiltered.length === 0 && rawQuestions.length > 0 && newScope === 'all') {
+        localFiltered = rawQuestions
+      }
 
-        const preMastered = new Set<number>()
-        questions.forEach(q => {
-          if ((q.practice_summary?.drill_correct ?? 0) >= updated.required_correct) {
-            preMastered.add(q.id)
-          }
-        })
+      const bSize = Math.max(1, updated.batch_size)
 
-        let filtered = filterCardsByScope(questions, newScope, updated.required_correct, preMastered)
-        if (filtered.length === 0 && questions.length > 0 && newScope === 'all') {
-          filtered = questions
-        }
-
-        let newQuestions: Question[] = []
+      if (localFiltered.length > 0) {
+        let newQuestions = localFiltered
         let newBatchIdx = 0
-        const bSize = Math.max(1, updated.batch_size)
-
         if (updated.order === 'random') {
-          const copy = [...filtered]
+          const copy = [...localFiltered]
           for (let i = copy.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [copy[i], copy[j]] = [copy[j], copy[i]];
           }
           newQuestions = copy
-          newBatchIdx = 0
         } else {
-          newQuestions = filtered
-          const smartIdx = findSmartSequentialIndex(newQuestions, updated.required_correct, preMastered)
+          const smartIdx = findSmartSequentialIndex(newQuestions, updated.required_correct, masteredCardIds)
           const targetBatchIdx = Math.floor(smartIdx / bSize)
           const totalB = Math.ceil(newQuestions.length / bSize)
           newBatchIdx = targetBatchIdx < totalB ? targetBatchIdx : 0
@@ -809,17 +796,73 @@ export default function HybridPlay() {
         setCurrentBatchIndex(newBatchIdx)
         setSkimCardIndex(0)
         setIsFlipped(false)
-        setStage(newQuestions.length > 0 ? 'skim' : 'complete')
+        setStage('skim')
         setDrillActiveCard(null)
         setBatchCorrectCounts({})
         drillCursorRef.current = -1
         saveHybridProgress(newBatchIdx, newQuestions)
-        showLocalToast?.(`Scope set to ${String(newScope).toUpperCase()} (${newQuestions.length} cards) ⚡`, 'success')
-      } catch (err) {
-        console.error('Failed to reload cards for scope:', err)
-      } finally {
-        setIsLoading(false)
+        showLocalToast?.(`Scope: ${String(newScope).toUpperCase()} (${newQuestions.length} cards) ⚡`, 'info')
       }
+
+      // 2. Background Revalidation (SWR - NO full screen loading spinner!)
+      // If we need more cards or have more pages, fetch in background smoothly
+      const fetchFreshScope = async () => {
+        try {
+          const scopeParam = newScope !== 'all' ? `&scope=${encodeURIComponent(newScope)}` : ''
+          const subParam = urlSubCol && urlSubVal ? `&sub_col=${encodeURIComponent(urlSubCol)}&sub_val=${encodeURIComponent(urlSubVal)}` : ''
+          const res = await axios.get(
+            `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}${subParam}&include_distractors=true`
+          )
+          const questions: Question[] = res.data.questions || res.data.cards || []
+          paginationRef.current = res.data.pagination || null
+
+          setRawQuestions(prev => {
+            const existingIds = new Set(prev.map(q => q.id))
+            const fresh = questions.filter(q => !existingIds.has(q.id))
+            return [...prev, ...fresh]
+          })
+
+          const preMastered = new Set<number>()
+          questions.forEach(q => {
+            if ((q.practice_summary?.drill_correct ?? 0) >= updated.required_correct) {
+              preMastered.add(q.id)
+            }
+          })
+
+          let filtered = filterCardsByScope(questions, newScope, updated.required_correct, preMastered)
+          if (filtered.length === 0 && questions.length > 0 && newScope === 'all') {
+            filtered = questions
+          }
+
+          if (localFiltered.length === 0) {
+            // Apply fresh cards if local was empty
+            let newQuestions = filtered
+            let newBatchIdx = 0
+            if (updated.order === 'random') {
+              const copy = [...filtered]
+              for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+              }
+              newQuestions = copy
+            }
+            setScopedQuestions(newQuestions)
+            setCurrentBatchIndex(0)
+            setSkimCardIndex(0)
+            setIsFlipped(false)
+            setStage(newQuestions.length > 0 ? 'skim' : 'complete')
+            setDrillActiveCard(null)
+            setBatchCorrectCounts({})
+            drillCursorRef.current = -1
+            saveHybridProgress(0, newQuestions)
+            showLocalToast?.(`Scope set to ${String(newScope).toUpperCase()} (${newQuestions.length} cards) ⚡`, 'success')
+          }
+        } catch (err) {
+          console.warn('Background scope sync warning:', err)
+        }
+      }
+
+      fetchFreshScope()
       return
     }
 

@@ -262,6 +262,12 @@ export function DeckDetailPage() {
         const scopeParam = flashcardScope !== 'all' ? `&scope=${flashcardScope}&filter=${flashcardScope}` : ''
         const orderParam = `&order=${flashcardOrder}`
         navigate(`/flashcard/${id}/play?mode=${targetMode.id}${scopeParam}${orderParam}`)
+      } else if (targetMode.id === 'hybrid') {
+        const isRandom = flashcardOrder === 'random'
+        updateUserSettings?.({ random_enabled: isRandom })
+        const scopeParam = flashcardScope !== 'all' ? `&scope=${flashcardScope}&filter=${flashcardScope}` : '&scope=all'
+        const orderParam = `&order=${flashcardOrder}`
+        navigate(`/hybrid/${id}/play?${scopeParam}${orderParam}`)
       } else {
         navigate(targetMode.getUrl(id))
       }
@@ -681,7 +687,7 @@ export function DeckDetailPage() {
             {/* 2. Practice & Quiz Button (Split: 1-Tap Start | ▾ Mode Menu) */}
             {(() => {
               const disabledModes: string[] = deckMeta?.practice_settings?.disabled_modes || []
-              const activePracticeModes = STUDY_MODES.slice(3).filter(m => !disabledModes.includes(m.id))
+              const activePracticeModes = STUDY_MODES.slice(4).filter(m => !disabledModes.includes(m.id))
               if (activePracticeModes.length === 0) return null
 
               const defaultPracticeMode = activePracticeModes[0].id

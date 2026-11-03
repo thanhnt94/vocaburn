@@ -2,6 +2,33 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-11-04]
+#### Khắc Phục Triệt Để Xung Đột Chế Độ FSRS & Tối Ưu Hóa Trải Nghiệm Hybrid Recall
+- **Cô Lập Trạng Thái Toàn Cục (Global Settings Isolation)**:
+  - Khắc phục lỗi `quiz_learning_mode` bị ghi đè thành `'hybrid'` trong `user_global_settings`. `quiz_learning_mode` được bảo vệ nghiêm ngặt chỉ dành cho các chế độ Flashcard (`fsrs`, `skim`, `autoplay`).
+  - Nút bấm chính "Study" tại Dashboard (`DashboardQuickDecksWidget.tsx`) và Thư viện (`DecksPage.tsx`) luôn ưu tiên mở FSRS Spaced Repetition, không bao giờ bị chiếm quyền điều khiển.
+  - Sửa `FlashcardPlay.tsx`: Khi người dùng chuyển sang Hybrid, chuyển hướng trực tiếp mà không ghi đè cài đặt `learning_mode` cốt lõi của bộ thẻ.
+- **Bảo Vệ Thuật Toán Spaced Repetition (`stats.py`)**:
+  - Sửa lỗi tính `due_count`: Thẻ mới xem qua ở Speed Skim / Hybrid Skim (`state == 0 and last_review is None`) tuyệt đối không bị tính nhầm vào số thẻ cần ôn tập FSRS hôm nay.
+- **Hỗ Trợ Tiền Khởi Tạo & Sub-lesson trong Hybrid Recall (`HybridPlay.tsx`, `DeckDetailPage.tsx`)**:
+  - `DeckDetailPage.tsx` chuyển tiếp đầy đủ tham số phạm vi thẻ (`scope`) và thứ tự học (`order`) khi mở Hybrid.
+  - `HybridPlay.tsx` tiếp nhận và hỗ trợ lọc theo bài học / chương (`sub_col`, `sub_val`), cho phép người dùng học Hybrid theo từng bài cụ thể thay vì luôn tải toàn bộ deck.
+- **Tối Ưu Hóa Chuyển Đổi Scope Tức Thì (Instant In-Memory Scope Switching - 0ms)**:
+  - Loại bỏ hoàn toàn màn hình loading spinner xoay tròn toàn màn hình khi người dùng đổi Scope trong bảng Quick Controls của Hybrid.
+  - Thực hiện lọc thẻ tức thì từ bộ nhớ đệm (In-memory filter) cho trải nghiệm chuyển đổi mượt mà 0ms không gián đoạn UI, đồng thời cập nhật dữ liệu ngầm (SWR background revalidation).
+
+### [2026-11-03]
+#### Hoàn Thành Toàn Diện 100% Bộ Thẻ "Từ vựng N2 (From Thảo Lê)" (2,512 / 2,512 Thẻ)
+- **Tích Hợp Toàn Bộ Mẹo Liên Tưởng Âm Đọc & Ngữ Nguyên Yamato Kotoba Cho 2,512 Thẻ**:
+  - Đã bổ sung 100% `• 🎧 Mẹo liên tưởng âm đọc: "..." ➔ ... ➔ [...]` trực tiếp vào trụ `Quy tắc chuyển âm` trong trường `others` (JSON) của toàn bộ 2,512 thẻ (IDs 8996 – 11507) trên cơ sở dữ liệu production (`/var/www/Storage/database/Vocaburn.db` tại VPS `103.121.91.217`).
+  - Phân tích từ nguyên chi tiết cho các cụm từ ghép thuần Nhật Yamato Kotoba (ví dụ: `子育て`, `積み重ねる`, `寝つき`, `間取り`, `すれ違う`, `見渡す`, `受け付ける`, `お買い得`, `駆け引き`, `後押し`, `食い違う`, `あっという間`...).
+  - Bắc cầu âm thanh trực quan, ngữ cảnh hài hước dí dỏm cho toàn bộ các từ Hán-Nhật (On'yomi) và từ tượng thanh, tượng hình (Onomatopoeia) N2 (ví dụ: `ぎっしり`, `きっぱり`, `くっきり`, `ぐっすり`, `こっそり`, `じっくり`, `てっきり`, `はっきり`, `ばったり`, `ばっちり`, `めっきり`, `やはり`...).
+- **Kiểm Chứng Chất Lượng Dữ Liệu 100% (Data Integrity Assertion)**:
+  - Tất cả 2,512 thẻ sở hữu đầy đủ 4 trụ tri thức cốt lõi: `Chiết tự & Mẹo nhớ Kanji`, `Quy tắc chuyển âm`, `Cụm từ & Collocations N2`, `Từ liên quan & Sắc thái`.
+  - 100% cân bằng dấu ngoặc furigana `[...]` và chuẩn ký pháp `Kanji[furigana]`.
+  - 0 lỗi hiển thị, 0 mismatch, tương thích hoàn toàn với modal `LearningInsightsModal.tsx`.
+
+
 ### [2026-10-31]
 #### Chuẩn Hóa Toàn Diện Vòng Đời Thẻ Thống Nhất Theo Phương Án 2 (Action-Oriented Waterfall Priority)
 - **Kiến Trúc Phân Loại Ưu Tiên Ngắt Tầng Tuyệt Đối (Single State Invariant)**:

@@ -97,10 +97,10 @@ export function DashboardQuickDecksWidget({
     currentSelectedDeck?.study_defaults?.learning_mode ||
     currentSelectedDeck?.practice_settings?.default_learning_mode ||
     currentSelectedDeck?.creator_settings?.learning_mode ||
-    userSettings?.quiz_learning_mode ||
+    (userSettings?.quiz_learning_mode !== 'hybrid' ? userSettings?.quiz_learning_mode : 'fsrs') ||
     'fsrs'
   )
-  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : (rawStudyMode === 'hybrid' ? 'fsrs' : rawStudyMode)
 
   const studyModeLabel = (() => {
     switch (activeStudyMode) {

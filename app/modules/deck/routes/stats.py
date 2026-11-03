@@ -605,7 +605,7 @@ async def get_deck_mastery(deck_id: int, request: Request, db: AsyncSession = De
         if box_lvl in mastery_counts:
             mastery_counts[box_lvl] += 1
             
-        if due_dt and due_dt <= now_utc:
+        if due_dt and due_dt <= now_utc and (state > 0 or last_rev is not None):
             due_count += 1
             
         if stab is not None and stab > 0:

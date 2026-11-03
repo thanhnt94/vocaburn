@@ -2665,8 +2665,6 @@ export default function FlashcardPlay() {
   const applyLearningMode = async (mode: string, order?: 'sequential' | 'random') => {
     setAutoNextSec(null)
     setFsrsCompletionData(null)
-    setActiveMode(mode)
-    saveGeneralSettings({ learning_mode: mode })
 
     let effectiveRandom = randomEnabled
     if (order !== undefined) {
@@ -2674,6 +2672,15 @@ export default function FlashcardPlay() {
       setRandomEnabled(effectiveRandom)
       saveGeneralSettings({ random_enabled: effectiveRandom })
     }
+
+    if (mode === 'hybrid') {
+      const orderParam = order ? `&order=${order}` : (effectiveRandom ? '&order=random' : '&order=sequential')
+      navigate(`/hybrid/${id}/play?${orderParam}`, { replace: true })
+      return
+    }
+
+    setActiveMode(mode)
+    saveGeneralSettings({ learning_mode: mode })
 
     const orderParam = order ? `&order=${order}` : (effectiveRandom ? '&order=random' : '&order=sequential')
     navigate(`/flashcard/${id}/play?mode=${mode}${orderParam}`, { replace: true })
