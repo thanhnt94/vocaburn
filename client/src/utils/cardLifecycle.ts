@@ -138,7 +138,7 @@ export function getCardLifecycleState(
   // Priority 1: Reinforced (Hybrid Recall pass target or hybrid_drill)
   const isMasteredInSet = masteredCardIds ? masteredCardIds.has(card.id) : false
   const drillCorrect = card.practice_summary?.drill_correct ?? 0
-  const hasHybrid = Boolean(card.practice_summary?.has_hybrid_drill || drillCorrect >= targetDrillCount || isMasteredInSet)
+  const hasHybrid = Boolean((drillCorrect > 0 && drillCorrect >= targetDrillCount) || isMasteredInSet)
   if (hasHybrid) {
     return 'drill'
   }
