@@ -699,7 +699,6 @@ async def get_deck_play_data(
 
     active_card_ids = [c.id for c in source_cards]
     if active_card_ids and not is_practice:
-        from app.modules.deck.models import UserPracticeStats
         p_stats_stmt = select(UserPracticeStats).where(
             UserPracticeStats.user_id == user_id,
             UserPracticeStats.card_id.in_(active_card_ids)
