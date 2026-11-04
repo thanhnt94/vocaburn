@@ -448,18 +448,21 @@ async def get_deck_play_data(
     if not deck.is_public and deck.creator_id != user_id and user_id != 1 and not is_collaborator and not is_admin:
         return JSONResponse(status_code=403, content={"error": "This is a private deck"})
 
+    valid_sub_col = str(sub_col).strip() if (sub_col and isinstance(sub_col, str) and not hasattr(sub_col, 'default')) else None
+    valid_sub_val = str(sub_val).strip() if (sub_val is not None and isinstance(sub_val, (str, int, float)) and not hasattr(sub_val, 'default')) else None
+
     if lightweight:
         source_cards = deck_cards
-        if sub_col and sub_val is not None:
+        if valid_sub_col and valid_sub_val is not None:
             def matches_sub_light(c):
                 val = ""
                 if c.others and isinstance(c.others, dict):
-                    val = str(c.others.get(sub_col, "") or "").strip()
-                elif hasattr(c, sub_col):
-                    val = str(getattr(c, sub_col) or "").strip()
-                if sub_val == "__empty__":
+                    val = str(c.others.get(valid_sub_col, "") or "").strip()
+                elif hasattr(c, valid_sub_col):
+                    val = str(getattr(c, valid_sub_col) or "").strip()
+                if valid_sub_val == "__empty__":
                     return not val
-                clean_sub = sub_val.strip() if hasattr(sub_val, "strip") else str(sub_val or "").strip()
+                clean_sub = valid_sub_val.strip() if hasattr(valid_sub_val, "strip") else str(valid_sub_val or "").strip()
                 return val == clean_sub
             source_cards = [c for c in source_cards if matches_sub_light(c)]
 
@@ -492,10 +495,10 @@ async def get_deck_play_data(
             "creator_id": deck.creator_id,
                 "questions": cards_list,
             "sub_group": {
-                "column": sub_col,
-                "value": sub_val,
+                "column": valid_sub_col,
+                "value": valid_sub_val,
                 "total_cards": len(cards_list)
-            } if sub_col and sub_val is not None else None
+            } if valid_sub_col and valid_sub_val is not None else None
         }
 
     is_practice = mode in ("mcq", "typing", "listening")
@@ -522,16 +525,16 @@ async def get_deck_play_data(
         user_total_xp = user_xp_res.scalar() or 0
 
     source_cards = deck_cards
-    if sub_col and sub_val is not None:
+    if valid_sub_col and valid_sub_val is not None:
         def matches_sub(c):
             val = ""
             if c.others and isinstance(c.others, dict):
-                val = str(c.others.get(sub_col, "") or "").strip()
-            elif hasattr(c, sub_col):
-                val = str(getattr(c, sub_col) or "").strip()
-            if sub_val == "__empty__":
+                val = str(c.others.get(valid_sub_col, "") or "").strip()
+            elif hasattr(c, valid_sub_col):
+                val = str(getattr(c, valid_sub_col) or "").strip()
+            if valid_sub_val == "__empty__":
                 return not val
-            clean_sub = sub_val.strip() if hasattr(sub_val, "strip") else str(sub_val or "").strip()
+            clean_sub = valid_sub_val.strip() if hasattr(valid_sub_val, "strip") else str(valid_sub_val or "").strip()
             return val == clean_sub
         source_cards = [c for c in source_cards if matches_sub(c)]
 
@@ -549,6 +552,18 @@ async def get_deck_play_data(
         )
         mastery_res = await db.execute(mastery_stmt)
         mastery_records = {m.card_id: m for m in mastery_res.scalars().all() if m.card_id in card_ids_set}
+
+        # Query cards already drilled in hybrid mode (drill_correct >= 1)
+        drilled_card_ids = set()
+        if card_ids_set:
+            p_stats_stmt = select(UserPracticeStats.card_id).where(
+                UserPracticeStats.user_id == user_id,
+                UserPracticeStats.card_id.in_(card_ids_set),
+                UserPracticeStats.practice_mode == "hybrid_drill",
+                UserPracticeStats.correct_count >= 1
+            )
+            p_stats_res = await db.execute(p_stats_stmt)
+            drilled_card_ids = set(p_stats_res.scalars().all())
 
         effective_scope = scope
         if not effective_scope and mode == "hybrid":
@@ -583,18 +598,21 @@ async def get_deck_play_data(
                 m = mastery_records.get(c.id)
                 if not m or m.is_ignored:
                     return False
-                return (m.state > 0 or m.last_review is not None)
+                return (m.state > 0 or m.last_review is not None) or (c.id in drilled_card_ids)
             source_cards = [c for c in source_cards if is_card_review(c)]
         elif effective_scope in ("new", "undrilled"):
-            def is_card_new(c):
+            def is_card_undrilled(c):
                 m = mastery_records.get(c.id)
                 if m and m.is_ignored:
                     return False
-                # If card has entered FSRS (reviewed or state > 0), it is strictly NOT new
+                # If card has entered FSRS (reviewed or state > 0), it is strictly NOT new/undrilled
                 if m and (m.state > 0 or m.last_review is not None):
                     return False
+                # If card has already been drilled in Hybrid, exclude from new/undrilled pool
+                if c.id in drilled_card_ids:
+                    return False
                 return True
-            source_cards = [c for c in source_cards if is_card_new(c)]
+            source_cards = [c for c in source_cards if is_card_undrilled(c)]
         elif effective_scope == "hard":
             def is_card_hard(c):
                 m = mastery_records.get(c.id)
@@ -626,9 +644,10 @@ async def get_deck_play_data(
     # Compute live scope counts across deck
     scope_counts = None
     if mastery_records and 'scope_cards_base' in locals():
-        new_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)))
+        drilled_set = drilled_card_ids if 'drilled_card_ids' in locals() else set()
+        new_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) is None or (mastery_records.get(c.id).state == 0 and mastery_records.get(c.id).last_review is None)) and c.id not in drilled_set)
         due_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) and mastery_records.get(c.id).due and mastery_records.get(c.id).due <= now_utc_naive and (mastery_records.get(c.id).state > 0 or mastery_records.get(c.id).last_review is not None)))
-        rev_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) and (mastery_records.get(c.id).state > 0 or mastery_records.get(c.id).last_review is not None)))
+        rev_cnt = sum(1 for c in scope_cards_base if (mastery_records.get(c.id) and (mastery_records.get(c.id).state > 0 or mastery_records.get(c.id).last_review is not None)) or c.id in drilled_set)
         undrilled_cnt = new_cnt
         scope_counts = {
             "all": len(scope_cards_base),
@@ -884,10 +903,10 @@ async def get_deck_play_data(
         "setting_origin": study_resolved["setting_origin"],
         "is_study_customized": study_resolved["is_customized"],
         "sub_group": {
-            "column": sub_col,
-            "value": sub_val,
+            "column": valid_sub_col,
+            "value": valid_sub_val,
             "total_cards": len(cards_list)
-        } if sub_col and sub_val is not None else None
+        } if valid_sub_col and valid_sub_val is not None else None
     }
 
     try:

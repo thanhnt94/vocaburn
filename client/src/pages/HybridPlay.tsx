@@ -504,9 +504,12 @@ export default function HybridPlay() {
                 : DEFAULT_HYBRID_SETTINGS.allowed_practices)
         }
 
+        // Always update hybridSettings state immediately so UI always reflects current scope!
+        setHybridSettings(mergedSettings)
+
         // ── Card Order & Session Questions Initialization ──
         let initialFiltered = filterCardsByScope(questions, mergedSettings.scope, mergedSettings.required_correct, preMastered)
-        if (initialFiltered.length === 0 && questions.length > 0 && mergedSettings.scope === 'all') {
+        if (initialFiltered.length === 0 && questions.length > 0) {
           initialFiltered = questions
         }
 
@@ -721,42 +724,45 @@ export default function HybridPlay() {
       }
     }).catch(e => console.warn('Failed to auto-save hybrid settings', e))
 
-    // If already at complete screen, immediately apply and restart fresh
+    // If already at complete screen, immediately apply if local cards match
     if (stage === 'complete') {
       let filtered = filterCardsByScope(rawQuestions, updated.scope, updated.required_correct, masteredCardIds)
       if (filtered.length === 0 && rawQuestions.length > 0 && updated.scope === 'all') {
         filtered = rawQuestions
       }
 
-      let newQuestions: Question[] = []
-      let newBatchIdx = 0
-      const bSize = Math.max(1, updated.batch_size)
+      if (filtered.length > 0) {
+        let newQuestions: Question[] = []
+        let newBatchIdx = 0
+        const bSize = Math.max(1, updated.batch_size)
 
-      if (updated.order === 'random') {
-        const copy = [...filtered]
-        for (let i = copy.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [copy[i], copy[j]] = [copy[j], copy[i]];
+        if (updated.order === 'random') {
+          const copy = [...filtered]
+          for (let i = copy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copy[i], copy[j]] = [copy[j], copy[i]];
+          }
+          newQuestions = copy
+          newBatchIdx = 0
+        } else {
+          newQuestions = filtered
+          const smartIdx = findSmartSequentialIndex(newQuestions, updated.required_correct, masteredCardIds)
+          const targetBatchIdx = Math.floor(smartIdx / bSize)
+          const totalB = Math.ceil(newQuestions.length / bSize)
+          newBatchIdx = targetBatchIdx < totalB ? targetBatchIdx : 0
         }
-        newQuestions = copy
-        newBatchIdx = 0
-      } else {
-        newQuestions = filtered
-        const smartIdx = findSmartSequentialIndex(newQuestions, updated.required_correct, masteredCardIds)
-        const targetBatchIdx = Math.floor(smartIdx / bSize)
-        const totalB = Math.ceil(newQuestions.length / bSize)
-        newBatchIdx = targetBatchIdx < totalB ? targetBatchIdx : 0
-      }
 
-      setScopedQuestions(newQuestions)
-      setCurrentBatchIndex(newBatchIdx)
-      setSkimCardIndex(0)
-      setIsFlipped(false)
-      setStage('skim')
-      setDrillActiveCard(null)
-      setBatchCorrectCounts({})
-      saveHybridProgress(newBatchIdx, newQuestions)
-      return
+        setScopedQuestions(newQuestions)
+        setCurrentBatchIndex(newBatchIdx)
+        setSkimCardIndex(0)
+        setIsFlipped(false)
+        setStage('skim')
+        setDrillActiveCard(null)
+        setBatchCorrectCounts({})
+        saveHybridProgress(newBatchIdx, newQuestions)
+        return
+      }
+      // If local cards don't match, fall through to fetchFreshScope below!
     }
 
     // When user explicitly changes scope, do INSTANT in-memory filtering (0ms latency, zero screen flicker)
@@ -802,10 +808,12 @@ export default function HybridPlay() {
         drillCursorRef.current = -1
         saveHybridProgress(newBatchIdx, newQuestions)
         showLocalToast?.(`Scope: ${String(newScope).toUpperCase()} (${newQuestions.length} cards) ⚡`, 'info')
+      } else {
+        // If local in-memory cards don't have matching cards, show loading while fetching fresh cards
+        setIsLoading(true)
       }
 
-      // 2. Background Revalidation (SWR - NO full screen loading spinner!)
-      // If we need more cards or have more pages, fetch in background smoothly
+      // 2. Background Revalidation (SWR)
       const fetchFreshScope = async () => {
         try {
           const scopeParam = newScope !== 'all' ? `&scope=${encodeURIComponent(newScope)}` : ''
@@ -830,7 +838,7 @@ export default function HybridPlay() {
           })
 
           let filtered = filterCardsByScope(questions, newScope, updated.required_correct, preMastered)
-          if (filtered.length === 0 && questions.length > 0 && newScope === 'all') {
+          if (filtered.length === 0 && questions.length > 0) {
             filtered = questions
           }
 
@@ -859,6 +867,8 @@ export default function HybridPlay() {
           }
         } catch (err) {
           console.warn('Background scope sync warning:', err)
+        } finally {
+          setIsLoading(false)
         }
       }
 

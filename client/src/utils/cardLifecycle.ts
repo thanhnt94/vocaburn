@@ -177,7 +177,7 @@ export const HYBRID_SCOPE_OPTIONS: ScopeOption[] = [
   {
     id: 'new',
     label: 'New Cards Only (Pre-FSRS)',
-    description: 'Focus on cards not yet in FSRS (New, Skim, Practice, Drill)'
+    description: 'Focus on cards not yet in FSRS or drills'
   },
   {
     id: 'undrilled',
@@ -192,7 +192,7 @@ export const HYBRID_SCOPE_OPTIONS: ScopeOption[] = [
   {
     id: 'review',
     label: 'Review All (Learned Cards)',
-    description: 'Comprehensive review of all FSRS cards (Learned + Due)'
+    description: 'Comprehensive review of all FSRS cards (Learned + Due) and drills'
   },
   {
     id: 'due',
@@ -218,14 +218,12 @@ export function filterCardsByScope(
       case 'all':
         return true
       case 'new':
-        // Pre-FSRS unmastered cards (new, skim, practice)
-        return status === 'new' || status === 'skim' || status === 'practice'
       case 'undrilled':
-        // Unmastered in Hybrid: new, skim, practice
+        // Pre-FSRS undrilled cards (new, skim, practice)
         return status === 'new' || status === 'skim' || status === 'practice'
       case 'review':
-        // All learned cards in FSRS (learn + due)
-        return status === 'learn' || status === 'due'
+        // All learned cards in FSRS (learn + due) or drilled in Hybrid
+        return status === 'learn' || status === 'due' || status === 'drill'
       case 'due':
         // Only due cards
         return status === 'due'
