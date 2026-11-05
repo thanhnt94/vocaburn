@@ -256,12 +256,14 @@ class DeckService:
             progress_map = {p.goal_id: p for p in prog_res.scalars().all()}
             
         # --- BULK OPTIMIZATION QUERIES ---
-        # 1. Fetch titles for all active decks
-        deck_titles_stmt = select(FlashcardDeck.id, FlashcardDeck.title).where(
+        # 1. Fetch titles and covers for all active decks
+        deck_titles_stmt = select(FlashcardDeck.id, FlashcardDeck.title, FlashcardDeck.cover_image).where(
             FlashcardDeck.id.in_(active_deck_ids)
         )
         deck_titles_res = await db.execute(deck_titles_stmt)
-        deck_titles_map = {row.id: row.title for row in deck_titles_res.all()}
+        deck_rows = deck_titles_res.all()
+        deck_titles_map = {row[0]: row[1] for row in deck_rows}
+        deck_covers_map = {row[0]: row[2] for row in deck_rows}
         
         # 2. Count total cards in decks in bulk
         total_cards_stmt = select(Flashcard.deck_id, func.count(Flashcard.id)).where(
@@ -299,6 +301,7 @@ class DeckService:
         
         for deck_id in active_deck_ids:
             deck_title = deck_titles_map.get(deck_id) or f"Deck {deck_id}"
+            deck_cover = deck_covers_map.get(deck_id)
             total_cards = total_cards_map.get(deck_id, 0)
             due_reviews_count = due_reviews_map.get(deck_id, 0)
             learned_count = learned_map.get(deck_id, 0)
@@ -318,6 +321,9 @@ class DeckService:
                 decks_summary.append({
                     "deck_id": deck_id,
                     "title": deck_title,
+                    "cover_image": deck_cover,
+                    "total_cards": total_cards,
+                    "learned_cards": learned_count,
                     "due_count": due_reviews_count,
                     "new_count": due_new_count
                 })
