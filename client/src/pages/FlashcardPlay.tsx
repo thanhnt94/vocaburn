@@ -364,11 +364,13 @@ export default function FlashcardPlay() {
 
   const {
     playCardAudio,
+    playColumnAudio,
     stopAudio,
     activeAudioRef,
     isAudioEnabled,
     isLoadingAudio,
-    isPlayingAudio
+    isPlayingAudio,
+    currentPlayingCol
   } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio, audioSpeed)
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
@@ -4022,6 +4024,10 @@ export default function FlashcardPlay() {
                     const targetFace = isFlipped ? (flipSides ? 'front' : 'back') : (flipSides ? 'back' : 'front');
                     playCardAudio(targetFace);
                   }}
+                  onPlayColumnAudio={(col: string) => {
+                    playColumnAudio(col);
+                  }}
+                  currentPlayingCol={currentPlayingCol}
                   isLoadingAudio={isLoadingAudio}
                   isPlayingAudio={isPlayingAudio}
                   onOpenQuickSettings={() => {

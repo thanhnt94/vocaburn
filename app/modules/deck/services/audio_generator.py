@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Global concurrency lock & pacing control across requests to prevent Microsoft Edge TTS rate-limiting
 _tts_lock = asyncio.Lock()
 _last_tts_call_time = 0.0
-MIN_PACE_DELAY_SECONDS = 0.8  # Giãn cách tối thiểu giữa các lần gọi Edge-TTS (800ms)
+MIN_PACE_DELAY_SECONDS = 1.3  # Giãn cách tối thiểu giữa các lần gọi Edge-TTS (1300ms)
 
 
 class AudioGenerator:
@@ -232,7 +232,7 @@ class AudioGenerator:
                 # Try Edge TTS with rate pacing and exponential backoff retry (NO gTTS)
                 success_edge = False
                 last_err = None
-                MAX_RETRIES = 3
+                MAX_RETRIES = 5
 
                 for attempt in range(1, MAX_RETRIES + 1):
                     try:
@@ -259,8 +259,8 @@ class AudioGenerator:
                         logger.warning(warn_msg)
 
                         if attempt < MAX_RETRIES:
-                            # Exponential backoff: ~1.5s, ~3.5s with random jitter
-                            backoff = (attempt * 1.5) + random.uniform(0.3, 0.7)
+                            # Exponential backoff with random jitter
+                            backoff = (attempt * 2.0) + random.uniform(0.5, 1.2)
                             await asyncio.sleep(backoff)
 
                 if not success_edge:

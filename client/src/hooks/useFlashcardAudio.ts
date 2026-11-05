@@ -21,6 +21,7 @@ export function useFlashcardAudio(
 
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [currentPlayingCol, setCurrentPlayingCol] = useState<string | null>(null);
 
   const autoPlayAudio = scopedAutoPlayAudio !== undefined ? scopedAutoPlayAudio : 'none';
 
@@ -48,6 +49,7 @@ export function useFlashcardAudio(
     }
     setIsLoadingAudio(false);
     setIsPlayingAudio(false);
+    setCurrentPlayingCol(null);
   };
 
   const getAudioConfigForColumn = (columnKey: string) => {
@@ -221,37 +223,43 @@ export function useFlashcardAudio(
     if (audioUrl) {
       unlockAudio();
       const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl;
-      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${resolvedUrl} at ${audioSpeed}x`);
+      console.log(`[TTS PLAYBACK] Playing Edge TTS audio: ${resolvedUrl} at ${audioSpeed}x for column ${columnKey}`);
       const audio = new Audio(resolvedUrl);
       audio.playbackRate = audioSpeed || 1.0;
       registerAudioElement(audio);
       activeAudioRef.current = audio;
 
       setIsPlayingAudio(true);
+      setCurrentPlayingCol(columnKey);
       audio.onended = () => {
         if (playSeqRef.current === currentSeq) {
           setIsPlayingAudio(false);
+          setCurrentPlayingCol(null);
         }
       };
       audio.onerror = () => {
         if (playSeqRef.current === currentSeq) {
           setIsPlayingAudio(false);
+          setCurrentPlayingCol(null);
         }
       };
 
       audio.play().catch(err => {
         if (playSeqRef.current === currentSeq) {
           setIsPlayingAudio(false);
+          setCurrentPlayingCol(null);
         }
         console.warn(`[TTS PLAYBACK WARNING] Playback of Edge TTS audio file failed:`, err?.message);
         if (err?.name !== 'NotAllowedError' && script && script.trim()) {
           if (playSeqRef.current === currentSeq) {
+            setCurrentPlayingCol(columnKey);
             speakWithEdgeTTS(script, lang, audioSpeed || 1.0);
           }
         }
       });
     } else if (script && script.trim()) {
       console.log(`[TTS EDGE STREAM] Streaming Edge TTS dynamically for column ${columnKey}: "${script}" at ${audioSpeed}x`);
+      setCurrentPlayingCol(columnKey);
       speakWithEdgeTTS(script, lang, audioSpeed || 1.0);
     }
   };
@@ -269,6 +277,7 @@ export function useFlashcardAudio(
     isAudioEnabled,
     activeAudioRef,
     isLoadingAudio,
-    isPlayingAudio
+    isPlayingAudio,
+    currentPlayingCol
   };
 }
