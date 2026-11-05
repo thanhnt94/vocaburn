@@ -62,8 +62,6 @@ export interface Flashcard3DCardProps {
   handleOpenCardHub?: (tab?: 'stats' | 'insight' | 'note' | 'community') => void
   onOpenInsights?: () => void
   onTriggerPlayAudio?: () => void
-  onPlayColumnAudio?: (col: string) => void
-  currentPlayingCol?: string | null
   isLoadingAudio?: boolean
   isPlayingAudio?: boolean
   onOpenQuickSettings?: () => void
@@ -113,8 +111,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   handleOpenCardHub,
   onOpenInsights,
   onTriggerPlayAudio,
-  onPlayColumnAudio,
-  currentPlayingCol,
   isLoadingAudio,
   isPlayingAudio,
   onOpenQuickSettings,
@@ -470,91 +466,6 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
           >
             {/* Top Banner */}
             {renderCardTopHeader('back')}
-
-            {/* Audio Tracks Quick Switcher Bar (Bilingual, Meaning, Podcast, Japanese) */}
-            {(currentQuestion?.podcast_audio_url || currentQuestion?.others?.podcast_audio_url || currentQuestion?.others?.meaning_audio_url || currentQuestion?.meaning_audio_url) && onPlayColumnAudio && (
-              <div className="w-full flex items-center justify-center flex-wrap gap-1.5 px-2 py-1.5 my-1 bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0">
-                {/* 1. Song ngữ (Back) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPlayColumnAudio('back');
-                  }}
-                  className={cn(
-                    "px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95",
-                    currentPlayingCol === 'back' && isPlayingAudio
-                      ? "bg-indigo-600 text-white shadow-indigo-200 ring-2 ring-indigo-300 animate-pulse"
-                      : "bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100"
-                  )}
-                  title="Nghe phát âm Song Ngữ (Mẫu tiếng Nhật + Nghĩa tiếng Việt)"
-                >
-                  <Volume2 className={cn("w-3.5 h-3.5", currentPlayingCol === 'back' && isPlayingAudio && "animate-pulse")} />
-                  <span>Song ngữ</span>
-                </button>
-
-                {/* 2. Nghĩa tiếng Việt */}
-                {(currentQuestion?.meaning_audio_url || currentQuestion?.others?.meaning_audio_url) && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlayColumnAudio('meaning');
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95",
-                      currentPlayingCol === 'meaning' && isPlayingAudio
-                        ? "bg-emerald-600 text-white shadow-emerald-200 ring-2 ring-emerald-300 animate-pulse"
-                        : "bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-100"
-                    )}
-                    title="Chỉ nghe nghĩa tiếng Việt"
-                  >
-                    <BookOpen className={cn("w-3.5 h-3.5", currentPlayingCol === 'meaning' && isPlayingAudio && "animate-pulse")} />
-                    <span>Nghĩa VI</span>
-                  </button>
-                )}
-
-                {/* 3. Podcast Radio N2 */}
-                {(currentQuestion?.podcast_audio_url || currentQuestion?.others?.podcast_audio_url) && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlayColumnAudio('podcast');
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95",
-                      currentPlayingCol === 'podcast' && isPlayingAudio
-                        ? "bg-amber-600 text-white shadow-amber-200 ring-2 ring-amber-300 animate-pulse"
-                        : "bg-white text-amber-700 hover:bg-amber-50 border border-amber-100"
-                    )}
-                    title="Nghe Radio Podcast giảng giải ngữ pháp chuyên sâu"
-                  >
-                    <Sparkles className={cn("w-3.5 h-3.5", currentPlayingCol === 'podcast' && isPlayingAudio && "animate-pulse")} />
-                    <span>Podcast N2</span>
-                  </button>
-                )}
-
-                {/* 4. Tiếng Nhật chuẩn (Front) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPlayColumnAudio('front');
-                  }}
-                  className={cn(
-                    "px-2 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95",
-                    currentPlayingCol === 'front' && isPlayingAudio
-                      ? "bg-rose-600 text-white shadow-rose-200 ring-2 ring-rose-300 animate-pulse"
-                      : "bg-white text-slate-700 hover:bg-rose-50 border border-slate-200"
-                  )}
-                  title="Nghe lại phát âm mẫu tiếng Nhật chuẩn"
-                >
-                  <span className="text-xs">🇯🇵</span>
-                  <span>Mẫu câu</span>
-                </button>
-              </div>
-            )}
 
             {/* Definition & explanation */}
             <div 
