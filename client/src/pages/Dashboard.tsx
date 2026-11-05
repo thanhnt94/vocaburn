@@ -1191,7 +1191,9 @@ export default function Dashboard() {
       if (!seenIds.has(id)) {
         seenIds.add(id);
         list.push({
+          ...d,
           deck_id: id,
+          id: id,
           title: d.title,
           cover_image: d.cover_image,
           total_cards: cardCnt,
@@ -1218,9 +1220,41 @@ export default function Dashboard() {
     return list.sort((a, b) => a.deck_id - b.deck_id);
   }, [roadmapDecks, todayReview, data]);
 
+  // Merge all unique decks from roadmapDecks and activeDecks so all configured decks are available
+  const allHomeDecks = useMemo(() => {
+    const list: any[] = []
+    const seen = new Set<string>()
+
+    const addDeck = (d: any) => {
+      const id = String(d.deck_id ?? d.id ?? '')
+      if (!id) return
+      if (!seen.has(id)) {
+        seen.add(id)
+        list.push(d)
+      } else {
+        const existing = list.find(item => String(item.deck_id ?? item.id) === id)
+        if (existing) {
+          const tot = d.total_cards || d.cards_count || d.questions_count || d.status?.total_cards || 0
+          const lrn = d.learned_cards || d.learned_count || d.status?.learned_cards || 0
+          if (!existing.total_cards && tot) existing.total_cards = tot
+          if (!existing.learned_cards && lrn) existing.learned_cards = lrn
+          if (!existing.cover_image && d.cover_image) existing.cover_image = d.cover_image
+          if (d.status && !existing.status) existing.status = d.status
+          if (d.practice_settings && !existing.practice_settings) existing.practice_settings = d.practice_settings
+          if (d.description && !existing.description) existing.description = d.description
+          if (d.tags && !existing.tags) existing.tags = d.tags
+        }
+      }
+    }
+
+    ;(roadmapDecks || []).forEach(addDeck)
+    ;(activeDecks || []).forEach(addDeck)
+    return list
+  }, [activeDecks, roadmapDecks])
+
   const displayDecks = useMemo(() => {
     const order = (userSettings?.learning_deck_order || userSettings?.roadmap_deck_order || []).map((x: any) => String(x))
-    const source = roadmapDecks && roadmapDecks.length > 0 ? roadmapDecks : activeDecks
+    const source = allHomeDecks
     if (!source || source.length === 0) return []
     
     if (order.length > 0) {
@@ -1229,7 +1263,7 @@ export default function Dashboard() {
       if (ordered.length > 0) return ordered
     }
     return source
-  }, [roadmapDecks, activeDecks, userSettings?.learning_deck_order, userSettings?.roadmap_deck_order])
+  }, [allHomeDecks, userSettings?.learning_deck_order, userSettings?.roadmap_deck_order])
 
   const sortedRoadmapDecks = displayDecks
   const sortedActiveDecks = displayDecks
