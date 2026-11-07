@@ -139,7 +139,8 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
         settings: {
-          insight_columns: updated
+          insight_columns: updated,
+          insights_columns: updated
         }
       })
       return res.data
@@ -261,7 +262,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       const res = await axios.post(`/api/v1/deck/${deckId}/add-column`, { column_name })
       const updateSettings: any = {}
       if (isInsight) {
-        updateSettings.insight_columns = Array.from(new Set([...currentInsightCols, column_name]))
+        const updatedInsight = Array.from(new Set([...currentInsightCols, column_name]))
+        updateSettings.insight_columns = updatedInsight
+        updateSettings.insights_columns = updatedInsight
       }
       if (isCategory) {
         const updatedCat = Array.from(new Set([...currentCategoryCols, column_name]))
@@ -305,7 +308,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       const res = await axios.post(`/api/v1/deck/${deckId}/rename-column`, { old_name, new_name })
       const updateSettings: any = {}
       if (currentInsightCols.includes(old_name)) {
-        updateSettings.insight_columns = currentInsightCols.map(c => c === old_name ? new_name : c)
+        const updatedInsight = currentInsightCols.map(c => c === old_name ? new_name : c)
+        updateSettings.insight_columns = updatedInsight
+        updateSettings.insights_columns = updatedInsight
       }
       if (currentCategoryCols.includes(old_name)) {
         const updatedCat = currentCategoryCols.map(c => c === old_name ? new_name : c)
@@ -346,7 +351,9 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       const res = await axios.post(`/api/v1/deck/${deckId}/delete-column`, { column_name })
       const updateSettings: any = {}
       if (currentInsightCols.includes(column_name)) {
-        updateSettings.insight_columns = currentInsightCols.filter(c => c !== column_name)
+        const updatedInsight = currentInsightCols.filter(c => c !== column_name)
+        updateSettings.insight_columns = updatedInsight
+        updateSettings.insights_columns = updatedInsight
       }
       if (currentCategoryCols.includes(column_name)) {
         const updatedCat = currentCategoryCols.filter(c => c !== column_name)

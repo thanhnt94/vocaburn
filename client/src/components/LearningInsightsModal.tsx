@@ -466,43 +466,38 @@ export default function LearningInsightsModal({
     }
   }
 
-  const frontAudioContent = card.front_audio_content || othersObj.front_audio_content || othersObj['front audio content'];
-  if (frontAudioContent) {
-    fullCardTabs.push({
-      id: 'front_audio_content',
-      title: 'FRONT AUDIO CONTENT',
-      content: frontAudioContent
-    });
-  }
-
-  const backAudioContent = card.back_audio_content || othersObj.back_audio_content || othersObj['back audio content'];
-  if (backAudioContent) {
-    fullCardTabs.push({
-      id: 'back_audio_content',
-      title: 'BACK AUDIO CONTENT',
-      content: backAudioContent
-    });
-  }
+  // Exclude technical, audio and system metadata fields from polluting Learning Insights
+  const isExcludedField = (key: string) => {
+    const k = key.toLowerCase().trim();
+    return (
+      k === 'ai_responses' ||
+      k === 'id' ||
+      k === 'item_id' ||
+      k === 'created_at' ||
+      k === 'updated_at' ||
+      k === 'front' ||
+      k === 'back' ||
+      k === 'image' ||
+      k === 'audio' ||
+      k.includes('audio_url') ||
+      k.includes('audio_content') ||
+      k.includes('audio url') ||
+      k.includes('audio content') ||
+      k.endsWith('_url') ||
+      k.endsWith('_content') ||
+      k === 'choices' ||
+      k === 'choices_data' ||
+      k === 'distractor_pool' ||
+      k === 'choice_item_ids' ||
+      k === 'practice' ||
+      k === 'practice_settings' ||
+      k === 'creator_settings'
+    );
+  };
 
   if (othersObj && typeof othersObj === 'object') {
     Object.entries(othersObj).forEach(([key, value]) => {
-      if (
-        key !== 'ai_responses' &&
-        key !== 'id' &&
-        key !== 'created_at' &&
-        key !== 'updated_at' &&
-        key !== 'front' &&
-        key !== 'back' &&
-        key !== 'image' &&
-        key !== 'audio' &&
-        key !== 'front_audio_url' &&
-        key !== 'back_audio_url' &&
-        key !== 'front_audio_content' &&
-        key !== 'back_audio_content' &&
-        key !== 'front audio content' &&
-        key !== 'back audio content' &&
-        value
-      ) {
+      if (!isExcludedField(key) && value) {
         fullCardTabs.push({
           id: key,
           title: key.toUpperCase().replace(/_/g, ' '),
@@ -520,11 +515,28 @@ export default function LearningInsightsModal({
     fullCardTabs.push({ id: 'hint', title: 'HINT', content: card.hint });
   }
 
-  let displayTabs = fullCardTabs;
-  if (insightsColumns && insightsColumns.length > 0) {
-    displayTabs = insightsColumns
-      .map(colId => fullCardTabs.find(tab => tab.id === colId))
+  // Resolve configured insight columns from props or card/session metadata (supports both insight_columns and insights_columns)
+  const effectiveInsightColumns: string[] | undefined = useMemo(() => {
+    if (Array.isArray(insightsColumns)) return insightsColumns;
+    const fromCard = (card as any)?.insight_columns 
+      ?? (card as any)?.insights_columns
+      ?? (card as any)?.practice_settings?.insight_columns
+      ?? (card as any)?.practice_settings?.insights_columns
+      ?? (card as any)?.creator_settings?.insight_columns
+      ?? (card as any)?.creator_settings?.insights_columns;
+    if (Array.isArray(fromCard)) return fromCard;
+    return undefined;
+  }, [insightsColumns, card]);
+
+  let displayTabs: { id: string; title: string; content: string }[] = [];
+  if (effectiveInsightColumns && Array.isArray(effectiveInsightColumns)) {
+    // Only display columns that have the Learning Insights checkbox explicitly enabled
+    displayTabs = effectiveInsightColumns
+      .map(colId => fullCardTabs.find(tab => tab.id.toLowerCase() === colId.toLowerCase()))
       .filter((tab): tab is { id: string; title: string; content: string } => tab !== undefined);
+  } else {
+    // Fallback only when deck has no custom insight configuration defined
+    displayTabs = fullCardTabs;
   }
 
   // Navigation indexes

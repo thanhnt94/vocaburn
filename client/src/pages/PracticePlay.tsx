@@ -5407,7 +5407,18 @@ export default function PracticePlay() {
           setEditFormData(c)
           setIsEditModalOpen(true)
         }}
-        insightsColumns={(modeSettings as any)?.insights_columns || session?.practice_settings?.insights_columns || session?.creator_settings?.insights_columns}
+        insightsColumns={
+          (modeSettings as any)?.insight_columns ??
+          (modeSettings as any)?.insights_columns ??
+          session?.practice_settings?.insight_columns ??
+          session?.practice_settings?.insights_columns ??
+          session?.creator_settings?.insight_columns ??
+          session?.creator_settings?.insights_columns ??
+          session?.insight_columns ??
+          session?.insights_columns ??
+          session?.deck?.practice_settings?.insight_columns ??
+          session?.deck?.practice_settings?.insights_columns
+        }
       />
 
       {/* Edit Question Modal */}

@@ -4131,7 +4131,16 @@ export default function FlashcardPlay() {
           setIsEditModalOpen(true);
         }}
         initialTab={previewInsightTab}
-        insightsColumns={(session as any)?.creator_settings?.insights_columns || (session as any)?.practice_settings?.insights_columns}
+        insightsColumns={
+          (session as any)?.practice_settings?.insight_columns ??
+          (session as any)?.practice_settings?.insights_columns ??
+          (session as any)?.creator_settings?.insight_columns ??
+          (session as any)?.creator_settings?.insights_columns ??
+          (session as any)?.insight_columns ??
+          (session as any)?.insights_columns ??
+          (session as any)?.deck?.practice_settings?.insight_columns ??
+          (session as any)?.deck?.practice_settings?.insights_columns
+        }
       />
 
       <FlashcardModalsContainer

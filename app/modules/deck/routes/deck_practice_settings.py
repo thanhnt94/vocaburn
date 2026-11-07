@@ -251,6 +251,12 @@ async def save_practice_settings(request: Request, deck_id: int, payload: dict, 
                 merged["sub_lesson_grouping"] = settings["sub_lesson_grouping"]
             if "disabled_modes" in settings:
                 merged["disabled_modes"] = settings["disabled_modes"]
+            if "insight_columns" in settings:
+                merged["insight_columns"] = settings["insight_columns"]
+                merged["insights_columns"] = settings["insight_columns"]
+            elif "insights_columns" in settings:
+                merged["insight_columns"] = settings["insights_columns"]
+                merged["insights_columns"] = settings["insights_columns"]
 
         if "sub_lesson_grouping" in payload:
             merged["sub_lesson_grouping"] = payload["sub_lesson_grouping"]

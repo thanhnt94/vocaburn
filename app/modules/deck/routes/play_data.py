@@ -888,6 +888,8 @@ async def get_deck_play_data(
             "next_offset": (start_offset + len(cards_list)) if (limit and ((start_offset + len(cards_list)) < total_matching)) else None
         } if limit else None,
         "practice_settings": deck.practice_settings,
+        "insight_columns": (deck.practice_settings or {}).get("insight_columns") or (deck.practice_settings or {}).get("insights_columns"),
+        "insights_columns": (deck.practice_settings or {}).get("insight_columns") or (deck.practice_settings or {}).get("insights_columns"),
         "user_settings": user_sett.settings if user_sett else None,
         "study_defaults": study_resolved["creator_study_defaults"],
         "creator_study_defaults": study_resolved["creator_study_defaults"],
