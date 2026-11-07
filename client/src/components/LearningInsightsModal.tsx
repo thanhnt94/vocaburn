@@ -516,17 +516,17 @@ export default function LearningInsightsModal({
   }
 
   // Resolve configured insight columns from props or card/session metadata (supports both insight_columns and insights_columns)
-  const effectiveInsightColumns: string[] | undefined = useMemo(() => {
-    if (Array.isArray(insightsColumns)) return insightsColumns;
-    const fromCard = (card as any)?.insight_columns 
-      ?? (card as any)?.insights_columns
-      ?? (card as any)?.practice_settings?.insight_columns
-      ?? (card as any)?.practice_settings?.insights_columns
-      ?? (card as any)?.creator_settings?.insight_columns
-      ?? (card as any)?.creator_settings?.insights_columns;
-    if (Array.isArray(fromCard)) return fromCard;
-    return undefined;
-  }, [insightsColumns, card]);
+  const rawInsightCols = Array.isArray(insightsColumns)
+    ? insightsColumns
+    : (
+        (card as any)?.insight_columns 
+        ?? (card as any)?.insights_columns
+        ?? (card as any)?.practice_settings?.insight_columns
+        ?? (card as any)?.practice_settings?.insights_columns
+        ?? (card as any)?.creator_settings?.insight_columns
+        ?? (card as any)?.creator_settings?.insights_columns
+      );
+  const effectiveInsightColumns: string[] | undefined = Array.isArray(rawInsightCols) ? rawInsightCols : undefined;
 
   let displayTabs: { id: string; title: string; content: string }[] = [];
   if (effectiveInsightColumns && Array.isArray(effectiveInsightColumns)) {
