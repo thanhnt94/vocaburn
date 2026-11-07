@@ -593,20 +593,35 @@ export default function PracticePlay() {
 
     const keyLower = keyStr.toLowerCase();
 
+    const cleanMeaningVal = (raw: string): string => {
+      if (!raw) return "";
+      const s = String(raw).trim();
+      if (keyLower === 'nghĩa' || keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower === 'definition') {
+        const bracketMatch = s.match(/^[^\(（]+[\(（]([^\)）]+)[\)）]\s*$/);
+        if (bracketMatch && bracketMatch[1].trim()) {
+          const inner = bracketMatch[1].trim();
+          if (/[a-zA-Zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(inner)) {
+            return inner;
+          }
+        }
+      }
+      return s;
+    };
+
     // 1. Direct property match on item (e.g. item.front, item.back, item.content, item.explanation)
     if (item[keyStr] !== undefined && item[keyStr] !== null && String(item[keyStr]).trim()) {
-      return String(item[keyStr]).trim();
+      return cleanMeaningVal(String(item[keyStr]).trim());
     }
 
     // 2. Exact, case-insensitive, or semantic match in item.others FIRST!
     // This ensures custom column values (like item.others["nghĩa tiếng việt"] = "Phát hiện bất ngờ") take top priority!
     if (item.others && typeof item.others === 'object') {
       if (item.others[keyStr] !== undefined && item.others[keyStr] !== null && String(item.others[keyStr]).trim()) {
-        return String(item.others[keyStr]).trim();
+        return cleanMeaningVal(String(item.others[keyStr]).trim());
       }
       for (const [k, v] of Object.entries(item.others)) {
         if (k.toLowerCase() === keyLower && v !== undefined && v !== null && String(v).trim()) {
-          return String(v).trim();
+          return cleanMeaningVal(String(v).trim());
         }
       }
 
@@ -615,7 +630,7 @@ export default function PracticePlay() {
         for (const [k, v] of Object.entries(item.others)) {
           const kLower = k.toLowerCase();
           if ((kLower.includes('nghĩa') || kLower.includes('mean')) && v !== undefined && v !== null && String(v).trim()) {
-            return String(v).trim();
+            return cleanMeaningVal(String(v).trim());
           }
         }
       }
@@ -794,48 +809,43 @@ export default function PracticePlay() {
     const item_back = getVal(qObj, 'back');
 
     if (subMode === 'mcq' || subMode === 'listening_mcq') {
-      // Build candidate pool from server-provided distractor pool merged with current questions
-      const combinedPool = [
-        ...(session?.distractor_pool || []),
-        ...(session?.questions || [])
-      ];
-      const seenIds = new Set<number>();
-      const poolSource: any[] = [];
-      for (const item of combinedPool) {
-        if (item && item.id && !seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          poolSource.push(item);
-        }
-      }
+      const correctIsJp = isJapanese(correctAns);
 
-      const all_items_data = poolSource.map((q: any) => ({
-        id: q.id,
-        front: getVal(q, 'front'),
-        back: getVal(q, 'back'),
-        others: q.others
-      }));
+      // Prioritize cards from the current active session (e.g. current Sub-Lesson/Unit)
+      // so distractors always come from the SAME card type and SAME lesson first!
+      const sameLessonCards = (session?.questions || []).filter((q: any) => q && q.id !== qObj.id);
+      const otherDeckCards = (session?.distractor_pool || []).filter(
+        (q: any) => q && q.id !== qObj.id && !sameLessonCards.some((s: any) => s.id === q.id)
+      );
 
-      // Random sample from all items to speed up
-      const sampleSize = Math.min(all_items_data.length, 60);
-      const shuffled_items: any[] = [];
-      const usedIndices = new Set<number>();
-      while (shuffled_items.length < sampleSize && usedIndices.size < all_items_data.length) {
-        const randIdx = Math.floor(Math.random() * all_items_data.length);
-        if (!usedIndices.has(randIdx)) {
-          usedIndices.add(randIdx);
-          shuffled_items.push(all_items_data[randIdx]);
-        }
-      }
+      // Shuffle same lesson cards
+      const shuffledSameLesson = [...sameLessonCards].sort(() => Math.random() - 0.5);
+      // Shuffle other deck cards
+      const shuffledOther = [...otherDeckCards].sort(() => Math.random() - 0.5);
+
+      // Prioritize same lesson cards first, then other deck cards
+      const candidateList = [...shuffledSameLesson, ...shuffledOther];
 
       const distractor_pool: any[] = [];
-      for (const other of shuffled_items) {
-        if (distractor_pool.length >= 50) break;
-        if (other.id !== qObj.id) {
-          const d_val = getVal(other, primary_answer_key);
-          const d_q_val = getVal(other, question_key);
-          const d_front = getVal(other, 'front');
-          const d_back = getVal(other, 'back');
-          if (d_val && d_val.toLowerCase() !== 'nan') {
+      const seenDistractorTexts = new Set<string>();
+      seenDistractorTexts.add(correctAns.trim().toLowerCase());
+
+      for (const other of candidateList) {
+        if (distractor_pool.length >= 40) break;
+        const d_val = getVal(other, primary_answer_key);
+        const d_q_val = getVal(other, question_key);
+        const d_front = getVal(other, 'front');
+        const d_back = getVal(other, 'back');
+        if (d_val && d_val.toLowerCase() !== 'nan') {
+          const normText = d_val.trim().toLowerCase();
+          if (!seenDistractorTexts.has(normText)) {
+            // Guarantee language homogeneity: don't mix Japanese answers with Vietnamese answers
+            const dIsJp = isJapanese(d_val);
+            if (correctIsJp !== dIsJp) {
+              continue;
+            }
+
+            seenDistractorTexts.add(normText);
             distractor_pool.push({
               text: d_val,
               q_text: d_q_val,

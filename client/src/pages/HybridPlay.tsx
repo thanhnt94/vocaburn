@@ -51,6 +51,7 @@ import { HybridQuickControlsSheet } from '@/components/hybrid/HybridQuickControl
 import { getAudioContext, cancelAllAudio } from '@/lib/audio'
 import { getVal } from '@/lib/practice-utils'
 import { selectDistractors } from '@/lib/distractor'
+import { isJapanese } from '@/lib/text'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 import {
@@ -1131,23 +1132,34 @@ export default function HybridPlay() {
     const correctAns = getVal(q, primary_answer_key) || q.explanation || (q as any).back || ''
 
     if (chosenMode === 'mcq' || chosenMode === 'listening') {
-      const serverDistractors = (session as any)?.distractor_pool || []
-      const poolSource = serverDistractors.length >= 10
-        ? serverDistractors
-        : (rawQuestions.length >= 10 ? rawQuestions : (scopedQuestions.length > 0 ? scopedQuestions : rawQuestions))
+      const correctIsJp = isJapanese(correctAns)
+      const sameLessonCards = (scopedQuestions.length > 0 ? scopedQuestions : rawQuestions).filter((other: any) => other && other.id !== q.id)
+      const serverDistractors = ((session as any)?.distractor_pool || []).filter((other: any) => other && other.id !== q.id && !sameLessonCards.some((s: any) => s.id === other.id))
       
+      const pool = [
+        ...([...sameLessonCards].sort(() => 0.5 - Math.random())),
+        ...([...serverDistractors].sort(() => 0.5 - Math.random()))
+      ]
+
       // Build candidate distractor pool
       const distractor_pool: any[] = []
-      const pool = [...poolSource].sort(() => 0.5 - Math.random())
+      const seenDistractorTexts = new Set<string>()
+      seenDistractorTexts.add(correctAns.trim().toLowerCase())
 
       for (const other of pool) {
         if (distractor_pool.length >= 30) break
-        if (other.id !== q.id) {
-          const d_val = getVal(other, primary_answer_key)
-          const d_q_val = getVal(other, question_key)
-          const d_front = getVal(other, 'front')
-          const d_back = getVal(other, 'back')
-          if (d_val && d_val.toLowerCase() !== 'nan' && d_val.trim().toLowerCase() !== correctAns.trim().toLowerCase()) {
+        const d_val = getVal(other, primary_answer_key)
+        const d_q_val = getVal(other, question_key)
+        const d_front = getVal(other, 'front')
+        const d_back = getVal(other, 'back')
+        if (d_val && d_val.toLowerCase() !== 'nan') {
+          const normText = d_val.trim().toLowerCase()
+          if (!seenDistractorTexts.has(normText)) {
+            const dIsJp = isJapanese(d_val)
+            if (correctIsJp !== dIsJp) {
+              continue
+            }
+            seenDistractorTexts.add(normText)
             distractor_pool.push({
               text: d_val,
               q_text: d_q_val,
