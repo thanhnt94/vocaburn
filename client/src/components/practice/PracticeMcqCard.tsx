@@ -199,14 +199,23 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                     } else if (onPreviewInsight) {
                       // Lookup card for insight preview
                       const choiceIds = choice_item_ids || practiceData.choice_item_ids || currentQuestion?.practice?.choice_item_ids
-                      if (choiceIds && sessionQuestions.length > 0 && choiceIds[idx] !== undefined) {
-                        const targetCard = sessionQuestions.find((q: any) => String(q.id) === String(choiceIds[idx]))
-                        if (targetCard) onPreviewInsight(targetCard)
+                      let targetCard: any = null
+                      if (practiceData.choices_data && practiceData.choices_data[idx]?.card) {
+                        targetCard = practiceData.choices_data[idx].card
+                      }
+                      if (!targetCard && choiceIds && choiceIds[idx] !== undefined) {
+                        targetCard = sessionQuestions.find((q: any) => String(q.id) === String(choiceIds[idx]))
+                      }
+                      if (!targetCard && choiceIds && (currentQuestion as any)?.distractor_pool) {
+                        targetCard = (currentQuestion as any).distractor_pool.find((q: any) => String(q.id) === String(choiceIds[idx]))
+                      }
+                      if (targetCard && onPreviewInsight) {
+                        onPreviewInsight(targetCard)
                       }
                     }
                   }}
                   className={cn(
-                    "w-full min-h-[58px] sm:min-h-[64px] p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
+                    "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
                     cardStyle
                   )}
                 >
@@ -227,7 +236,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                   {/* Choice Content */}
                   <div className="flex-1 min-w-0 pr-1">
                     <span
-                      className="font-bold text-sm sm:text-base leading-snug block truncate"
+                      className="font-bold text-sm sm:text-base leading-snug block whitespace-normal break-words"
                       dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice || '') }}
                     />
                   </div>

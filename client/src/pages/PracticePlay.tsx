@@ -205,6 +205,19 @@ export default function PracticePlay() {
   };
 
   const [session, setSession] = useState<any>(null)
+  const allSessionAndPoolQuestions = useMemo(() => {
+    const list: any[] = [...(session?.questions || [])]
+    if (session?.distractor_pool && Array.isArray(session.distractor_pool)) {
+      const existing = new Set(list.map((q: any) => q.id))
+      for (const d of session.distractor_pool) {
+        if (d && d.id && !existing.has(d.id)) {
+          existing.add(d.id)
+          list.push(d)
+        }
+      }
+    }
+    return list
+  }, [session?.questions, session?.distractor_pool])
   const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isHeaderSurging, setIsHeaderSurging] = useState(false)
@@ -3670,7 +3683,7 @@ export default function PracticePlay() {
           selectedOption={selectedOption}
           onSelectOption={handleMCQAnswer}
           onPreviewInsight={setPreviewInsightCard}
-          sessionQuestions={session?.questions || []}
+          sessionQuestions={allSessionAndPoolQuestions}
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onPlayAudio={playCardAudio}
@@ -3695,7 +3708,7 @@ export default function PracticePlay() {
         onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
         onSelectOption={handleMCQAnswer}
         onPreviewInsight={setPreviewInsightCard}
-        sessionQuestions={session?.questions || []}
+        sessionQuestions={allSessionAndPoolQuestions}
         onPlayAudio={playCardAudio}
         onNext={() => handleNext()}
         onZoomImage={(url) => setZoomedImage(url)}
@@ -5387,7 +5400,7 @@ export default function PracticePlay() {
       <LearningInsightsModal
         card={previewInsightCard}
         onClose={() => setPreviewInsightCard(null)}
-        allQuestions={session?.questions || []}
+        allQuestions={allSessionAndPoolQuestions}
         onSelectCard={(c) => setPreviewInsightCard(c)}
         canEdit={canEdit}
         onEditCard={(c) => {
