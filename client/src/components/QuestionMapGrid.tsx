@@ -420,10 +420,17 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
               <div className="relative inline-flex items-center">
                 <select
                   value={activeCol || 'none'}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const nextVal = e.target.value === 'none' ? null : e.target.value
                     setSelectedCol(nextVal)
                     setSelectedGroupVal('all')
+                    if (isDeckValid && nextVal) {
+                      try {
+                        await axios.post(`/api/v1/deck/${deckId}/sub-lessons/preference`, { column: nextVal })
+                      } catch (err) {
+                        console.error('Failed to save sub-lesson preference', err)
+                      }
+                    }
                   }}
                   className="appearance-none bg-white border border-slate-200/90 rounded-lg pl-2 pr-6 py-0.5 font-extrabold text-indigo-700 hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer text-[10.5px]"
                 >

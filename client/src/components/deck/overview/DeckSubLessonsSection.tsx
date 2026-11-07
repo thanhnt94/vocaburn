@@ -196,7 +196,15 @@ export function DeckSubLessonsSection({
               <div className="relative">
                 <select
                   value={active_column || ''}
-                  onChange={(e) => setSelectedColumnOverride(e.target.value)}
+                  onChange={async (e) => {
+                    const newCol = e.target.value
+                    setSelectedColumnOverride(newCol)
+                    try {
+                      await axios.post(`/api/v1/deck/${deckId}/sub-lessons/preference`, { column: newCol })
+                    } catch (err) {
+                      console.error('Failed to save sub-lesson preference', err)
+                    }
+                  }}
                   className="appearance-none bg-transparent pr-5 text-[11px] font-black text-slate-800 focus:outline-none cursor-pointer"
                 >
                   {available_columns.map((col) => (

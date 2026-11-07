@@ -14,6 +14,7 @@ import {
   Database,
   Search,
   Lightbulb,
+  FolderTree,
   Image as ImageIcon
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -63,6 +64,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newColumnName, setNewColumnName] = useState('')
   const [newColIsInsight, setNewColIsInsight] = useState(true)
+  const [newColIsCategory, setNewColIsCategory] = useState(false)
   const [editingColumn, setEditingColumn] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [deleteConfirmCol, setDeleteConfirmCol] = useState<string | null>(null)
@@ -111,6 +113,19 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     return ['back'];
   }, [practiceSettingsData, deckData]);
 
+  // Current configured category columns for sub-lessons
+  const currentCategoryCols: string[] = React.useMemo(() => {
+    const saved = practiceSettingsData?.creator_settings?.category_columns 
+      ?? deckData?.practice_settings?.category_columns
+      ?? practiceSettingsData?.creator_settings?.sub_lesson_grouping?.category_columns
+      ?? deckData?.practice_settings?.sub_lesson_grouping?.category_columns;
+    if (Array.isArray(saved)) return saved;
+    const singleCol = practiceSettingsData?.creator_settings?.sub_lesson_grouping?.column
+      ?? deckData?.practice_settings?.sub_lesson_grouping?.column;
+    if (singleCol) return [singleCol];
+    return [];
+  }, [practiceSettingsData, deckData]);
+
   // 2. Mutations
   const toggleInsightMutation = useMutation({
     mutationFn: async ({ column, isInsight }: { column: string; isInsight: boolean }) => {
@@ -136,6 +151,52 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     },
     onError: (err: any) => {
       setErrorMsg(err.response?.data?.error || 'Failed to save insight column settings.')
+    }
+  })
+
+  const toggleCategoryMutation = useMutation({
+    mutationFn: async ({ column, isCategory }: { column: string; isCategory: boolean }) => {
+      let updated: string[]
+      if (isCategory) {
+        updated = Array.from(new Set([...currentCategoryCols, column]))
+      } else {
+        updated = currentCategoryCols.filter(c => c !== column)
+      }
+      
+      const currentGrouping = practiceSettingsData?.creator_settings?.sub_lesson_grouping 
+        ?? deckData?.practice_settings?.sub_lesson_grouping 
+        ?? {};
+      const defaultCol = updated.includes(currentGrouping.column) ? currentGrouping.column : (updated[0] || null);
+
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        sub_lesson_grouping: {
+          ...currentGrouping,
+          enabled: updated.length > 0 ? (currentGrouping.enabled ?? true) : false,
+          column: defaultCol,
+          category_columns: updated
+        },
+        settings: {
+          category_columns: updated,
+          sub_lesson_grouping: {
+            ...currentGrouping,
+            enabled: updated.length > 0 ? (currentGrouping.enabled ?? true) : false,
+            column: defaultCol,
+            category_columns: updated
+          }
+        }
+      })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.error || 'Failed to save category column settings.')
     }
   })
 
@@ -196,15 +257,27 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
   }
 
   const addColumnMutation = useMutation({
-    mutationFn: async ({ column_name, isInsight }: { column_name: string; isInsight: boolean }) => {
+    mutationFn: async ({ column_name, isInsight, isCategory }: { column_name: string; isInsight: boolean; isCategory?: boolean }) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/add-column`, { column_name })
+      const updateSettings: any = {}
       if (isInsight) {
-        const updated = Array.from(new Set([...currentInsightCols, column_name]))
+        updateSettings.insight_columns = Array.from(new Set([...currentInsightCols, column_name]))
+      }
+      if (isCategory) {
+        const updatedCat = Array.from(new Set([...currentCategoryCols, column_name]))
+        updateSettings.category_columns = updatedCat
+        const currentGrouping = practiceSettingsData?.creator_settings?.sub_lesson_grouping ?? {}
+        updateSettings.sub_lesson_grouping = {
+          ...currentGrouping,
+          enabled: true,
+          column: currentGrouping.column || column_name,
+          category_columns: updatedCat
+        }
+      }
+      if (Object.keys(updateSettings).length > 0) {
         await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
           is_creator: true,
-          settings: {
-            insight_columns: updated
-          }
+          settings: updateSettings
         })
       }
       return res.data
@@ -212,11 +285,14 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setIsAddModalOpen(false)
       setNewColumnName('')
       setNewColIsInsight(true)
+      setNewColIsCategory(false)
       setErrorMsg(null)
     },
     onError: (err: any) => {
@@ -227,13 +303,24 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
   const renameColumnMutation = useMutation({
     mutationFn: async ({ old_name, new_name }: { old_name: string; new_name: string }) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/rename-column`, { old_name, new_name })
+      const updateSettings: any = {}
       if (currentInsightCols.includes(old_name)) {
-        const updated = currentInsightCols.map(c => c === old_name ? new_name : c)
+        updateSettings.insight_columns = currentInsightCols.map(c => c === old_name ? new_name : c)
+      }
+      if (currentCategoryCols.includes(old_name)) {
+        const updatedCat = currentCategoryCols.map(c => c === old_name ? new_name : c)
+        updateSettings.category_columns = updatedCat
+        const currentGrouping = practiceSettingsData?.creator_settings?.sub_lesson_grouping ?? {}
+        updateSettings.sub_lesson_grouping = {
+          ...currentGrouping,
+          column: currentGrouping.column === old_name ? new_name : currentGrouping.column,
+          category_columns: updatedCat
+        }
+      }
+      if (Object.keys(updateSettings).length > 0) {
         await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
           is_creator: true,
-          settings: {
-            insight_columns: updated
-          }
+          settings: updateSettings
         })
       }
       return res.data
@@ -241,6 +328,8 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setEditingColumn(null)
@@ -255,13 +344,24 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
   const deleteColumnMutation = useMutation({
     mutationFn: async (column_name: string) => {
       const res = await axios.post(`/api/v1/deck/${deckId}/delete-column`, { column_name })
+      const updateSettings: any = {}
       if (currentInsightCols.includes(column_name)) {
-        const updated = currentInsightCols.filter(c => c !== column_name)
+        updateSettings.insight_columns = currentInsightCols.filter(c => c !== column_name)
+      }
+      if (currentCategoryCols.includes(column_name)) {
+        const updatedCat = currentCategoryCols.filter(c => c !== column_name)
+        updateSettings.category_columns = updatedCat
+        const currentGrouping = practiceSettingsData?.creator_settings?.sub_lesson_grouping ?? {}
+        updateSettings.sub_lesson_grouping = {
+          ...currentGrouping,
+          column: currentGrouping.column === column_name ? (updatedCat[0] || null) : currentGrouping.column,
+          category_columns: updatedCat
+        }
+      }
+      if (Object.keys(updateSettings).length > 0) {
         await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
           is_creator: true,
-          settings: {
-            insight_columns: updated
-          }
+          settings: updateSettings
         })
       }
       return res.data
@@ -269,6 +369,8 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deck-columns-overview', deckId] })
       queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-sub-lessons-settings', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
       queryClient.invalidateQueries({ queryKey: ['quiz', deckId] })
       setDeleteConfirmCol(null)
@@ -320,7 +422,7 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
       setErrorMsg('Please enter a valid column name')
       return
     }
-    addColumnMutation.mutate({ column_name: clean, isInsight: newColIsInsight })
+    addColumnMutation.mutate({ column_name: clean, isInsight: newColIsInsight, isCategory: newColIsCategory })
   }
 
   const handleRenameColumn = (oldName: string) => {
@@ -447,14 +549,19 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
               const pct = totalCards > 0 ? Math.round((count / totalCards) * 100) : 0
               const isEditing = editingColumn === colName
               const isInsightCol = currentInsightCols.includes(colName)
+              const isCategoryCol = currentCategoryCols.includes(colName)
 
               return (
                 <div
                   key={colName}
                   className={cn(
                     "border rounded-2xl p-4 transition-all flex flex-col justify-between gap-3 group",
-                    isInsightCol
+                    isInsightCol && isCategoryCol
+                      ? "bg-gradient-to-br from-amber-50/20 to-indigo-50/20 border-indigo-200/80 hover:bg-indigo-50/30"
+                      : isInsightCol
                       ? "bg-amber-50/20 border-amber-200/70 hover:bg-amber-50/30"
+                      : isCategoryCol
+                      ? "bg-indigo-50/20 border-indigo-200/70 hover:bg-indigo-50/30"
                       : "bg-slate-50/80 hover:bg-slate-50 border-slate-200/70"
                   )}
                 >
@@ -551,6 +658,38 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                     {isInsightCol && (
                       <span className="px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
                         ✨ Insights On
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Sub-Lesson Category Toggle / Checkbox */}
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    <label 
+                      className="flex items-center gap-2 cursor-pointer select-none text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isCategoryCol}
+                        onChange={(e) => {
+                          if (isOwner) {
+                            toggleCategoryMutation.mutate({ column: colName, isCategory: e.target.checked })
+                          }
+                        }}
+                        disabled={!isOwner || toggleCategoryMutation.isPending}
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 transition cursor-pointer"
+                      />
+                      <span className={cn(
+                        "text-xs font-bold transition-colors flex items-center gap-1",
+                        isCategoryCol ? "text-indigo-900 font-extrabold" : "text-slate-500"
+                      )}>
+                        <FolderTree className={cn("w-3.5 h-3.5", isCategoryCol ? "text-indigo-600" : "text-slate-400")} />
+                        Sub-Lesson Category
+                      </span>
+                    </label>
+                    {isCategoryCol && (
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-100/90 text-indigo-800 text-[10px] font-black uppercase tracking-wider shrink-0">
+                        📁 Category On
                       </span>
                     )}
                   </div>
@@ -914,6 +1053,23 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                       Set as Learning Insights Field
                     </span>
                     <span className="text-[11px] text-amber-700 font-medium">Display inside the Learning Insights Assistant during study</span>
+                  </div>
+                </label>
+
+                {/* Tùy chọn: Dùng làm Category / Unit chia bài học */}
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={newColIsCategory}
+                    onChange={(e) => setNewColIsCategory(e.target.checked)}
+                    className="w-4 h-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="font-black text-indigo-900 flex items-center gap-1">
+                      <FolderTree className="w-3.5 h-3.5 text-indigo-600" />
+                      Set as Sub-Lesson Category
+                    </span>
+                    <span className="text-[11px] text-indigo-700 font-medium">Allow grouping and partitioning deck cards by this column</span>
                   </div>
                 </label>
 

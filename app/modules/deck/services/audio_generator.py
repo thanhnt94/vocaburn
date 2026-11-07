@@ -127,8 +127,9 @@ class AudioGenerator:
         # 5. Clean up extra spaces around Japanese characters (Kanji/Kana) caused by Anki space separator
         s = re.sub(r'([一-龯ぁ-んァ-ン])\s+([一-龯ぁ-んァ-ン])', r'\1\2', s)
 
-        # 6. Normalize whitespace
+        # 6. Normalize whitespace and strip trailing colons that cause Edge TTS synthesis failures
         s = re.sub(r'[ \t]+', ' ', s)
+        s = re.sub(r'[:：\s]+$', '', s)
         return s.strip()
 
     @classmethod
@@ -262,6 +263,21 @@ class AudioGenerator:
                             # Exponential backoff with random jitter
                             backoff = (attempt * 2.0) + random.uniform(0.5, 1.2)
                             await asyncio.sleep(backoff)
+
+                if not success_edge:
+                    # Intelligent fallback to gTTS so Microsoft temporary drops or filter false-positives NEVER break the pipeline
+                    try:
+                        from gtts import gTTS
+                        lang_code = "vi" if "vi" in raw_lang.lower() else ("ja" if "ja" in raw_lang.lower() else "en")
+                        gtts_obj = gTTS(text=seg_text, lang=lang_code)
+                        gtts_obj.save(temp_path)
+                        if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
+                            success_edge = True
+                            fb_msg = f"[TTS GENERATOR] [FALLBACK GTTS SUCCESS] Lang: '{lang_code}' | Text: '{seg_text[:30]}...'"
+                            print(fb_msg)
+                            logger.info(fb_msg)
+                    except Exception as gerr:
+                        logger.error(f"[TTS GENERATOR] [FALLBACK GTTS FAILED]: {gerr}")
 
                 if not success_edge:
                     if os.path.exists(temp_path):

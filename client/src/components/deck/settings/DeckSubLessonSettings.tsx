@@ -90,17 +90,24 @@ export function DeckSubLessonSettings({ deckId, onSaved }: DeckSubLessonSettings
     setIsSaving(true)
     useAutoSaveStore.getState().notifySaving()
 
+    const currentCats: string[] = (subLessonsData as any)?.category_columns || []
+    const updatedCats = newColumn ? Array.from(new Set([...currentCats, newColumn])) : currentCats
+
     try {
       await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
         is_creator: true,
+        category_columns: updatedCats,
         sub_lesson_grouping: {
           enabled: newEnabled,
-          column: newColumn || null
+          column: newColumn || null,
+          category_columns: updatedCats
         },
         settings: {
+          category_columns: updatedCats,
           sub_lesson_grouping: {
             enabled: newEnabled,
-            column: newColumn || null
+            column: newColumn || null,
+            category_columns: updatedCats
           }
         }
       })

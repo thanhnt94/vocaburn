@@ -120,13 +120,33 @@ async def get_deck_sub_lessons(
     is_configured_enabled = bool(grouping_cfg.get("enabled", False))
     configured_column = grouping_cfg.get("column")
     
-    # Active column: explicitly requested in query param, or creator configured column ONLY if grouping is enabled
-    active_col = column if column else (configured_column if is_configured_enabled else None)
-    
+    # Category columns explicitly designated by deck creator
+    raw_cat_cols = practice_settings.get("category_columns") or grouping_cfg.get("category_columns") or []
+    if isinstance(raw_cat_cols, str):
+        raw_cat_cols = [raw_cat_cols]
+    category_columns = [clean_col_name(c) for c in raw_cat_cols if clean_col_name(c)]
+
+    # Query user personal preference for this deck
+    user_pref_col = None
+    if user_id:
+        from app.modules.deck.models import UserDeckSettings
+        u_res = await db.execute(
+            select(UserDeckSettings.settings).where(
+                UserDeckSettings.user_id == user_id,
+                UserDeckSettings.deck_id == deck_id
+            )
+        )
+        u_sett = u_res.scalar_one_or_none()
+        if u_sett and isinstance(u_sett, dict):
+            raw_pref = u_sett.get("sub_lesson_column") or u_sett.get("selected_category_column")
+            if raw_pref:
+                user_pref_col = clean_col_name(str(raw_pref))
+
     # 3. Discover all candidate columns in this deck
     excluded_cols = {
         "id", "item_id", "order_in_container", "_formulas", "_formula",
         "front_audio_url", "back_audio_url", "front_audio_content", "back_audio_content",
+        "meaning_audio_url", "meaning_audio_content", "podcast_audio_url", "podcast_audio_content",
         "front_img", "back_img"
     }
     
@@ -141,7 +161,37 @@ async def get_deck_sub_lessons(
                     val_str = str(v).strip() if v is not None else ""
                     if val_str:
                         col_distinct_map[k_clean].add(val_str)
-                        
+
+    # Filter candidate columns:
+    # If creator explicitly configured category_columns, STRICTLY respect that whitelist!
+    if category_columns:
+        allowed_set = set(category_columns)
+        if configured_column:
+            allowed_set.add(clean_col_name(configured_column))
+        col_distinct_map = {k: v for k, v in col_distinct_map.items() if k in allowed_set}
+    else:
+        # Smart noise reduction for unconfigured decks:
+        # Exclude long text columns (translations, notes, sentences, nuances)
+        noisy_keywords = (
+            "audio", "dịch", "dich", "ví_dụ", "vi_du", "chú_ý", "chu_y",
+            "sắc_thái", "sac_thai", "lưu_ý", "luu_y", "bản_chất", "ban_chat",
+            "cách_kết_hợp", "cach_ket_hop", "mã", "ma_", "stt"
+        )
+        filtered_map = {}
+        for k, v in col_distinct_map.items():
+            k_lower = k.lower()
+            if any(nw in k_lower for nw in noisy_keywords):
+                continue
+            # If all cards have distinct values, it's not a group/category
+            if total_cards > 10 and len(v) >= total_cards * 0.9:
+                continue
+            # Calculate average length of distinct values
+            avg_len = sum(len(x) for x in v) / max(len(v), 1)
+            if avg_len > 35:
+                continue
+            filtered_map[k] = v
+        col_distinct_map = filtered_map
+
     # Build candidate columns list (prioritizing educational grouping columns)
     def column_priority_key(col_key: str):
         col_lower = col_key.lower().replace(" ", "_").replace("-", "_")
@@ -169,7 +219,7 @@ async def get_deck_sub_lessons(
             
     # Also add question_type if deck has multiple question types
     q_types = set(str(c_qtype).strip() for _, _, c_qtype in raw_cards if c_qtype)
-    if len(q_types) > 1:
+    if len(q_types) > 1 and (not category_columns or "question_type" in category_columns):
         available_columns.append({
             "column": "question_type",
             "label": "Question Type",
@@ -180,9 +230,25 @@ async def get_deck_sub_lessons(
     # Sort columns by educational priority key
     available_columns.sort(key=lambda x: column_priority_key(x["column"]))
 
-    # If no active column chosen yet, default to configured column or first available column ONLY if creator explicitly enabled grouping
-    if not active_col and is_configured_enabled and available_columns:
-        active_col = configured_column or available_columns[0]["column"]
+    valid_col_names = set(c["column"] for c in available_columns)
+
+    # Active column resolution:
+    # 1. Explicit query parameter ?column=...
+    # 2. Learner's personal remembered preference (user_pref_col) IF valid
+    # 3. Creator's configured column IF valid
+    # 4. First available candidate column
+    if column and clean_col_name(column) in valid_col_names:
+        active_col = clean_col_name(column)
+    elif user_pref_col and user_pref_col in valid_col_names:
+        active_col = user_pref_col
+    elif configured_column and clean_col_name(configured_column) in valid_col_names:
+        active_col = clean_col_name(configured_column)
+    elif is_configured_enabled and available_columns:
+        active_col = available_columns[0]["column"]
+    elif available_columns and column:
+        active_col = available_columns[0]["column"]
+    else:
+        active_col = None
 
     # 4. If we have an active column, compute groups & mastery progress
     groups = []
@@ -274,6 +340,7 @@ async def get_deck_sub_lessons(
         "enabled": is_configured_enabled,
         "is_configured": is_configured_enabled,
         "configured_column": configured_column,
+        "category_columns": category_columns,
         "active_column": active_col,
         "active_column_label": active_col.replace("_", " ").title() if active_col else None,
         "total_cards": total_cards,
@@ -281,6 +348,47 @@ async def get_deck_sub_lessons(
         "groups": groups,
         "available_columns": available_columns
     }
+
+@router.post("/{deck_id}/sub-lessons/preference")
+async def save_sub_lessons_user_preference(
+    request: Request,
+    deck_id: int,
+    payload: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = AuthService.get_user_id(request)
+    if not user_id:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    col = payload.get("column")
+    if col:
+        col = clean_col_name(col)
+
+    from app.modules.deck.models import UserDeckSettings
+    from sqlalchemy.orm.attributes import flag_modified
+
+    u_res = await db.execute(
+        select(UserDeckSettings).where(
+            UserDeckSettings.user_id == user_id,
+            UserDeckSettings.deck_id == deck_id
+        )
+    )
+    user_sett = u_res.scalar_one_or_none()
+    if not user_sett:
+        user_sett = UserDeckSettings(
+            user_id=user_id,
+            deck_id=deck_id,
+            settings={"sub_lesson_column": col}
+        )
+        db.add(user_sett)
+    else:
+        current_settings = dict(user_sett.settings) if isinstance(user_sett.settings, dict) else {}
+        current_settings["sub_lesson_column"] = col
+        user_sett.settings = current_settings
+        flag_modified(user_sett, "settings")
+
+    await db.commit()
+    return {"status": "ok", "sub_lesson_column": col}
 
 @router.post("/{deck_id}/add-column")
 async def add_deck_column(request: Request, deck_id: int, payload: dict, db: AsyncSession = Depends(get_db)):
