@@ -670,10 +670,7 @@ async def get_deck_play_data(
                 "id": sc.id,
                 "front": sc.content,
                 "back": sc.explanation,
-                "others": {
-                    "type": sc_others.get("type", "") or sc_others.get("pos", ""),
-                    "pos": sc_others.get("pos", "")
-                } if sc_others else None
+                "others": fix_static_urls(sc_others) if sc_others else None
             })
 
     total_matching = len(source_cards)

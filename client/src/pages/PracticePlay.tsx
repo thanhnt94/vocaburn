@@ -680,17 +680,33 @@ export default function PracticePlay() {
         // Priority 1: Label icon 🏷️ (frequent in Japanese / Anki cards, e.g. "🏷️ Hỗn loạn")
         const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌📝🗣️]+)/);
         if (tagMatch && tagMatch[1].trim()) {
-          return tagMatch[1].trim();
+          const res = tagMatch[1].replace(/[*_#`]/g, '').trim();
+          if (res && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(res)) {
+            return res;
+          }
         }
         // Priority 2: Idea/Meaning icon 💡 (frequent in English / IELTS cards, e.g. "💡 Phát hiện bất ngờ")
         const bulbMatch = strVal.match(/💡\s*([^\n🌱📢📌📝🗣️🏷️]+)/);
         if (bulbMatch && bulbMatch[1].trim()) {
-          return bulbMatch[1].trim();
+          const res = bulbMatch[1].replace(/[*_#`]/g, '').trim();
+          if (res && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(res)) {
+            return res;
+          }
         }
-        // Priority 3: Target/Book icons 🎯, 📖
+        // Priority 3: Target/Book icons 🎯, 📖 (often has header on line 1 e.g. "🎯 **Ý NGHĨA:**\n**Trong phạm vi...**")
+        const targetSectionMatch = strVal.match(/(?:🎯|📖)\s*(?:\*\*)?(?:Ý\s*NGHĨA|Ý\s*nghĩa|Nghĩa|Meaning|Định\s*nghĩa)?(?:\*\*)?[:\s]*\n+([^\n🌱📢📌📝🗣️🏷️💡]+)/i);
+        if (targetSectionMatch && targetSectionMatch[1].trim()) {
+          const cleanText = targetSectionMatch[1].replace(/[*_#`]/g, '').trim();
+          if (cleanText && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(cleanText)) {
+            return cleanText;
+          }
+        }
         const otherTagMatch = strVal.match(/(?:🎯|📖)\s*([^\n🌱📢📌📝🗣️🏷️💡]+)/);
         if (otherTagMatch && otherTagMatch[1].trim()) {
-          return otherTagMatch[1].trim();
+          const cleanText = otherTagMatch[1].replace(/[*_#`]/g, '').trim();
+          if (cleanText && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(cleanText)) {
+            return cleanText;
+          }
         }
       }
 
@@ -778,10 +794,19 @@ export default function PracticePlay() {
     const item_back = getVal(qObj, 'back');
 
     if (subMode === 'mcq' || subMode === 'listening_mcq') {
-      // Build candidate pool from server-provided distractor pool or fallback to questions
-      const poolSource = (session?.distractor_pool && session.distractor_pool.length >= 10)
-        ? session.distractor_pool
-        : session.questions;
+      // Build candidate pool from server-provided distractor pool merged with current questions
+      const combinedPool = [
+        ...(session?.distractor_pool || []),
+        ...(session?.questions || [])
+      ];
+      const seenIds = new Set<number>();
+      const poolSource: any[] = [];
+      for (const item of combinedPool) {
+        if (item && item.id && !seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          poolSource.push(item);
+        }
+      }
 
       const all_items_data = poolSource.map((q: any) => ({
         id: q.id,
@@ -791,7 +816,7 @@ export default function PracticePlay() {
       }));
 
       // Random sample from all items to speed up
-      const sampleSize = Math.min(all_items_data.length, 50);
+      const sampleSize = Math.min(all_items_data.length, 60);
       const shuffled_items: any[] = [];
       const usedIndices = new Set<number>();
       while (shuffled_items.length < sampleSize && usedIndices.size < all_items_data.length) {
@@ -804,7 +829,7 @@ export default function PracticePlay() {
 
       const distractor_pool: any[] = [];
       for (const other of shuffled_items) {
-        if (distractor_pool.length >= 20) break;
+        if (distractor_pool.length >= 50) break;
         if (other.id !== qObj.id) {
           const d_val = getVal(other, primary_answer_key);
           const d_q_val = getVal(other, question_key);
@@ -836,6 +861,21 @@ export default function PracticePlay() {
 
       const needed = num_choices - 1;
       const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed);
+
+      // Robust fallback if selectDistractors filtered out candidates
+      if (selectedDistractors.length < needed) {
+        const selectedIds = new Set([qObj.id, ...selectedDistractors.map(d => d.id)]);
+        const selectedTexts = new Set([correctAns.trim().toLowerCase(), ...selectedDistractors.map(d => d.text.trim().toLowerCase())]);
+        for (const cand of distractor_pool) {
+          if (selectedDistractors.length >= needed) break;
+          const candText = cand.text.trim().toLowerCase();
+          if (!selectedIds.has(cand.id) && !selectedTexts.has(candText)) {
+            selectedDistractors.push(cand);
+            selectedIds.add(cand.id);
+            selectedTexts.add(candText);
+          }
+        }
+      }
 
       // Assemble choices
       const choices_data = ([correct_item_data] as any[]).concat(selectedDistractors);

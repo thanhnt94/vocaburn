@@ -97,17 +97,33 @@ export const getVal = (item: any, key: string): string => {
       // Priority 1: Label icon 🏷️ (frequent in Japanese / Anki cards, e.g. "🏷️ Hỗn loạn")
       const tagMatch = strVal.match(/🏷️\s*([^\n🌱💡📢📌📝🗣️]+)/);
       if (tagMatch && tagMatch[1].trim()) {
-        return tagMatch[1].trim();
+        const res = tagMatch[1].replace(/[*_#`]/g, '').trim();
+        if (res && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(res)) {
+          return res;
+        }
       }
       // Priority 2: Idea/Meaning icon 💡 (frequent in English / IELTS cards, e.g. "💡 Phát hiện bất ngờ")
       const bulbMatch = strVal.match(/💡\s*([^\n🌱📢📌📝🗣️🏷️]+)/);
       if (bulbMatch && bulbMatch[1].trim()) {
-        return bulbMatch[1].trim();
+        const res = bulbMatch[1].replace(/[*_#`]/g, '').trim();
+        if (res && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(res)) {
+          return res;
+        }
       }
-      // Priority 3: Target/Book icons 🎯, 📖
+      // Priority 3: Target/Book icons 🎯, 📖 (often has header on line 1 e.g. "🎯 **Ý NGHĨA:**\n**Trong phạm vi...**")
+      const targetSectionMatch = strVal.match(/(?:🎯|📖)\s*(?:\*\*)?(?:Ý\s*NGHĨA|Ý\s*nghĩa|Nghĩa|Meaning|Định\s*nghĩa)?(?:\*\*)?[:\s]*\n+([^\n🌱📢📌📝🗣️🏷️💡]+)/i);
+      if (targetSectionMatch && targetSectionMatch[1].trim()) {
+        const cleanText = targetSectionMatch[1].replace(/[*_#`]/g, '').trim();
+        if (cleanText && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(cleanText)) {
+          return cleanText;
+        }
+      }
       const otherTagMatch = strVal.match(/(?:🎯|📖)\s*([^\n🌱📢📌📝🗣️🏷️💡]+)/);
       if (otherTagMatch && otherTagMatch[1].trim()) {
-        return otherTagMatch[1].trim();
+        const cleanText = otherTagMatch[1].replace(/[*_#`]/g, '').trim();
+        if (cleanText && !/^(ý nghĩa|nghĩa|meaning|định nghĩa)[:\s]*$/i.test(cleanText)) {
+          return cleanText;
+        }
       }
     }
 

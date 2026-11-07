@@ -48,7 +48,7 @@ export const selectDistractors = (
 
     // Hard filters
     const d_back = stripBBCode(cand.back).trim();
-    if (!isJapanese(d_back) && c_back_tokens.size > 0) {
+    if (!isJapanese(d_back) && c_back_tokens.size > 0 && c_back.length < 250 && d_back.length < 250) {
       const d_back_tokens = extractTokens(d_back);
       if (tokensOverlapHigh(d_back_tokens, c_back_tokens)) continue;
     }
@@ -59,7 +59,7 @@ export const selectDistractors = (
     }
 
     if (c_q_tokens.size > 0) {
-      const d_back_tokens_q = !isJapanese(d_back) ? extractTokens(d_back) : new Set<string>();
+      const d_back_tokens_q = (!isJapanese(d_back) && d_back.length < 250) ? extractTokens(d_back) : new Set<string>();
       if (d_back_tokens_q.size > 0 && tokensOverlapHigh(d_back_tokens_q, c_q_tokens)) continue;
 
       if (!answer_is_jp) {
