@@ -1461,10 +1461,15 @@ export default function PracticePlay() {
         playDataUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
       }
 
-      const isRandomActive = forceRandom !== undefined ? forceRandom : Boolean(randomEnabled)
+      let orderParam = ''
+      if (forceRandom !== undefined) {
+        orderParam = forceRandom ? `&order=random&seed=${practiceSeedRef.current}` : '&order=sequential'
+      } else if (randomEnabled) {
+        orderParam = `&order=random&seed=${practiceSeedRef.current}`
+      }
+
       if (isPractice && !isFolder && !isRoadmapTestMode && id !== 'quick') {
         const delimiter = playDataUrl.includes('?') ? '&' : '?'
-        const orderParam = isRandomActive ? `&order=random&seed=${practiceSeedRef.current}` : '&order=sequential'
         playDataUrl += `${delimiter}limit=30&offset=0${orderParam}&include_distractors=true`
       }
 
@@ -1507,6 +1512,9 @@ export default function PracticePlay() {
         isCustom,
         origin
       );
+      if (forceRandom !== undefined) {
+        setRandomEnabled(forceRandom);
+      }
 
       const hasLearned = questions.some((q: any) => (q.stats?.total || 0) > 0);
       if (activeTab === 'practice' && practiceRange === 'learned' && !hasLearned) {
@@ -2868,7 +2876,7 @@ export default function PracticePlay() {
     fetchSession('practice', targetMode as any);
   };
 
-  const handleToggleRandom = (val?: boolean) => {
+  const handleToggleRandom = async (val?: boolean) => {
     const nextVal = typeof val === 'boolean' ? val : !randomEnabled;
     setRandomEnabled(nextVal);
     practiceSeedRef.current = Math.floor(Math.random() * 1000000);
@@ -2877,7 +2885,8 @@ export default function PracticePlay() {
     setCurrentIndex(0);
     setSelectedOption(null);
     setShowFeedback(false);
-    fetchSession(mainTab, subMode || practiceSubMode, cardScope, nextVal);
+    await saveGeneralSettings({ random_enabled: nextVal });
+    await fetchSession(mainTab, subMode || practiceSubMode, cardScope, nextVal);
   };
 
   const handleNext = async (customAnswers?: Record<number, number>) => {
@@ -2970,12 +2979,14 @@ export default function PracticePlay() {
 
       if (isRandom) {
         if (unanswered.length > 0) {
-          return unanswered[0];
+          const randPos = Math.floor(Math.random() * unanswered.length);
+          return unanswered[randPos];
         }
-        // If all active cards in memory were answered, fall back to any other card
+        // If all active cards in memory were answered, pick randomly from other cards
         const otherIndices = activeIndices.filter(i => i !== currentIdx);
         const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
-        return pool[0] || 0;
+        const randPos = Math.floor(Math.random() * pool.length);
+        return pool[randPos] || 0;
       } else {
         const nextUnanswered = activeIndices.find(i => i > currentIdx && currentAnswers[i] === undefined);
         if (nextUnanswered !== undefined) return nextUnanswered;

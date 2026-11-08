@@ -686,7 +686,29 @@ async def get_deck_play_data(
                 "others": fix_static_urls(sc_others) if sc_others else None
             })
 
-    if order in ("random", "rand"):
+    effective_order = order
+    if not effective_order:
+        user_ps = user_sett.settings if (user_sett and user_sett.settings) else {}
+        if isinstance(user_ps, str):
+            try:
+                import json
+                user_ps = json.loads(user_ps)
+            except Exception:
+                user_ps = {}
+        deck_ps = deck.practice_settings if (deck and isinstance(deck.practice_settings, dict)) else {}
+
+        if user_ps.get("random_enabled") is not None:
+            if user_ps.get("random_enabled"):
+                effective_order = "random"
+        elif (user_ps.get("study_settings") or {}).get("random_enabled") is not None:
+            if (user_ps.get("study_settings") or {}).get("random_enabled"):
+                effective_order = "random"
+        elif deck_ps.get("random_enabled"):
+            effective_order = "random"
+        elif is_practice:
+            effective_order = "random"
+
+    if effective_order in ("random", "rand"):
         import random
         effective_seed = seed if seed is not None else (int(user_id or 0) * 10007 + int(deck_id or 0) * 1009)
         rng = random.Random(effective_seed)
