@@ -536,6 +536,8 @@ class ExcelDeckService:
                     a_col = str(row.get("answer_column") or row.get("answer") or row.get("cột đáp án") or row.get("a", "")).strip()
                     audio_col_raw = row.get("audio_column") or row.get("audio_col") or row.get("cột âm thanh") or row.get("audio_target") or row.get("audio", "")
                     audio_col = str(audio_col_raw).strip() if pd.notna(audio_col_raw) and str(audio_col_raw).strip().lower() != "nan" else ""
+                    subtext_col_raw = row.get("extra_info_column") or row.get("info_column") or row.get("subtext_column") or row.get("subtext_col") or row.get("cột thông tin phụ") or row.get("cột thông tin hiển thị thêm") or row.get("subtext", "")
+                    subtext_col = str(subtext_col_raw).strip() if pd.notna(subtext_col_raw) and str(subtext_col_raw).strip().lower() != "nan" else ""
                     num_c = row.get("num_choices") or row.get("choices") or row.get("số lựa chọn")
                     enabled_raw = row.get("enabled") if "enabled" in row else row.get("kích hoạt", True)
 
@@ -564,6 +566,7 @@ class ExcelDeckService:
                             "prompt_col": q_col,
                             "answer_col": a_col,
                             "audio_col": audio_col,
+                            "subtext_col": subtext_col,
                             "name": f"{q_col} ➜ {a_col}"
                         })
                         metadata["practice_settings"]["mcq"]["num_choices"] = num_choices
@@ -577,6 +580,7 @@ class ExcelDeckService:
                                 "prompt_col": q_col,
                                 "answer_col": a_targets,
                                 "audio_col": audio_col,
+                                "subtext_col": subtext_col,
                                 "name": f"{q_col} ➜ {'/'.join(a_targets)}"
                             })
                         else:
@@ -586,6 +590,7 @@ class ExcelDeckService:
                                 "prompt_col": q_col,
                                 "answer_col": a_col,
                                 "audio_col": audio_col,
+                                "subtext_col": subtext_col,
                                 "name": f"{q_col} ➜ {a_col}"
                             })
                     elif mode in ("listening", "nghe", "listen", "audio_mcq", "listening_mcq"):
@@ -595,6 +600,7 @@ class ExcelDeckService:
                             "prompt_col": q_col,
                             "answer_col": a_col,
                             "audio_col": audio_col,
+                            "subtext_col": subtext_col,
                             "name": f"{q_col} ➜ {a_col}"
                         })
                         metadata["practice_settings"]["listening"]["num_choices"] = num_choices

@@ -910,6 +910,31 @@ export default function PracticePlay() {
         choices_data[j] = temp;
       }
 
+      // Pre-compute subtext for all choices (revealed upon answering)
+      const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.info_col || (activePair as any)?.extra_col;
+      for (const item of choices_data) {
+        const itemCard = item.card;
+        let itemSubtext = '';
+        if (configuredSubtextCol && itemCard) {
+          itemSubtext = getVal(itemCard, configuredSubtextCol);
+        }
+        if (!itemSubtext && itemCard) {
+          const isJpAnswer = isJapanese(item.text) || (typeof primary_answer_key === 'string' && (primary_answer_key.includes('mẫu') || primary_answer_key.includes('front') || primary_answer_key.includes('kanji')));
+          if (isJpAnswer) {
+            itemSubtext = getVal(itemCard, 'nghĩa') || getVal(itemCard, 'meaning') || getVal(itemCard, 'dịch_nghĩa') || '';
+            if (!itemSubtext && itemCard.explanation) {
+              itemSubtext = itemCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80);
+            }
+          } else {
+            itemSubtext = getVal(itemCard, 'mẫu_ngữ_pháp') || getVal(itemCard, 'front') || itemCard.content || '';
+          }
+        }
+        if (!itemSubtext && item.q_text && item.q_text !== item.text) {
+          itemSubtext = item.q_text;
+        }
+        item.subtext = itemSubtext;
+      }
+
       const choices = choices_data.map(c => c.text);
       const choice_item_ids = choices_data.map(c => c.id);
       const correct_index = choices.indexOf(correctAns);
@@ -919,6 +944,7 @@ export default function PracticePlay() {
         choices,
         choice_item_ids,
         choices_data,
+        subtext_col: configuredSubtextCol,
         correct_index: correct_index !== -1 ? correct_index : 0,
         correct_answer: correctAns,
         question_key,
@@ -3955,105 +3981,6 @@ export default function PracticePlay() {
               {xpFloat.amount} XP ✨
             </motion.div>
           );
-        })()}
-      </AnimatePresence>
-
-      {/* Goal Milestone Toast */}
-      <AnimatePresence>
-        {goalToast && goalToast.visible && (() => {
-          const isLimitless = goalToast.doneToday > goalToast.dailyTarget
-          return (
-            <motion.div
-              initial={{ opacity: 0, x: 200, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 200, scale: 0.9 }}
-              className={cn(
-                "fixed top-24 right-6 z-[1002] max-w-sm w-82 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 border transition-all duration-300",
-                isLimitless
-                  ? "bg-slate-950/95 border-amber-500/60 shadow-[0_0_40px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] text-white"
-                  : "bg-white/95 border-slate-100 shadow-[0_20px_50px_rgba(99,102,241,0.15)] text-slate-900"
-              )}
-            >
-              {/* Circular Progress Ring or Flame Icon */}
-              <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center">
-                {goalToast.justCompleted ? (
-                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-400 to-red-500 flex items-center justify-center shadow-lg shadow-orange-100 animate-bounce">
-                    <Flame className="w-6 h-6 text-white fill-white" />
-                  </div>
-                ) : (
-                  <>
-                    <svg className="w-14 h-14 transform -rotate-90">
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="22"
-                        className={isLimitless ? "stroke-slate-900" : "stroke-slate-100"}
-                        strokeWidth="3.5"
-                        fill="transparent"
-                      />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="22"
-                        className={cn(
-                          "transition-all duration-1000 ease-out",
-                          isLimitless ? "stroke-amber-400 animate-pulse drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" : (goalToast.isTargetMet ? "stroke-emerald-500" : "stroke-indigo-600")
-                        )}
-                        strokeWidth="3.5"
-                        fill="transparent"
-                        strokeDasharray={2 * Math.PI * 22}
-                        strokeDashoffset={2 * Math.PI * 22 * (1 - Math.min(1, goalToast.doneToday / goalToast.dailyTarget))}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className={cn(
-                      "absolute text-[10px] font-black",
-                      isLimitless ? "text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" : "text-slate-700"
-                    )}>
-                      {isLimitless ? `⚡${goalToast.doneToday}` : `${goalToast.doneToday}/${goalToast.dailyTarget}`}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className={cn(
-                    "text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md",
-                    goalToast.justCompleted ? "bg-amber-100 text-amber-700" :
-                      isLimitless ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white animate-pulse border border-amber-400/35 shadow-lg shadow-amber-500/25 tracking-wider" :
-                        "bg-indigo-50 text-indigo-600"
-                  )}>
-                    {goalToast.justCompleted ? "GOAL REACHED" : isLimitless ? "LIMITLESS MODE ⚡" : "DAILY GOAL"}
-                  </span>
-                  {goalToast.streakCount > 0 && (
-                    <span className={cn(
-                      "flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md",
-                      isLimitless ? "bg-amber-950 text-amber-300 border border-amber-500/20" : "bg-orange-50 text-orange-600"
-                    )}>
-                      🔥 {goalToast.streakCount}d
-                    </span>
-                  )}
-                </div>
-                <p className={cn(
-                  "font-bold text-xs leading-relaxed pr-2",
-                  isLimitless ? "text-amber-200 drop-shadow-[0_0_2px_rgba(245,158,11,0.2)]" : "text-slate-600"
-                )}>
-                  {goalToast.message}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setGoalToast(prev => prev ? { ...prev, visible: false } : null)}
-                className={cn(
-                  "absolute top-4 right-4 w-6 h-6 flex items-center justify-center rounded-full transition-all",
-                  isLimitless ? "hover:bg-slate-800 text-slate-500 hover:text-slate-300" : "hover:bg-slate-50 text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </motion.div>
-          )
         })()}
       </AnimatePresence>
 

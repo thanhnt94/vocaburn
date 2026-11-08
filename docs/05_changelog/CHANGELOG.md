@@ -2,6 +2,20 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-11-08]
+#### Nâng Cấp Toàn Diện Bộ Học Ngữ Pháp Shinkanzen Master N2 (143/143 Thẻ)
+- **Trụ Cột 1: Trắc Nghiệm Đục Lỗ Câu Ví Dụ Chuẩn Format JLPT Mondai 7 (`câu_hỏi_đục_lỗ` ➜ `mẫu_ngữ_pháp`)**:
+  - Tự động trích xuất và biến đổi ngữ cảnh từ kho câu ví dụ thực tế thành bài tập trắc nghiệm ngữ pháp thực chiến: câu tiếng Nhật có lỗ đục `【 ___ 】` kèm dịch nghĩa tiếng Việt gợi ý và 4 phương án lựa chọn là các mẫu ngữ pháp N2.
+  - Xử lý làm sạch toàn bộ thẻ `<ruby>` lọt vào vùng đục lỗ, bảo đảm furigana hiển thị hoàn hảo và không bị vỡ giao diện.
+- **Trụ Cột 2: Cặp Dễ Nhầm Lẫn & Phân Biệt Sắc Thái Chí Mạng (`cặp_dễ_nhầm_lẫn`)**:
+  - Biên soạn và tích hợp 143/143 mục so sánh đối chiếu sắc thái ngữ cảnh chí mạng theo cấu trúc Shinkanzen Master N2 (ví dụ: `〜際(に)` vs `〜に際して`, `〜たとたん(に)` vs `〜(か)と思うと`, `〜一方(で)` vs `〜反面`, `〜てたまらない` vs `〜てならない`...).
+  - Nhúng trực tiếp khối `⚖️ CẶP DỄ NHẦM LẪN:` vào mặt sau thẻ flashcard (`explanation`) trước phần ví dụ thực chiến, đồng thời tích hợp vào hộp tri thức `Learning Insights` (`cặp_dễ_nhầm_lẫn`).
+- **Trụ Cột 3: Chế Độ Luyện Tập Trắc Nghiệm Thể & Cách Kết Hợp (`mẫu_ngữ_pháp` ➜ `cách_kết_hợp`)**:
+  - Bổ sung cấu hình cặp bài tập trắc nghiệm chuyên biệt kiểm tra thể liên kết (V-ru, V-ta, V-te, N-no, Danh từ hóa, thể thông thường...) giúp người học khắc cốt ghi tâm quy tắc chia động từ/tính từ trước từng mẫu.
+- **Cập Nhật Chuẩn Hóa Template Excel & Cơ Sở Dữ Liệu Production**:
+  - File template `Vocaburn_N2_Grammar_Master.xlsx`: Cập nhật sheet `Data` (39 cột), sheet `Practice` (4 cặp trắc nghiệm: `mẫu_ngữ_pháp ➜ nghĩa`, `nghĩa ➜ mẫu_ngữ_pháp`, `câu_hỏi_đục_lỗ ➜ mẫu_ngữ_pháp`, `mẫu_ngữ_pháp ➜ cách_kết_hợp`), sheet `Info` (`insight_columns`).
+  - Đồng bộ thành công 100% lên VPS SQLite `/var/www/Storage/database/Vocaburn.db` cho Deck ID 3 và toàn bộ 143 flashcards.
+
 ### [2026-11-04]
 #### Khắc Phục Triệt Để Xung Đột Chế Độ FSRS & Tối Ưu Hóa Trải Nghiệm Hybrid Recall
 - **Cô Lập Trạng Thái Toàn Cục (Global Settings Isolation)**:

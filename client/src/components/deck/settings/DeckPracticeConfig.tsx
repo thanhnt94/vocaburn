@@ -32,6 +32,7 @@ export interface QuestionAnswerPair {
   prompt_col?: string
   answer_col?: string | string[]
   audio_col?: string
+  subtext_col?: string
 }
 
 export interface DeckPracticeConfigProps {
@@ -114,6 +115,7 @@ function normalizePair(p: any): QuestionAnswerPair {
   }
   const displayA = Array.isArray(a) ? a.join(', ') : a
   const audio_col = p.audio_col !== undefined ? String(p.audio_col).trim() : (p.audio_channel || p.audio_target || '')
+  const subtext_col = p.subtext_col !== undefined ? String(p.subtext_col).trim() : (p.info_col || p.extra_col || '')
   return {
     q,
     a,
@@ -121,6 +123,7 @@ function normalizePair(p: any): QuestionAnswerPair {
     prompt_col: p.prompt_col ? cleanCol(p.prompt_col) : q,
     answer_col: p.answer_col ? (Array.isArray(p.answer_col) ? p.answer_col.map(cleanCol) : cleanCol(p.answer_col)) : a,
     audio_col,
+    subtext_col,
   }
 }
 

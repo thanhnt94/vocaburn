@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Sparkles, Bookmark, Volume2, Check, X, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { parseBBCodeToHtml } from '@/lib/text'
+import { parseBBCodeToHtml, isJapanese } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
@@ -174,6 +174,51 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
               const isCorrectChoice = idx === correct_index
               const letter = String.fromCharCode(65 + idx) // A, B, C, D
 
+              // Robust card lookup for preview and metadata
+              const choiceData = practiceData.choices_data && practiceData.choices_data[idx]
+              const choiceIds = choice_item_ids || practiceData.choice_item_ids || currentQuestion?.practice?.choice_item_ids
+              let targetCard: any = null
+              if (choiceData?.card) {
+                targetCard = choiceData.card
+              }
+              if (!targetCard && choiceIds && choiceIds[idx] !== undefined) {
+                targetCard = sessionQuestions.find((q: any) => String(q.id) === String(choiceIds[idx]))
+              }
+              if (!targetCard && choiceIds && (currentQuestion as any)?.distractor_pool) {
+                targetCard = (currentQuestion as any).distractor_pool.find((q: any) => String(q.id) === String(choiceIds[idx]))
+              }
+              if (!targetCard) {
+                targetCard = sessionQuestions.find((q: any) =>
+                  getVal(q, 'front') === choice ||
+                  getVal(q, 'mẫu_ngữ_pháp') === choice ||
+                  getVal(q, 'content') === choice ||
+                  getVal(q, 'nghĩa') === choice
+                )
+              }
+
+              // Compute revealed subtext when answered
+              let subtext = choiceData?.subtext || ''
+              if (!subtext && targetCard) {
+                const configuredSubtextCol = practiceData.subtext_col
+                if (configuredSubtextCol) {
+                  subtext = getVal(targetCard, configuredSubtextCol)
+                }
+                if (!subtext) {
+                  const isJpChoice = isJapanese(choice) || (answer_key && (String(answer_key).includes('mẫu') || String(answer_key).includes('front') || String(answer_key).includes('kanji')))
+                  if (isJpChoice) {
+                    subtext = getVal(targetCard, 'nghĩa') || getVal(targetCard, 'meaning') || getVal(targetCard, 'dịch_nghĩa') || ''
+                    if (!subtext && targetCard.explanation) {
+                      subtext = targetCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
+                    }
+                  } else {
+                    subtext = getVal(targetCard, 'mẫu_ngữ_pháp') || getVal(targetCard, 'front') || targetCard.content || ''
+                  }
+                }
+              }
+              if (!subtext && choiceData?.q_text && choiceData.q_text !== choice) {
+                subtext = choiceData.q_text
+              }
+
               let cardStyle = "bg-slate-50/70 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 text-slate-800 dark:text-slate-100 hover:shadow-md"
               let badgeStyle = "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
 
@@ -185,8 +230,8 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                   cardStyle = "bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-500/25"
                   badgeStyle = "bg-rose-600 text-white border-rose-400"
                 } else {
-                  cardStyle = "bg-slate-100/50 dark:bg-slate-850/40 border-slate-200/50 dark:border-slate-800 opacity-40 text-slate-400 dark:text-slate-500"
-                  badgeStyle = "bg-slate-200/50 dark:bg-slate-800 text-slate-400 border-slate-300/50"
+                  cardStyle = "bg-white/95 dark:bg-slate-800/95 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-750"
+                  badgeStyle = "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600"
                 }
               }
 
@@ -196,32 +241,18 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                   onClick={() => {
                     if (!answered) {
                       onSelectOption(idx)
-                    } else if (onPreviewInsight) {
-                      // Lookup card for insight preview
-                      const choiceIds = choice_item_ids || practiceData.choice_item_ids || currentQuestion?.practice?.choice_item_ids
-                      let targetCard: any = null
-                      if (practiceData.choices_data && practiceData.choices_data[idx]?.card) {
-                        targetCard = practiceData.choices_data[idx].card
-                      }
-                      if (!targetCard && choiceIds && choiceIds[idx] !== undefined) {
-                        targetCard = sessionQuestions.find((q: any) => String(q.id) === String(choiceIds[idx]))
-                      }
-                      if (!targetCard && choiceIds && (currentQuestion as any)?.distractor_pool) {
-                        targetCard = (currentQuestion as any).distractor_pool.find((q: any) => String(q.id) === String(choiceIds[idx]))
-                      }
-                      if (targetCard && onPreviewInsight) {
-                        onPreviewInsight(targetCard)
-                      }
+                    } else if (onPreviewInsight && targetCard) {
+                      onPreviewInsight(targetCard)
                     }
                   }}
                   className={cn(
-                    "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
+                    "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-start gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
                     cardStyle
                   )}
                 >
                   {/* Letter Badge */}
                   <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs shrink-0 transition-colors",
+                    "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs shrink-0 transition-colors self-start mt-0.5",
                     badgeStyle
                   )}>
                     {answered && isCorrectChoice ? (
@@ -233,17 +264,32 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                     )}
                   </div>
 
-                  {/* Choice Content */}
+                  {/* Choice Content & Revealed Extra Subtext */}
                   <div className="flex-1 min-w-0 pr-1">
                     <span
-                      className="font-bold text-sm sm:text-base leading-snug block whitespace-normal break-words"
+                      className={cn(
+                        "font-bold text-sm sm:text-base leading-snug block whitespace-normal break-words",
+                        answered && (isCorrectChoice || isSelected) ? "text-white" : "text-slate-800 dark:text-slate-100"
+                      )}
                       dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice || '') }}
                     />
+                    {answered && subtext && (
+                      <div className={cn(
+                        "text-xs mt-1.5 font-medium leading-relaxed transition-all duration-200 whitespace-normal break-words",
+                        isCorrectChoice
+                          ? "text-emerald-100/95"
+                          : isSelected
+                            ? "text-rose-100/95"
+                            : "text-slate-500 dark:text-slate-400"
+                      )}>
+                        <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(subtext) }} />
+                      </div>
+                    )}
                   </div>
 
                   {/* Keyboard shortcut hint */}
                   {!answered && (
-                    <span className="hidden sm:inline-block text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700">
+                    <span className="hidden sm:inline-block text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700 self-start mt-1">
                       {idx + 1}
                     </span>
                   )}
