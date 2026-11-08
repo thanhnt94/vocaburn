@@ -399,6 +399,8 @@ async def get_deck_play_data(
     scope: Optional[str] = Query(None),
     limit: Optional[int] = Query(None),
     offset: Optional[int] = Query(0),
+    order: Optional[str] = Query(None),
+    seed: Optional[int] = Query(None),
     lightweight: Optional[bool] = None,
     sub_col: Optional[str] = Query(None),
     sub_val: Optional[str] = Query(None),
@@ -683,6 +685,12 @@ async def get_deck_play_data(
                 "back": sc.explanation,
                 "others": fix_static_urls(sc_others) if sc_others else None
             })
+
+    if order in ("random", "rand"):
+        import random
+        effective_seed = seed if seed is not None else (int(user_id or 0) * 10007 + int(deck_id or 0) * 1009)
+        rng = random.Random(effective_seed)
+        rng.shuffle(source_cards)
 
     total_matching = len(source_cards)
 

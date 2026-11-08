@@ -227,6 +227,7 @@ export default function PracticePlay() {
   const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
   const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number } | null>(null)
   const isFetchingNextBatchRef = useRef<boolean>(false)
+  const practiceSeedRef = useRef<number>(Math.floor(Math.random() * 1000000))
 
   useEffect(() => {
     setShowAbsoluteFirst(false)
@@ -1379,8 +1380,9 @@ export default function PracticePlay() {
       const modeParam = `?mode=${practiceSubMode}`
       const subParam = (subCol && subVal !== null) ? `&sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}` : ''
       const scopeParam = (cardScope && cardScope !== 'all') ? `&scope=${encodeURIComponent(cardScope)}` : ''
+      const orderParam = randomEnabled ? `&order=random&seed=${practiceSeedRef.current}` : '&order=sequential'
       const res = await axios.get(
-        `/api/v1/deck/${id}/play-data${modeParam}&limit=30&offset=${p.next_offset}${subParam}${scopeParam}&include_distractors=true`
+        `/api/v1/deck/${id}/play-data${modeParam}&limit=30&offset=${p.next_offset}${subParam}${scopeParam}${orderParam}&include_distractors=true`
       )
       if (res.data?.questions && res.data.questions.length > 0) {
         const newQuestions = res.data.questions
@@ -1409,17 +1411,19 @@ export default function PracticePlay() {
     } finally {
       isFetchingNextBatchRef.current = false
     }
-  }, [id, practiceSubMode, subCol, subVal])
+  }, [id, practiceSubMode, subCol, subVal, cardScope, randomEnabled])
 
   useEffect(() => {
-    if (session?.questions && currentIndex >= session.questions.length - 6) {
-      if (paginationRef.current?.has_more && !isFetchingNextBatchRef.current) {
-        prefetchNextPracticeBatch()
-      }
-    }
-  }, [currentIndex, session?.questions?.length, prefetchNextPracticeBatch])
+    if (!session?.questions || !paginationRef.current?.has_more || isFetchingNextBatchRef.current) return
+    const unansweredCount = session.questions.filter((_: any, i: number) => practiceAnswers[i] === undefined).length
+    const isNearEnd = currentIndex >= session.questions.length - 6
 
-  const fetchSession = async (activeTab = mainTab, subMode: string = practiceSubMode, targetScope?: string) => {
+    if (isNearEnd || unansweredCount <= 8) {
+      prefetchNextPracticeBatch()
+    }
+  }, [currentIndex, session?.questions?.length, practiceAnswers, prefetchNextPracticeBatch])
+
+  const fetchSession = async (activeTab = mainTab, subMode: string = practiceSubMode, targetScope?: string, forceRandom?: boolean) => {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
@@ -1443,9 +1447,11 @@ export default function PracticePlay() {
         playDataUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
       }
 
+      const isRandomActive = forceRandom !== undefined ? forceRandom : Boolean(randomEnabled)
       if (isPractice && !isFolder && !isRoadmapTestMode && id !== 'quick') {
         const delimiter = playDataUrl.includes('?') ? '&' : '?'
-        playDataUrl += `${delimiter}limit=30&offset=0&include_distractors=true`
+        const orderParam = isRandomActive ? `&order=random&seed=${practiceSeedRef.current}` : '&order=sequential'
+        playDataUrl += `${delimiter}limit=30&offset=0${orderParam}&include_distractors=true`
       }
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
@@ -1568,7 +1574,7 @@ export default function PracticePlay() {
           const allIndices = questions.map((q: any, i: number) => q.is_ignored ? -1 : i).filter((i: number) => i !== -1);
           const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
           const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
-          const initialIdx = activeIndices.length > 0 ? activeIndices[Math.floor(Math.random() * activeIndices.length)] : 0;
+          const initialIdx = activeIndices.length > 0 ? (randomEnabled ? activeIndices[Math.floor(Math.random() * activeIndices.length)] : activeIndices[0]) : 0;
           setCurrentIndex(initialIdx);
         }
       } else {
@@ -2844,6 +2850,17 @@ export default function PracticePlay() {
     fetchSession('practice', targetMode as any);
   };
 
+  const handleToggleRandom = (val?: boolean) => {
+    const nextVal = typeof val === 'boolean' ? val : !randomEnabled;
+    setRandomEnabled(nextVal);
+    practiceSeedRef.current = Math.floor(Math.random() * 1000000);
+    setPracticeAnswers({});
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setShowFeedback(false);
+    fetchSession(mainTab, subMode || practiceSubMode, cardScope, nextVal);
+  };
+
   const handleNext = async (customAnswers?: Record<number, number>) => {
     if (!session || !session.questions) return
 
@@ -2909,7 +2926,7 @@ export default function PracticePlay() {
       return;
     }
 
-    const getNextPracticeIndex = (currentIdx: number, scope: PracticeScope, totalQuestions: any[], isRandom: boolean): number => {
+    const getNextPracticeIndex = (currentIdx: number, scope: PracticeScope, totalQuestions: any[], isRandom: boolean, currentAnswers: Record<number, number> = practiceAnswers): number => {
       let matchedIndices = totalQuestions
         .map((q, i) => (!q.is_ignored && isCardMatchingScope(q, scope)) ? i : -1)
         .filter(i => i !== -1);
@@ -2929,11 +2946,24 @@ export default function PracticePlay() {
 
       if (activeIndices.length <= 1) return activeIndices[0] || 0;
 
+      // Filter for cards not yet answered in this session (excluding currentIdx)
+      const unanswered = activeIndices.filter(i => currentAnswers[i] === undefined && i !== currentIdx);
+
       if (isRandom) {
+        if (unanswered.length > 0) {
+          return unanswered[Math.floor(Math.random() * unanswered.length)];
+        }
+        // If all active cards in memory were answered, fall back to any other card
         const otherIndices = activeIndices.filter(i => i !== currentIdx);
         const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
         return pool[Math.floor(Math.random() * pool.length)];
       } else {
+        const nextUnanswered = activeIndices.find(i => i > currentIdx && currentAnswers[i] === undefined);
+        if (nextUnanswered !== undefined) return nextUnanswered;
+
+        const wrapUnanswered = activeIndices.find(i => currentAnswers[i] === undefined && i !== currentIdx);
+        if (wrapUnanswered !== undefined) return wrapUnanswered;
+
         const currentPos = activeIndices.indexOf(currentIdx);
         if (currentPos === -1 || currentPos >= activeIndices.length - 1) {
           return activeIndices[0];
@@ -2943,11 +2973,11 @@ export default function PracticePlay() {
     };
 
     if (mainTab === 'practice') {
-      const nextIdx = getNextPracticeIndex(currentIndex, cardScope, questions, Boolean(randomEnabled));
+      const nextIdx = getNextPracticeIndex(currentIndex, cardScope, questions, Boolean(randomEnabled), practiceAnswers);
 
-      // Clear the answer for both the current and next card so they are always clickable and reusable
+      // Keep practiceAnswers[currentIndex] so it stays recorded as answered in this session!
+      // Only delete nextIdx so it is clickable and fresh when navigated to.
       const newAnswers = { ...practiceAnswers };
-      delete newAnswers[currentIndex];
       delete newAnswers[nextIdx];
       setPracticeAnswers(newAnswers);
 
@@ -4091,7 +4121,7 @@ export default function PracticePlay() {
             cardsRemaining={cardsRemaining}
             activeMode={subMode || practiceSubMode || 'mcq'}
             isRandom={randomEnabled}
-            onToggleOrder={() => setRandomEnabled(!randomEnabled)}
+            onToggleOrder={() => handleToggleRandom()}
             onSurgeChange={setIsHeaderSurging}
             onViewModeChange={setHeaderViewMode}
             onExit={() => navigate('/')}
@@ -5847,7 +5877,7 @@ export default function PracticePlay() {
         onSelectCardScope={handleSelectCardScope}
         scopeCounts={scopeCounts}
         randomEnabled={Boolean(randomEnabled)}
-        onToggleRandom={(val) => setRandomEnabled(val)}
+        onToggleRandom={(val) => handleToggleRandom(val)}
         autoPlayAudio={autoPlayAudio}
         setAutoPlayAudio={setAutoPlayAudio}
         sfxEnabled={Boolean(sfxEnabled)}
