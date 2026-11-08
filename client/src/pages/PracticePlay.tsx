@@ -228,6 +228,7 @@ export default function PracticePlay() {
   const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number } | null>(null)
   const isFetchingNextBatchRef = useRef<boolean>(false)
   const practiceSeedRef = useRef<number>(Math.floor(Math.random() * 1000000))
+  const practiceCardCacheRef = useRef<Record<number, any>>({})
 
   useEffect(() => {
     setShowAbsoluteFirst(false)
@@ -803,11 +804,17 @@ export default function PracticePlay() {
 
   const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
     if (!session || !session.questions || session.questions.length === 0) return;
+    if (idx < 0 || idx >= session.questions.length) return;
     const qObj = session.questions[idx];
     if (!qObj) return;
 
     if (qObj.practice && typeof qObj.practice === 'object' && qObj.practice.question && qObj.practice.correct_answer) {
       setCurrentPracticeData(qObj.practice);
+      return;
+    }
+
+    if (practiceCardCacheRef.current[qObj.id]) {
+      setCurrentPracticeData(practiceCardCacheRef.current[qObj.id]);
       return;
     }
 
@@ -948,7 +955,8 @@ export default function PracticePlay() {
       const choice_item_ids = choices_data.map(c => c.id);
       const correct_index = choices.indexOf(correctAns);
 
-      setCurrentPracticeData({
+      const finalPracticeData = {
+        card_id: qObj.id,
         question: questionText,
         choices,
         choice_item_ids,
@@ -959,7 +967,9 @@ export default function PracticePlay() {
         question_key,
         answer_key: primary_answer_key,
         audio_col: audio_col !== undefined ? audio_col : primary_answer_key
-      });
+      };
+      practiceCardCacheRef.current[qObj.id] = finalPracticeData;
+      setCurrentPracticeData(finalPracticeData);
     } else if (subMode === 'typing' || subMode === 'listening' || subMode === 'listening_typing') {
       const rawAnswerKey = activePair.a;
       const answer_keys: string[] = Array.isArray(rawAnswerKey)
@@ -993,24 +1003,27 @@ export default function PracticePlay() {
       if (cardRomaji) addAnswer(cardRomaji);
       const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
 
-      setCurrentPracticeData({
+      const finalPracticeData = {
+        card_id: qObj.id,
         question: questionText,
         correct_answer: primary_answer,
         acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
         question_key,
         answer_key: answer_keys.length > 1 ? answer_keys : (answer_keys[0] || 'front'),
         audio_col: audio_col !== undefined ? audio_col : (answer_keys[0] || 'front')
-      });
+      };
+      practiceCardCacheRef.current[qObj.id] = finalPracticeData;
+      setCurrentPracticeData(finalPracticeData);
     }
   };
 
   useEffect(() => {
-    if (mainTab === 'practice' && session?.questions && session.questions.length > 0) {
+    if (mainTab === 'practice' && session?.questions && session.questions.length > 0 && currentIndex >= 0) {
       generatePracticeQuestion(currentIndex);
-    } else {
+    } else if (currentIndex < 0) {
       setCurrentPracticeData(null);
     }
-  }, [currentIndex, mainTab, practiceSubMode, session, setupPairs, setupNumChoices]);
+  }, [currentIndex, mainTab, practiceSubMode]);
 
   const timerRef = useRef<any>(null)
   const aiPollRef = useRef<any>(null)
@@ -1219,6 +1232,7 @@ export default function PracticePlay() {
     setPracticeAnswers({})
     setSelectedOption(null)
     setShowFeedback(false)
+    practiceCardCacheRef.current = {}
     fetchSession(mainTab, subMode || practiceSubMode)
   }, [id, subMode, subCol, subVal])
 
@@ -1574,7 +1588,7 @@ export default function PracticePlay() {
           const allIndices = questions.map((q: any, i: number) => q.is_ignored ? -1 : i).filter((i: number) => i !== -1);
           const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
           const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
-          const initialIdx = activeIndices.length > 0 ? (randomEnabled ? activeIndices[Math.floor(Math.random() * activeIndices.length)] : activeIndices[0]) : 0;
+          const initialIdx = activeIndices.length > 0 ? activeIndices[0] : 0;
           setCurrentIndex(initialIdx);
         }
       } else {
@@ -1872,6 +1886,7 @@ export default function PracticePlay() {
       })
       setModeSettings(updatedModeSettings)
       setPracticeNeedsSetup(false)
+      practiceCardCacheRef.current = {}
       await fetchSession()
       if (subMode === 'setting') {
         navigate(`/practice/${id}/${practiceSubMode}`)
@@ -1888,6 +1903,7 @@ export default function PracticePlay() {
         is_creator: false
       })
       setPracticeNeedsSetup(false)
+      practiceCardCacheRef.current = {}
       await fetchPracticeSettings()
       await fetchSession()
       if (subMode === 'setting') {
@@ -2824,6 +2840,7 @@ export default function PracticePlay() {
     if (mainTab === 'practice') {
       setCurrentIndex(0);
       setPracticeAnswers({});
+      practiceCardCacheRef.current = {};
       fetchSession(mainTab, practiceSubMode, newScope);
       return;
     }
@@ -2843,6 +2860,7 @@ export default function PracticePlay() {
   };
 
   const handleSelectPracticeMode = (targetMode: PracticeSubMode) => {
+    practiceCardCacheRef.current = {};
     setPracticeAnswers({});
     setSelectedOption(null);
     setShowFeedback(false);
@@ -2854,6 +2872,7 @@ export default function PracticePlay() {
     const nextVal = typeof val === 'boolean' ? val : !randomEnabled;
     setRandomEnabled(nextVal);
     practiceSeedRef.current = Math.floor(Math.random() * 1000000);
+    practiceCardCacheRef.current = {};
     setPracticeAnswers({});
     setCurrentIndex(0);
     setSelectedOption(null);
@@ -2951,12 +2970,12 @@ export default function PracticePlay() {
 
       if (isRandom) {
         if (unanswered.length > 0) {
-          return unanswered[Math.floor(Math.random() * unanswered.length)];
+          return unanswered[0];
         }
         // If all active cards in memory were answered, fall back to any other card
         const otherIndices = activeIndices.filter(i => i !== currentIdx);
         const pool = otherIndices.length > 0 ? otherIndices : activeIndices;
-        return pool[Math.floor(Math.random() * pool.length)];
+        return pool[0] || 0;
       } else {
         const nextUnanswered = activeIndices.find(i => i > currentIdx && currentAnswers[i] === undefined);
         if (nextUnanswered !== undefined) return nextUnanswered;
@@ -5896,6 +5915,7 @@ export default function PracticePlay() {
         isIgnored={Boolean(currentQuestion?.is_ignored)}
         deckId={id}
         onRestartSession={() => {
+          practiceCardCacheRef.current = {};
           setPracticeAnswers({});
           setSessionAnswers({});
           setSelectedOption(null);
@@ -5907,6 +5927,7 @@ export default function PracticePlay() {
         subLessons={availableSubLessons}
         selectedSubLesson={selectedSubLesson}
         onSelectSubLesson={(sub) => {
+          practiceCardCacheRef.current = {};
           setSelectedSubLesson(sub);
           if (sub && session?.questions) {
             const matchIdx = session.questions.findIndex((q: any) => {
