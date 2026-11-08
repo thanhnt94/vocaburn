@@ -432,6 +432,7 @@ async def get_deck_play_data(
     deck_cards = list(card_res.scalars().all())
     deck.__dict__["cards"] = deck_cards
     deck.cards = deck_cards
+    card_original_index_map = {c.id: idx + 1 for idx, c in enumerate(deck_cards)}
 
     is_collaborator = False
     is_admin = False
@@ -470,7 +471,7 @@ async def get_deck_play_data(
 
         cards_list = [{
             "id": c.id,
-            "original_index": i + 1,
+            "original_index": card_original_index_map.get(c.id, i + 1),
             "content": c.content,
             "explanation": c.explanation,
             "front_audio_content": c.front_audio_content,
@@ -622,7 +623,7 @@ async def get_deck_play_data(
                     return False
                 return (m.difficulty and m.difficulty >= 6.0) or (m.lapses and m.lapses > 0) or m.is_starred
             source_cards = [c for c in source_cards if is_card_hard(c)]
-        elif (mode in ("fsrs", "review", "roadmap") or (mode != "hybrid" and effective_scope in (None, "all"))) and mastery_records:
+        elif (mode in ("fsrs", "review", "roadmap") or (not is_practice and mode != "hybrid" and effective_scope in (None, "all"))) and mastery_records:
             def get_card_sort_key(c):
                 m = mastery_records.get(c.id)
                 if not m or m.is_ignored:
@@ -698,13 +699,11 @@ async def get_deck_play_data(
         deck_ps = deck.practice_settings if (deck and isinstance(deck.practice_settings, dict)) else {}
 
         if user_ps.get("random_enabled") is not None:
-            if user_ps.get("random_enabled"):
-                effective_order = "random"
+            effective_order = "random" if user_ps.get("random_enabled") else "sequential"
         elif (user_ps.get("study_settings") or {}).get("random_enabled") is not None:
-            if (user_ps.get("study_settings") or {}).get("random_enabled"):
-                effective_order = "random"
-        elif deck_ps.get("random_enabled"):
-            effective_order = "random"
+            effective_order = "random" if (user_ps.get("study_settings") or {}).get("random_enabled") else "sequential"
+        elif deck_ps.get("random_enabled") is not None:
+            effective_order = "random" if deck_ps.get("random_enabled") else "sequential"
         elif is_practice:
             effective_order = "random"
 
@@ -724,7 +723,7 @@ async def get_deck_play_data(
             m_sc = mastery_records.get(sc.id) if mastery_records else None
             map_skeleton.append({
                 "id": sc.id,
-                "original_index": idx + 1,
+                "original_index": card_original_index_map.get(sc.id, idx + 1),
                 "state": m_sc.state if m_sc else 0,
                 "is_due": bool(m_sc and m_sc.due and m_sc.due <= now_utc_naive),
                 "is_starred": bool(m_sc and m_sc.is_starred)
@@ -783,7 +782,7 @@ async def get_deck_play_data(
         for i, c in enumerate(source_cards):
             cards_list.append({
                 "id": c.id,
-                "original_index": i + 1,
+                "original_index": card_original_index_map.get(c.id, i + 1),
                 "content": c.content,
                 "explanation": c.explanation,
                 "ai_explanation": c.others.get("ai_explanation") if c.others else None,
@@ -851,7 +850,7 @@ async def get_deck_play_data(
 
             cards_list.append({
                 "id": c.id,
-                "original_index": idx + 1,
+                "original_index": card_original_index_map.get(c.id, idx + 1),
                 "content": c.content,
                 "explanation": c.explanation,
                 "front_audio_content": c.front_audio_content,

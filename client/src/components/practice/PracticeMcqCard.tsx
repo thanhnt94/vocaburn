@@ -104,7 +104,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
           </span>
 
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[11px]">
-            #{currentIndex + 1}{totalCards ? ` / ${totalCards}` : ''}
+            #{currentQuestion?.original_index ?? (currentIndex + 1)}{totalCards ? ` / ${totalCards}` : ''}
           </span>
 
           <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-400 font-bold text-[10px] tracking-wider uppercase">
