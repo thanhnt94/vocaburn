@@ -475,13 +475,21 @@ export default function PracticePlay() {
   }, [isCardReview, isCardNew, isCardLearned]);
 
   const scopeCounts = useMemo(() => {
-    if (!session?.questions) return { all: 0, review: 0, new: 0, learned: 0 };
-    const all = session.questions.filter((q: any) => !q.is_ignored).length;
+    const totalAll = session?.total_cards || session?.pagination?.total || session?.scope_counts?.all || session?.questions?.length || 0;
+    if (session?.scope_counts) {
+      return {
+        all: totalAll,
+        review: session.scope_counts.due ?? session.scope_counts.review ?? 0,
+        new: session.scope_counts.new ?? 0,
+        learned: session.scope_counts.learned ?? 0
+      };
+    }
+    if (!session?.questions) return { all: totalAll, review: 0, new: totalAll, learned: 0 };
     const review = session.questions.filter((q: any) => !q.is_ignored && isCardReview(q)).length;
     const newCount = session.questions.filter((q: any) => !q.is_ignored && isCardNew(q)).length;
     const learned = session.questions.filter((q: any) => !q.is_ignored && isCardLearned(q)).length;
-    return { all, review, new: newCount, learned };
-  }, [session?.questions, isCardReview, isCardNew, isCardLearned]);
+    return { all: totalAll, review, new: newCount, learned };
+  }, [session?.scope_counts, session?.total_cards, session?.pagination?.total, session?.questions, isCardReview, isCardNew, isCardLearned]);
 
   const availableSubLessons = useMemo(() => {
     if (!session?.questions) return [];
@@ -1370,8 +1378,9 @@ export default function PracticePlay() {
     try {
       const modeParam = `?mode=${practiceSubMode}`
       const subParam = (subCol && subVal !== null) ? `&sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}` : ''
+      const scopeParam = (cardScope && cardScope !== 'all') ? `&scope=${encodeURIComponent(cardScope)}` : ''
       const res = await axios.get(
-        `/api/v1/deck/${id}/play-data${modeParam}&limit=30&offset=${p.next_offset}${subParam}&include_distractors=true`
+        `/api/v1/deck/${id}/play-data${modeParam}&limit=30&offset=${p.next_offset}${subParam}${scopeParam}&include_distractors=true`
       )
       if (res.data?.questions && res.data.questions.length > 0) {
         const newQuestions = res.data.questions
@@ -1410,7 +1419,7 @@ export default function PracticePlay() {
     }
   }, [currentIndex, session?.questions?.length, prefetchNextPracticeBatch])
 
-  const fetchSession = async (activeTab = mainTab, subMode: string = practiceSubMode) => {
+  const fetchSession = async (activeTab = mainTab, subMode: string = practiceSubMode, targetScope?: string) => {
     try {
       const modeParam = activeTab === 'practice' ? `?mode=${subMode}` : ''
       const isPractice = activeTab === 'practice'
@@ -1422,6 +1431,12 @@ export default function PracticePlay() {
       let playDataUrl = isFolder
         ? `/api/v1/folder/${folderId}/play-data${modeParam}`
         : (isRoadmapTestMode ? `/api/v1/deck/${id}/roadmap-test-questions` : `/api/v1/deck/${id}/play-data${modeParam}`)
+
+      const effectiveScope = targetScope !== undefined ? targetScope : cardScope
+      if (effectiveScope && effectiveScope !== 'all') {
+        const delimiter = playDataUrl.includes('?') ? '&' : '?'
+        playDataUrl += `${delimiter}scope=${encodeURIComponent(effectiveScope)}`
+      }
 
       if (subCol && subVal !== null) {
         const delimiter = playDataUrl.includes('?') ? '&' : '?'
@@ -2800,6 +2815,13 @@ export default function PracticePlay() {
     const newPath = window.location.pathname + '?' + searchParams.toString();
     window.history.replaceState(null, '', newPath);
 
+    if (mainTab === 'practice') {
+      setCurrentIndex(0);
+      setPracticeAnswers({});
+      fetchSession(mainTab, practiceSubMode, newScope);
+      return;
+    }
+
     if (!session?.questions || session.questions.length === 0) return;
 
     if (!isCardMatchingScope(currentQuestion, newScope)) {
@@ -3663,7 +3685,7 @@ export default function PracticePlay() {
       );
     }
 
-    const totalDeckCards = session?.questions?.length || 0;
+    const totalDeckCards = session?.total_cards || session?.pagination?.total || session?.questions?.length || 0;
     const currentFrontFontSize = frontFontSize || 'M';
 
     if (baseMode === 'typing') {
@@ -4031,7 +4053,7 @@ export default function PracticePlay() {
         ];
 
         const subCurr = Object.keys(practiceAnswers).length;
-        const subTotal = session?.questions?.length || 15;
+        const subTotal = session?.total_cards || session?.pagination?.total || session?.questions?.length || 15;
         const activePercent = subTotal > 0 ? Math.min(100, Math.round((subCurr / subTotal) * 100)) : 0;
 
         const answeredCount = Object.keys(practiceAnswers).length;
@@ -4039,7 +4061,7 @@ export default function PracticePlay() {
           const q = session?.questions?.[Number(idxStr)];
           return q && (q.correct_index === optIdx || q.correct_option === optIdx);
         }).length;
-        const totalCards = session?.questions?.length || 0;
+        const totalCards = session?.total_cards || session?.pagination?.total || session?.questions?.length || 0;
         const cardsRemaining = Math.max(0, totalCards - currentIndex - 1);
 
         return (

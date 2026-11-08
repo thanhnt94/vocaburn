@@ -538,10 +538,10 @@ async def get_deck_play_data(
             return val == clean_sub
         source_cards = [c for c in source_cards if matches_sub(c)]
 
-    # 3. Fetch Mastery records and Practice stats in 1 indexed query (Skip for practice mode)
+    # 3. Fetch Mastery records and Practice stats in 1 indexed query
     mastery_records = {}
     practice_records = {}
-    if not is_practice and user_id and source_cards:
+    if user_id and source_cards:
         scope_cards_base = list(source_cards)
         card_ids_set = {c.id for c in source_cards}
         mastery_stmt = select(UserCardMastery).join(
@@ -654,7 +654,18 @@ async def get_deck_play_data(
             "new": new_cnt,
             "due": due_cnt,
             "review": rev_cnt,
+            "learned": rev_cnt,
             "undrilled": undrilled_cnt
+        }
+    else:
+        base_cnt = len(scope_cards_base) if 'scope_cards_base' in locals() else len(source_cards)
+        scope_counts = {
+            "all": base_cnt,
+            "new": base_cnt,
+            "due": 0,
+            "review": 0,
+            "learned": 0,
+            "undrilled": base_cnt
         }
 
     # Generate lightweight distractor pool across entire deck if practice, hybrid, or requested
