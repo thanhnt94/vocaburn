@@ -516,7 +516,7 @@ export default function PracticePlay() {
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
 
   // Per-mode settings state
-  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[], audio_col?: string }[], num_choices?: number }>>({
+  const [modeSettings, setModeSettings] = useState<Record<string, { active_pairs: { q: string, a: string | string[], audio_col?: string, desc?: string, description?: string, name?: string }[], num_choices?: number }>>({
     mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     typing: { active_pairs: [{ q: 'back', a: ['front'] }] },
     listening_mcq: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
@@ -524,6 +524,27 @@ export default function PracticePlay() {
     listening: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 },
     roadmap_test: { active_pairs: [{ q: 'front', a: 'back' }], num_choices: 4 }
   })
+
+  // In-session active Q&A pair selection (filtered per mode)
+  const [selectedPairIndicesByMode, setSelectedPairIndicesByMode] = useState<Record<string, number[]>>({})
+
+  const configuredPairs = useMemo(() => {
+    const modeKey = baseMode
+    const modeData = modeSettings?.[modeKey]
+      || (modeKey.startsWith('listening') ? modeSettings?.listening : undefined)
+      || modeSettings?.mcq
+    const list = modeData?.active_pairs
+    return Array.isArray(list) && list.length > 0 ? list : [{ q: 'front', a: 'back' }]
+  }, [modeSettings, baseMode])
+
+  const selectedPairIndices = useMemo(() => {
+    const saved = selectedPairIndicesByMode[baseMode]
+    if (Array.isArray(saved) && saved.length > 0) {
+      const valid = saved.filter(i => i >= 0 && i < configuredPairs.length)
+      if (valid.length > 0) return valid
+    }
+    return configuredPairs.map((_, i) => i)
+  }, [selectedPairIndicesByMode, baseMode, configuredPairs])
 
   const {
     sfxEnabled,
@@ -601,13 +622,14 @@ export default function PracticePlay() {
     }
   }, [id, subMode, navigate])
 
-  // Sync setup screen fields when practiceSubMode or modeSettings change
+  // Sync setup screen fields when practiceSubMode, modeSettings or selected pairs change
   useEffect(() => {
+    const active = configuredPairs.filter((_, idx) => selectedPairIndices.includes(idx))
+    setSetupPairs(active.length > 0 ? active : configuredPairs)
     if (modeSettings && modeSettings[baseMode]) {
-      setSetupPairs(modeSettings[baseMode].active_pairs || [{ q: 'front', a: 'back' }])
       setSetupNumChoices(modeSettings[baseMode].num_choices || 4)
     }
-  }, [baseMode, modeSettings])
+  }, [configuredPairs, selectedPairIndices, baseMode, modeSettings])
 
   const getVal = (item: any, key: string): string => {
     if (!item) return "";
@@ -802,7 +824,7 @@ export default function PracticePlay() {
 
   // ── Client-side Dynamic Practice Generator ──
 
-  const generatePracticeQuestion = (idx: number, customSubMode?: string) => {
+  const generatePracticeQuestion = (idx: number, customSubMode?: string, overridePairs?: { q: string, a: string | string[], audio_col?: string }[]) => {
     if (!session || !session.questions || session.questions.length === 0) return;
     if (idx < 0 || idx >= session.questions.length) return;
     const qObj = session.questions[idx];
@@ -813,16 +835,17 @@ export default function PracticePlay() {
       return;
     }
 
-    if (practiceCardCacheRef.current[qObj.id]) {
+    if (!overridePairs && practiceCardCacheRef.current[qObj.id]) {
       setCurrentPracticeData(practiceCardCacheRef.current[qObj.id]);
       return;
     }
 
     const subMode = getBaseMode(customSubMode || (practiceSubMode === 'roadmap_test' ? (qObj.practice_submode || qObj.question_type || 'mcq') : practiceSubMode));
 
-    // Pick a random pair from setupPairs
-    const activePair = setupPairs && setupPairs.length > 0
-      ? setupPairs[Math.floor(Math.random() * setupPairs.length)]
+    // Pick a random pair from pairsToUse
+    const pairsToUse = overridePairs || setupPairs;
+    const activePair = pairsToUse && pairsToUse.length > 0
+      ? pairsToUse[Math.floor(Math.random() * pairsToUse.length)]
       : { q: 'front', a: 'back' };
 
     const question_key = activePair.q;
@@ -2866,6 +2889,48 @@ export default function PracticePlay() {
       }
     }
   };
+
+  const handleTogglePairIndex = useCallback((idx: number) => {
+    const current = selectedPairIndices;
+    let next: number[];
+    if (current.includes(idx)) {
+      if (current.length <= 1) {
+        showLocalToast('At least one question pair must remain active', 'warning');
+        return;
+      }
+      next = current.filter(i => i !== idx);
+    } else {
+      next = [...current, idx].sort((a, b) => a - b);
+    }
+
+    setSelectedPairIndicesByMode(prev => ({ ...prev, [baseMode]: next }));
+    const newActivePairs = configuredPairs.filter((_, i) => next.includes(i));
+    setSetupPairs(newActivePairs);
+
+    // Invalidate card cache so newly selected pairs take effect immediately
+    practiceCardCacheRef.current = {};
+
+    // If current question hasn't been submitted/answered, re-generate immediately with newActivePairs
+    if (!showFeedback && selectedOption === null && !typingFeedback?.checked && session?.questions?.[currentIndex]) {
+      generatePracticeQuestion(currentIndex, undefined, newActivePairs);
+    }
+
+    const toastMsg = next.length === configuredPairs.length
+      ? `All ${configuredPairs.length} question pairs active`
+      : `Active: ${next.length} of ${configuredPairs.length} pairs`;
+    showLocalToast(toastMsg, 'info');
+  }, [selectedPairIndices, configuredPairs, baseMode, showFeedback, selectedOption, typingFeedback, session, currentIndex, showLocalToast]);
+
+  const handleSelectAllPairs = useCallback(() => {
+    const all = configuredPairs.map((_, i) => i);
+    setSelectedPairIndicesByMode(prev => ({ ...prev, [baseMode]: all }));
+    setSetupPairs(configuredPairs);
+    practiceCardCacheRef.current = {};
+    if (!showFeedback && selectedOption === null && !typingFeedback?.checked && session?.questions?.[currentIndex]) {
+      generatePracticeQuestion(currentIndex, undefined, configuredPairs);
+    }
+    showLocalToast(`All ${configuredPairs.length} question pairs active`, 'info');
+  }, [configuredPairs, baseMode, showFeedback, selectedOption, typingFeedback, session, currentIndex, showLocalToast]);
 
   const handleSelectPracticeMode = (targetMode: PracticeSubMode) => {
     practiceCardCacheRef.current = {};
@@ -5920,6 +5985,10 @@ export default function PracticePlay() {
         setShowImages={setShowImages}
         currentQuestion={currentQuestion}
         currentPracticeData={currentPracticeData}
+        configuredPairs={configuredPairs}
+        selectedPairIndices={selectedPairIndices}
+        onTogglePairIndex={handleTogglePairIndex}
+        onSelectAllPairs={handleSelectAllPairs}
         canEdit={Boolean(canEdit)}
         onOpenEditModal={() => setIsEditModalOpen(true)}
         onToggleIgnoreCard={handleIgnoreQuestion}

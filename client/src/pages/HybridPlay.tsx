@@ -226,6 +226,35 @@ export default function HybridPlay() {
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
 
+  // In-session active Q&A pair selection (filtered per mode)
+  const [selectedPairIndicesByMode, setSelectedPairIndicesByMode] = useState<Record<string, number[]>>({})
+
+  const activeModeKey = drillSubMode || (hybridSettings.allowed_practices?.[0] as 'mcq' | 'typing' | 'listening') || 'mcq'
+
+  const configuredPairs = useMemo(() => {
+    const effPractice = deckPracticeSettings?.creator_settings || session?.creator_settings || session?.practice_settings || {}
+    const effUser = deckPracticeSettings?.user_settings || session?.user_settings || {}
+    const modeConfig = effUser[activeModeKey] || effPractice[activeModeKey] || effUser.mcq || effPractice.mcq || {}
+    let list = modeConfig.active_pairs
+    if (!Array.isArray(list) || list.length === 0) {
+      if (activeModeKey === 'typing') {
+        list = [{ q: 'nghĩa', a: ['front', 'từ vựng', 'cách đọc', 'romaji', 'romanji'] }]
+      } else {
+        list = [{ q: 'front', a: 'nghĩa' }]
+      }
+    }
+    return list
+  }, [deckPracticeSettings, session, activeModeKey])
+
+  const selectedPairIndices = useMemo(() => {
+    const saved = selectedPairIndicesByMode[activeModeKey]
+    if (Array.isArray(saved) && saved.length > 0) {
+      const valid = saved.filter(i => i >= 0 && i < configuredPairs.length)
+      if (valid.length > 0) return valid
+    }
+    return configuredPairs.map((_: any, i: number) => i)
+  }, [selectedPairIndicesByMode, activeModeKey, configuredPairs])
+
   // Drill active timing & round-robin cursor refs
   const drillCardShownAtRef = useRef<number>(Date.now())
   const drillCursorRef = useRef<number>(-1)
@@ -710,6 +739,41 @@ export default function HybridPlay() {
     }
   }, [currentBatchIndex, batches.length, prefetchNextHybridBatch])
 
+  const handleTogglePairIndex = useCallback((idx: number) => {
+    const current = selectedPairIndices
+    let next: number[]
+    if (current.includes(idx)) {
+      if (current.length <= 1) {
+        showLocalToast('At least one question pair must remain active', 'warning')
+        return
+      }
+      next = current.filter((i: number) => i !== idx)
+    } else {
+      next = [...current, idx].sort((a, b) => a - b)
+    }
+
+    setSelectedPairIndicesByMode(prev => ({ ...prev, [activeModeKey]: next }))
+
+    // If currently on drill card and not answered yet, regenerate with new pair selection
+    if (stage === 'drill' && drillActiveCard && selectedOption === null && !typingFeedback?.checked) {
+      generatePracticeForDrillCard(drillActiveCard, next)
+    }
+
+    const toastMsg = next.length === configuredPairs.length
+      ? `All ${configuredPairs.length} question pairs active`
+      : `Active: ${next.length} of ${configuredPairs.length} pairs`
+    showLocalToast(toastMsg, 'info')
+  }, [selectedPairIndices, configuredPairs, activeModeKey, stage, drillActiveCard, selectedOption, typingFeedback, showLocalToast])
+
+  const handleSelectAllPairs = useCallback(() => {
+    const all = configuredPairs.map((_: any, i: number) => i)
+    setSelectedPairIndicesByMode(prev => ({ ...prev, [activeModeKey]: all }))
+    if (stage === 'drill' && drillActiveCard && selectedOption === null && !typingFeedback?.checked) {
+      generatePracticeForDrillCard(drillActiveCard, all)
+    }
+    showLocalToast(`All ${configuredPairs.length} question pairs active`, 'info')
+  }, [configuredPairs, activeModeKey, stage, drillActiveCard, selectedOption, typingFeedback, showLocalToast])
+
   const handleUpdateHybridSettings = useCallback(async (partial: Partial<HybridSettings>) => {
     const updated: HybridSettings = {
       ...hybridSettings,
@@ -1081,7 +1145,7 @@ export default function HybridPlay() {
   }
 
   // ── 5. Generate Practice Question Data ──
-  const generatePracticeForDrillCard = (q: Question) => {
+  const generatePracticeForDrillCard = (q: Question, overrideIndices?: number[]) => {
     if (!q || !rawQuestions || rawQuestions.length === 0) return
 
     const effPractice = deckPracticeSettings?.creator_settings || session?.creator_settings || session?.practice_settings || {}
@@ -1118,6 +1182,14 @@ export default function HybridPlay() {
         activePairs = [{ q: 'nghĩa', a: ['front', 'từ vựng', 'cách đọc', 'romaji', 'romanji'] }]
       } else {
         activePairs = [{ q: 'front', a: 'nghĩa' }]
+      }
+    }
+
+    const indicesToFilter = overrideIndices || selectedPairIndicesByMode[chosenMode]
+    if (Array.isArray(indicesToFilter) && indicesToFilter.length > 0) {
+      const filtered = activePairs.filter((_: any, idx: number) => indicesToFilter.includes(idx))
+      if (filtered.length > 0) {
+        activePairs = filtered
       }
     }
 
@@ -2089,6 +2161,10 @@ export default function HybridPlay() {
         }}
         showLocalToast={showLocalToast}
         currentQuestion={activeQuestionForAudio}
+        configuredPairs={configuredPairs}
+        selectedPairIndices={selectedPairIndices}
+        onTogglePairIndex={handleTogglePairIndex}
+        onSelectAllPairs={handleSelectAllPairs}
         onOpenCardInsight={(card) => setPreviewInsightCard(card)}
       />
 

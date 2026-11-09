@@ -57,6 +57,10 @@ export interface HybridQuickControlsSheetProps {
   onSaveAsCreatorBaseline?: () => void
   showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning' | 'error') => void
   currentQuestion?: any
+  configuredPairs?: { q: string; a: string | string[]; audio_col?: string; desc?: string; description?: string; name?: string }[]
+  selectedPairIndices?: number[]
+  onTogglePairIndex?: (index: number) => void
+  onSelectAllPairs?: () => void
   onOpenCardInsight?: (card: any) => void
   onOpenEditModal?: () => void
 }
@@ -86,6 +90,10 @@ export const HybridQuickControlsSheet: React.FC<HybridQuickControlsSheetProps> =
   onSaveAsCreatorBaseline,
   showLocalToast,
   currentQuestion,
+  configuredPairs = [],
+  selectedPairIndices = [],
+  onTogglePairIndex,
+  onSelectAllPairs,
   onOpenCardInsight,
   onOpenEditModal,
 }) => {
@@ -616,6 +624,106 @@ export const HybridQuickControlsSheet: React.FC<HybridQuickControlsSheetProps> =
                 })}
               </div>
             </div>
+
+            {/* Active Question & Answer Pairs (In-session Toggle) */}
+            {configuredPairs && configuredPairs.length > 0 && (
+              <div className="flex flex-col gap-1 px-0.5">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-500">
+                      Active Question Pairs
+                    </span>
+                    <span className={cn(
+                      "text-[8.5px] font-black px-1.5 py-0.2 rounded-full border",
+                      selectedPairIndices.length === configuredPairs.length
+                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    )}>
+                      {selectedPairIndices.length} / {configuredPairs.length} Active
+                    </span>
+                  </div>
+                  {configuredPairs.length > 1 && onSelectAllPairs && (
+                    <div className="flex items-center gap-1.5">
+                      {selectedPairIndices.length < configuredPairs.length ? (
+                        <button
+                          type="button"
+                          onClick={onSelectAllPairs}
+                          className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+                        >
+                          Select All
+                        </button>
+                      ) : (
+                        <span className="text-[8.5px] font-semibold text-slate-400">All Selected</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  {configuredPairs.map((pair, idx) => {
+                    const isSelected = selectedPairIndices.includes(idx)
+                    const qLabel = String(pair.q || 'front').replace(/_/g, ' ')
+                    const aLabel = Array.isArray(pair.a)
+                      ? pair.a.map(x => String(x).replace(/_/g, ' ')).join(', ')
+                      : String(pair.a || 'back').replace(/_/g, ' ')
+                    const desc = (pair as any).desc || (pair as any).description || ''
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => onTogglePairIndex?.(idx)}
+                        className={cn(
+                          "w-full flex items-start gap-2 p-1.5 sm:p-2 rounded-xl border text-left transition-all active:scale-[0.99] cursor-pointer select-none",
+                          isSelected
+                            ? "bg-indigo-50/80 border-indigo-300 text-slate-900 shadow-2xs"
+                            : "bg-slate-50/60 border-slate-200/80 text-slate-400 opacity-60 hover:opacity-85"
+                        )}
+                        title={desc || `${qLabel} ➔ ${aLabel}`}
+                      >
+                        {/* Checkbox Icon */}
+                        <div className={cn(
+                          "w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                          isSelected
+                            ? "bg-indigo-600 text-white shadow-2xs"
+                            : "bg-white border border-slate-300 text-transparent"
+                        )}>
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </div>
+
+                        {/* Pair Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={cn(
+                              "text-[8.5px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-wider",
+                              isSelected ? "bg-indigo-100 text-indigo-700" : "bg-slate-200/80 text-slate-500"
+                            )}>
+                              Pair #{idx + 1}
+                            </span>
+                            <span className={cn(
+                              "text-[11px] font-bold truncate",
+                              isSelected ? "text-slate-800" : "text-slate-500"
+                            )}>
+                              <span className="font-semibold text-slate-400 text-[10px]">Ask:</span> <span className="font-bold underline decoration-indigo-300 underline-offset-2">{qLabel}</span>
+                              <span className="mx-1 text-slate-400 font-normal">➔</span>
+                              <span className="font-semibold text-slate-400 text-[10px]">Ans:</span> <span className="font-bold underline decoration-emerald-300 underline-offset-2">{aLabel}</span>
+                            </span>
+                          </div>
+                          {desc && (
+                            <p className={cn(
+                              "text-[9.5px] leading-tight mt-0.5 truncate",
+                              isSelected ? "text-slate-600 font-medium" : "text-slate-400"
+                            )} title={desc}>
+                              {desc}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* ══════ PREFERENCES SECTION (DIRECT, NO TAB SWITCHER) ══════ */}
             <div className="flex flex-col gap-2.5 text-left">
