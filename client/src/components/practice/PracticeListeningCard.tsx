@@ -207,6 +207,16 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
         <span className="text-[11px] font-bold text-slate-400">
           Click audio icon or press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Space</kbd> to listen again
         </span>
+
+        {/* Supplementary Question Info / Subtext / Hint */}
+        {practiceData.question_subtext && (
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/80 dark:border-cyan-800/60 text-cyan-900 dark:text-cyan-200 text-xs font-bold shadow-2xs max-w-full">
+            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-600/80 dark:text-cyan-400">
+              {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'HINT:'}
+            </span>
+            <span className="truncate">{practiceData.question_subtext}</span>
+          </div>
+        )}
       </div>
 
       {/* ── Bottom Interaction Stage (Typing or MCQ) ── */}

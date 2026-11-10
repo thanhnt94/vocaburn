@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Target,
   Volume2,
+  Info,
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -338,6 +339,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        subtext_col: p.subtext_col || undefined,
       }))
 
       const formattedTypingPairs = effTypingPairs.map((p: any) => ({
@@ -346,6 +348,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        subtext_col: p.subtext_col || undefined,
       }))
 
       const formattedListeningMcqPairs = effListeningMcqPairs.map((p: any) => ({
@@ -354,6 +357,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        subtext_col: p.subtext_col || undefined,
       }))
 
       const formattedListeningTypingPairs = effListeningTypingPairs.map((p: any) => ({
@@ -362,6 +366,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        subtext_col: p.subtext_col || undefined,
       }))
 
       try {
@@ -486,7 +491,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col', value: string | string[]) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'subtext_col', value: string | string[]) => {
     setCurrentPairs((prev) =>
       prev.map((p, i) => {
         if (i !== index) return p
@@ -494,6 +499,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         if (field === 'q') updated.prompt_col = String(value)
         if (field === 'a') updated.answer_col = value
         if (field === 'audio_col') updated.audio_col = String(value)
+        if (field === 'subtext_col') updated.subtext_col = String(value)
         updated.name = `${updated.q} ➜ ${Array.isArray(updated.a) ? updated.a.join(', ') : updated.a}`
         return updated
       })
@@ -1031,6 +1037,31 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                             ))}
                           </optgroup>
                           <option value="none">🔇 Tắt âm thanh (Không phát sau khi trả lời)</option>
+                        </select>
+                      </div>
+
+                      {/* Question Extra Info / Hint Column (Thông tin phụ / gợi ý câu hỏi) */}
+                      <div className="pt-2.5 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Info className="w-3.5 h-3.5 text-amber-500" />
+                            <span>4. Extra Info Column (Thông tin phụ / từ loại / gợi ý):</span>
+                          </label>
+                          <span className="text-[9px] font-medium text-slate-400">
+                            Hiển thị kèm câu hỏi (ví dụ: Nする, Động từ, Kanji...)
+                          </span>
+                        </div>
+                        <select
+                          value={pair.subtext_col || ''}
+                          onChange={(e) => handleUpdatePair(idx, 'subtext_col', e.target.value)}
+                          className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                        >
+                          <option value="">(Không hiển thị thông tin thêm)</option>
+                          {availableColumns.map((col) => (
+                            <option key={col} value={col}>
+                              📄 Cột: {col}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>

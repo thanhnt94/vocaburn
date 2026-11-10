@@ -163,6 +163,16 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
         >
           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
         </h2>
+
+        {/* Supplementary Question Info / Subtext / Hint (e.g. Từ loại, Dạng từ, N-suru, v.v.) */}
+        {practiceData.question_subtext && (
+          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs font-bold shadow-2xs max-w-full">
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600/80 dark:text-indigo-400">
+              {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'HINT:'}
+            </span>
+            <span className="truncate">{practiceData.question_subtext}</span>
+          </div>
+        )}
       </div>
 
       {/* ── MCQ Choices (A, B, C, D) ── */}

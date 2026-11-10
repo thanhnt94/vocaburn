@@ -852,10 +852,16 @@ export default function PracticePlay() {
     const raw_answer_key = activePair.a;
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'back') : (raw_answer_key || 'back');
     const audio_col = (activePair as any).audio_col !== undefined ? (activePair as any).audio_col : undefined;
+    const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.hint_col || (activePair as any)?.extra_col || (activePair as any)?.info_col;
     const num_choices = setupNumChoices || 4;
 
     const questionText = getVal(qObj, question_key);
     const correctAns = getVal(qObj, primary_answer_key);
+
+    let questionSubtext = '';
+    if (configuredSubtextCol) {
+      questionSubtext = getVal(qObj, configuredSubtextCol);
+    }
 
     const item_front = getVal(qObj, 'front');
     const item_back = getVal(qObj, 'back');
@@ -981,6 +987,7 @@ export default function PracticePlay() {
       const finalPracticeData = {
         card_id: qObj.id,
         question: questionText,
+        question_subtext: questionSubtext,
         choices,
         choice_item_ids,
         choices_data,
@@ -1029,6 +1036,8 @@ export default function PracticePlay() {
       const finalPracticeData = {
         card_id: qObj.id,
         question: questionText,
+        question_subtext: questionSubtext,
+        subtext_col: configuredSubtextCol,
         correct_answer: primary_answer,
         acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
         question_key,

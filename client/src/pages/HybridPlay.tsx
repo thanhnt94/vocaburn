@@ -1199,9 +1199,15 @@ export default function HybridPlay() {
     const raw_answer_key = activePair.a || (chosenMode === 'typing' ? ['front', 'từ vựng', 'cách đọc', 'romaji', 'romanji'] : 'nghĩa')
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'front') : (raw_answer_key || 'nghĩa')
     const audio_col = activePair.audio_col || (chosenMode === 'listening' ? 'front' : undefined)
+    const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.hint_col || (activePair as any)?.extra_col || (activePair as any)?.info_col;
 
     const questionText = getVal(q, question_key) || q.content || (q as any).front || 'Vocabulary Item'
     const correctAns = getVal(q, primary_answer_key) || q.explanation || (q as any).back || ''
+
+    let questionSubtext = '';
+    if (configuredSubtextCol) {
+      questionSubtext = getVal(q, configuredSubtextCol);
+    }
 
     if (chosenMode === 'mcq' || chosenMode === 'listening') {
       const correctIsJp = isJapanese(correctAns)
@@ -1286,6 +1292,8 @@ export default function HybridPlay() {
 
       const practiceObj: PracticeQuestionData = {
         question: questionText,
+        question_subtext: questionSubtext,
+        subtext_col: configuredSubtextCol,
         choices,
         choices_data,
         choice_item_ids,
@@ -1341,6 +1349,8 @@ export default function HybridPlay() {
 
       const practiceObj: PracticeQuestionData = {
         question: questionText,
+        question_subtext: questionSubtext,
+        subtext_col: configuredSubtextCol,
         choices: [],
         correct_index: 0,
         correct_answer: primary_answer,

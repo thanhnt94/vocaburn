@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 interface Pair {
   q: string
   a: string | string[]
+  subtext_col?: string
+  audio_col?: string
 }
 
 interface PracticeSetupScreenProps {
@@ -175,6 +177,32 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                     </p>
                   </div>
                 )}
+
+                {/* Extra Question Info / Hint Column */}
+                <div className="pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">
+                      Extra Info / Hint Column (Optional)
+                    </label>
+                    <span className="text-[9px] text-slate-400">
+                      Hiển thị cùng câu hỏi (ví dụ: Nする, Động từ, Kanji...)
+                    </span>
+                  </div>
+                  <select
+                    value={pair.subtext_col || ''}
+                    onChange={(e) => {
+                      const newPairs = [...setupPairs];
+                      newPairs[idx] = { ...newPairs[idx], subtext_col: e.target.value };
+                      setSetupPairs(newPairs);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="">(None - Không hiển thị thông tin phụ)</option>
+                    {availableColumns.map(col => (
+                      <option key={col} value={col}>{col.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             );
           })}

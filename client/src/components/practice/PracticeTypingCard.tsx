@@ -193,6 +193,16 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
         >
           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
         </h2>
+
+        {/* Supplementary Question Info / Subtext / Hint (e.g. Từ loại, Dạng từ, N-suru, v.v.) */}
+        {practiceData.question_subtext && (
+          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-2xs max-w-full">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600/80 dark:text-amber-400">
+              {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'HINT:'}
+            </span>
+            <span className="truncate">{practiceData.question_subtext}</span>
+          </div>
+        )}
       </div>
 
       {/* ── Active Interactive Typing & Result Section ── */}

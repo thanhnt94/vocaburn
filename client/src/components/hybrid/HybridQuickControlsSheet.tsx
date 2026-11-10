@@ -57,7 +57,7 @@ export interface HybridQuickControlsSheetProps {
   onSaveAsCreatorBaseline?: () => void
   showLocalToast?: (msg: string, type?: 'info' | 'success' | 'warning' | 'error') => void
   currentQuestion?: any
-  configuredPairs?: { q: string; a: string | string[]; audio_col?: string; desc?: string; description?: string; name?: string }[]
+  configuredPairs?: { q: string; a: string | string[]; audio_col?: string; subtext_col?: string; desc?: string; description?: string; name?: string }[]
   selectedPairIndices?: number[]
   onTogglePairIndex?: (index: number) => void
   onSelectAllPairs?: () => void
@@ -700,6 +700,11 @@ export const HybridQuickControlsSheet: React.FC<HybridQuickControlsSheetProps> =
                             )}>
                               Pair #{idx + 1}
                             </span>
+                            {(pair as any).subtext_col && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                                Hint: {String((pair as any).subtext_col).replace(/_/g, ' ')}
+                              </span>
+                            )}
                             <span className={cn(
                               "text-[11px] font-bold truncate",
                               isSelected ? "text-slate-800" : "text-slate-500"
