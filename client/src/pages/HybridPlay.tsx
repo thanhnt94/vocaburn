@@ -47,6 +47,7 @@ import {
 import { usePracticeAudio } from '@/hooks/usePracticeAudio'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import LearningInsightsModal from '@/components/LearningInsightsModal'
+import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import { HybridQuickControlsSheet } from '@/components/hybrid/HybridQuickControlsSheet'
 import { getAudioContext, cancelAllAudio } from '@/lib/audio'
 import { getVal } from '@/lib/practice-utils'
@@ -225,6 +226,11 @@ export default function HybridPlay() {
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
   const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
+
+  // Card Edit Modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editFormData, setEditFormData] = useState<any>(null)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   // In-session active Q&A pair selection (filtered per mode)
   const [selectedPairIndicesByMode, setSelectedPairIndicesByMode] = useState<Record<string, number[]>>({})
@@ -1552,6 +1558,143 @@ export default function HybridPlay() {
     }
   }
 
+  const availableColumns = useMemo(() => {
+    if ((session as any)?.available_columns && Array.isArray((session as any).available_columns)) {
+      return (session as any).available_columns
+    }
+    const cols = new Set<string>()
+    cols.add('front')
+    cols.add('back')
+    ;(scopedQuestions || []).forEach((q: any) => {
+      if (q.others && typeof q.others === 'object') {
+        Object.keys(q.others).forEach(k => {
+          if (!k.startsWith('_')) cols.add(k)
+        })
+      }
+    })
+    return Array.from(cols)
+  }, [(session as any)?.available_columns, scopedQuestions])
+
+  const openEditModal = (targetCard?: any) => {
+    const cardToEdit = targetCard || drillActiveCard || currentBatch[skimCardIndex]
+    if (!cardToEdit) return
+
+    const others = cardToEdit.others ? { ...cardToEdit.others } : {}
+    const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
+    systemFields.forEach(f => delete others[f])
+
+    setEditFormData({
+      id: cardToEdit.id,
+      deck_id: cardToEdit.deck_id || id,
+      content: cardToEdit.content || cardToEdit.front || '',
+      explanation: cardToEdit.explanation || cardToEdit.back || '',
+      front: cardToEdit.content || cardToEdit.front || '',
+      back: cardToEdit.explanation || cardToEdit.back || '',
+      ai_explanation: cardToEdit.ai_explanation,
+      image: cardToEdit.image || '',
+      audio: cardToEdit.audio || '',
+      front_img: cardToEdit.front_img || '',
+      back_img: cardToEdit.back_img || '',
+      front_audio_url: cardToEdit.front_audio_url || '',
+      back_audio_url: cardToEdit.back_audio_url || '',
+      front_audio_content: cardToEdit.front_audio_content || '',
+      back_audio_content: cardToEdit.back_audio_content || '',
+      options: (cardToEdit.options || []).map((o: any) => ({ id: o.id, content: o.content, is_correct: o.is_correct })),
+      others: others
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const handleSaveEdit = async (updatedCardData: any) => {
+    if (!updatedCardData) return
+    const targetId = updatedCardData.id || drillActiveCard?.id || currentBatch[skimCardIndex]?.id
+    if (!targetId) return
+    setIsSavingEdit(true)
+
+    try {
+      const finalOthers = { ...(updatedCardData.others || {}) }
+      const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
+      systemFields.forEach(f => delete finalOthers[f])
+
+      if (finalOthers.other_content) {
+        try {
+          finalOthers.other_content = typeof finalOthers.other_content === 'string'
+            ? JSON.parse(finalOthers.other_content)
+            : finalOthers.other_content
+        } catch (je) {}
+      }
+
+      const updatedOptions = (updatedCardData.options || []).map((opt: any) => {
+        if (opt.is_correct && (updatedCardData.explanation || updatedCardData.back)) {
+          return { ...opt, content: updatedCardData.explanation || updatedCardData.back }
+        }
+        return opt
+      })
+
+      const payload = {
+        content: updatedCardData.content || updatedCardData.front || '',
+        explanation: updatedCardData.explanation || updatedCardData.back || '',
+        ai_explanation: updatedCardData.ai_explanation,
+        hint: updatedCardData.hint || null,
+        mnemonic: updatedCardData.mnemonic || null,
+        image: updatedCardData.image || null,
+        audio: updatedCardData.audio || null,
+        front_img: updatedCardData.front_img || '',
+        back_img: updatedCardData.back_img || '',
+        front_audio_url: updatedCardData.front_audio_url || '',
+        back_audio_url: updatedCardData.back_audio_url || '',
+        front_audio_content: updatedCardData.front_audio_content || '',
+        back_audio_content: updatedCardData.back_audio_content || '',
+        others: finalOthers,
+        options: updatedOptions
+      }
+
+      await axios.patch(`/api/v1/deck/question/${targetId}`, payload)
+
+      const updateCardInList = (list: any[]) =>
+        list.map((q: any) =>
+          q.id === targetId
+            ? {
+                ...q,
+                ...payload,
+                front: payload.content,
+                back: payload.explanation,
+                options: updatedOptions
+              }
+            : q
+        )
+
+      setRawQuestions(prev => updateCardInList(prev))
+      setScopedQuestions(prev => updateCardInList(prev))
+      setSession((prev: any) => {
+        if (!prev?.questions) return prev
+        return { ...prev, questions: updateCardInList(prev.questions) }
+      })
+
+      setPreviewInsightCard((prev: any) => {
+        if (prev && prev.id === targetId) {
+          return {
+            ...prev,
+            ...payload,
+            front: payload.content,
+            back: payload.explanation,
+            options: updatedOptions
+          }
+        }
+        return prev
+      })
+
+      setIsEditModalOpen(false)
+      setEditFormData(null)
+      showLocalToast('Card updated successfully! ✓', 'success')
+    } catch (e) {
+      console.error('Failed to save edited question:', e)
+      alert('Failed to save changes.')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2222,6 +2365,7 @@ export default function HybridPlay() {
         onTogglePairIndex={handleTogglePairIndex}
         onSelectAllPairs={handleSelectAllPairs}
         onOpenCardInsight={(card) => setPreviewInsightCard(card)}
+        onOpenEditModal={() => openEditModal()}
       />
 
       {/* Floating Notification Toast */}
@@ -2244,6 +2388,8 @@ export default function HybridPlay() {
         onClose={() => setPreviewInsightCard(null)}
         allQuestions={scopedQuestions}
         onSelectCard={(c) => setPreviewInsightCard(c)}
+        canEdit={canEdit}
+        onEditCard={(c) => openEditModal(c)}
         insightsColumns={
           (session as any)?.practice_settings?.insight_columns ??
           (session as any)?.practice_settings?.insights_columns ??
@@ -2254,6 +2400,20 @@ export default function HybridPlay() {
           (session as any)?.deck?.practice_settings?.insight_columns ??
           (session as any)?.deck?.practice_settings?.insights_columns
         }
+      />
+
+      {/* Modern Standard Flashcard Edit Modal */}
+      <FlashcardEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditFormData(null)
+        }}
+        flashcard={editFormData}
+        onSave={handleSaveEdit}
+        isSaving={isSavingEdit}
+        availableColumns={availableColumns}
+        practiceSettings={session?.practice_settings || session?.creator_settings}
       />
     </div>
   )

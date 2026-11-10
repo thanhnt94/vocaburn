@@ -83,8 +83,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
 
   const getFieldValue = (col: string) => {
     if (!formData) return '';
-    if (col === 'front') return formData.content || '';
-    if (col === 'back') return formData.explanation || '';
+    if (col === 'front') return formData.content || formData.front || '';
+    if (col === 'back') return formData.explanation || formData.back || '';
     if (col === 'ai_explanation') return formData.ai_explanation || '';
     if (col === 'hint') return formData.hint || '';
     if (col === 'mnemonic') return formData.mnemonic || '';
@@ -100,15 +100,15 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     if (col === 'back_audio_content') {
       return formData.back_audio_content || formData.others?.back_audio_content || formData.others?.['back audio content'] || formData.others?.['văn bản audio mặt sau'] || '';
     }
-    return formData.others?.[col] || '';
+    return formData.others?.[col] !== undefined ? formData.others[col] : (formData[col] || '');
   };
 
   const setFieldValue = (col: string, val: string) => {
     if (!formData) return;
     if (col === 'front') {
-      setFormData({ ...formData, content: val });
+      setFormData({ ...formData, content: val, front: val });
     } else if (col === 'back') {
-      setFormData({ ...formData, explanation: val });
+      setFormData({ ...formData, explanation: val, back: val });
     } else if (col === 'ai_explanation') {
       setFormData({ ...formData, ai_explanation: val });
     } else if (col === 'hint') {
@@ -416,6 +416,10 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
 
       setFormData({
         ...unresolvedCard,
+        content: unresolvedCard.content || unresolvedCard.front || '',
+        explanation: unresolvedCard.explanation || unresolvedCard.back || '',
+        front: unresolvedCard.content || unresolvedCard.front || '',
+        back: unresolvedCard.explanation || unresolvedCard.back || '',
         others: merged
       })
 

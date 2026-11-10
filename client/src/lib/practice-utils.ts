@@ -11,34 +11,19 @@ export const getVal = (item: any, key: string): string => {
 
   const keyLower = keyStr.toLowerCase();
 
-  const cleanMeaningVal = (raw: string): string => {
-    if (!raw) return "";
-    const s = String(raw).trim();
-    if (keyLower === 'nghĩa' || keyLower.includes('nghĩa') || keyLower.includes('mean') || keyLower === 'definition') {
-      const bracketMatch = s.match(/^[^\(（]+[\(（]([^\)）]+)[\)）]\s*$/);
-      if (bracketMatch && bracketMatch[1].trim()) {
-        const inner = bracketMatch[1].trim();
-        if (/[a-zA-Zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(inner)) {
-          return inner;
-        }
-      }
-    }
-    return s;
-  };
-
   // 1. Direct property match on item (e.g. item.front, item.back, item.content, item.explanation)
   if (item[keyStr] !== undefined && item[keyStr] !== null && String(item[keyStr]).trim()) {
-    return cleanMeaningVal(String(item[keyStr]).trim());
+    return String(item[keyStr]).trim();
   }
 
   // 2. Exact, case-insensitive, or semantic match in item.others FIRST!
   if (item.others && typeof item.others === 'object') {
     if (item.others[keyStr] !== undefined && item.others[keyStr] !== null && String(item.others[keyStr]).trim()) {
-      return cleanMeaningVal(String(item.others[keyStr]).trim());
+      return String(item.others[keyStr]).trim();
     }
     for (const [k, v] of Object.entries(item.others)) {
       if (k.toLowerCase() === keyLower && v !== undefined && v !== null && String(v).trim()) {
-        return cleanMeaningVal(String(v).trim());
+        return String(v).trim();
       }
     }
 
@@ -47,7 +32,7 @@ export const getVal = (item: any, key: string): string => {
       for (const [k, v] of Object.entries(item.others)) {
         const kLower = k.toLowerCase();
         if ((kLower.includes('nghĩa') || kLower.includes('mean')) && v !== undefined && v !== null && String(v).trim()) {
-          return cleanMeaningVal(String(v).trim());
+          return String(v).trim();
         }
       }
     }

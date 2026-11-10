@@ -2829,40 +2829,46 @@ export default function FlashcardPlay() {
     onToggleHint: () => handleOpenInsights(currentQuestion, 'content')
   });
 
-  const openEditModal = () => {
-    if (!currentQuestion) return
+  const openEditModal = (targetCard?: any) => {
+    const cardToEdit = targetCard || currentQuestion
+    if (!cardToEdit) return
     
-    const others = currentQuestion.others ? { ...currentQuestion.others } : {};
+    const others = cardToEdit.others ? { ...cardToEdit.others } : {};
     // Strip out column fields from others if they leaked in
     const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content'];
     systemFields.forEach(f => delete others[f]);
 
     setEditFormData({
-      id: currentQuestion.id,
-      content: currentQuestion.content,
-      explanation: currentQuestion.explanation,
-      ai_explanation: currentQuestion.ai_explanation,
-      image: currentQuestion.image || '',
-      audio: currentQuestion.audio || '',
-      front_img: currentQuestion.front_img || '',
-      back_img: currentQuestion.back_img || '',
-      front_audio_url: currentQuestion.front_audio_url || '',
-      back_audio_url: currentQuestion.back_audio_url || '',
-      front_audio_content: currentQuestion.front_audio_content || '',
-      back_audio_content: currentQuestion.back_audio_content || '',
-      options: currentQuestion.options.map(o => ({ id: o.id, content: o.content, is_correct: o.is_correct })),
+      id: cardToEdit.id,
+      deck_id: cardToEdit.deck_id || id,
+      content: cardToEdit.content || cardToEdit.front || '',
+      explanation: cardToEdit.explanation || cardToEdit.back || '',
+      front: cardToEdit.content || cardToEdit.front || '',
+      back: cardToEdit.explanation || cardToEdit.back || '',
+      ai_explanation: cardToEdit.ai_explanation,
+      image: cardToEdit.image || '',
+      audio: cardToEdit.audio || '',
+      front_img: cardToEdit.front_img || '',
+      back_img: cardToEdit.back_img || '',
+      front_audio_url: cardToEdit.front_audio_url || '',
+      back_audio_url: cardToEdit.back_audio_url || '',
+      front_audio_content: cardToEdit.front_audio_content || '',
+      back_audio_content: cardToEdit.back_audio_content || '',
+      options: (cardToEdit.options || []).map((o: any) => ({ id: o.id, content: o.content, is_correct: o.is_correct })),
       others: others
     })
     setIsEditModalOpen(true)
   }
 
   const handleSaveEdit = async (updatedCardData: any) => {
-    if (!currentQuestion || !updatedCardData) return
+    if (!updatedCardData) return
+    const targetId = updatedCardData.id || currentQuestion?.id
+    if (!targetId) return
     setIsSavingEdit(true)
     
     try {
       // Safely parse other_content JSON if provided
-      const finalOthers = { ...updatedCardData.others };
+      const finalOthers = { ...(updatedCardData.others || {}) };
       const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content'];
       systemFields.forEach(f => delete finalOthers[f]);
       
@@ -2879,16 +2885,18 @@ export default function FlashcardPlay() {
 
       // Sync correctness explanation to options content
       const updatedOptions = (updatedCardData.options || []).map((opt: any) => {
-        if (opt.is_correct && updatedCardData.explanation) {
-          return { ...opt, content: updatedCardData.explanation }
+        if (opt.is_correct && (updatedCardData.explanation || updatedCardData.back)) {
+          return { ...opt, content: updatedCardData.explanation || updatedCardData.back }
         }
         return opt
       })
 
       const payload = {
-        content: updatedCardData.content,
-        explanation: updatedCardData.explanation,
+        content: updatedCardData.content || updatedCardData.front || '',
+        explanation: updatedCardData.explanation || updatedCardData.back || '',
         ai_explanation: updatedCardData.ai_explanation,
+        hint: updatedCardData.hint || null,
+        mnemonic: updatedCardData.mnemonic || null,
         image: updatedCardData.image || null,
         audio: updatedCardData.audio || null,
         front_img: updatedCardData.front_img || '',
@@ -2901,21 +2909,43 @@ export default function FlashcardPlay() {
         options: updatedOptions
       };
 
-      await axios.patch(`/api/v1/deck/question/${currentQuestion.id}`, payload)
+      await axios.patch(`/api/v1/deck/question/${targetId}`, payload)
       
       // Update local state
       setSession((prev: any) => {
-        const newQs = [...prev.questions]
-        newQs[currentIndex] = { 
-          ...newQs[currentIndex], 
-          ...payload,
-          options: updatedOptions 
-        }
+        if (!prev?.questions) return prev
+        const newQs = prev.questions.map((q: any) => {
+          if (q.id === targetId) {
+            return {
+              ...q,
+              ...payload,
+              front: payload.content,
+              back: payload.explanation,
+              options: updatedOptions
+            }
+          }
+          return q
+        })
         return { ...prev, questions: newQs }
       })
       
+      // Update previewInsightCard if open
+      setPreviewInsightCard((prev: any) => {
+        if (prev && prev.id === targetId) {
+          return {
+            ...prev,
+            ...payload,
+            front: payload.content,
+            back: payload.explanation,
+            options: updatedOptions
+          }
+        }
+        return prev
+      })
+
       setEditFormData(null)
       setIsEditModalOpen(false)
+      showLocalToast("Card updated successfully! ✓", "success")
     } catch (e) {
       console.error("Failed to save edited question:", e)
       alert("Failed to save changes.")
@@ -4127,8 +4157,7 @@ export default function FlashcardPlay() {
         }}
         canEdit={canEdit}
         onEditCard={(c) => {
-          setEditFormData(c);
-          setIsEditModalOpen(true);
+          openEditModal(c);
         }}
         initialTab={previewInsightTab}
         insightsColumns={
