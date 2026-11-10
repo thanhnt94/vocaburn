@@ -168,7 +168,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
         {practiceData.question_subtext && (
           <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-900 dark:text-indigo-200 text-xs font-bold shadow-2xs max-w-full">
             <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600/80 dark:text-indigo-400">
-              {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'HINT:'}
+              {practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
             </span>
             <span className="truncate">{practiceData.question_subtext}</span>
           </div>
@@ -216,12 +216,12 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                 if (!subtext) {
                   const isJpChoice = isJapanese(choice) || (answer_key && (String(answer_key).includes('mẫu') || String(answer_key).includes('front') || String(answer_key).includes('kanji')))
                   if (isJpChoice) {
-                    subtext = getVal(targetCard, 'nghĩa') || getVal(targetCard, 'meaning') || getVal(targetCard, 'dịch_nghĩa') || ''
+                    subtext = getVal(targetCard, 'nghĩa') || getVal(targetCard, 'meaning') || getVal(targetCard, 'dịch_nghĩa') || getVal(targetCard, 'back') || ''
                     if (!subtext && targetCard.explanation) {
                       subtext = targetCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
                     }
                   } else {
-                    subtext = getVal(targetCard, 'mẫu_ngữ_pháp') || getVal(targetCard, 'front') || targetCard.content || ''
+                    subtext = getVal(targetCard, 'mẫu_ngữ_pháp') || getVal(targetCard, 'front') || getVal(targetCard, 'từ_vựng') || getVal(targetCard, 'kanji') || targetCard.content || ''
                   }
                 }
               }

@@ -852,15 +852,33 @@ export default function PracticePlay() {
     const raw_answer_key = activePair.a;
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'back') : (raw_answer_key || 'back');
     const audio_col = (activePair as any).audio_col !== undefined ? (activePair as any).audio_col : undefined;
-    const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.hint_col || (activePair as any)?.extra_col || (activePair as any)?.info_col;
+    const configuredHintCol = (activePair as any)?.hint_col || (activePair as any)?.prompt_hint_col || (activePair as any)?.extra_col;
+    const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.result_subtext_col || (activePair as any)?.info_col;
     const num_choices = setupNumChoices || 4;
 
     const questionText = getVal(qObj, question_key);
     const correctAns = getVal(qObj, primary_answer_key);
 
     let questionSubtext = '';
+    if (configuredHintCol) {
+      questionSubtext = getVal(qObj, configuredHintCol);
+    }
+
+    // Pre-calculate result subtext for feedback display after answering
+    let resultSubtext = '';
     if (configuredSubtextCol) {
-      questionSubtext = getVal(qObj, configuredSubtextCol);
+      resultSubtext = getVal(qObj, configuredSubtextCol);
+    }
+    if (!resultSubtext) {
+      const isJpQuestion = isJapanese(questionText);
+      if (isJpQuestion) {
+        resultSubtext = getVal(qObj, 'nghĩa') || getVal(qObj, 'meaning') || getVal(qObj, 'dịch_nghĩa') || getVal(qObj, 'back') || '';
+      } else {
+        resultSubtext = getVal(qObj, 'front') || getVal(qObj, 'từ_vựng') || getVal(qObj, 'mẫu_ngữ_pháp') || getVal(qObj, 'kanji') || getVal(qObj, 'cách_đọc') || '';
+      }
+      if (!resultSubtext) {
+        resultSubtext = correctAns || getVal(qObj, 'back') || '';
+      }
     }
 
     const item_front = getVal(qObj, 'front');
@@ -988,6 +1006,8 @@ export default function PracticePlay() {
         card_id: qObj.id,
         question: questionText,
         question_subtext: questionSubtext,
+        hint_col: configuredHintCol,
+        result_subtext: resultSubtext,
         choices,
         choice_item_ids,
         choices_data,
@@ -1037,6 +1057,8 @@ export default function PracticePlay() {
         card_id: qObj.id,
         question: questionText,
         question_subtext: questionSubtext,
+        hint_col: configuredHintCol,
+        result_subtext: resultSubtext,
         subtext_col: configuredSubtextCol,
         correct_answer: primary_answer,
         acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],

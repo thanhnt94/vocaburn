@@ -62,7 +62,7 @@ export interface PracticeQuickControlsSheetProps {
   setShowImages?: (val: string) => void
   currentQuestion?: Question | null
   currentPracticeData?: any
-  configuredPairs?: { q: string; a: string | string[]; audio_col?: string; subtext_col?: string; desc?: string; description?: string; name?: string }[]
+  configuredPairs?: { q: string; a: string | string[]; audio_col?: string; hint_col?: string; subtext_col?: string; desc?: string; description?: string; name?: string }[]
   selectedPairIndices?: number[]
   onTogglePairIndex?: (index: number) => void
   onSelectAllPairs?: () => void
@@ -738,9 +738,14 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                             )}>
                               Pair #{idx + 1}
                             </span>
-                            {pair.subtext_col && (
+                            {pair.hint_col && (
                               <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                                Hint: {String(pair.subtext_col).replace(/_/g, ' ')}
+                                Hint: {String(pair.hint_col).replace(/_/g, ' ')}
+                              </span>
+                            )}
+                            {pair.subtext_col && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                Result: {String(pair.subtext_col).replace(/_/g, ' ')}
                               </span>
                             )}
                             <span className={cn(

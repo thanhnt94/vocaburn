@@ -198,7 +198,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
         {practiceData.question_subtext && (
           <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-2xs max-w-full">
             <span className="text-[10px] font-black uppercase tracking-wider text-amber-600/80 dark:text-amber-400">
-              {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'HINT:'}
+              {practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
             </span>
             <span className="truncate">{practiceData.question_subtext}</span>
           </div>
@@ -333,6 +333,20 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                         <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
                       </span>
                     ))}
+                  </div>
+                )}
+
+                {/* Result Subtext / Extra Information (Song song cùng kết quả) */}
+                {practiceData.result_subtext && (
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
+                        {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'Chi tiết:'}
+                      </span>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(practiceData.result_subtext) }} />
+                      </span>
+                    </div>
                   </div>
                 )}
                 {/* Answer Explanation Images (Revealed upon answering) */}

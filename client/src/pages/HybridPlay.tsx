@@ -1199,14 +1199,32 @@ export default function HybridPlay() {
     const raw_answer_key = activePair.a || (chosenMode === 'typing' ? ['front', 'từ vựng', 'cách đọc', 'romaji', 'romanji'] : 'nghĩa')
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'front') : (raw_answer_key || 'nghĩa')
     const audio_col = activePair.audio_col || (chosenMode === 'listening' ? 'front' : undefined)
-    const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.hint_col || (activePair as any)?.extra_col || (activePair as any)?.info_col;
+    const configuredHintCol = (activePair as any)?.hint_col || (activePair as any)?.prompt_hint_col || (activePair as any)?.extra_col;
+    const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.result_subtext_col || (activePair as any)?.info_col;
 
     const questionText = getVal(q, question_key) || q.content || (q as any).front || 'Vocabulary Item'
     const correctAns = getVal(q, primary_answer_key) || q.explanation || (q as any).back || ''
 
     let questionSubtext = '';
+    if (configuredHintCol) {
+      questionSubtext = getVal(q, configuredHintCol);
+    }
+
+    // Pre-calculate result subtext for feedback display after answering
+    let resultSubtext = '';
     if (configuredSubtextCol) {
-      questionSubtext = getVal(q, configuredSubtextCol);
+      resultSubtext = getVal(q, configuredSubtextCol);
+    }
+    if (!resultSubtext) {
+      const isJpQuestion = isJapanese(questionText);
+      if (isJpQuestion) {
+        resultSubtext = getVal(q, 'nghĩa') || getVal(q, 'meaning') || getVal(q, 'dịch_nghĩa') || getVal(q, 'back') || '';
+      } else {
+        resultSubtext = getVal(q, 'front') || getVal(q, 'từ_vựng') || getVal(q, 'mẫu_ngữ_pháp') || getVal(q, 'kanji') || getVal(q, 'cách_đọc') || '';
+      }
+      if (!resultSubtext) {
+        resultSubtext = correctAns || getVal(q, 'back') || '';
+      }
     }
 
     if (chosenMode === 'mcq' || chosenMode === 'listening') {
@@ -1286,6 +1304,30 @@ export default function HybridPlay() {
         choices_data[j] = temp
       }
 
+      // Pre-compute subtext for all choices (revealed upon answering in row 2)
+      for (const item of choices_data) {
+        const itemCard = item.card
+        let itemSubtext = ''
+        if (configuredSubtextCol && itemCard) {
+          itemSubtext = getVal(itemCard, configuredSubtextCol)
+        }
+        if (!itemSubtext && itemCard) {
+          const isJpAnswer = isJapanese(item.text) || (typeof primary_answer_key === 'string' && (primary_answer_key.includes('mẫu') || primary_answer_key.includes('front') || primary_answer_key.includes('kanji')))
+          if (isJpAnswer) {
+            itemSubtext = getVal(itemCard, 'nghĩa') || getVal(itemCard, 'meaning') || getVal(itemCard, 'dịch_nghĩa') || getVal(itemCard, 'back') || ''
+            if (!itemSubtext && itemCard.explanation) {
+              itemSubtext = itemCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
+            }
+          } else {
+            itemSubtext = getVal(itemCard, 'mẫu_ngữ_pháp') || getVal(itemCard, 'front') || getVal(itemCard, 'kanji') || itemCard.content || ''
+          }
+        }
+        if (!itemSubtext && item.q_text && item.q_text !== item.text) {
+          itemSubtext = item.q_text
+        }
+        item.subtext = itemSubtext
+      }
+
       const choices = choices_data.map(c => c.text)
       const choice_item_ids = choices_data.map(c => c.id)
       const correctIdx = choices.indexOf(correctAns)
@@ -1293,6 +1335,8 @@ export default function HybridPlay() {
       const practiceObj: PracticeQuestionData = {
         question: questionText,
         question_subtext: questionSubtext,
+        hint_col: configuredHintCol,
+        result_subtext: resultSubtext,
         subtext_col: configuredSubtextCol,
         choices,
         choices_data,
@@ -1350,6 +1394,8 @@ export default function HybridPlay() {
       const practiceObj: PracticeQuestionData = {
         question: questionText,
         question_subtext: questionSubtext,
+        hint_col: configuredHintCol,
+        result_subtext: resultSubtext,
         subtext_col: configuredSubtextCol,
         choices: [],
         correct_index: 0,

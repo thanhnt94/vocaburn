@@ -33,6 +33,7 @@ export interface QuestionAnswerPair {
   prompt_col?: string
   answer_col?: string | string[]
   audio_col?: string
+  hint_col?: string
   subtext_col?: string
 }
 
@@ -116,7 +117,8 @@ function normalizePair(p: any): QuestionAnswerPair {
   }
   const displayA = Array.isArray(a) ? a.join(', ') : a
   const audio_col = p.audio_col !== undefined ? String(p.audio_col).trim() : (p.audio_channel || p.audio_target || '')
-  const subtext_col = p.subtext_col !== undefined ? String(p.subtext_col).trim() : (p.info_col || p.extra_col || '')
+  const hint_col = p.hint_col !== undefined ? String(p.hint_col).trim() : (p.extra_col || p.prompt_hint_col || '')
+  const subtext_col = p.subtext_col !== undefined ? String(p.subtext_col).trim() : (p.result_subtext_col || p.info_col || '')
   return {
     q,
     a,
@@ -124,6 +126,7 @@ function normalizePair(p: any): QuestionAnswerPair {
     prompt_col: p.prompt_col ? cleanCol(p.prompt_col) : q,
     answer_col: p.answer_col ? (Array.isArray(p.answer_col) ? p.answer_col.map(cleanCol) : cleanCol(p.answer_col)) : a,
     audio_col,
+    hint_col,
     subtext_col,
   }
 }
@@ -339,6 +342,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
 
@@ -348,6 +352,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
 
@@ -357,6 +362,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
 
@@ -366,6 +372,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
 
@@ -491,7 +498,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'subtext_col', value: string | string[]) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'hint_col' | 'subtext_col', value: string | string[]) => {
     setCurrentPairs((prev) =>
       prev.map((p, i) => {
         if (i !== index) return p
@@ -499,6 +506,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         if (field === 'q') updated.prompt_col = String(value)
         if (field === 'a') updated.answer_col = value
         if (field === 'audio_col') updated.audio_col = String(value)
+        if (field === 'hint_col') updated.hint_col = String(value)
         if (field === 'subtext_col') updated.subtext_col = String(value)
         updated.name = `${updated.q} ➜ ${Array.isArray(updated.a) ? updated.a.join(', ') : updated.a}`
         return updated
@@ -1040,15 +1048,40 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                         </select>
                       </div>
 
-                      {/* Question Extra Info / Hint Column (Thông tin phụ / gợi ý câu hỏi) */}
+                      {/* 4. Question Hint Column (Gợi ý câu hỏi - hiển thị TRƯỚC khi trả lời) */}
                       <div className="pt-2.5 border-t border-slate-100">
                         <div className="flex items-center justify-between mb-1">
                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                            <Info className="w-3.5 h-3.5 text-amber-500" />
-                            <span>4. Extra Info Column (Thông tin phụ / từ loại / gợi ý):</span>
+                            <HelpCircle className="w-3.5 h-3.5 text-amber-500" />
+                            <span>4. Question Hint (Gợi ý trước khi trả lời):</span>
                           </label>
                           <span className="text-[9px] font-medium text-slate-400">
                             Hiển thị kèm câu hỏi (ví dụ: Nする, Động từ, Kanji...)
+                          </span>
+                        </div>
+                        <select
+                          value={pair.hint_col || ''}
+                          onChange={(e) => handleUpdatePair(idx, 'hint_col', e.target.value)}
+                          className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                        >
+                          <option value="">(Không hiển thị gợi ý câu hỏi)</option>
+                          {availableColumns.map((col) => (
+                            <option key={col} value={col}>
+                              📄 Cột: {col}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 5. Result Details Column (Thông tin SAU KHI hiển thị kết quả) */}
+                      <div className="pt-2.5 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>5. Result Details (Thông tin sau khi có kết quả):</span>
+                          </label>
+                          <span className="text-[9px] font-medium text-slate-400">
+                            Hàng 2 trong MCQ & song song trong kết quả Typing
                           </span>
                         </div>
                         <select
@@ -1056,7 +1089,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           onChange={(e) => handleUpdatePair(idx, 'subtext_col', e.target.value)}
                           className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
                         >
-                          <option value="">(Không hiển thị thông tin thêm)</option>
+                          <option value="">🎯 Tự động theo cột đáp án (Mặc định)</option>
                           {availableColumns.map((col) => (
                             <option key={col} value={col}>
                               📄 Cột: {col}

@@ -212,7 +212,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
         {practiceData.question_subtext && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/80 dark:border-cyan-800/60 text-cyan-900 dark:text-cyan-200 text-xs font-bold shadow-2xs max-w-full">
             <span className="text-[10px] font-black uppercase tracking-wider text-cyan-600/80 dark:text-cyan-400">
-              {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'HINT:'}
+              {practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
             </span>
             <span className="truncate">{practiceData.question_subtext}</span>
           </div>
@@ -263,12 +263,12 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     if (!subtext) {
                       const isJpChoice = isJapanese(choice) || (answer_key && (String(answer_key).includes('mẫu') || String(answer_key).includes('front') || String(answer_key).includes('kanji')))
                       if (isJpChoice) {
-                        subtext = (targetCard as any)?.others?.nghĩa || (targetCard as any)?.meaning || (targetCard as any)?.others?.dịch_nghĩa || ''
+                        subtext = (targetCard as any)?.others?.nghĩa || (targetCard as any)?.meaning || (targetCard as any)?.others?.dịch_nghĩa || (targetCard as any)?.back || ''
                         if (!subtext && targetCard.explanation) {
                           subtext = targetCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
                         }
                       } else {
-                        subtext = (targetCard as any)?.others?.mẫu_ngữ_pháp || (targetCard as any)?.front || targetCard.content || ''
+                        subtext = (targetCard as any)?.others?.mẫu_ngữ_pháp || (targetCard as any)?.front || (targetCard as any)?.others?.từ_vựng || targetCard.content || ''
                       }
                     }
                   }
@@ -440,6 +440,20 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                         </span>
                         <div className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 text-emerald-900 dark:text-emerald-200 font-black text-lg">
                           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Result Subtext / Extra Information */}
+                    {practiceData.result_subtext && (
+                      <div className="mt-1 pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
+                            {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'Chi tiết:'}
+                          </span>
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                            <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(practiceData.result_subtext) }} />
+                          </span>
                         </div>
                       </div>
                     )}

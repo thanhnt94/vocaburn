@@ -9,12 +9,15 @@ export interface PracticePair {
   prompt_col?: string
   answer_col?: string | string[]
   audio_col?: string
+  hint_col?: string
   subtext_col?: string
 }
 
 export interface PracticeQuestionData {
   question: string
   question_subtext?: string
+  hint_col?: string
+  result_subtext?: string
   subtext_col?: string
   choices?: string[]
   choices_data?: any[]
