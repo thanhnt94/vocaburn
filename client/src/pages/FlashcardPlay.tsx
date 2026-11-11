@@ -3264,9 +3264,9 @@ export default function FlashcardPlay() {
                 
                 if (answered) {
                   if (isCorrectChoice) {
-                    btnStyle = "bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-100 scale-[1.02] ";
+                    btnStyle = "bg-emerald-700 border-emerald-800 text-white shadow-lg shadow-emerald-700/25 scale-[1.02] ";
                   } else if (isSelected) {
-                    btnStyle = "bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-100 ";
+                    btnStyle = "bg-rose-600 border-rose-700 text-white shadow-lg shadow-rose-600/25 ";
                   } else {
                     btnStyle = "border-slate-100 bg-slate-50 opacity-40 text-slate-400 pointer-events-none ";
                   }

@@ -234,11 +234,11 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
 
               if (answered) {
                 if (isCorrectChoice) {
-                  cardStyle = "bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-[1.01]"
-                  badgeStyle = "bg-emerald-600 text-white border-emerald-400"
+                  cardStyle = "bg-emerald-700 dark:bg-emerald-800 border-emerald-800 dark:border-emerald-600 text-white shadow-lg shadow-emerald-700/30 scale-[1.01]"
+                  badgeStyle = "bg-emerald-800 dark:bg-emerald-900 text-white border-emerald-600 dark:border-emerald-500 shadow-xs"
                 } else if (isSelected) {
-                  cardStyle = "bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-500/25"
-                  badgeStyle = "bg-rose-600 text-white border-rose-400"
+                  cardStyle = "bg-rose-600 dark:bg-rose-700 border-rose-700 dark:border-rose-600 text-white shadow-lg shadow-rose-600/30"
+                  badgeStyle = "bg-rose-700 dark:bg-rose-800 text-white border-rose-500 shadow-xs"
                 } else {
                   cardStyle = "bg-white/95 dark:bg-slate-800/95 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-750"
                   badgeStyle = "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600"
@@ -287,9 +287,9 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                       <div className={cn(
                         "text-xs mt-1.5 font-medium leading-relaxed transition-all duration-200 whitespace-normal break-words",
                         isCorrectChoice
-                          ? "text-emerald-100/95"
+                          ? "inline-block px-2.5 py-1 rounded-xl bg-emerald-800/80 dark:bg-emerald-950/80 border border-emerald-600/50 text-emerald-50 font-semibold shadow-2xs"
                           : isSelected
-                            ? "text-rose-100/95"
+                            ? "inline-block px-2.5 py-1 rounded-xl bg-rose-700/80 dark:bg-rose-950/80 border border-rose-500/50 text-rose-50 font-semibold shadow-2xs"
                             : "text-slate-500 dark:text-slate-400"
                       )}>
                         <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(subtext) }} />
