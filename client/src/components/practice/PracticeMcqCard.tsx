@@ -245,6 +245,8 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                 }
               }
 
+              const hasSubtext = Boolean(answered && subtext)
+
               return (
                 <button
                   key={idx}
@@ -256,13 +258,15 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                     }
                   }}
                   className={cn(
-                    "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-start gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
+                    "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
+                    hasSubtext ? "items-start" : "items-center",
                     cardStyle
                   )}
                 >
                   {/* Letter Badge */}
                   <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs shrink-0 transition-colors self-start mt-0.5",
+                    "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs shrink-0 transition-colors",
+                    hasSubtext ? "self-start mt-0.5" : "",
                     badgeStyle
                   )}>
                     {answered && isCorrectChoice ? (
@@ -283,7 +287,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                       )}
                       dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice || '') }}
                     />
-                    {answered && subtext && (
+                    {hasSubtext && (
                       <div className={cn(
                         "text-xs mt-1.5 font-medium leading-relaxed transition-all duration-200 whitespace-normal break-words",
                         isCorrectChoice
@@ -299,7 +303,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
 
                   {/* Keyboard shortcut hint */}
                   {!answered && (
-                    <span className="hidden sm:inline-block text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700 self-start mt-1">
+                    <span className="hidden sm:inline-flex items-center justify-center text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700 shrink-0 ml-auto">
                       {idx + 1}
                     </span>
                   )}

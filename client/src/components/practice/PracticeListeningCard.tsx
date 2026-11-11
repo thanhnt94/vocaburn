@@ -292,6 +292,8 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     }
                   }
 
+                  const hasSubtext = Boolean(answered && subtext)
+
                   return (
                     <button
                       key={idx}
@@ -303,12 +305,14 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                         }
                       }}
                       className={cn(
-                        "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-start gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
+                        "w-full min-h-[58px] sm:min-h-[64px] h-auto p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex gap-3 text-left relative cursor-pointer select-none active:scale-[0.98]",
+                        hasSubtext ? "items-start" : "items-center",
                         cardStyle
                       )}
                     >
                       <div className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs shrink-0 transition-colors self-start mt-0.5",
+                        "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs border shadow-2xs shrink-0 transition-colors",
+                        hasSubtext ? "self-start mt-0.5" : "",
                         badgeStyle
                       )}>
                         {answered && isCorrectChoice ? (
@@ -328,7 +332,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                           )}
                           dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice || '') }}
                         />
-                        {answered && subtext && (
+                        {hasSubtext && (
                           <div className={cn(
                             "text-xs mt-1.5 font-medium leading-relaxed transition-all duration-200 whitespace-normal break-words",
                             isCorrectChoice
