@@ -841,10 +841,30 @@ class AnalyticsService:
             })
         decks_summary.sort(key=lambda x: x["cards_count"], reverse=True)
 
-        # 8. Mode Breakdown
+        # 8. Mode Breakdown (Normalized modes)
         mode_breakdown = {}
         for a in today_answers:
-            m = a.mode or "fsrs"
+            raw_m = a.mode or "fsrs"
+            # Normalize internal attempt modes into standard category modes
+            if raw_m in ("roadmap_mcq", "mcq"):
+                m = "mcq"
+            elif raw_m in ("roadmap_typing", "typing"):
+                m = "typing"
+            elif raw_m in ("listening", "listen", "roadmap_listen"):
+                m = "listening"
+            elif raw_m in ("speed_skim", "skim"):
+                m = "skim"
+            elif raw_m in ("hybrid_drill", "hybrid"):
+                m = "hybrid"
+            elif raw_m in ("new", "learn_new"):
+                m = "new"
+            elif raw_m in ("review", "continuous"):
+                m = "review"
+            elif raw_m in ("play", "fsrs"):
+                m = "fsrs"
+            else:
+                m = raw_m
+
             if m not in mode_breakdown:
                 mode_breakdown[m] = {"mode": m, "cards": 0, "correct": 0, "time_seconds": 0.0}
             mode_breakdown[m]["cards"] += 1

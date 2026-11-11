@@ -30,8 +30,10 @@ export function DashboardDailyActivityHUD({
       const res = await axios.get(`/api/v1/stats/daily-summary?tz_offset=${tzOffset}`)
       return res.data
     },
-    staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 15 * 1000
   })
 
   const summary = dailyData?.summary || {
@@ -44,14 +46,30 @@ export function DashboardDailyActivityHUD({
     streak_count: 0
   }
 
-  // Calculate specific activity modes
+  // Calculate specific activity modes (supporting normalized & raw mode identifiers)
   const modeBreakdown: Array<{ mode: string; cards: number }> = dailyData?.mode_breakdown || []
-  const mcqCount = modeBreakdown.find(m => m.mode === 'mcq')?.cards || 0
-  const typingCount = modeBreakdown.find(m => m.mode === 'typing')?.cards || 0
-  const listenCount = modeBreakdown.find(m => m.mode === 'listening' || m.mode === 'listen')?.cards || 0
   
-  // Flashcard cards (FSRS + Continuous + Skim + Learn New)
-  const flashcardCount = (summary.reviewed_cards || 0) + (summary.new_cards || 0)
+  const mcqCount = modeBreakdown
+    .filter(m => m.mode === 'mcq' || m.mode === 'roadmap_mcq')
+    .reduce((sum, m) => sum + (m.cards || 0), 0)
+
+  const typingCount = modeBreakdown
+    .filter(m => m.mode === 'typing' || m.mode === 'roadmap_typing')
+    .reduce((sum, m) => sum + (m.cards || 0), 0)
+
+  const listenCount = modeBreakdown
+    .filter(m => m.mode === 'listening' || m.mode === 'listen' || m.mode === 'roadmap_listen')
+    .reduce((sum, m) => sum + (m.cards || 0), 0)
+
+  // Flashcards count: either sum of flashcard modes or non-practice cards
+  const flashcardModes = ['fsrs', 'new', 'review', 'skim', 'speed_skim', 'play', 'continuous', 'learn_new']
+  const matchedFlashcards = modeBreakdown
+    .filter(m => flashcardModes.includes(m.mode))
+    .reduce((sum, m) => sum + (m.cards || 0), 0)
+
+  const flashcardCount = matchedFlashcards > 0 
+    ? matchedFlashcards 
+    : Math.max(0, (summary.total_cards || 0) - mcqCount - typingCount - listenCount)
 
   // Format active study time
   const formatTime = (minutes: number, seconds: number) => {
@@ -106,7 +124,7 @@ export function DashboardDailyActivityHUD({
           )}
         >
           <span className="text-xs leading-none">🎯</span>
-          <span className="tabular-nums tracking-tight">{mcqCount}</span>
+          <span className="tabular-nums tracking-tight font-black">{mcqCount}</span>
           <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 hidden min-[360px]:inline">
             MCQ
           </span>
@@ -124,7 +142,7 @@ export function DashboardDailyActivityHUD({
           )}
         >
           <span className="text-xs leading-none">⌨️</span>
-          <span className="tabular-nums tracking-tight">{typingCount}</span>
+          <span className="tabular-nums tracking-tight font-black">{typingCount}</span>
           <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 hidden min-[360px]:inline">
             Type
           </span>
@@ -142,7 +160,7 @@ export function DashboardDailyActivityHUD({
           )}
         >
           <span className="text-xs leading-none">🗂️</span>
-          <span className="tabular-nums tracking-tight">{flashcardCount}</span>
+          <span className="tabular-nums tracking-tight font-black">{flashcardCount}</span>
           <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 hidden min-[360px]:inline">
             Cards
           </span>
@@ -154,7 +172,7 @@ export function DashboardDailyActivityHUD({
             <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
             <div className="flex items-center gap-1 text-sky-700 dark:text-sky-400 font-black shrink-0">
               <span className="text-xs leading-none">🎧</span>
-              <span className="tabular-nums tracking-tight">{listenCount}</span>
+              <span className="tabular-nums tracking-tight font-black">{listenCount}</span>
             </div>
           </>
         )}

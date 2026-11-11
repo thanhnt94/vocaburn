@@ -31,9 +31,14 @@ const MODE_META: Record<string, { label: string; emoji: string; color: string; b
   new: { label: 'Learn New Words', emoji: '✨', color: 'text-purple-600', badgeBg: 'bg-purple-50 border-purple-200/80 text-purple-700' },
   review: { label: 'Continuous Review', emoji: '🔄', color: 'text-blue-600', badgeBg: 'bg-blue-50 border-blue-200/80 text-blue-700' },
   skim: { label: 'Speed Skim', emoji: '⚡', color: 'text-amber-600', badgeBg: 'bg-amber-50 border-amber-200/80 text-amber-700' },
+  speed_skim: { label: 'Speed Skim', emoji: '⚡', color: 'text-amber-600', badgeBg: 'bg-amber-50 border-amber-200/80 text-amber-700' },
   mcq: { label: '4-Choice Quiz', emoji: '🎯', color: 'text-emerald-600', badgeBg: 'bg-emerald-50 border-emerald-200/80 text-emerald-700' },
+  roadmap_mcq: { label: '4-Choice Quiz', emoji: '🎯', color: 'text-emerald-600', badgeBg: 'bg-emerald-50 border-emerald-200/80 text-emerald-700' },
   typing: { label: 'Spelling Recall', emoji: '⌨️', color: 'text-violet-600', badgeBg: 'bg-violet-50 border-violet-200/80 text-violet-700' },
+  roadmap_typing: { label: 'Spelling Recall', emoji: '⌨️', color: 'text-violet-600', badgeBg: 'bg-violet-50 border-violet-200/80 text-violet-700' },
   listening: { label: 'Audio Dictation', emoji: '🎧', color: 'text-sky-600', badgeBg: 'bg-sky-50 border-sky-200/80 text-sky-700' },
+  hybrid_drill: { label: 'Hybrid Drill', emoji: '🔥', color: 'text-rose-600', badgeBg: 'bg-rose-50 border-rose-200/80 text-rose-700' },
+  hybrid: { label: 'Hybrid Drill', emoji: '🔥', color: 'text-rose-600', badgeBg: 'bg-rose-50 border-rose-200/80 text-rose-700' },
 }
 
 export function DashboardDailyDrawer({
