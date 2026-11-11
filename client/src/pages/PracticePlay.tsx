@@ -1504,7 +1504,16 @@ export default function PracticePlay() {
         ? `/api/v1/folder/${folderId}/play-data${modeParam}`
         : (isRoadmapTestMode ? `/api/v1/deck/${id}/roadmap-test-questions` : `/api/v1/deck/${id}/play-data${modeParam}`)
 
-      const effectiveScope = targetScope !== undefined ? targetScope : cardScope
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlScope = urlParams.get('scope') || urlParams.get('filter')
+      let effectiveScope = targetScope !== undefined ? targetScope : cardScope
+      if (urlScope && targetScope === undefined) {
+        if (urlScope === 'review' || urlScope === 'due') effectiveScope = 'review'
+        else if (urlScope === 'new') effectiveScope = 'new'
+        else if (urlScope === 'learned') effectiveScope = 'learned'
+        else if (urlScope === 'all') effectiveScope = 'all'
+      }
+
       if (effectiveScope && effectiveScope !== 'all') {
         const delimiter = playDataUrl.includes('?') ? '&' : '?'
         playDataUrl += `${delimiter}scope=${encodeURIComponent(effectiveScope)}`
@@ -1515,11 +1524,28 @@ export default function PracticePlay() {
         playDataUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
       }
 
+      const urlOrder = urlParams.get('order')
+      const urlRandom = urlParams.get('random')
+      let effectiveRandom = forceRandom
+      if (effectiveRandom === undefined) {
+        if (urlOrder === 'random' || urlRandom === 'true' || urlRandom === '1') {
+          effectiveRandom = true
+        } else if (urlOrder === 'sequential' || urlRandom === 'false' || urlRandom === '0') {
+          effectiveRandom = false
+        } else {
+          effectiveRandom = randomEnabled
+        }
+      }
+
+      if (effectiveRandom !== undefined && effectiveRandom !== randomEnabled) {
+        setRandomEnabled(effectiveRandom)
+      }
+
       let orderParam = ''
-      if (forceRandom !== undefined) {
-        orderParam = forceRandom ? `&order=random&seed=${practiceSeedRef.current}` : '&order=sequential'
-      } else if (randomEnabled) {
+      if (effectiveRandom) {
         orderParam = `&order=random&seed=${practiceSeedRef.current}`
+      } else {
+        orderParam = '&order=sequential'
       }
 
       if (isPractice && !isFolder && !isRoadmapTestMode && id !== 'quick') {

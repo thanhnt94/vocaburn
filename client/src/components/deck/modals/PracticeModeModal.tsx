@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, Flame, ChevronRight } from 'lucide-react'
+import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, Flame, ChevronRight, ArrowUpDown, Shuffle, Filter } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 
@@ -10,7 +10,7 @@ export interface PracticeModeModalProps {
   onClose: () => void
   deck?: any
   selectedPracticeQuiz?: any
-  onSelectMode?: (mode: string) => void
+  onSelectMode?: (mode: string, options?: { order?: 'sequential' | 'random'; filter?: string }) => void
 }
 
 export function PracticeModeModal({
@@ -21,8 +21,22 @@ export function PracticeModeModal({
   onSelectMode
 }: PracticeModeModalProps) {
   const navigate = useNavigate()
-  const { updateUserSettings } = useAppStore()
+  const { userSettings, updateUserSettings } = useAppStore()
   const deck = propDeck || selectedPracticeQuiz
+
+  const [cardOrder, setCardOrder] = React.useState<'sequential' | 'random'>(
+    userSettings.random_enabled ? 'random' : 'sequential'
+  )
+  const [cardFilter, setCardFilter] = React.useState<'all' | 'due' | 'new' | 'learned'>(
+    (userSettings.practice_range as any) || 'all'
+  )
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setCardOrder(userSettings.random_enabled ? 'random' : 'sequential')
+      setCardFilter((userSettings.practice_range as any) || 'all')
+    }
+  }, [isOpen, userSettings.random_enabled, userSettings.practice_range])
 
   if (!isOpen || !deck) return null
 
@@ -69,15 +83,29 @@ export function PracticeModeModal({
 
   const handleSelect = (mode: string) => {
     onClose()
-    if (mode === 'hybrid') {
-      navigate(`/hybrid/${deck.id}/play`)
-      return
+    const isRandom = cardOrder === 'random'
+    updateUserSettings({
+      random_enabled: isRandom,
+      practice_range: cardFilter as any,
+      ...(mode !== 'hybrid' ? { practice_submode: mode as any } : {})
+    })
+
+    const queryParams = new URLSearchParams()
+    queryParams.set('order', cardOrder)
+    if (cardFilter !== 'all') {
+      queryParams.set('scope', cardFilter)
+      queryParams.set('filter', cardFilter)
     }
-    updateUserSettings({ practice_submode: mode as any })
+    const qStr = queryParams.toString() ? `?${queryParams.toString()}` : ''
+
     if (onSelectMode) {
-      onSelectMode(mode)
+      onSelectMode(mode, { order: cardOrder, filter: cardFilter })
     } else {
-      navigate(`/practice/${deck.id}/${mode}`)
+      if (mode === 'hybrid') {
+        navigate(`/hybrid/${deck.id}/play${qStr}`)
+      } else {
+        navigate(`/practice/${deck.id}/${mode}${qStr}`)
+      }
     }
   }
 
@@ -121,7 +149,7 @@ export function PracticeModeModal({
           </div>
 
           {/* Deck Info Banner */}
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-4 shrink-0 text-left">
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-3 shrink-0 text-left">
             <h4 className="text-xs sm:text-sm font-black text-emerald-700 tracking-wide line-clamp-1">
               {deck.title}
             </h4>
@@ -129,6 +157,74 @@ export function PracticeModeModal({
               <BrainCircuit className="w-3.5 h-3.5 text-slate-400" />
               {deck.questions_count ?? '--'} questions available
             </p>
+          </div>
+
+          {/* Queue Filter & Card Order Bar */}
+          <div className="space-y-2 mb-3.5 shrink-0">
+            {/* 1. Queue Filter */}
+            <div className="flex items-center justify-between p-2 rounded-2xl bg-slate-50 border border-slate-200/70">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider pl-1.5 flex items-center gap-1">
+                <Filter className="w-3 h-3 text-emerald-600" />
+                Card Scope
+              </span>
+              <div className="flex items-center p-0.5 bg-slate-200/70 rounded-xl gap-0.5">
+                {[
+                  { id: 'all', label: 'All Cards' },
+                  { id: 'due', label: 'Due Only' },
+                  { id: 'new', label: 'New Only' },
+                  { id: 'learned', label: 'Learned' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setCardFilter(f.id as any)}
+                    className={cn(
+                      "px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                      cardFilter === f.id
+                        ? "bg-white text-emerald-700 shadow-2xs font-black"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Card Order */}
+            <div className="flex items-center justify-between p-2 rounded-2xl bg-slate-50 border border-slate-200/70">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider pl-1.5 flex items-center gap-1">
+                <ArrowUpDown className="w-3 h-3 text-emerald-600" />
+                Card Order
+              </span>
+              <div className="flex items-center p-0.5 bg-slate-200/70 rounded-xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setCardOrder('sequential')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                    cardOrder === 'sequential'
+                      ? "bg-white text-emerald-700 shadow-2xs font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  📋 Sequential
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardOrder('random')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1",
+                    cardOrder === 'random'
+                      ? "bg-white text-emerald-700 shadow-2xs font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  <Shuffle className="w-3 h-3" />
+                  Random
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Practice Modes List */}
