@@ -14,6 +14,7 @@ import { StudyModeModal } from '@/components/dashboard/StudyModeModal'
 import { DashboardRoadmapSection } from '@/components/dashboard/DashboardRoadmapSection'
 import { DashboardQuickDecksWidget } from '@/components/dashboard/DashboardQuickDecksWidget'
 import { DashboardDailyDrawer } from '@/components/dashboard/DashboardDailyDrawer'
+import { DashboardDailyActivityHUD } from '@/components/dashboard/DashboardDailyActivityHUD'
 import { HomeCustomizeModal } from '@/components/dashboard/HomeCustomizeModal'
 
 
@@ -1455,50 +1456,14 @@ export default function Dashboard() {
         {/* DESKTOP CONTENT COLUMNS (Col 5 + Col 4) */}
         {/* COLUMN 2: Roadmap Hub (Center Stage - Col 5 of 12) */}
         <section className="col-span-5 h-full overflow-hidden flex flex-col">
-          {globalFocus && (
-            <div className="p-2 pb-0 shrink-0">
-              {globalFocus.total_due > 0 ? (
-                <div 
-                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
-                  className="py-2 px-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-amber-950 flex items-center justify-between gap-3 shadow-2xs cursor-pointer active:scale-[0.99] transition-all group"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                      ⚡
-                    </div>
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="text-xs font-black tracking-tight text-amber-950">Daily Focus Queue</span>
-                      <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-black text-[10px] tabular-nums">{globalFocus.total_due} cards due</span>
-                      <span className="text-[11px] text-amber-800/60 truncate">({globalFocus.active_decks_count} decks)</span>
-                    </div>
-                  </div>
-                  <div className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-2xs shrink-0">
-                    <span>Review All</span>
-                    <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-                  </div>
-                </div>
-              ) : (
-                <div 
-                  className="py-1.5 px-3 rounded-2xl bg-slate-50 border border-slate-200/70 text-slate-700 flex items-center justify-between gap-2 shadow-2xs"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[10px] shrink-0">
-                      ✓
-                    </div>
-                    <span className="text-xs font-bold text-slate-600 truncate">
-                      All {globalFocus.active_decks_count} decks up to date • Great job! 🎉
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
-                    className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer shrink-0"
-                  >
-                    Open Queue
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Daily Activity Summary HUD */}
+          <div className="p-2 pb-0 shrink-0">
+            <DashboardDailyActivityHUD
+              onOpenDrawer={() => setIsDailyDrawerOpen(true)}
+              navigate={navigate}
+              globalFocus={globalFocus}
+            />
+          </div>
           <DashboardRoadmapSection
             roadmapDecks={sortedRoadmapDecks}
             selectedRoadmapIdx={selectedRoadmapIdx}
@@ -1608,51 +1573,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Daily Focus Queue banner directly under top brand bar */}
-          {globalFocus && (
-            <div className="px-3 pb-2 pt-0.5 w-full max-w-[1700px] mx-auto">
-              {globalFocus.total_due > 0 ? (
-                <div 
-                  onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
-                  className="py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/90 text-amber-950 flex items-center justify-between gap-2 shadow-2xs cursor-pointer active:scale-[0.99] transition-all"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-5 h-5 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-[11px] shrink-0 shadow-2xs">
-                      ⚡
-                    </div>
-                    <div className="flex items-center gap-1.5 truncate text-[11px]">
-                      <span className="font-black text-amber-950">Daily Focus Queue:</span>
-                      <span className="font-extrabold text-orange-600 tabular-nums">{globalFocus.total_due} due</span>
-                      <span className="text-amber-800/60 text-[10px] hidden sm:inline">({globalFocus.active_decks_count} decks)</span>
-                    </div>
-                  </div>
-                  <div className="px-2 py-0.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-0.5 shadow-2xs">
-                    <span>Review All</span>
-                    <ChevronRight className="w-3 h-3 stroke-[3]" />
-                  </div>
-                </div>
-              ) : (
-                <div 
-                  className="py-1 px-3 rounded-xl bg-slate-50 border border-slate-200/70 text-slate-600 flex items-center justify-between gap-2 shadow-2xs"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-4.5 h-4.5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[10px] shrink-0">
-                      ✓
-                    </div>
-                    <span className="text-[10.5px] font-bold text-slate-600 truncate">
-                      All decks up to date • Great job! 🎉
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => navigate('/flashcard/global-focus/play?mode=fsrs&order=random')}
-                    className="text-[10px] font-bold text-orange-600 hover:underline cursor-pointer"
-                  >
-                    View queue
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Daily Activity Summary HUD */}
+          <div className="px-3 pb-2 pt-0.5 w-full max-w-[1700px] mx-auto">
+            <DashboardDailyActivityHUD
+              onOpenDrawer={() => setIsDailyDrawerOpen(true)}
+              navigate={navigate}
+              globalFocus={globalFocus}
+              compact
+            />
+          </div>
 
           {/* ═══════════ UNIFIED LEARNING DECKS SUBHEADER ═══════════ */}
           <div className="bg-white border-t border-slate-100/90 px-3.5 flex items-center justify-between w-full select-none flex-shrink-0 h-10">
