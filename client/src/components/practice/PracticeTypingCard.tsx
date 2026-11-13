@@ -1,11 +1,10 @@
 import React, { useMemo, useRef, useEffect } from 'react'
-import { Sparkles, Bookmark, Check, X, Volume2, CornerDownLeft, Image as ImageIcon, Lightbulb } from 'lucide-react'
+import { Sparkles, Check, X, Volume2, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
-import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
-import { getFrontFontSizeStyle } from '@/components/common/study'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
+import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -105,7 +104,6 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
   const promptLabel = useMemo(() => {
     const qk = String(question_key || 'front').toLowerCase()
-    const ak = String(Array.isArray(answer_key) ? answer_key[0] : (answer_key || 'back')).toLowerCase()
     if (qk.includes('nghĩa') || qk.includes('meaning') || qk.includes('vi')) {
       return 'TRANSLATE TO JAPANESE TERM'
     }
@@ -113,98 +111,31 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
       return 'TYPE MEANING OR READING'
     }
     return 'TYPE THE EXACT ANSWER'
-  }, [question_key, answer_key])
+  }, [question_key])
 
   return (
-    <div className="w-full h-full flex flex-col justify-between bg-white dark:bg-slate-900 md:rounded-[2rem] rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 sm:p-6 md:p-8 shadow-2xl shadow-indigo-100/30 dark:shadow-none min-h-0 overflow-x-hidden overflow-y-auto custom-scrollbar relative">
-      {/* ── Ambient Soft Glow ── */}
-      <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-amber-200/20 via-orange-100/10 to-transparent dark:from-amber-500/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-100/20 via-slate-100/10 to-transparent dark:from-indigo-500/5 blur-3xl pointer-events-none" />
-
-      {/* ── Top Card Header Bar ── */}
-      <div className="w-full flex items-center justify-between gap-2 relative z-10 select-none pb-2 border-b border-slate-100/80 dark:border-slate-800/80">
-        {/* Left Badges */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 font-black text-[11px] uppercase tracking-wider shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 fill-amber-300" />
-            <span>Typing Recall</span>
-          </span>
-
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[11px]">
-            #{currentQuestion?.original_index ?? (currentIndex + 1)}{totalCards ? ` / ${totalCards}` : ''}
-          </span>
-
-          <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-400 font-bold text-[10px] tracking-wider uppercase">
-            {promptLabel}
-          </span>
-        </div>
-
-        {/* Right Action Icons */}
-        <div className="flex items-center gap-1">
-          {!hideHeaderActions && onPlayAudio && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPlayAudio(question_key || 'front')
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-              title="Pronounce question"
-            >
-              <Volume2 className="w-4 h-4" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              if (currentQuestion?.id) onToggleStar(currentQuestion.id)
-            }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-            title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Unstar card" : "Star card"}
-          >
-            <Bookmark className={cn("w-4 h-4 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-slate-400")} />
-          </button>
-        </div>
-      </div>
-
-      {/* ── Central Question Stage ── */}
-      <div className="my-auto py-6 sm:py-8 flex flex-col items-center justify-center text-center relative z-10 max-w-2xl mx-auto w-full">
-        {/* Multi-Image Question Gallery */}
-        {questionImages.length > 0 && (
-          <CardImageGallery
-            images={questionImages}
-            onZoom={onZoomImage}
-            maxHeight="max-h-36 sm:max-h-44"
-            className="mb-4"
-          />
-        )}
-
-        {/* Context Hint / Prompt */}
-        <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-amber-600/90 dark:text-amber-400 mb-2">
-          {promptLabel}
-        </p>
-
-        {/* Prominent Question Heading */}
-        <h2 
-          className="font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight font-sans px-2 selection:bg-amber-200"
-          style={{ fontSize: getFrontFontSizeStyle(frontFontSize) }}
-        >
-          <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(question || '') }} />
-        </h2>
-
-        {/* Supplementary Question Info / Subtext / Hint (e.g. Từ loại, Dạng từ, N-suru, v.v.) */}
-        {practiceData.question_subtext && (
-          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-2xs max-w-full">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600/80 dark:text-amber-400">
-              {practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
-            </span>
-            <span className="truncate">{practiceData.question_subtext}</span>
-          </div>
-        )}
-      </div>
-
+    <PracticeCardShell
+      badgeLabel="Spelling Recall"
+      badgeIcon={<Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 fill-amber-300" />}
+      badgeColorClass="bg-amber-50 dark:bg-amber-950/60 border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-300"
+      currentIndex={currentIndex}
+      totalCards={totalCards}
+      currentQuestion={currentQuestion}
+      promptLabel={promptLabel}
+      questionText={question}
+      questionImages={questionImages}
+      questionSubtext={practiceData.question_subtext}
+      questionSubtextLabel={practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
+      frontFontSize={frontFontSize}
+      starredCards={starredCards}
+      onToggleStar={onToggleStar}
+      onPlayAudio={onPlayAudio ? () => onPlayAudio(question_key || 'front') : undefined}
+      onZoomImage={onZoomImage}
+      hideHeaderActions={hideHeaderActions}
+      answerImages={[]}
+      answered={false}
+      glowColor="purple"
+    >
       {/* ── Active Interactive Typing & Result Section ── */}
       <div className="w-full max-w-xl mx-auto relative z-10 pt-2 shrink-0">
         {!answered ? (
@@ -240,7 +171,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 autoCapitalize="off"
                 spellCheck={false}
                 className={cn(
-                  "h-12 sm:h-14 px-4 sm:px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-amber-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-amber-200/50 dark:focus:ring-amber-500/20 text-base sm:text-lg font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400 placeholder:font-normal min-w-0",
+                  "h-12 sm:h-14 px-4 sm:px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-amber-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-amber-200/50 dark:focus:ring-amber-500/20 text-base sm:text-lg font-bold text-slate-900 dark:white outline-none transition-all shadow-xs placeholder:text-slate-400 placeholder:font-normal min-w-0",
                   hideInlineSubmit ? "w-full" : "flex-1"
                 )}
               />
@@ -349,6 +280,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     </div>
                   </div>
                 )}
+
                 {/* Answer Explanation Images (Revealed upon answering) */}
                 {answerImages.length > 0 && (
                   <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -364,12 +296,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 )}
               </div>
             )}
-
-
           </div>
         )}
       </div>
-    </div>
+    </PracticeCardShell>
   )
 }
 

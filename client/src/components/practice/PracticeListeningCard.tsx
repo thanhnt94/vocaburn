@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react'
-import { Sparkles, Bookmark, Play, Volume2, RotateCcw, Check, X, CornerDownLeft, Lightbulb } from 'lucide-react'
+import { Sparkles, Volume2, Check, X, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml, isJapanese } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
+import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
 
@@ -31,6 +32,11 @@ export interface PracticeListeningCardProps {
   hideHeaderActions?: boolean
   hideInlineSubmit?: boolean
   autoFocus?: boolean
+}
+
+const getVal = (card: any, key: string) => {
+  if (!card) return ''
+  return card[key] || card.others?.[key] || ''
 }
 
 export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
@@ -115,110 +121,92 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
   }, [practiceData.acceptable_answers, correct_answer])
 
   return (
-    <div className="w-full h-full flex flex-col justify-between bg-white dark:bg-slate-900 md:rounded-[2rem] rounded-[1.5rem] border border-slate-100 dark:border-slate-800 p-4 sm:p-6 md:p-8 shadow-2xl shadow-indigo-100/30 dark:shadow-none min-h-0 overflow-y-auto custom-scrollbar relative">
-      {/* ── Ambient Soft Glow ── */}
-      <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-cyan-200/20 via-sky-100/10 to-transparent dark:from-cyan-500/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-100/20 via-slate-100/10 to-transparent dark:from-indigo-500/5 blur-3xl pointer-events-none" />
-
-      {/* ── Top Header Bar ── */}
-      <div className="w-full flex items-center justify-between gap-2 relative z-10 select-none pb-2 border-b border-slate-100/80 dark:border-slate-800/80">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200/80 dark:border-cyan-800/60 text-cyan-800 dark:text-cyan-300 font-black text-[11px] uppercase tracking-wider shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 fill-cyan-300" />
-            <span>{isMcq ? 'Audio MCQ' : 'Audio Dictation'}</span>
-          </span>
-
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[11px]">
-            #{currentQuestion?.original_index ?? (currentIndex + 1)}{totalCards ? ` / ${totalCards}` : ''}
-          </span>
-
-          <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-400 font-bold text-[10px] tracking-wider uppercase">
-            {isMcq ? 'LISTEN & SELECT ANSWER' : 'LISTEN & TYPE WHAT YOU HEAR'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              if (currentQuestion?.id) onToggleStar(currentQuestion.id)
-            }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95 cursor-pointer"
-            title={currentQuestion?.id && starredCards[currentQuestion.id] ? "Unstar Card" : "Star Card"}
-          >
-            <Bookmark className={cn("w-4 h-4 transition-colors", currentQuestion?.id && starredCards[currentQuestion.id] ? "fill-amber-500 text-amber-500" : "text-slate-400")} />
-          </button>
-        </div>
-      </div>
-
-      {/* ── Hero Audio Player Disc (Center Stage) ── */}
-      <div className="my-auto py-5 sm:py-8 flex flex-col items-center justify-center text-center relative z-10 max-w-xl mx-auto w-full">
-        {/* Pulsing Audio Ring Button */}
-        <div className="relative mb-5">
-          {isPlaying && (
-            <div className="absolute inset-0 rounded-full bg-cyan-400/30 animate-ping duration-1000" />
-          )}
-          <button
-            type="button"
-            onClick={() => handlePlayAudioWithSpeed(playbackSpeed)}
-            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 shadow-xl shadow-cyan-500/25 flex items-center justify-center text-white active:scale-95 hover:scale-105 transition-all cursor-pointer relative z-10 group"
-            title="Play pronunciation"
-          >
-            <Volume2 className={cn("w-10 h-10 sm:w-12 sm:h-12 transition-transform", isPlaying && "scale-110 animate-pulse")} />
-          </button>
-        </div>
-
-        {/* Speed Toggles */}
-        <div className="flex items-center gap-2 mb-2">
-          <button
-            type="button"
-            onClick={() => {
-              setPlaybackSpeed(1.0)
-              handlePlayAudioWithSpeed(1.0)
-            }}
-            className={cn(
-              "px-3 py-1 rounded-xl text-xs font-black transition-all border cursor-pointer",
-              playbackSpeed === 1.0
-                ? "bg-cyan-500 text-white border-cyan-600 shadow-xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+    <PracticeCardShell
+      badgeLabel={isMcq ? 'Audio MCQ' : 'Audio Dictation'}
+      badgeIcon={<Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 fill-cyan-300" />}
+      badgeColorClass="bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200/80 dark:border-cyan-800/60 text-cyan-800 dark:text-cyan-300"
+      currentIndex={currentIndex}
+      totalCards={totalCards}
+      currentQuestion={currentQuestion}
+      promptLabel={isMcq ? 'LISTEN & SELECT ANSWER' : 'LISTEN & TYPE WHAT YOU HEAR'}
+      frontFontSize={frontFontSize}
+      starredCards={starredCards}
+      onToggleStar={onToggleStar}
+      onPlayAudio={undefined}
+      onZoomImage={onZoomImage}
+      hideHeaderActions={hideHeaderActions}
+      answerImages={answerImages}
+      answered={answered}
+      glowColor="cyan"
+      customCenterStage={
+        /* ── Hero Audio Player Disc (Center Stage) ── */
+        <div className="my-auto py-5 sm:py-8 flex flex-col items-center justify-center text-center relative z-10 max-w-xl mx-auto w-full">
+          {/* Pulsing Audio Ring Button */}
+          <div className="relative mb-5">
+            {isPlaying && (
+              <div className="absolute inset-0 rounded-full bg-cyan-400/30 animate-ping duration-1000" />
             )}
-          >
-            1.0x Normal
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setPlaybackSpeed(0.8)
-              handlePlayAudioWithSpeed(0.8)
-            }}
-            className={cn(
-              "px-3 py-1 rounded-xl text-xs font-black transition-all border cursor-pointer",
-              playbackSpeed === 0.8
-                ? "bg-cyan-500 text-white border-cyan-600 shadow-xs"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-            )}
-          >
-            0.8x Slow 🐢
-          </button>
-        </div>
-
-        <span className="text-[11px] font-bold text-slate-400">
-          Click audio icon or press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Space</kbd> to listen again
-        </span>
-
-        {/* Supplementary Question Info / Subtext / Hint */}
-        {practiceData.question_subtext && (
-          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/80 dark:border-cyan-800/60 text-cyan-900 dark:text-cyan-200 text-xs font-bold shadow-2xs max-w-full">
-            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-600/80 dark:text-cyan-400">
-              {practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
-            </span>
-            <span className="truncate">{practiceData.question_subtext}</span>
+            <button
+              type="button"
+              onClick={() => handlePlayAudioWithSpeed(playbackSpeed)}
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 shadow-xl shadow-cyan-500/25 flex items-center justify-center text-white active:scale-95 hover:scale-105 transition-all cursor-pointer relative z-10 group"
+              title="Play pronunciation"
+            >
+              <Volume2 className={cn("w-10 h-10 sm:w-12 sm:h-12 transition-transform", isPlaying && "scale-110 animate-pulse")} />
+            </button>
           </div>
-        )}
-      </div>
 
+          {/* Speed Toggles */}
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPlaybackSpeed(1.0)
+                handlePlayAudioWithSpeed(1.0)
+              }}
+              className={cn(
+                "px-3 py-1 rounded-xl text-xs font-black transition-all border cursor-pointer",
+                playbackSpeed === 1.0
+                  ? "bg-cyan-500 text-white border-cyan-600 shadow-xs"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+              )}
+            >
+              1.0x Normal
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPlaybackSpeed(0.8)
+                handlePlayAudioWithSpeed(0.8)
+              }}
+              className={cn(
+                "px-3 py-1 rounded-xl text-xs font-black transition-all border cursor-pointer",
+                playbackSpeed === 0.8
+                  ? "bg-cyan-500 text-white border-cyan-600 shadow-xs"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+              )}
+            >
+              0.8x Slow 🐢
+            </button>
+          </div>
+
+          <span className="text-[11px] font-bold text-slate-400">
+            Click audio icon or press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Space</kbd> to listen again
+          </span>
+
+          {/* Supplementary Question Info / Subtext / Hint */}
+          {practiceData.question_subtext && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/80 dark:border-cyan-800/60 text-cyan-900 dark:text-cyan-200 text-xs font-bold shadow-2xs max-w-full">
+              <span className="text-[10px] font-black uppercase tracking-wider text-cyan-600/80 dark:text-cyan-400">
+                {practiceData.hint_col ? `${String(practiceData.hint_col).replace(/_/g, ' ')}:` : 'HINT:'}
+              </span>
+              <span className="truncate">{practiceData.question_subtext}</span>
+            </div>
+          )}
+        </div>
+      }
+    >
       {/* ── Bottom Interaction Stage (Typing or MCQ) ── */}
       <div className="w-full max-w-2xl mx-auto relative z-10 pt-2 shrink-0">
         {isMcq ? (
@@ -231,7 +219,6 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                   const isCorrectChoice = idx === correct_index
                   const letter = String.fromCharCode(65 + idx)
 
-                  // Robust card lookup for preview and metadata
                   const choiceData = practiceData.choices_data && practiceData.choices_data[idx]
                   const choiceIds = choice_item_ids || practiceData.choice_item_ids || currentQuestion?.practice?.choice_item_ids
                   let targetCard: any = null
@@ -239,36 +226,35 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     targetCard = choiceData.card
                   }
                   if (!targetCard && choiceIds && choiceIds[idx] !== undefined) {
-                    targetCard = sessionQuestions?.find((q: any) => String(q.id) === String(choiceIds[idx]))
+                    targetCard = sessionQuestions.find((q: any) => String(q.id) === String(choiceIds[idx]))
                   }
                   if (!targetCard && choiceIds && (currentQuestion as any)?.distractor_pool) {
                     targetCard = (currentQuestion as any).distractor_pool.find((q: any) => String(q.id) === String(choiceIds[idx]))
                   }
-                  if (!targetCard && sessionQuestions) {
+                  if (!targetCard) {
                     targetCard = sessionQuestions.find((q: any) =>
-                      (q as any)?.front === choice ||
-                      (q as any)?.others?.mẫu_ngữ_pháp === choice ||
-                      (q as any)?.content === choice ||
-                      (q as any)?.others?.nghĩa === choice
+                      getVal(q, 'front') === choice ||
+                      getVal(q, 'mẫu_ngữ_pháp') === choice ||
+                      getVal(q, 'content') === choice ||
+                      getVal(q, 'nghĩa') === choice
                     )
                   }
 
-                  // Compute revealed subtext when answered
                   let subtext = choiceData?.subtext || ''
                   if (!subtext && targetCard) {
                     const configuredSubtextCol = practiceData.subtext_col
                     if (configuredSubtextCol) {
-                      subtext = (targetCard as any)[configuredSubtextCol] || (targetCard as any)?.others?.[configuredSubtextCol] || ''
+                      subtext = getVal(targetCard, configuredSubtextCol)
                     }
                     if (!subtext) {
                       const isJpChoice = isJapanese(choice) || (answer_key && (String(answer_key).includes('mẫu') || String(answer_key).includes('front') || String(answer_key).includes('kanji')))
                       if (isJpChoice) {
-                        subtext = (targetCard as any)?.others?.nghĩa || (targetCard as any)?.meaning || (targetCard as any)?.others?.dịch_nghĩa || (targetCard as any)?.back || ''
+                        subtext = getVal(targetCard, 'nghĩa') || getVal(targetCard, 'meaning') || getVal(targetCard, 'dịch_nghĩa') || getVal(targetCard, 'back') || ''
                         if (!subtext && targetCard.explanation) {
                           subtext = targetCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
                         }
                       } else {
-                        subtext = (targetCard as any)?.others?.mẫu_ngữ_pháp || (targetCard as any)?.front || (targetCard as any)?.others?.từ_vựng || targetCard.content || ''
+                        subtext = getVal(targetCard, 'mẫu_ngữ_pháp') || getVal(targetCard, 'front') || getVal(targetCard, 'từ_vựng') || getVal(targetCard, 'kanji') || targetCard.content || ''
                       }
                     }
                   }
@@ -276,7 +262,7 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     subtext = choiceData.q_text
                   }
 
-                  let cardStyle = "bg-slate-50/70 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-700 hover:border-cyan-400 text-slate-800 dark:text-slate-100 hover:shadow-md"
+                  let cardStyle = "bg-slate-50/70 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-700 hover:border-cyan-400 dark:hover:border-cyan-500 text-slate-800 dark:text-slate-100 hover:shadow-md"
                   let badgeStyle = "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
 
                   if (answered) {
@@ -345,29 +331,33 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                           </div>
                         )}
                       </div>
+
+                      {!answered && (
+                        <span className="hidden sm:inline-flex items-center justify-center text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700 shrink-0 ml-auto">
+                          {idx + 1}
+                        </span>
+                      )}
                     </button>
                   )
                 })}
               </div>
             )}
-
-
           </div>
         ) : (
-          /* Dictation Typing */
-          <div className="max-w-xl mx-auto w-full">
+          /* Typing Dictation */
+          <div className="space-y-4">
             {!answered ? (
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  if (typingInput && typingInput.trim() && onCheckTyping) {
+                  if (onCheckTyping && typingInput && typingInput.trim()) {
                     onCheckTyping()
                   }
                 }}
                 className="flex flex-col gap-3"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full min-w-0">
                   <input
                     ref={inputRef}
                     type="text"
@@ -377,19 +367,19 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                       if (e.key === 'Enter') {
                         e.preventDefault()
                         e.stopPropagation()
-                        if (typingInput && typingInput.trim() && onCheckTyping) {
+                        if (onCheckTyping && typingInput && typingInput.trim()) {
                           onCheckTyping()
                         }
                       }
                     }}
-                    placeholder="Listen and type the word..."
+                    placeholder="Type what you hear..."
                     enterKeyHint="go"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
                     className={cn(
-                      "h-14 sm:h-16 px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-cyan-200/50 text-base sm:text-xl font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400 min-w-0",
+                      "h-12 sm:h-14 px-4 sm:px-5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-cyan-200/50 dark:focus:ring-cyan-500/20 text-base sm:text-lg font-bold text-slate-900 dark:text-white outline-none transition-all shadow-xs placeholder:text-slate-400 placeholder:font-normal min-w-0",
                       hideInlineSubmit ? "w-full" : "flex-1"
                     )}
                   />
@@ -399,15 +389,22 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                       type="submit"
                       disabled={!typingInput || !typingInput.trim()}
                       className={cn(
-                        "h-14 sm:h-16 px-6 sm:px-8 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md select-none shrink-0",
+                        "h-12 sm:h-14 px-4 sm:px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md select-none shrink-0",
                         typingInput && typingInput.trim()
                           ? "bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-white shadow-cyan-500/25 active:scale-95"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 cursor-not-allowed opacity-60"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-700 cursor-not-allowed opacity-60"
                       )}
                     >
                       <span>Check</span>
                       <CornerDownLeft className="w-4 h-4 hidden sm:inline-block" />
                     </button>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400 select-none">
+                  <span>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Enter ↵</kbd> to submit</span>
+                  {acceptableAnswers.length > 1 && (
+                    <span className="text-cyan-600 dark:text-cyan-400">{acceptableAnswers.length} accepted spellings</span>
                   )}
                 </div>
               </form>
@@ -420,37 +417,61 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                       ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100"
                       : "bg-rose-50/90 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-100"
                   )}>
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm shrink-0",
-                        typingFeedback.isCorrect ? "bg-emerald-500" : "bg-rose-500"
-                      )}>
-                        {typingFeedback.isCorrect ? <Check className="w-5 h-5 stroke-[3]" /> : <X className="w-5 h-5 stroke-[3]" />}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm shrink-0",
+                          typingFeedback.isCorrect ? "bg-emerald-500" : "bg-rose-500"
+                        )}>
+                          {typingFeedback.isCorrect ? <Check className="w-5 h-5 stroke-[3]" /> : <X className="w-5 h-5 stroke-[3]" />}
+                        </div>
+                        <div>
+                          <span className="font-black text-sm tracking-wide block">
+                            {typingFeedback.isCorrect ? "Spot on! 🎯" : "Listen carefully again!"}
+                          </span>
+                          <span className="text-[11px] font-semibold opacity-75">
+                            You typed: <strong className="font-mono">{typingInput || "(Empty)"}</strong>
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-black text-sm tracking-wide block">
-                          {typingFeedback.isCorrect ? "Perfect listening! 🎧" : "Not quite right!"}
-                        </span>
-                        <span className="text-[11px] font-semibold opacity-75">
-                          You typed: <strong className="font-mono">{typingInput || "(Empty)"}</strong>
-                        </span>
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePlayAudioWithSpeed(playbackSpeed)}
+                        className="w-10 h-10 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-xs"
+                        title="Replay audio"
+                      >
+                        <Volume2 className="w-5 h-5" />
+                      </button>
                     </div>
 
                     {!typingFeedback.isCorrect && (
-                      <div className="mt-1 pt-2 border-t border-rose-200/60 flex flex-col gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-600">
-                          Correct answer:
+                      <div className="mt-1 pt-2 border-t border-rose-200/60 dark:border-rose-900/60 flex flex-col gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                          Target Word:
                         </span>
-                        <div className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 text-emerald-900 dark:text-emerald-200 font-black text-lg">
+                        <div className="px-3.5 py-2 rounded-xl bg-white/90 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-black text-lg">
                           <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
                         </div>
                       </div>
                     )}
 
-                    {/* Result Subtext / Extra Information */}
+                    {acceptableAnswers.length > 1 && (
+                      <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="font-bold opacity-70">Accepted spellings:</span>
+                        {acceptableAnswers.map((ans, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-0.5 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 font-bold text-xs"
+                          >
+                            <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(ans || '') }} />
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     {practiceData.result_subtext && (
-                      <div className="mt-1 pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
                             {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'Chi tiết:'}
@@ -463,29 +484,11 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                     )}
                   </div>
                 )}
-
-                {/* Answer Explanation Images (Revealed upon answering) */}
-                {answerImages.length > 0 && (
-                  <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-                      Answer illustration:
-                    </span>
-                    <CardImageGallery
-                      images={answerImages}
-                      onZoom={onZoomImage}
-                      maxHeight="max-h-28 sm:max-h-36"
-                    />
-                  </div>
-                )}
-
-
               </div>
             )}
           </div>
         )}
       </div>
-    </div>
+    </PracticeCardShell>
   )
 }
-
-export default PracticeListeningCard
