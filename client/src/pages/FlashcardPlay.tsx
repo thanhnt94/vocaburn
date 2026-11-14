@@ -37,9 +37,7 @@ import { splitImageUrls } from '@/lib/image-utils'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
-import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
-import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import {
   SessionLoadingScreen,
@@ -4209,6 +4207,7 @@ export default function FlashcardPlay() {
         leaderboardMsg={leaderboardMsg}
         currentQuestion={currentQuestion}
         renderSessionStats={renderSessionStats}
+        onOpenCardHub={handleOpenCardHub}
 
         // Overdrive Strike
         isLimitlessStrike={isLimitlessStrike}

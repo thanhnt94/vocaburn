@@ -37,6 +37,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
+import { GoalCelebrationModal } from '@/components/flashcard/GoalCelebrationModal'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import { FlashcardHeader } from '@/components/flashcard/FlashcardHeader'
@@ -5228,90 +5229,15 @@ export default function PracticePlay() {
 
 
       {/* ✅ SESSION COMPLETE SUMMARY MODAL */}
-      <AnimatePresence>
-        {isSessionSummaryOpen && (() => {
-          const answeredCount = Object.keys(sessionAnswers).length
-          const correctCount = Object.entries(sessionAnswers).filter(([idx, optIdx]) => {
-            const q = session.questions[Number(idx)]
-            if (!q) return false
-            const ratingVal = Array.isArray(optIdx)
-              ? optIdx[optIdx.length - 1]
-              : (typeof optIdx === 'number' ? optIdx : 0);
-            return q.options && q.options.length > 0
-              ? q.options[ratingVal]?.is_correct
-              : ratingVal > 0
-          }).length
-          const accuracy = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0
-          const grade = accuracy >= 90 ? { label: 'S', color: 'from-yellow-400 to-amber-500', text: 'OUTSTANDING!' } :
-            accuracy >= 75 ? { label: 'A', color: 'from-emerald-400 to-teal-500', text: 'EXCELLENT!' } :
-              accuracy >= 60 ? { label: 'B', color: 'from-indigo-400 to-blue-500', text: 'WELL DONE!' } :
-                accuracy >= 45 ? { label: 'C', color: 'from-amber-400 to-orange-500', text: 'KEEP IT UP!' } :
-                  { label: 'D', color: 'from-rose-400 to-pink-500', text: 'KEEP PRACTICING!' }
-          return (
-            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-slate-900/70 backdrop-blur-md"
-                onClick={() => setIsSessionSummaryOpen(false)} />
-              <motion.div initial={{ opacity: 0, scale: 0.8, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 30 }} transition={{ type: 'spring', bounce: 0.35 }}
-                className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden">
-                {/* Grade header */}
-                <div className={`bg-gradient-to-br ${grade.color} p-8 flex flex-col items-center text-white`}>
-                  <div className="text-[9px] font-black uppercase tracking-[0.4em] opacity-80 mb-2">SESSION COMPLETE</div>
-                  <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center text-5xl font-black mb-3 border-2 border-white/30">
-                    {grade.label}
-                  </div>
-                  <h2 className="text-xl font-black">{grade.text}</h2>
-                  <p className="text-sm opacity-80 mt-1">{accuracy}% accuracy</p>
-                </div>
-
-                {/* Stats grid */}
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-slate-50 rounded-2xl">
-                      <div className="text-2xl font-black text-slate-800">{answeredCount}</div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase">Answered</div>
-                    </div>
-                    <div className="text-center p-3 bg-emerald-50 rounded-2xl">
-                      <div className="text-2xl font-black text-emerald-600">{correctCount}</div>
-                      <div className="text-[9px] font-black text-emerald-400 uppercase">Correct</div>
-                    </div>
-                    <div className="text-center p-3 bg-indigo-50 rounded-2xl">
-                      <div className="text-2xl font-black text-indigo-600">+{sessionXP}</div>
-                      <div className="text-[9px] font-black text-indigo-400 uppercase">XP Earned</div>
-                    </div>
-                  </div>
-
-                  {/* Milestones unlocked */}
-                  {milestonesHit.size > 0 && (
-                    <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-                      <div className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2">Milestones Unlocked</div>
-                      <div className="flex gap-3">
-                        {milestonesHit.has(25) && <span className="text-2xl" title="25%">🎖</span>}
-                        {milestonesHit.has(50) && <span className="text-2xl" title="50%">🏆</span>}
-                        {milestonesHit.has(75) && <span className="text-2xl" title="75%">🌟</span>}
-                        {milestonesHit.has(100) && <span className="text-2xl" title="100%">🎊</span>}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setIsSessionSummaryOpen(false)}
-                      className="py-3.5 bg-slate-100 text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all">
-                      Keep Going
-                    </button>
-                    <button onClick={() => navigate(`/decks/${id}`)}
-                      className="py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all">
-                      Finish &amp; Exit
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          )
-        })()}
-      </AnimatePresence>
+      <PlaySessionSummary
+        isOpen={isSessionSummaryOpen}
+        onClose={() => setIsSessionSummaryOpen(false)}
+        sessionAnswers={sessionAnswers}
+        questions={session?.questions || []}
+        sessionXP={sessionXP}
+        milestonesHit={milestonesHit}
+        onNavigateToDeck={() => navigate(`/decks/${id}`)}
+      />
 
       {/* Mobile Question Map Modal */}
       <AnimatePresence>
@@ -5393,6 +5319,7 @@ export default function PracticePlay() {
         currentCard={currentQuestion}
         currentIndex={currentIndex}
         session={session}
+        onOpenCardHub={() => setPreviewInsightCard(currentQuestion)}
         practiceStatsNode={mainTab === 'practice' && renderPracticeStats()}
         sessionStatsNode={
           <div className="grid grid-cols-3 gap-2 text-center text-xs text-slate-700">
@@ -5439,79 +5366,11 @@ export default function PracticePlay() {
       </AnimatePresence>
 
       {/* 🏆 DAILY GOAL CELEBRATION MODAL */}
-      <AnimatePresence>
-        {showGoalCelebration && goalToast && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setShowGoalCelebration(false)
-                confetti({ zIndex: 9999, particleCount: 80, spread: 60, origin: { y: 0.6 } })
-              }}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl pointer-events-auto"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 50 }}
-              transition={{ type: 'spring', bounce: 0.35, duration: 0.6 }}
-              className="relative w-full max-w-md bg-white rounded-[2rem] p-8 shadow-[0_25px_60px_rgba(99,102,241,0.3)] border border-slate-100/80 overflow-hidden text-center z-10 pointer-events-auto"
-            >
-              {/* Top premium border indicator */}
-              <div className="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500"></div>
-
-              {/* Spinning/glowing light background aura */}
-              <div className="absolute top-12 left-1/2 -translate-x-1/2 w-56 h-56 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-
-              {/* Giant Bouncing Trophy Icon */}
-              <div className="relative w-28 h-28 mx-auto mb-6 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-[2.5rem] rotate-12 scale-95 opacity-20 animate-pulse" />
-                <div className="relative w-24 h-24 bg-gradient-to-tr from-amber-400 via-orange-500 to-red-500 rounded-[2rem] flex items-center justify-center shadow-lg shadow-orange-300 transform hover:scale-105 transition-all">
-                  <Trophy className="w-12 h-12 text-white fill-white animate-bounce" />
-                </div>
-              </div>
-
-              <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-4 py-1.5 rounded-full uppercase tracking-[0.2em] mb-4 inline-block shadow-sm">
-                Daily Goal Achieved! 🏆
-              </span>
-
-              <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight mb-3">
-                SUPER STUDY DISCIPLINE!
-              </h3>
-
-              <p className="text-slate-500 font-bold text-xs leading-relaxed mb-8 px-4">
-                {goalToast.message}
-              </p>
-
-              {/* Rewards Summary Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-white border border-indigo-100/50 rounded-3xl p-5 flex flex-col items-center justify-center shadow-sm">
-                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">BONUS REWARD</span>
-                  <span className="text-xl font-black text-indigo-600">⚡ +{goalToast.bonusXP || 50} XP</span>
-                </div>
-                <div className="bg-gradient-to-br from-orange-50/50 via-amber-50/30 to-white border border-orange-100/50 rounded-3xl p-5 flex flex-col items-center justify-center shadow-sm">
-                  <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-1.5">DAILY STREAK</span>
-                  <span className="text-xl font-black text-orange-600">🔥 {goalToast.streakCount}d</span>
-                </div>
-              </div>
-
-              {/* High Motivation Action Button */}
-              <button
-                onClick={() => {
-                  setShowGoalCelebration(false)
-                  confetti({ zIndex: 9999, particleCount: 80, spread: 60, origin: { y: 0.6 } })
-                }}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-200 hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                AWESOME, KEEP GOING! 🚀
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <GoalCelebrationModal
+        isOpen={showGoalCelebration}
+        onClose={() => setShowGoalCelebration(false)}
+        goalToast={goalToast}
+      />
 
 
 

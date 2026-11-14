@@ -15,6 +15,7 @@ import { speakWithEdgeTTS } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 import { useAuthStore } from '@/store/useAuthStore'
+import { parseUTCDate, formatRelativeTime, formatOverdueTime } from '@/lib/flashcard-utils'
 
 // Helper to parse BBCode & Japanese Ruby to HTML
 const parseBBCodeToHtml = (text: string): string => {
@@ -54,109 +55,6 @@ const MarkdownComponents = {
     return <code className={className} {...props}>{children}</code>;
   }
 };
-
-function parseUTCDate(dateStr: string | null | undefined): Date {
-  if (!dateStr) return new Date();
-  try {
-    let formatted = dateStr;
-    if (!formatted.endsWith('Z')) {
-      formatted += 'Z';
-    }
-    const d = new Date(formatted);
-    if (!isNaN(d.getTime())) return d;
-  } catch (e) {
-    console.error("parseUTCDate error:", e);
-  }
-  return new Date();
-}
-
-function formatRelativeTime(dateStr: string | null | undefined): { relative: string; full: string } {
-  if (!dateStr) return { relative: 'never', full: 'Never learned this card' };
-  const d = parseUTCDate(dateStr);
-  if (isNaN(d.getTime())) return { relative: 'never', full: 'Never learned this card' };
-  
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  const diffMonth = Math.floor(diffDay / 30);
-  const diffYear = Math.floor(diffDay / 365);
-  
-  let relative = '';
-  if (diffSec < 60) {
-    relative = 'just now';
-  } else if (diffMin < 60) {
-    relative = `${diffMin}m ago`;
-  } else if (diffHour < 24) {
-    relative = `${diffHour}h ago`;
-  } else if (diffDay < 30) {
-    relative = `${diffDay}d ago`;
-  } else if (diffMonth < 12) {
-    relative = `${diffMonth}mo ago`;
-  } else {
-    relative = `${diffYear}y ago`;
-  }
-  
-  const dayStr = String(d.getDate()).padStart(2, '0');
-  const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-  const yearStr = d.getFullYear();
-  const hourStr = String(d.getHours()).padStart(2, '0');
-  const minStr = String(d.getMinutes()).padStart(2, '0');
-  const secStr = String(d.getSeconds()).padStart(2, '0');
-  
-  const full = `${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}:${secStr}`;
-  return { relative, full };
-}
-
-function formatOverdueTime(dueIsoStr?: string | null): { relative: string; full: string; overdue: boolean; severe: boolean } {
-  if (!dueIsoStr) return { relative: 'none', full: 'No due date', overdue: false, severe: false };
-  const d = parseUTCDate(dueIsoStr);
-  if (isNaN(d.getTime())) return { relative: 'none', full: 'No due date', overdue: false, severe: false };
-
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-
-  const dayStr = String(d.getDate()).padStart(2, '0');
-  const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-  const yearStr = d.getFullYear();
-  const hourStr = String(d.getHours()).padStart(2, '0');
-  const minStr = String(d.getMinutes()).padStart(2, '0');
-  const full = `${dayStr}/${monthStr}/${yearStr} ${hourStr}:${minStr}`;
-
-  if (diffMs > 0) {
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-
-    let relative = '';
-    if (diffDay > 0) {
-      relative = `+${diffDay}d`;
-    } else if (diffHour > 0) {
-      relative = `+${diffHour}h`;
-    } else {
-      relative = `+${Math.max(1, diffMin)}m`;
-    }
-    return { relative, full, overdue: true, severe: diffDay >= 3 };
-  } else {
-    const absMs = Math.abs(diffMs);
-    const diffMin = Math.floor(absMs / (1000 * 60));
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-
-    let relative = '';
-    if (diffDay > 0) {
-      relative = `in ${diffDay}d`;
-    } else if (diffHour > 0) {
-      relative = `in ${diffHour}h`;
-    } else {
-      relative = `in ${Math.max(1, diffMin)}m`;
-    }
-    return { relative, full, overdue: false, severe: false };
-  }
-}
 
 const handlePlayTabAudio = async (cardId?: number, tabId?: string, textContent?: string) => {
   const cleanText = (textContent || '')

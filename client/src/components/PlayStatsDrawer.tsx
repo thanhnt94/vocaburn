@@ -4,15 +4,13 @@ import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 import { 
   X, TrendingUp, Target, Trophy, Flame, ChevronLeft, Crown, Medal, Award, 
   Brain, Clock, Zap, Sparkles, BookOpen, Layers, CheckCircle2, XCircle, 
-  AlertCircle, BarChart3, HelpCircle, History, RotateCcw, Volume2, Calendar,
-  ArrowUpRight, ArrowDownRight, Percent, Timer, FileText, StickyNote, MessageSquare
+  AlertCircle, BarChart3, RotateCcw, Calendar, ArrowUpRight, ArrowDownRight, 
+  Percent, Timer
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import DailyComparisonChart from './DailyComparisonChart'
-import { parseUTCDate, formatRelativeTime, formatOverdueTime, getCardBoxId, getFSRSIntervals } from '@/lib/flashcard-utils'
-import { speakWithEdgeTTS } from '@/lib/audio'
 
 const getAvatarGradient = (username: string) => {
   if (!username) return 'from-slate-400 to-slate-500';
@@ -56,6 +54,7 @@ interface PlayStatsDrawerProps {
   session?: any
   sessionStatsNode?: React.ReactNode
   practiceStatsNode?: React.ReactNode
+  onOpenCardHub?: () => void
 }
 
 export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
@@ -68,12 +67,15 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   user,
   currentCard,
   currentIndex = 0,
-  session
+  session,
+  sessionStatsNode,
+  practiceStatsNode,
+  onOpenCardHub
 }) => {
   const navigate = useNavigate()
   
-  // Primary Tabs: 'card' (Card FSRS Stats) vs 'deck' (Entire Deck) vs 'rank' (Leaderboard & Goals)
-  const [statsViewMode, setStatsViewMode] = useState<'card' | 'deck' | 'rank'>('deck')
+  // Primary Tabs: 'deck' (Entire Deck) vs 'rank' (Leaderboard & Goals)
+  const [statsViewMode, setStatsViewMode] = useState<'deck' | 'rank'>('deck')
 
   const drawerRef = useRef<HTMLDivElement>(null)
 
@@ -83,10 +85,6 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     drawerRef,
     onClose,
   })
-
-  // Detailed data states
-  const [cardDetails, setCardDetails] = useState<any>(null)
-  const [isCardLoading, setIsCardLoading] = useState<boolean>(false)
 
   const [deckSummary, setDeckSummary] = useState<any>(null)
   const [isDeckSummaryLoading, setIsDeckSummaryLoading] = useState<boolean>(false)
@@ -100,29 +98,6 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   const [activeMetric, setActiveMetric] = useState<'xp' | 'time' | 'new_cards' | 'cards'>('xp')
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false)
-
-  // 1. Fetch detailed stats for current card
-  useEffect(() => {
-    if (!isOpen || !currentCard?.id) return
-
-    let isMounted = true
-    const fetchCardStats = async () => {
-      setIsCardLoading(true)
-      try {
-        const res = await axios.get(`/api/v1/deck/question/${currentCard.id}/detailed-stats`)
-        if (isMounted && res.data) {
-          setCardDetails(res.data)
-        }
-      } catch (e) {
-        console.error("Failed to load card detailed stats:", e)
-      } finally {
-        if (isMounted) setIsCardLoading(false)
-      }
-    }
-
-    fetchCardStats()
-    return () => { isMounted = false }
-  }, [isOpen, currentCard?.id])
 
   // 2. Fetch deck overview stats & daily comparison
   useEffect(() => {
@@ -205,31 +180,6 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     return `${u.total_cards ?? 0} reviews`
   }
 
-  // Fallback card stats from prop if API is loading
-  const cardInfo = cardDetails || {
-    content: currentCard?.content,
-    explanation: currentCard?.explanation,
-    box_level: currentCard?.box_level || 1,
-    consecutive_correct: currentCard?.stats?.total || 0,
-    fsrs: currentCard?.fsrs || {},
-    reviews_summary: {
-      total_reviews: currentCard?.stats?.total || 0,
-      correct_count: currentCard?.stats?.correct || 0,
-      accuracy_percent: currentCard?.stats?.total > 0 ? Math.round((currentCard.stats.correct / currentCard.stats.total) * 100) : 0,
-      total_time_seconds: 0,
-      avg_time_seconds: 0,
-      again_count: 0,
-      hard_count: 0,
-      good_count: 0,
-      easy_count: 0,
-      again_percent: 0,
-      hard_percent: 0,
-      good_percent: 0,
-      easy_percent: 0
-    },
-    history_logs: []
-  }
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -252,28 +202,32 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
               </button>
               <div className="flex flex-col min-w-0">
                 <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight leading-snug truncate">
-                  {statsViewMode === 'card' ? 'Card Hub & Insights' : statsViewMode === 'deck' ? 'Deck Overview & Analytics' : 'Leaderboard & Goals'}
+                  {statsViewMode === 'deck' ? 'Deck Overview & Analytics' : 'Leaderboard & Goals'}
                 </h2>
                 <p className="text-[9px] text-slate-400 font-bold truncate">
-                  {statsViewMode === 'card' ? `Card #${currentIndex + 1}: ${currentCard?.content || ''}` : session?.title || 'Deck Study'}
+                  {session?.title || 'Deck Study'}
                 </p>
               </div>
             </div>
 
             {/* Quick Mode Toggle Pills */}
             <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shadow-2xs gap-1 shrink-0">
+              {onOpenCardHub && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose()
+                    onOpenCardHub()
+                  }}
+                  className="px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer text-slate-500 hover:text-indigo-600 hover:bg-white/60 flex items-center gap-1"
+                  title="Open Full Card Hub & Insights"
+                >
+                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                  <span>Card Hub</span>
+                </button>
+              )}
               <button
-                onClick={() => setStatsViewMode('card')}
-                className={cn(
-                  "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer",
-                  statsViewMode === 'card'
-                    ? "bg-white text-indigo-600 shadow-xs border border-indigo-100 scale-105"
-                    : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Card Hub
-              </button>
-              <button
+                type="button"
                 onClick={() => setStatsViewMode('deck')}
                 className={cn(
                   "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer",
@@ -285,6 +239,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                 Deck
               </button>
               <button
+                type="button"
                 onClick={() => setStatsViewMode('rank')}
                 className={cn(
                   "px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer",
@@ -302,265 +257,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 custom-scrollbar space-y-4 text-left pb-16">
             
             {/* ─────────────────────────────────────────────────────────────
-                VIEW 1: ALL-IN-ONE CARD HUB (STATS, INSIGHTS, NOTES, COMMUNITY)
-               ───────────────────────────────────────────────────────────── */}
-            {statsViewMode === 'card' && (
-              <div className="space-y-4">
-                {/* 1. Header Card Info */}
-                <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm relative overflow-hidden space-y-3">
-                  <div className="h-1.5 absolute top-0 inset-x-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-                  
-                  <div className="flex items-start justify-between gap-3 pt-1">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider">
-                          Card #{currentIndex + 1}
-                        </span>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider",
-                          (cardInfo.stability && cardInfo.stability >= 21) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                          (cardInfo.stability && cardInfo.stability >= 3) ? "bg-blue-50 text-blue-600 border-blue-100" :
-                          "bg-amber-50 text-amber-600 border-amber-100"
-                        )}>
-                          FSRS {cardInfo.stability ? `S: ${Math.round(cardInfo.stability)}d` : 'New'}
-                        </span>
-                        {cardInfo.consecutive_correct > 0 && (
-                          <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 border border-orange-100 text-[9px] font-black">
-                            🔥 {cardInfo.consecutive_correct} correct streak
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-base sm:text-lg font-black text-slate-800 leading-snug">
-                        {cardInfo.content || currentCard?.content || "Card Content"}
-                      </h3>
-                      {cardInfo.explanation && (
-                        <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
-                          {cardInfo.explanation}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => speakWithEdgeTTS(cardInfo.content || currentCard?.content || '')}
-                      className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100/60 flex items-center justify-center transition-all active:scale-90 shrink-0 cursor-pointer"
-                      title="Play Pronunciation"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. Hero KPI Cards for this Card */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {/* Total Reviews */}
-                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Reviews</span>
-                    <span className="text-lg font-black text-slate-800">{cardInfo.reviews_summary?.total_reviews ?? 0}</span>
-                        <span className="text-[8.5px] font-bold text-emerald-600">
-                          Accuracy: {cardInfo.reviews_summary?.accuracy_percent ?? 0}%
-                        </span>
-                      </div>
-
-                  {/* Total Study Time */}
-                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Time</span>
-                    <span className="text-lg font-black text-indigo-600">
-                      {formatSeconds(cardInfo.reviews_summary?.total_time_seconds || 0)}
-                    </span>
-                    <span className="text-[8.5px] font-bold text-slate-400">
-                      Avg {cardInfo.reviews_summary?.avg_time_seconds ?? 0}s / review
-                    </span>
-                  </div>
-
-                  {/* FSRS Stability */}
-                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Memory Stability (S)</span>
-                    <span className="text-lg font-black text-purple-600">
-                      {cardInfo.fsrs?.stability ? `${Number(cardInfo.fsrs.stability).toFixed(1)}d` : 'New'}
-                    </span>
-                    <span className="text-[8.5px] font-bold text-purple-500">
-                      Difficulty: {cardInfo.fsrs?.difficulty ? `${Number(cardInfo.fsrs.difficulty).toFixed(1)}/10` : 'Standard'}
-                    </span>
-                  </div>
-
-                  {/* FSRS Retrievability */}
-                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center">
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Retrievability (R)</span>
-                    <span className={cn(
-                      "text-lg font-black",
-                      (cardInfo.fsrs?.retrievability ?? 90) >= 80 ? "text-emerald-600" :
-                      (cardInfo.fsrs?.retrievability ?? 90) >= 50 ? "text-amber-600" : "text-rose-600"
-                    )}>
-                      {cardInfo.fsrs?.retrievability !== null && cardInfo.fsrs?.retrievability !== undefined
-                        ? `${cardInfo.fsrs.retrievability}%` 
-                        : (cardInfo.fsrs?.state === 0 ? '100%' : '90%')}
-                    </span>
-                    <span className="text-[8.5px] font-bold text-slate-400">
-                      {formatOverdueTime(cardInfo.fsrs?.due).relative}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. Four Rating Breakdown (Again, Hard, Good, Easy) */}
-                <div className="bg-white p-4.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <BarChart3 className="w-3.5 h-3.5 text-indigo-500" />
-                      Rating Choices Distribution
-                    </h4>
-                    <span className="text-[9px] font-bold text-slate-400">
-                      {cardInfo.reviews_summary?.total_reviews ?? 0} total ratings
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-2">
-                    {/* AGAIN */}
-                    <div className="p-2.5 rounded-2xl bg-rose-50/80 border border-rose-100 flex flex-col items-center justify-center text-center">
-                      <span className="text-[8.5px] font-black text-rose-500 uppercase tracking-wider">AGAIN (1)</span>
-                      <span className="text-base font-black text-rose-700">{cardInfo.reviews_summary?.again_count ?? 0}</span>
-                      <span className="text-[8px] font-bold text-rose-500">{cardInfo.reviews_summary?.again_percent ?? 0}%</span>
-                    </div>
-
-                    {/* HARD */}
-                    <div className="p-2.5 rounded-2xl bg-amber-50/80 border border-amber-100 flex flex-col items-center justify-center text-center">
-                      <span className="text-[8.5px] font-black text-amber-500 uppercase tracking-wider">HARD (2)</span>
-                      <span className="text-base font-black text-amber-700">{cardInfo.reviews_summary?.hard_count ?? 0}</span>
-                      <span className="text-[8px] font-bold text-amber-500">{cardInfo.reviews_summary?.hard_percent ?? 0}%</span>
-                    </div>
-
-                    {/* GOOD */}
-                    <div className="p-2.5 rounded-2xl bg-indigo-50/80 border border-indigo-100 flex flex-col items-center justify-center text-center">
-                      <span className="text-[8.5px] font-black text-indigo-500 uppercase tracking-wider">GOOD (3)</span>
-                      <span className="text-base font-black text-indigo-700">{cardInfo.reviews_summary?.good_count ?? 0}</span>
-                      <span className="text-[8px] font-bold text-indigo-500">{cardInfo.reviews_summary?.good_percent ?? 0}%</span>
-                    </div>
-
-                    {/* EASY */}
-                    <div className="p-2.5 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex flex-col items-center justify-center text-center">
-                      <span className="text-[8.5px] font-black text-emerald-500 uppercase tracking-wider">EASY (4)</span>
-                      <span className="text-base font-black text-emerald-700">{cardInfo.reviews_summary?.easy_count ?? 0}</span>
-                      <span className="text-[8px] font-bold text-emerald-500">{cardInfo.reviews_summary?.easy_percent ?? 0}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Deep FSRS & Timestamps Parameters */}
-                <div className="bg-white p-4.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 text-xs font-semibold">
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <Brain className="w-3.5 h-3.5 text-purple-500" />
-                    FSRS Parameters & Intervals Forecast
-                  </h4>
-
-                  <div className="grid grid-cols-2 gap-2 text-[10.5px]">
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">FSRS State</span>
-                      <span className="font-black text-slate-700">{cardInfo.fsrs?.state_label || 'New'}</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Due Date</span>
-                      <span className={cn("font-black", formatOverdueTime(cardInfo.fsrs?.due).overdue ? "text-rose-600" : "text-emerald-600")}>
-                        {formatOverdueTime(cardInfo.fsrs?.due).full}
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">Last Review</span>
-                      <span className="font-bold text-slate-700">{formatRelativeTime(cardInfo.fsrs?.last_review).full}</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-150/60 flex flex-col gap-0.5">
-                      <span className="text-[8px] font-black text-slate-400 uppercase">First Learned</span>
-                      <span className="font-bold text-slate-700">{formatRelativeTime(cardInfo.fsrs?.first_learned).full}</span>
-                    </div>
-                  </div>
-
-                  {/* Next Intervals Projections */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">
-                      Next Intervals Forecast:
-                    </span>
-                    <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] font-black">
-                      <span className="py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-100">
-                        Again: {getFSRSIntervals(cardInfo.fsrs)[1]}
-                      </span>
-                      <span className="py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">
-                        Hard: {getFSRSIntervals(cardInfo.fsrs)[2]}
-                      </span>
-                      <span className="py-1 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
-                        Good: {getFSRSIntervals(cardInfo.fsrs)[3]}
-                      </span>
-                      <span className="py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
-                        Easy: {getFSRSIntervals(cardInfo.fsrs)[4]}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. Review History Timeline */}
-                <div className="bg-white p-4.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <History className="w-3.5 h-3.5 text-indigo-500" />
-                      Review History Timeline
-                    </h4>
-                    <span className="text-[9px] font-bold text-slate-400">
-                      {cardInfo.history_logs?.length || 0} recent reviews
-                    </span>
-                  </div>
-
-                  {cardInfo.history_logs && cardInfo.history_logs.length > 0 ? (
-                    <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1">
-                      {cardInfo.history_logs.map((log: any, idx: number) => {
-                        const ratingNames = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
-                        const ratingColors = {
-                          1: 'bg-rose-50 text-rose-600 border-rose-100',
-                          2: 'bg-amber-50 text-amber-600 border-amber-100',
-                          3: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-                          4: 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                        };
-                        const rColor = ratingColors[log.rating as keyof typeof ratingColors] || 'bg-slate-50 text-slate-600 border-slate-150';
-                        const rName = ratingNames[log.rating as keyof typeof ratingNames] || `Rating ${log.rating || '?'}`;
-
-                        return (
-                          <div 
-                            key={log.id || idx}
-                            className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-150/50 text-[10px]"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={cn("px-2 py-0.5 rounded-md font-black uppercase border text-[9px]", rColor)}>
-                                {rName}
-                              </span>
-                              <span className="font-bold text-slate-600">
-                                {formatRelativeTime(log.created_at).full}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-slate-400">
-                                ⏱️ {log.active_time}s
-                              </span>
-                              {log.is_correct ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                              ) : (
-                                <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="py-6 text-center text-[10.5px] font-semibold text-slate-400 italic">
-                      No review history recorded yet for this card.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ─────────────────────────────────────────────────────────────
-                VIEW 2: THỐNG KÊ TOÀN BỘ BỘ THẺ (ENTIRE DECK STATS)
+                VIEW 1: THỐNG KÊ TOÀN BỘ BỘ THẺ (ENTIRE DECK STATS)
                ───────────────────────────────────────────────────────────── */}
             {statsViewMode === 'deck' && (
               <div className="space-y-4">

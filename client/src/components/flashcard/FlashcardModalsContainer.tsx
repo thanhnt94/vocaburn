@@ -50,6 +50,7 @@ export interface FlashcardModalsContainerProps {
   leaderboardMsg: string
   currentQuestion: any
   renderSessionStats: () => React.ReactNode
+  onOpenCardHub?: () => void
 
   // Overdrive / Strike
   isLimitlessStrike: boolean
@@ -159,6 +160,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   leaderboardMsg,
   currentQuestion,
   renderSessionStats,
+  onOpenCardHub,
   isLimitlessStrike,
   showGoalCelebration,
   setShowGoalCelebration,
@@ -303,6 +305,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         currentIndex={currentIndex}
         session={session}
         sessionStatsNode={renderSessionStats()}
+        onOpenCardHub={onOpenCardHub}
       />
 
       {/* 4. Limitless Strike Screen Flash */}
