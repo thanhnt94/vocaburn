@@ -38,9 +38,12 @@ import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { GoalCelebrationModal } from '@/components/flashcard/GoalCelebrationModal'
+import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
+import { MilestoneCelebration } from '@/components/MilestoneCelebration'
 import { QuestionMapModal } from '@/components/QuestionMapModal'
 import { OverdriveStrikeOverlay } from '@/components/OverdriveStrikeOverlay'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
+import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import { FlashcardHeader } from '@/components/flashcard/FlashcardHeader'
 import {
@@ -425,7 +428,6 @@ export default function PracticePlay() {
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const activeMode = userSettings.quiz_learning_mode || 'fsrs'
   const setActiveMode = (mode: string) => updateUserSettings({ quiz_learning_mode: mode as any })
-  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false)
   const [learningModeAlert, setLearningModeAlert] = useState<{
     visible: boolean;
     message: string;
@@ -1096,66 +1098,20 @@ export default function PracticePlay() {
   const currentQuestion: Question | null = session?.questions?.[currentIndex] || null
   currentQuestionIdRef.current = currentQuestion?.id || null
   const [activelyRatedCurrentCard, setActivelyRatedCurrentCard] = useState<boolean>(false)
-  const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<'today' | 'week' | 'month' | 'all_time'>('week')
-  const [leaderboardType, setLeaderboardType] = useState<'xp' | 'streak' | 'questions' | 'accuracy'>('xp')
-  const [leaderboardData, setLeaderboardData] = useState<any>(null)
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false)
-
-  const xpLeaderboard = leaderboardData?.[leaderboardType] || { list: [], user_rank: -1, user_value: 0 }
-  const userRank = xpLeaderboard.user_rank
-  const userValue = xpLeaderboard.user_value
-
-  const getUnitName = (type: string) => {
-    if (type === 'xp') return 'XP'
-    if (type === 'streak') return 'days'
-    if (type === 'questions') return 'questions'
-    return '%'
-  }
-  
-  let leaderboardMsg = ""
-  if (userRank === 1) {
-    leaderboardMsg = "You are leading the Leaderboard! Keep defending your crown! 👑"
-  } else if (userRank > 1) {
-    const topUser = xpLeaderboard.list[0]
-    const prevUser = xpLeaderboard.list[userRank - 2]
-    const unit = getUnitName(leaderboardType)
-    if (topUser) {
-      const xpToTop = topUser.value - userValue
-      leaderboardMsg = `Need ${xpToTop.toLocaleString()} more ${unit} to reach Rank #1! 🚀`
-    }
-    if (prevUser) {
-      const xpToPrev = prevUser.value - userValue
-      leaderboardMsg += ` ${xpToPrev.toLocaleString()} ${unit} away from Rank #${userRank - 1} (${prevUser.username})! 💪`
-    }
-  } else {
-    leaderboardMsg = `Earn more ${getUnitName(leaderboardType)} to climb the Leaderboard! 🏆`
-  }
-
-  useEffect(() => {
-    if (!isStatsOpen && !leaderboardData) return;
-    let isMounted = true
-    const loadLeaderboard = async () => {
-      setIsLeaderboardLoading(true)
-      try {
-        const res = await axios.get('/api/v1/stats/leaderboard', {
-          params: { time_filter: leaderboardTimeFilter }
-        })
-        if (isMounted) {
-          setLeaderboardData(res.data)
-        }
-      } catch (e) {
-        console.error("Failed to load leaderboard data", e)
-      } finally {
-        if (isMounted) {
-          setIsLeaderboardLoading(false)
-        }
-      }
-    }
-    loadLeaderboard()
-    return () => {
-      isMounted = false
-    }
-  }, [leaderboardTimeFilter, isStatsOpen])
+  const {
+    leaderboardTimeFilter,
+    setLeaderboardTimeFilter,
+    leaderboardType,
+    setLeaderboardType,
+    leaderboardData,
+    setLeaderboardData,
+    isLeaderboardLoading,
+    xpLeaderboard,
+    userRank,
+    userValue,
+    leaderboardMsg,
+    getUnitName
+  } = useLeaderboard()
 
   // Lazy-load Daily Comparison stats only when the Stats drawer is actually opened
   useEffect(() => {
@@ -1213,26 +1169,6 @@ export default function PracticePlay() {
     return session.questions.filter((q: any) => getCardBoxId(q) === mode).length;
   };
 
-  const getBadgeIcon = (badgeId: string) => {
-    switch (badgeId) {
-      case 'first_steps':
-        return Play
-      case 'streak_starter':
-        return Flame
-      case 'streak_legend':
-        return Trophy
-      case 'perfect_score':
-        return CheckCircle2
-      case 'speed_demon':
-        return Clock
-      case 'goal_crusher':
-        return Target
-      case 'card_master':
-        return Brain
-      default:
-        return Award
-    }
-  }
   const getButtonClass = (btnIdx: number) => {
     const isSelected = hasRated && selectedOption === btnIdx;
     const isAnySelected = hasRated && selectedOption !== null && selectedOption !== undefined;
@@ -3174,7 +3110,6 @@ export default function PracticePlay() {
 
   const applyLearningMode = (mode: string) => {
     setActiveMode(mode)
-    setIsModeMenuOpen(false)
 
     if (!session || !session.questions) return
 
@@ -4306,7 +4241,7 @@ export default function PracticePlay() {
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-slate-700">
-                        Leaderboard ({leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'Questions' : 'Accuracy'})
+                        Leaderboard ({leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'Questions' : 'Time'})
                       </h4>
                       <p className="text-[10px] text-slate-400 font-medium">
                         Top ranking ({leaderboardTimeFilter === 'today' ? 'today' : leaderboardTimeFilter === 'week' ? 'this week' : leaderboardTimeFilter === 'month' ? 'this month' : 'all time'})
@@ -4316,7 +4251,7 @@ export default function PracticePlay() {
 
                   {/* Metric Switcher */}
                   <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
-                    {(['xp', 'streak', 'questions', 'accuracy'] as const).map((type) => (
+                    {(['xp', 'streak', 'questions', 'time'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => setLeaderboardType(type)}
@@ -4327,7 +4262,7 @@ export default function PracticePlay() {
                             : "text-slate-400 hover:text-indigo-650"
                         )}
                       >
-                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Questions' : 'Accuracy'}
+                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Questions' : 'Time'}
                       </button>
                     ))}
                   </div>
@@ -5241,235 +5176,21 @@ export default function PracticePlay() {
         practiceSettings={session?.practice_settings || session?.creator_settings}
       />
 
-      {/* ⚙️ SMART LEARNING MODE MODAL */}
-      <AnimatePresence>
-        {isModeMenuOpen && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModeMenuOpen(false)}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-md pointer-events-auto"
-            />
+      {/* Achievement Unlocked Modal Overlay */}
+      <BadgeUnlockOverlay
+        badge={activeUnlockedBadge}
+        onClose={() => setActiveUnlockedBadge(null)}
+      />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-[0_25px_60px_rgba(99,102,241,0.25)] border border-slate-100 overflow-hidden z-[1010] pointer-events-auto"
-            >
-              {/* Top premium border indicator */}
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
-                    <Sliders className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-800 tracking-tight uppercase">Smart Learning Modes</h3>
-                </div>
-                <button
-                  onClick={() => setIsModeMenuOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-500 active:scale-95 transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Description */}
-              <p className="text-slate-500 font-bold text-xs leading-relaxed mb-5">
-                Customize how Vocaburn serves the next card. Choose a pathway that matches your active study goals.
-              </p>
-
-              {/* Mode Options List */}
-              <div className="space-y-2.5 mb-6 overflow-y-auto max-h-[360px] pr-1 custom-scrollbar">
-                {[
-                  {
-                    id: 'fsrs',
-                    name: 'FSRS Spaced Repetition (Standard)',
-                    desc: 'FSRS v6 scheduler. Prioritizes due review cards, then introduces new cards.',
-                    icon: Brain,
-                    color: 'from-indigo-600 to-purple-600',
-                    bg: 'bg-indigo-50/50 border-indigo-100'
-                  },
-                  {
-                    id: 'sequential',
-                    name: 'Sequential Order',
-                    desc: 'Follow deck natural sequence from first to last card.',
-                    icon: ListOrdered,
-                    color: 'from-blue-500 to-indigo-500',
-                    bg: 'bg-blue-50/50 border-blue-100'
-                  },
-                  {
-                    id: 'random',
-                    name: 'Shuffle Mode',
-                    desc: 'Serve cards in a completely randomized, unexpected order.',
-                    icon: Shuffle,
-                    color: 'from-purple-500 to-indigo-500',
-                    bg: 'bg-purple-50/50 border-purple-100'
-                  },
-                  {
-                    id: 'unseen',
-                    name: 'New Cards First',
-                    desc: 'Prioritize cards you have never attempted in this deck.',
-                    icon: EyeOff,
-                    color: 'from-teal-500 to-emerald-500',
-                    bg: 'bg-teal-50/50 border-teal-100'
-                  },
-                  {
-                    id: 'review',
-                    name: 'Mistakes First',
-                    desc: 'Focus on review cards you answered incorrectly in prior attempts.',
-                    icon: AlertCircle,
-                    color: 'from-amber-500 to-red-500',
-                    bg: 'bg-amber-50/50 border-amber-100'
-                  },
-                  {
-                    id: 'hardest',
-                    name: 'Hardest First (SRS)',
-                    desc: 'Prioritize cards with the lowest accuracy ratio first.',
-                    icon: TrendingUp,
-                    color: 'from-rose-500 to-pink-500',
-                    bg: 'bg-rose-50/50 border-rose-100'
-                  }
-                ].map((m) => {
-                  const Icon = m.icon
-                  const isSelected = activeMode === m.id
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => {
-                        applyLearningMode(m.id)
-                      }}
-                      className={cn(
-                        "w-full p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all duration-200 active:scale-[0.99]",
-                        isSelected
-                          ? "border-indigo-500 bg-indigo-50/20 shadow-md shadow-indigo-100/50"
-                          : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50/30"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br shadow-md flex-shrink-0",
-                        m.color
-                      )}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="font-bold text-sm text-slate-800">{m.name}</span>
-                          {isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shadow-md shadow-indigo-200">
-                              <Check className="w-3 h-3 text-white stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-[11px] font-semibold text-slate-500 leading-relaxed block">{m.desc}</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <button
-                onClick={() => setIsModeMenuOpen(false)}
-                className="w-full py-3.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-lg shadow-slate-300 active:scale-95 transition-all hover:bg-slate-800"
-              >
-                APPLY & CLOSE
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-
-
-      {/* Full-Screen Achievement Celebration Overlay */}
-      <AnimatePresence>
-        {activeUnlockedBadge && (() => {
-          const BadgeIcon = getBadgeIcon(activeUnlockedBadge.id)
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
-            >
-              {/* Radial glow background effect */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.15),transparent_60%)] animate-pulse pointer-events-none" />
-
-              <motion.div
-                initial={{ scale: 0.9, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 50 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="relative max-w-md w-full bg-slate-900/95 border border-violet-500/30 rounded-[2rem] p-8 text-center shadow-[0_0_80px_rgba(139,92,246,0.35)] overflow-hidden"
-              >
-                {/* Background neon splashes */}
-                <div className="absolute -top-12 -left-12 w-48 h-48 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-pink-600/10 rounded-full blur-3xl pointer-events-none" />
-
-                {/* Sparkling particles background */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent,rgba(0,0,0,0.4))] pointer-events-none" />
-
-                {/* Close Button */}
-                <button
-                  onClick={() => setActiveUnlockedBadge(null)}
-                  className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all active:scale-95"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                {/* Animated Badge Hexagon Glow container */}
-                <div className="relative mx-auto w-32 h-32 flex items-center justify-center mb-6 mt-4">
-                  {/* Hexagon Neon Ring */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-pink-500 rounded-[2.5rem] rotate-45 opacity-20 blur-md animate-pulse" />
-                  <div className="absolute inset-2 bg-gradient-to-tr from-violet-600 via-fuchsia-600 to-pink-600 rounded-[2rem] rotate-12 animate-spin-slow" />
-
-                  {/* Frosted Icon Shield */}
-                  <div className="relative w-20 h-20 rounded-2xl bg-slate-950/60 border border-white/15 flex items-center justify-center shadow-2xl backdrop-blur-md">
-                    <BadgeIcon className="w-10 h-10 text-transparent bg-clip-text bg-gradient-to-tr from-violet-400 via-fuchsia-400 to-pink-400" />
-                  </div>
-                </div>
-
-                <span className="text-[10px] font-black tracking-[0.3em] text-violet-400 uppercase bg-violet-500/10 px-4 py-1.5 rounded-full border border-violet-500/20 mb-2 inline-block">
-                  ACHIEVEMENT UNLOCKED
-                </span>
-
-                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-3 uppercase bg-gradient-to-tr from-white via-slate-100 to-slate-300 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]">
-                  {activeUnlockedBadge.name}
-                </h2>
-
-                <p className="text-slate-400 text-sm font-bold leading-relaxed mb-6 px-4">
-                  {activeUnlockedBadge.description}
-                </p>
-
-                {/* Reward stats display */}
-                <div className="flex items-center justify-center gap-4 mb-8 bg-slate-950/40 border border-white/5 rounded-2xl p-4">
-                  <div className="text-center flex-1 border-r border-white/5">
-                    <span className="text-[10px] font-black tracking-widest text-slate-500 block uppercase mb-1">XP REWARD</span>
-                    <span className="text-lg font-black text-amber-400">+{activeUnlockedBadge.xp_reward} XP ✨</span>
-                  </div>
-                  <div className="text-center flex-1">
-                    <span className="text-[10px] font-black tracking-widest text-slate-500 block uppercase mb-1">BONUS REWARD</span>
-                    <span className="text-lg font-black text-violet-400">🏅 BADGE</span>
-                  </div>
-                </div>
-
-                {/* Manual Dismiss CTA */}
-                <button
-                  onClick={() => setActiveUnlockedBadge(null)}
-                  className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white shadow-lg shadow-violet-600/35 hover:shadow-violet-600/50 hover:brightness-110 active:scale-[0.98] transition-all duration-200"
-                >
-                  AWESOME, CLAIM IT! 🏆
-                </button>
-              </motion.div>
-            </motion.div>
-          )
-        })()}
-      </AnimatePresence>
+      {/* Milestone Celebration Modal */}
+      {activeMilestone && (
+        <MilestoneCelebration
+          type={activeMilestone.type}
+          title={activeMilestone.title}
+          message={activeMilestone.message}
+          onClose={() => setActiveMilestone(null)}
+        />
+      )}
       
       {/* Zoomed Image Modal Overlay */}
       <ImageZoomOverlay

@@ -658,10 +658,10 @@ class AnalyticsService:
         from app.modules.gamification.models import PointTransaction
         from sqlalchemy.orm import joinedload
 
+        # Rule 11: Strict UTC+0 day boundary (00:00:00 UTC to 23:59:59 UTC)
         now_utc = datetime.utcnow()
-        now_local = now_utc - timedelta(minutes=tz_offset)
-        today_local_date = now_local.date()
-        today_start_utc = datetime.combine(today_local_date, datetime.min.time()) + timedelta(minutes=tz_offset)
+        today_local_date = now_utc.date()
+        today_start_utc = datetime(now_utc.year, now_utc.month, now_utc.day, 0, 0, 0)
         today_end_utc = today_start_utc + timedelta(days=1)
 
         # 1. Fetch all user answers today with attempt info
@@ -846,7 +846,7 @@ class AnalyticsService:
         for a in today_answers:
             raw_m = a.mode or "fsrs"
             # Normalize internal attempt modes into standard category modes
-            if raw_m in ("roadmap_mcq", "mcq"):
+            if raw_m in ("roadmap_mcq", "mcq", "practice"):
                 m = "mcq"
             elif raw_m in ("roadmap_typing", "typing"):
                 m = "typing"

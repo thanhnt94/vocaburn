@@ -33,7 +33,7 @@ import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { splitImageUrls } from '@/lib/image-utils'
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
@@ -3585,29 +3585,6 @@ export default function FlashcardPlay() {
     );
   }
 
-  useKeyboardShortcuts({
-    mainTab,
-    practiceSubMode,
-    showFeedback,
-    isFlipped,
-    hasRated,
-    isSessionSummaryOpen,
-    isQuitModalOpen,
-    isEditModalOpen,
-    isMapOpen,
-    currentPracticeChoicesCount: currentPracticeData?.choices?.length || 0,
-    openEditModal,
-    handleNext,
-    handleTypingAnswer,
-    handleMCQAnswer,
-    handleReviewRating,
-    setIsFlipped,
-    setShowFeedback,
-    showImages,
-    setShowImages,
-    activeMode: effectiveCardMode
-  });
-
   const [isStudyConsoleOpen, setIsStudyConsoleOpen] = useState(false);
 
   const shouldShowFsrsCompleteScreen = useMemo(() => {
@@ -4266,6 +4243,12 @@ export default function FlashcardPlay() {
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* Achievement Unlocked Modal Overlay */}
+      <BadgeUnlockOverlay
+        badge={activeUnlockedBadge}
+        onClose={() => setActiveUnlockedBadge(null)}
+      />
 
       {/* ═══════════ QUICK ACTION BOTTOM SHEET (Root-level Global Portal) ═══════════ */}
       <FlashcardQuickControlsSheet

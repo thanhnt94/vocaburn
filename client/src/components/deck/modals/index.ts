@@ -1,6 +1,5 @@
 export * from './FlashcardModeModal'
 export * from './PracticeModeModal'
 export * from './DeckCreateModal'
-export * from './DeckActionSheet'
 export * from './FolderModal'
 export * from './FolderDetailModal'

@@ -19,7 +19,8 @@ export function DashboardDailyActivityHUD({
   onOpenDrawer,
   navigate,
   globalFocus,
-  className
+  className,
+  compact = false
 }: DashboardDailyActivityHUDProps) {
   const tzOffset = new Date().getTimezoneOffset()
 
@@ -49,7 +50,7 @@ export function DashboardDailyActivityHUD({
   const modeBreakdown: Array<{ mode: string; cards: number }> = dailyData?.mode_breakdown || []
   
   const mcqCount = modeBreakdown
-    .filter(m => m.mode === 'mcq' || m.mode === 'roadmap_mcq')
+    .filter(m => m.mode === 'mcq' || m.mode === 'roadmap_mcq' || m.mode === 'practice')
     .reduce((sum, m) => sum + (m.cards || 0), 0)
 
   const typingCount = modeBreakdown
@@ -88,6 +89,76 @@ export function DashboardDailyActivityHUD({
 
   const timeLabel = formatTime(summary.total_time_minutes, summary.total_time_seconds)
   const hasAnyActivity = mcqCount > 0 || typingCount > 0 || flashcardCount > 0 || listenCount > 0 || summary.total_time_seconds > 0
+
+  if (compact) {
+    return (
+      <div
+        onClick={() => {
+          if (navigator.vibrate) navigator.vibrate(8)
+          onOpenDrawer()
+        }}
+        className={cn(
+          "group w-full flex items-center justify-between gap-1.5 sm:gap-2 rounded-xl cursor-pointer select-none transition-all duration-150 active:scale-[0.99]",
+          "bg-white/95 dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80",
+          "border border-slate-200/80 dark:border-slate-800 shadow-2xs py-1.5 px-2.5",
+          className
+        )}
+        title="Click to view detailed daily learning summary"
+      >
+        <div className="flex items-center gap-1.5 sm:gap-2.5 text-[11px] min-w-0 flex-1 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400 shrink-0 font-black">
+            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="tabular-nums tracking-tight">{timeLabel}</span>
+          </div>
+          <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+          <div className={cn("flex items-center gap-1 shrink-0 transition-colors", mcqCount > 0 ? "text-emerald-700 dark:text-emerald-400 font-black" : "text-slate-400 dark:text-slate-500 font-bold")}>
+            <span className="text-xs leading-none">🎯</span>
+            <span className="tabular-nums tracking-tight font-black">{mcqCount}</span>
+            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">MCQ</span>
+          </div>
+          <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+          <div className={cn("flex items-center gap-1 shrink-0 transition-colors", typingCount > 0 ? "text-violet-700 dark:text-violet-400 font-black" : "text-slate-400 dark:text-slate-500 font-bold")}>
+            <span className="text-xs leading-none">⌨️</span>
+            <span className="tabular-nums tracking-tight font-black">{typingCount}</span>
+            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">Type</span>
+          </div>
+          <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+          <div className={cn("flex items-center gap-1 shrink-0 transition-colors", flashcardCount > 0 ? "text-blue-700 dark:text-blue-400 font-black" : "text-slate-400 dark:text-slate-500 font-bold")}>
+            <span className="text-xs leading-none">🗂️</span>
+            <span className="tabular-nums tracking-tight font-black">{flashcardCount}</span>
+            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">Cards</span>
+          </div>
+          {listenCount > 0 && (
+            <>
+              <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+              <div className="flex items-center gap-1 text-sky-700 dark:text-sky-400 font-black shrink-0">
+                <span className="text-xs leading-none">🎧</span>
+                <span className="tabular-nums tracking-tight font-black">{listenCount}</span>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 pl-1">
+          {globalFocus && globalFocus.total_due > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (navigator.vibrate) navigator.vibrate(8)
+                navigate('/flashcard/global-focus/play?mode=fsrs&order=random')
+              }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-black text-[10.5px] tracking-tight uppercase shadow-2xs active:scale-95 transition-all cursor-pointer"
+              title="Open Global Due Cards Queue"
+            >
+              <Zap className="w-2.5 h-2.5 fill-white stroke-none" />
+              <span className="tabular-nums">{globalFocus.total_due}</span>
+              <span className="hidden sm:inline font-bold lowercase text-[9.5px]">due</span>
+            </button>
+          )}
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
