@@ -98,63 +98,110 @@ export function DashboardDailyActivityHUD({
           onOpenDrawer()
         }}
         className={cn(
-          "group w-full flex items-center justify-between gap-1.5 sm:gap-2 rounded-xl cursor-pointer select-none transition-all duration-150 active:scale-[0.99]",
-          "bg-white/95 dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80",
-          "border border-slate-200/80 dark:border-slate-800 shadow-2xs py-1.5 px-2.5",
+          "group w-full rounded-2xl cursor-pointer select-none transition-all duration-200 active:scale-[0.99]",
+          "bg-white/95 dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-850",
+          "border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-sm",
+          "py-2 px-2.5 sm:py-2.5 sm:px-3 flex items-center justify-center",
           className
         )}
         title="Click to view detailed daily learning summary"
       >
-        <div className="flex items-center gap-1.5 sm:gap-2.5 text-[11px] min-w-0 flex-1 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400 shrink-0 font-black">
-            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span className="tabular-nums tracking-tight">{timeLabel}</span>
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap w-full">
+          {/* Box 1: Time */}
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 shadow-2xs">
+            <div className="w-5 h-5 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+              <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2.4]" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{timeLabel}</span>
+              <span className="text-[9.5px] font-bold text-amber-700/80 dark:text-amber-400/80 uppercase">Time</span>
+            </div>
           </div>
-          <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
-          <div className={cn("flex items-center gap-1 shrink-0 transition-colors", mcqCount > 0 ? "text-emerald-700 dark:text-emerald-400 font-black" : "text-slate-400 dark:text-slate-500 font-bold")}>
-            <span className="text-xs leading-none">🎯</span>
-            <span className="tabular-nums tracking-tight font-black">{mcqCount}</span>
-            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">MCQ</span>
+
+          {/* Box 2: MCQ */}
+          <div className={cn(
+            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-2xs transition-colors",
+            mcqCount > 0
+              ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/90 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"
+              : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+          )}>
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
+              mcqCount > 0 ? "bg-emerald-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
+            )}>
+              🎯
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{mcqCount}</span>
+              <span className="text-[9.5px] font-bold opacity-75 uppercase">MCQ</span>
+            </div>
           </div>
-          <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
-          <div className={cn("flex items-center gap-1 shrink-0 transition-colors", typingCount > 0 ? "text-violet-700 dark:text-violet-400 font-black" : "text-slate-400 dark:text-slate-500 font-bold")}>
-            <span className="text-xs leading-none">⌨️</span>
-            <span className="tabular-nums tracking-tight font-black">{typingCount}</span>
-            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">Type</span>
+
+          {/* Box 3: Typing */}
+          <div className={cn(
+            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-2xs transition-colors",
+            typingCount > 0
+              ? "bg-violet-50/90 dark:bg-violet-950/40 border-violet-200/90 dark:border-violet-800/60 text-violet-900 dark:text-violet-200"
+              : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+          )}>
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
+              typingCount > 0 ? "bg-violet-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
+            )}>
+              ⌨️
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{typingCount}</span>
+              <span className="text-[9.5px] font-bold opacity-75 uppercase">Type</span>
+            </div>
           </div>
-          <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
-          <div className={cn("flex items-center gap-1 shrink-0 transition-colors", flashcardCount > 0 ? "text-blue-700 dark:text-blue-400 font-black" : "text-slate-400 dark:text-slate-500 font-bold")}>
-            <span className="text-xs leading-none">🗂️</span>
-            <span className="tabular-nums tracking-tight font-black">{flashcardCount}</span>
-            <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500">Cards</span>
+
+          {/* Box 4: Cards */}
+          <div className={cn(
+            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-2xs transition-colors",
+            flashcardCount > 0
+              ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200/90 dark:border-blue-800/60 text-blue-900 dark:text-blue-200"
+              : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+          )}>
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
+              flashcardCount > 0 ? "bg-blue-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
+            )}>
+              🗂️
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{flashcardCount}</span>
+              <span className="text-[9.5px] font-bold opacity-75 uppercase">Cards</span>
+            </div>
           </div>
+
+          {/* Box 5: Optional Listening if active */}
           {listenCount > 0 && (
-            <>
-              <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
-              <div className="flex items-center gap-1 text-sky-700 dark:text-sky-400 font-black shrink-0">
-                <span className="text-xs leading-none">🎧</span>
-                <span className="tabular-nums tracking-tight font-black">{listenCount}</span>
+            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/60 text-sky-900 dark:text-sky-200 shadow-2xs">
+              <div className="w-5 h-5 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0 text-xs">
+                🎧
               </div>
-            </>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{listenCount}</span>
+                <span className="text-[9.5px] font-bold opacity-75 uppercase">Listen</span>
+              </div>
+            </div>
           )}
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0 pl-1">
-          {globalFocus && globalFocus.total_due > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (navigator.vibrate) navigator.vibrate(8)
-                navigate('/flashcard/global-focus/play?mode=fsrs&order=random')
-              }}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-black text-[10.5px] tracking-tight uppercase shadow-2xs active:scale-95 transition-all cursor-pointer"
-              title="Open Global Due Cards Queue"
-            >
-              <Zap className="w-2.5 h-2.5 fill-white stroke-none" />
-              <span className="tabular-nums">{globalFocus.total_due}</span>
-              <span className="hidden sm:inline font-bold lowercase text-[9.5px]">due</span>
-            </button>
-          )}
-          <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+
+          {/* Box 6: XP Gain / Streak */}
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200/90 dark:border-orange-800/60 text-orange-900 dark:text-orange-200 shadow-2xs">
+            <div className="w-5 h-5 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
+              <Zap className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 fill-orange-500 stroke-none" />
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">
+                {summary.xp_earned > 0 ? `+${summary.xp_earned}` : `${summary.streak_count}d`}
+              </span>
+              <span className="text-[9.5px] font-bold text-orange-700/80 dark:text-orange-400/80 uppercase">
+                {summary.xp_earned > 0 ? 'XP' : 'Streak'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     )
