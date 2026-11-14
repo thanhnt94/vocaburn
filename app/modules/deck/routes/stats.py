@@ -53,48 +53,6 @@ async def get_practice_stats(request: Request, deck_id: Optional[int] = None, db
     return stats_data
 
 
-@router.get("/stats")
-async def get_deck_stats(request: Request, db: AsyncSession = Depends(get_db)):
-    user = await AuthService.get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user_id = user.id
-    
-    # 1. Overall accuracy for current user
-    total_res = await db.execute(
-        select(func.count(UserAnswer.id))
-        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
-        .where(DeckAttempt.user_id == user_id)
-    )
-    total = total_res.scalar() or 0
-    
-    correct_res = await db.execute(
-        select(func.count(UserAnswer.id))
-        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
-        .where(DeckAttempt.user_id == user_id, UserAnswer.is_correct == True)
-    )
-    correct = correct_res.scalar() or 0
-    
-    accuracy = (correct / total * 100) if total > 0 else 0
-    
-    # 2. Activity by day (last 7 days) for current user
-    activity_res = await db.execute(
-        select(func.date(UserAnswer.created_at), func.count(UserAnswer.id))
-        .join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id)
-        .where(DeckAttempt.user_id == user_id)
-        .group_by(func.date(UserAnswer.created_at))
-        .order_by(func.date(UserAnswer.created_at))
-        .limit(7)
-    )
-    activity = activity_res.all()
-    
-    return {
-        "overall_accuracy": accuracy,
-        "total_answers": total,
-        "correct_answers": correct,
-        "activity_data": activity
-    }
-
 @router.post("/goals")
 async def create_or_update_goal(request: Request, data: dict, db: AsyncSession = Depends(get_db)):
     user_id = AuthService.get_user_id(request)

@@ -60,6 +60,9 @@ interface PlayStatsDrawerProps {
 export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   isOpen,
   onClose,
+  dailyComparisonData,
+  dailyComparisonAvg,
+  isDailyComparisonLoading,
   activeGoal,
   activeMode = 'fsrs',
   gamify,
@@ -89,37 +92,46 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
   const [deckSummary, setDeckSummary] = useState<any>(null)
   const [isDeckSummaryLoading, setIsDeckSummaryLoading] = useState<boolean>(false)
 
+  const hasParentChart = Boolean(dailyComparisonData && dailyComparisonData.length > 0)
   const [chartData, setChartData] = useState<any[] | null>(null)
   const [chartAvg, setChartAvg] = useState<any>(null)
-  const [isChartLoading, setIsChartLoading] = useState<boolean>(true)
+  const [isChartLoading, setIsChartLoading] = useState<boolean>(!hasParentChart)
+
+  const effectiveChartData = hasParentChart ? dailyComparisonData! : (chartData || [])
+  const effectiveChartAvg = hasParentChart ? dailyComparisonAvg : chartAvg
+  const effectiveChartLoading = hasParentChart ? Boolean(isDailyComparisonLoading) : isChartLoading
 
   // Leaderboard states
   const [timeFilter, setTimeFilter] = useState<string>('week')
-  const [activeMetric, setActiveMetric] = useState<'xp' | 'time' | 'new_cards' | 'cards'>('xp')
+  const [activeMetric, setActiveMetric] = useState<'xp' | 'time' | 'questions' | 'streak'>('xp')
   const [leaderboardData, setLeaderboardData] = useState<any>(null)
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState<boolean>(false)
 
-  // 2. Fetch deck overview stats & daily comparison
+  // 2. Fetch deck overview stats & daily comparison (only if not supplied by parent)
   useEffect(() => {
     if (!isOpen || !session?.id) return
 
     let isMounted = true
     const fetchDeckStats = async () => {
       setIsDeckSummaryLoading(true)
-      setIsChartLoading(true)
+      if (!hasParentChart) setIsChartLoading(true)
       try {
-        const [deckRes, chartRes] = await Promise.allSettled([
-          axios.get(`/api/v1/deck/${session.id}/overview-stats`),
-          axios.get('/api/v1/stats/daily-comparison')
-        ])
+        const promises: Promise<any>[] = [
+          axios.get(`/api/v1/deck/${session.id}/overview-stats`)
+        ]
+        if (!hasParentChart) {
+          promises.push(axios.get('/api/v1/stats/daily-comparison'))
+        }
+
+        const results = await Promise.allSettled(promises)
 
         if (isMounted) {
-          if (deckRes.status === 'fulfilled' && deckRes.value.data) {
-            setDeckSummary(deckRes.value.data)
+          if (results[0].status === 'fulfilled' && results[0].value.data) {
+            setDeckSummary(results[0].value.data)
           }
-          if (chartRes.status === 'fulfilled' && chartRes.value.data) {
-            setChartData(chartRes.value.data.days || [])
-            setChartAvg(chartRes.value.data.all_time_avg || null)
+          if (!hasParentChart && results[1]?.status === 'fulfilled' && results[1].value.data) {
+            setChartData(results[1].value.data.days || [])
+            setChartAvg(results[1].value.data.all_time_avg || null)
           }
         }
       } catch (e) {
@@ -127,16 +139,16 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
       } finally {
         if (isMounted) {
           setIsDeckSummaryLoading(false)
-          setIsChartLoading(false)
+          if (!hasParentChart) setIsChartLoading(false)
         }
       }
     }
 
     fetchDeckStats()
     return () => { isMounted = false }
-  }, [isOpen, session?.id])
+  }, [isOpen, session?.id, hasParentChart])
 
-  // 3. Fetch leaderboard
+  // 3. Fetch unified stats leaderboard
   useEffect(() => {
     if (!isOpen || statsViewMode !== 'rank') return
 
@@ -144,7 +156,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     const fetchLeaderboard = async () => {
       setIsLeaderboardLoading(true)
       try {
-        const res = await axios.get('/api/v1/gamification/leaderboard', {
+        const res = await axios.get('/api/v1/stats/leaderboard', {
           params: { time_filter: timeFilter }
         })
         if (isMounted) {
@@ -173,11 +185,12 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
     return `${mins}m ${secs > 0 ? `${secs}s` : ''}`
   }
 
-  const formatValue = (u: any) => {
-    if (activeMetric === 'xp') return `${(u.xp ?? 0).toLocaleString()} XP`
-    if (activeMetric === 'time') return formatSeconds(u.total_time ?? 0)
-    if (activeMetric === 'new_cards') return `${u.new_cards ?? 0} cards`
-    return `${u.total_cards ?? 0} reviews`
+  const formatValue = (val: number) => {
+    if (activeMetric === 'xp') return `${(val ?? 0).toLocaleString()} XP`
+    if (activeMetric === 'time') return formatSeconds(val ?? 0)
+    if (activeMetric === 'questions') return `${val ?? 0} cards`
+    if (activeMetric === 'streak') return `${val ?? 0} days`
+    return `${val ?? 0}`
   }
 
   return (
@@ -406,9 +419,9 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
 
                 {/* 5. Daily Comparison Chart */}
                 <DailyComparisonChart 
-                  data={chartData || []} 
-                  allTimeAvg={chartAvg} 
-                  isLoading={isChartLoading} 
+                  data={effectiveChartData || []} 
+                  allTimeAvg={effectiveChartAvg} 
+                  isLoading={effectiveChartLoading} 
                 />
               </div>
             )}
@@ -477,8 +490,8 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                     {[
                       { id: 'xp', label: 'XP', icon: Zap },
                       { id: 'time', label: 'Time', icon: Clock },
-                      { id: 'new_cards', label: 'New Cards', icon: Brain },
-                      { id: 'cards', label: 'Reviews', icon: Flame }
+                      { id: 'questions', label: 'Cards', icon: Brain },
+                      { id: 'streak', label: 'Streak', icon: Flame }
                     ].map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeMetric === tab.id;
@@ -487,7 +500,7 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                           key={tab.id}
                           onClick={() => setActiveMetric(tab.id as any)}
                           className={cn(
-                            "flex flex-col items-center justify-center p-2 rounded-xl border transition-all gap-1",
+                            "flex flex-col items-center justify-center p-2 rounded-xl border transition-all gap-1 cursor-pointer",
                             isActive
                               ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-xs scale-105"
                               : "bg-slate-50/60 border-slate-150 text-slate-400 hover:text-slate-600"
@@ -501,44 +514,55 @@ export const PlayStatsDrawer: React.FC<PlayStatsDrawerProps> = ({
                   </div>
 
                   {/* Podium & List */}
-                  {isLeaderboardLoading ? (
-                    <div className="py-12 flex flex-col items-center justify-center gap-2">
-                      <div className="w-7 h-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-                      <span className="text-[9.5px] font-black text-slate-400 uppercase">Loading leaderboard...</span>
-                    </div>
-                  ) : leaderboardData?.leaderboard && leaderboardData.leaderboard.length > 0 ? (
-                    <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1 pt-2">
-                      {leaderboardData.leaderboard.map((u: any, idx: number) => {
-                        const isCurrentUser = u.is_current_user;
-                        return (
-                          <div
-                            key={u.user_id || idx}
-                            className={cn(
-                              "flex items-center justify-between p-2.5 rounded-2xl border transition-all text-xs",
-                              isCurrentUser
-                                ? "bg-indigo-50/90 border-indigo-200 shadow-sm"
-                                : "bg-slate-50/60 border-slate-150"
-                            )}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="text-[10px] font-black text-slate-400 w-5 text-center">#{u.rank || idx + 1}</span>
-                              <div className={cn("w-7 h-7 rounded-full bg-gradient-to-tr flex items-center justify-center text-white font-bold text-[10px]", getAvatarGradient(u.username))}>
-                                {u.username?.slice(0, 2).toUpperCase()}
+                  {(() => {
+                    const currentMetricObj = leaderboardData?.[activeMetric] || { list: [], user_rank: -1, user_value: 0 }
+                    const currentList: any[] = currentMetricObj.list || []
+
+                    if (isLeaderboardLoading) {
+                      return (
+                        <div className="py-12 flex flex-col items-center justify-center gap-2">
+                          <div className="w-7 h-7 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+                          <span className="text-[9.5px] font-black text-slate-400 uppercase">Loading leaderboard...</span>
+                        </div>
+                      )
+                    }
+
+                    if (currentList.length === 0) {
+                      return <p className="text-[10px] text-slate-400 text-center py-8">No leaderboard data yet.</p>
+                    }
+
+                    return (
+                      <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1 pt-2">
+                        {currentList.map((u: any, idx: number) => {
+                          const isCurrentUser = (u.user_id && user?.id && u.user_id === user.id) || u.rank === currentMetricObj.user_rank;
+                          return (
+                            <div
+                              key={u.user_id || idx}
+                              className={cn(
+                                "flex items-center justify-between p-2.5 rounded-2xl border transition-all text-xs",
+                                isCurrentUser
+                                  ? "bg-indigo-50/90 border-indigo-200 shadow-sm"
+                                  : "bg-slate-50/60 border-slate-150"
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="text-[10px] font-black text-slate-400 w-5 text-center">#{u.rank || idx + 1}</span>
+                                <div className={cn("w-7 h-7 rounded-full bg-gradient-to-tr flex items-center justify-center text-white font-bold text-[10px]", getAvatarGradient(u.username))}>
+                                  {u.username?.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className={cn("truncate font-bold", isCurrentUser ? "text-indigo-900 font-black" : "text-slate-700")}>
+                                  {u.username} {isCurrentUser && " (You)"}
+                                </span>
                               </div>
-                              <span className={cn("truncate font-bold", isCurrentUser ? "text-indigo-900 font-black" : "text-slate-700")}>
-                                {u.username} {isCurrentUser && " (You)"}
+                              <span className={cn("font-black shrink-0", isCurrentUser ? "text-indigo-600" : "text-slate-600")}>
+                                {formatValue(u.value)}
                               </span>
                             </div>
-                            <span className={cn("font-black shrink-0", isCurrentUser ? "text-indigo-600" : "text-slate-600")}>
-                              {formatValue(u)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-slate-400 text-center py-8">No leaderboard data yet.</p>
-                  )}
+                          );
+                        })}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             )}

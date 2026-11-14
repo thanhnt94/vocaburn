@@ -4241,7 +4241,7 @@ export default function PracticePlay() {
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-slate-700">
-                        Leaderboard ({leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'Questions' : 'Time'})
+                        Leaderboard ({leaderboardType === 'xp' ? 'XP' : leaderboardType === 'streak' ? 'Streak' : leaderboardType === 'questions' ? 'Questions' : 'Accuracy'})
                       </h4>
                       <p className="text-[10px] text-slate-400 font-medium">
                         Top ranking ({leaderboardTimeFilter === 'today' ? 'today' : leaderboardTimeFilter === 'week' ? 'this week' : leaderboardTimeFilter === 'month' ? 'this month' : 'all time'})
@@ -4251,7 +4251,7 @@ export default function PracticePlay() {
 
                   {/* Metric Switcher */}
                   <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-100 overflow-x-auto no-scrollbar gap-0.5">
-                    {(['xp', 'streak', 'questions', 'time'] as const).map((type) => (
+                    {(['xp', 'streak', 'questions', 'accuracy'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => setLeaderboardType(type)}
@@ -4262,7 +4262,7 @@ export default function PracticePlay() {
                             : "text-slate-400 hover:text-indigo-650"
                         )}
                       >
-                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Questions' : 'Time'}
+                        {type === 'xp' ? 'XP' : type === 'streak' ? 'Streak' : type === 'questions' ? 'Questions' : 'Accuracy'}
                       </button>
                     ))}
                   </div>

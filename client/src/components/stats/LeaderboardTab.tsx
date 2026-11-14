@@ -13,7 +13,7 @@ import {
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-export type LeaderboardCategory = 'xp' | 'streak' | 'questions' | 'time'
+export type LeaderboardCategory = 'xp' | 'streak' | 'questions' | 'time' | 'accuracy'
 export type LeaderboardTimeFilter = 'today' | 'week' | 'month' | 'all_time'
 
 export interface LeaderboardUser {
@@ -117,6 +117,14 @@ export default function LeaderboardTab({
       color: 'text-emerald-600',
       activeBar: 'bg-emerald-500'
     },
+    accuracy: {
+      label: 'Accuracy',
+      icon: Award,
+      unit: '%',
+      sub: 'Accuracy Rate',
+      color: 'text-purple-600',
+      activeBar: 'bg-purple-500'
+    },
   }
 
   const activeCat = categoryConfig[activeCategory]
@@ -198,8 +206,8 @@ export default function LeaderboardTab({
         {/* ── FILTER CONTROLS (LINEAR STYLE) ── */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pb-3 border-b border-slate-100 shrink-0">
           {/* Category Tabs */}
-          <div className="flex items-center w-full sm:w-auto p-1 rounded-xl bg-slate-100 border border-slate-200/70 gap-1">
-            {(['xp', 'streak', 'questions', 'time'] as const).map((cat) => {
+          <div className="flex items-center w-full sm:w-auto p-1 rounded-xl bg-slate-100 border border-slate-200/70 gap-1 overflow-x-auto no-scrollbar">
+            {(['xp', 'streak', 'questions', 'time', 'accuracy'] as const).map((cat) => {
               const isActive = activeCategory === cat
               const cfg = categoryConfig[cat]
               const Icon = cfg.icon

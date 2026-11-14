@@ -43,7 +43,7 @@ export interface FlashcardDesktopSidebarsProps {
   mainTab: string
   activeGoal: any
   activeMode: string
-  leaderboardType: 'xp' | 'streak' | 'questions' | 'time'
+  leaderboardType: 'xp' | 'streak' | 'questions' | 'time' | 'accuracy'
   setLeaderboardType: (val: any) => void
   leaderboardTimeFilter: 'today' | 'week' | 'month' | 'all_time'
   setLeaderboardTimeFilter: (val: any) => void

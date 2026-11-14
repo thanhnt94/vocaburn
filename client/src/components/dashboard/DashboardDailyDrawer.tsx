@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
+import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
 
 interface DashboardDailyDrawerProps {
   isOpen: boolean
@@ -49,6 +50,16 @@ export function DashboardDailyDrawer({
 }: DashboardDailyDrawerProps) {
   const tzOffset = new Date().getTimezoneOffset()
   const touchStartY = useRef<number | null>(null)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
+
+  // Prevent mobile browser pull-to-refresh while drawer is open (Rule 13)
+  usePreventPullToRefresh({
+    isOpen,
+    drawerRef,
+    backdropRef,
+    onClose
+  })
 
   // Close on ESC key
   useEffect(() => {
@@ -105,6 +116,7 @@ export function DashboardDailyDrawer({
         <div className="fixed inset-0 z-[280] select-none font-sans">
           {/* Backdrop */}
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -113,17 +125,18 @@ export function DashboardDailyDrawer({
               if (navigator.vibrate) navigator.vibrate(6)
               onClose()
             }}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer touch-none overscroll-none"
           />
 
           {/* Drawer Sheet Container */}
           <motion.div
+            ref={drawerRef}
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
             className={cn(
-              "fixed z-[290] bg-[#f8fafc] flex flex-col overflow-hidden text-left shadow-2xl",
+              "fixed z-[290] bg-[#f8fafc] flex flex-col overflow-hidden text-left shadow-2xl overscroll-none touch-pan-y",
               // Mobile styles: bottom sheet
               "inset-x-0 bottom-0 h-[88vh] max-h-[88vh] rounded-t-[2.5rem] border-t border-slate-200/90",
               // Desktop styles: centered modal

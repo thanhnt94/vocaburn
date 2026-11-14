@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 
 export type LeaderboardTimeFilter = 'today' | 'week' | 'month' | 'all_time'
-export type LeaderboardType = 'xp' | 'streak' | 'questions' | 'time'
+export type LeaderboardType = 'xp' | 'streak' | 'questions' | 'time' | 'accuracy'
 
 export function useLeaderboard() {
   const [leaderboardTimeFilter, setLeaderboardTimeFilter] = useState<LeaderboardTimeFilter>('week')
@@ -18,7 +18,9 @@ export function useLeaderboard() {
     if (type === 'xp') return 'XP'
     if (type === 'streak') return 'days'
     if (type === 'questions') return 'cards'
-    return 'mins'
+    if (type === 'time') return 'mins'
+    if (type === 'accuracy') return '%'
+    return 'pts'
   }
 
   let leaderboardMsg = ""
