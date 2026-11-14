@@ -1,7 +1,7 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { Clock, Zap, ChevronRight, Sparkles } from 'lucide-react'
+import { Clock, Zap, ChevronRight, Sparkles, Layers, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DashboardDailyActivityHUDProps {
@@ -167,10 +167,10 @@ export function DashboardDailyActivityHUD({
         onOpenDrawer()
       }}
       className={cn(
-        "group w-full rounded-2xl cursor-pointer select-none transition-all duration-200 active:scale-[0.99]",
-        "bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-white dark:from-slate-900 dark:via-slate-800/80 dark:to-slate-900",
-        "border border-amber-200/90 dark:border-amber-900/40 shadow-2xs hover:shadow-xs",
-        "p-2.5 sm:p-3 flex flex-col gap-2",
+        "group w-full rounded-3xl cursor-pointer select-none transition-all duration-200 active:scale-[0.99]",
+        "bg-white/95 dark:bg-slate-900/90 hover:bg-slate-50/80 dark:hover:bg-slate-850",
+        "border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-xs",
+        "p-3 sm:p-3.5 flex flex-col gap-2.5",
         className
       )}
       title="Click to view detailed daily learning summary"
@@ -178,14 +178,14 @@ export function DashboardDailyActivityHUD({
       {/* ROW 1: Header + Active Time + Quick Action Button */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
             ⚡
           </div>
           <div className="flex items-center gap-1.5 truncate">
-            <span className="text-xs font-black tracking-tight text-amber-950 dark:text-amber-100">
+            <span className="text-xs sm:text-sm font-black tracking-tight text-slate-900 dark:text-slate-100">
               Today's Activity
             </span>
-            <span className="text-[10.5px] font-extrabold text-orange-700 dark:text-orange-300 bg-orange-100/90 dark:bg-orange-950/70 px-1.5 py-0.5 rounded-md flex items-center gap-1 tabular-nums">
+            <span className="text-[10px] font-black text-orange-700 dark:text-orange-300 bg-orange-100/90 dark:bg-orange-950/70 px-1.5 py-0.5 rounded-md flex items-center gap-1 tabular-nums">
               <Clock className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400 shrink-0" />
               <span>{timeLabel}</span>
             </span>
@@ -216,58 +216,130 @@ export function DashboardDailyActivityHUD({
         </div>
       </div>
 
-      {/* ROW 2: Dynamic Achievements Chips (Only renders active accomplishments) */}
-      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-        {hasAnyActivity ? (
-          <>
-            {/* MCQ Chip */}
-            {mcqCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-black text-[11px] shadow-2xs">
-                <span>🎯</span>
-                <span className="tabular-nums">{mcqCount}</span>
-                <span className="font-bold text-[10px] opacity-80">MCQ</span>
-              </span>
-            )}
-
-            {/* Typing Chip */}
-            {typingCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-100/90 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 font-black text-[11px] shadow-2xs">
-                <span>⌨️</span>
-                <span className="tabular-nums">{typingCount}</span>
-                <span className="font-bold text-[10px] opacity-80">Typing</span>
-              </span>
-            )}
-
-            {/* Flashcard Chip */}
-            {flashcardCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-100/90 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 font-black text-[11px] shadow-2xs">
-                <span>🗂️</span>
-                <span className="tabular-nums">{flashcardCount}</span>
-                <span className="font-bold text-[10px] opacity-80">Cards</span>
-              </span>
-            )}
-
-            {/* Listening Chip */}
-            {listenCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-100/90 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 font-black text-[11px] shadow-2xs">
-                <span>🎧</span>
-                <span className="tabular-nums">{listenCount}</span>
-                <span className="font-bold text-[10px] opacity-80">Listening</span>
-              </span>
-            )}
-
-            {/* Encouragement note if only 1 mode done */}
-            <span className="text-[10px] font-bold text-amber-800/60 dark:text-amber-400/50 hidden sm:inline ml-1">
-              • Keep up the momentum!
-            </span>
-          </>
-        ) : (
-          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-800/70 dark:text-amber-300/70 py-0.5">
-            <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
-            <span>Ready for your daily learning? Tap to pick an exercise!</span>
+      {/* ROW 2: Structured 4-Box Metric Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Box 1: Study Time */}
+        <div className="bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-50/90 dark:hover:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-wider text-amber-800/70 dark:text-amber-400/70">Time</span>
+            <div className="w-5 h-5 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <Clock className="w-3 h-3" />
+            </div>
           </div>
-        )}
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                {timeLabel}
+              </span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              {summary.first_session_time 
+                ? `${summary.first_session_time} → ${summary.last_session_time || summary.first_session_time}`
+                : 'active study'}
+            </p>
+          </div>
+        </div>
+
+        {/* Box 2: Cards Studied */}
+        <div className="bg-indigo-50/60 dark:bg-indigo-950/20 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-800/70 dark:text-indigo-400/70">Studied</span>
+            <div className="w-5 h-5 rounded-lg bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0">
+              <Layers className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                {summary.total_cards}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">cards</span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              +{summary.new_cards} new • {summary.reviewed_cards} rev
+            </p>
+          </div>
+        </div>
+
+        {/* Box 3: Practice & Accuracy */}
+        <div className="bg-emerald-50/60 dark:bg-emerald-950/20 hover:bg-emerald-50/90 dark:hover:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800/70 dark:text-emerald-400/70">Accuracy</span>
+            <div className="w-5 h-5 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+              <Target className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                {summary.total_cards > 0 ? `${summary.accuracy}%` : `${mcqCount + typingCount}`}
+              </span>
+              {summary.total_cards === 0 && <span className="text-[10px] font-bold text-slate-400">done</span>}
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              {summary.correct_count} ok • {summary.wrong_count} err
+            </p>
+          </div>
+        </div>
+
+        {/* Box 4: XP Earned & Streak */}
+        <div className="bg-purple-50/60 dark:bg-purple-950/20 hover:bg-purple-50/90 dark:hover:bg-purple-950/30 border border-purple-200/70 dark:border-purple-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-wider text-purple-800/70 dark:text-purple-400/70">Gain</span>
+            <div className="w-5 h-5 rounded-lg bg-purple-100/80 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0">
+              <Zap className="w-3 h-3 fill-current" />
+            </div>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-purple-700 dark:text-purple-300 tabular-nums tracking-tight">
+                +{summary.xp_earned}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">XP</span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              Streak: {summary.streak_count}d 🔥
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* ROW 3: Sub-breakdown chips if any activity exists */}
+      {hasAnyActivity && (
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5 border-t border-slate-100/80 dark:border-slate-800/80">
+          {mcqCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 font-bold text-[10.5px]">
+              <span>🎯</span>
+              <span className="tabular-nums font-black">{mcqCount}</span>
+              <span className="opacity-70 text-[9.5px]">MCQ</span>
+            </span>
+          )}
+          {typingCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950/60 border border-violet-200/60 dark:border-violet-800/60 text-violet-800 dark:text-violet-300 font-bold text-[10.5px]">
+              <span>⌨️</span>
+              <span className="tabular-nums font-black">{typingCount}</span>
+              <span className="opacity-70 text-[9.5px]">Typing</span>
+            </span>
+          )}
+          {flashcardCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 font-bold text-[10.5px]">
+              <span>🗂️</span>
+              <span className="tabular-nums font-black">{flashcardCount}</span>
+              <span className="opacity-70 text-[9.5px]">Cards</span>
+            </span>
+          )}
+          {listenCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200/60 dark:border-sky-800/60 text-sky-800 dark:text-sky-300 font-bold text-[10.5px]">
+              <span>🎧</span>
+              <span className="tabular-nums font-black">{listenCount}</span>
+              <span className="opacity-70 text-[9.5px]">Listening</span>
+            </span>
+          )}
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 ml-auto hidden sm:inline">
+            Tap for full session logs & charts →
+          </span>
+        </div>
+      )}
     </div>
   )
 }
