@@ -193,17 +193,19 @@ export function getCardFieldValue(card: any, colKey: string): string {
 }
 
 export interface UsePracticeAudioProps {
-  currentQuestion: Question | null
+  currentQuestion: Question | any | null
   session?: any
   currentPracticeData?: PracticeQuestionData | null
   practiceSettings?: any
+  audioSpeed?: number
 }
 
 export function usePracticeAudio({
   currentQuestion,
   session,
   currentPracticeData,
-  practiceSettings
+  practiceSettings,
+  audioSpeed = 1.0
 }: UsePracticeAudioProps) {
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   const currentQuestionIdRef = useRef<number | null>(null)
@@ -241,8 +243,9 @@ export function usePracticeAudio({
     }
   }, [])
 
-  const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
+  const playCardAudio = async (face: string = 'front', rate?: number) => {
     if (!currentQuestion) return
+    const effectiveRate = typeof rate === 'number' ? rate : (audioSpeed || 1.0)
     const targetQuestionId = currentQuestion.id
     currentQuestionIdRef.current = targetQuestionId
 
@@ -358,7 +361,7 @@ export function usePracticeAudio({
       const resolvedUrl = resolveMediaUrl(audioUrl) || audioUrl
       console.log(`[AUDIO PLAYBACK] Playing audio (column: ${face}, urlCol: ${cfg.urlCol}): ${resolvedUrl}`)
       const audio = new Audio(resolvedUrl)
-      audio.playbackRate = rate
+      audio.playbackRate = effectiveRate
       registerAudioElement(audio)
       activeAudioRef.current = audio
 
@@ -381,13 +384,13 @@ export function usePracticeAudio({
         console.warn(`[TTS FALLBACK] File playback failed: ${resolvedUrl}`, err?.message)
         if (err?.name !== 'NotAllowedError' && script && script.trim()) {
           if (playSeqRef.current === currentSeq) {
-            speakWithEdgeTTS(script, cfg.lang)
+            speakWithEdgeTTS(script, cfg.lang, effectiveRate)
           }
         }
       })
     } else if (script && script.trim()) {
       console.log(`[TTS EDGE STREAM] Direct TTS stream for '${face}': "${script.substring(0, 30)}..."`)
-      speakWithEdgeTTS(script, cfg.lang)
+      speakWithEdgeTTS(script, cfg.lang, effectiveRate)
     }
   }
 
@@ -408,8 +411,10 @@ export function usePracticeAudio({
   return {
     activeAudioRef,
     playCardAudio,
+    playColumnAudio: playCardAudio,
     speakPracticeQuestionAndAnswer,
     stopAllAudio,
+    stopAudio: stopAllAudio,
     isLoadingAudio,
     isPlayingAudio
   }

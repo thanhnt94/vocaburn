@@ -1,9 +1,9 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
-import { QuestionMapGrid } from '@/components/QuestionMapGrid'
+import { ChevronDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { QuestionMapModal } from '@/components/QuestionMapModal'
+import { OverdriveStrikeOverlay } from '@/components/OverdriveStrikeOverlay'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
-import { PlaySettingsModal } from '@/components/PlaySettingsModal'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import {
   ImageZoomOverlay,
@@ -11,7 +11,6 @@ import {
   QuitSessionModal,
   StudyConsoleModal
 } from '@/components/flashcard'
-import { getMapTitleInfo } from '@/lib/flashcard-utils'
 
 export interface FlashcardModalsContainerProps {
   id: string
@@ -60,53 +59,13 @@ export interface FlashcardModalsContainerProps {
   setShowGoalCelebration: (val: boolean) => void
   goalToast: any
 
-  // Settings Modal
-  isSettingsModalOpen: boolean
-  setIsSettingsModalOpen: (val: boolean) => void
+  // Study Console & Navigation
   applyLearningMode: (mode: any, order?: any) => void
-  autoPlayAudio: string
-  setAutoPlayAudio: (val: any) => void
-  sfxEnabled: boolean
-  setSfxEnabled: (val: boolean) => void
-  hapticEnabled: boolean
-  setHapticEnabled: (val: boolean) => void
-  copyQuestionToClipboard: () => void
-  handleIgnoreQuestion: () => void
-  handleStarQuestion: () => void
-  openEditModal: () => void
-  setIsQuitModalOpen: (val: boolean) => void
-  quickLearnEnabled: boolean
-  setQuickLearnEnabled: (val: boolean) => void
-  showImages: any
-  setShowImages: (val: any) => void
-  effectiveShowFsrs: boolean
-  setShowFsrs: (val: boolean) => void
   randomEnabled: boolean
-  setRandomEnabled: (val: boolean) => void
-  isCustomized: boolean
-  settingOrigin: any
-  resetToCreatorDefaults: () => void
-  frontHalign: 'left' | 'center'
-  setFrontHalign: (val: 'left' | 'center') => void
-  frontFontSize?: string
-  setFrontFontSize: (val: string) => void
-  backHalign: 'left' | 'center'
-  setBackHalign: (val: 'left' | 'center') => void
-  backFontSize?: string
-  setBackFontSize: (val: string) => void
-  frontValign: 'center' | 'top'
-  setFrontValign: (val: 'center' | 'top') => void
-  backValign: 'center' | 'top'
-  setBackValign: (val: 'center' | 'top') => void
-  deckCardFlipTrigger?: string
-  setCardFlipTrigger: (val: any) => void
-  saveGeneralSettings: (settings: any) => void
-  deckCardRatingMode?: string
-  setCardRatingMode: (val: any) => void
-  saveAsCreatorDefaults: () => void
 
   // Quit Modal
   isQuitModalOpen: boolean
+  setIsQuitModalOpen: (val: boolean) => void
 
   // Edit Modal
   isEditModalOpen: boolean
@@ -165,50 +124,10 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   showGoalCelebration,
   setShowGoalCelebration,
   goalToast,
-  isSettingsModalOpen,
-  setIsSettingsModalOpen,
   applyLearningMode,
-  autoPlayAudio,
-  setAutoPlayAudio,
-  sfxEnabled,
-  setSfxEnabled,
-  hapticEnabled,
-  setHapticEnabled,
-  copyQuestionToClipboard,
-  handleIgnoreQuestion,
-  handleStarQuestion,
-  openEditModal,
-  setIsQuitModalOpen,
-  quickLearnEnabled,
-  setQuickLearnEnabled,
-  showImages,
-  setShowImages,
-  effectiveShowFsrs,
-  setShowFsrs,
   randomEnabled,
-  setRandomEnabled,
-  isCustomized,
-  settingOrigin,
-  resetToCreatorDefaults,
-  frontHalign,
-  setFrontHalign,
-  frontFontSize,
-  setFrontFontSize,
-  backHalign,
-  setBackHalign,
-  backFontSize,
-  setBackFontSize,
-  frontValign,
-  setFrontValign,
-  backValign,
-  setBackValign,
-  deckCardFlipTrigger,
-  setCardFlipTrigger,
-  saveGeneralSettings,
-  deckCardRatingMode,
-  setCardRatingMode,
-  saveAsCreatorDefaults,
   isQuitModalOpen,
+  setIsQuitModalOpen,
   isEditModalOpen,
   setIsEditModalOpen,
   editFormData,
@@ -223,67 +142,20 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   return (
     <>
       {/* 1. Mobile Question Map Modal */}
-      <AnimatePresence>
-        {isMapOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 30 }} 
-            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
-          >
-            {/* Header */}
-            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-2 flex items-center justify-between shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setIsMapOpen(false)} 
-                  className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0 cursor-pointer"
-                  title="Back to Study"
-                >
-                  <ChevronLeft className="w-4.5 h-4.5" />
-                </button>
-                {(() => {
-                  const info = getMapTitleInfo(mobileMapFilterMode);
-                  const count = getFilteredCount(mobileMapFilterMode);
-                  return (
-                    <div className="flex flex-col min-w-0">
-                      <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
-                        {info.title} ({count})
-                      </h2>
-                      <p className="text-[9px] text-slate-400 font-bold">
-                        {info.subtitle}
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
-              <button
-                onClick={() => setIsMapOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer text-xs font-bold"
-                title="Close"
-              >
-                ✕
-              </button>
-            </header>
-
-            {/* Grid Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar">
-              <QuestionMapGrid
-                questions={session.questions}
-                mainTab={mainTab as 'fsrs' | 'practice'}
-                practiceAnswers={practiceAnswers}
-                sessionAnswers={sessionAnswers}
-                currentIndex={currentIndex}
-                navigateToQuestion={navigateToQuestion}
-                setIsMapOpen={setIsMapOpen}
-                filterMode={mobileMapFilterMode}
-                setFilterMode={setMobileMapFilterMode}
-                showFiltersInline={true}
-                subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <QuestionMapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        questions={session?.questions || []}
+        mainTab={mainTab}
+        practiceAnswers={practiceAnswers}
+        sessionAnswers={sessionAnswers}
+        currentIndex={currentIndex}
+        navigateToQuestion={navigateToQuestion}
+        filterMode={mobileMapFilterMode}
+        setFilterMode={setMobileMapFilterMode}
+        getFilteredCount={getFilteredCount}
+        subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
+      />
 
       {/* 2. Mobile Stats Drawer & Card Hub */}
       <PlayStatsDrawer
@@ -309,21 +181,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
       />
 
       {/* 4. Limitless Strike Screen Flash */}
-      <AnimatePresence>
-        {isLimitlessStrike && (
-          <div className="pointer-events-none fixed inset-0 z-[1999] border-[8px] border-amber-400/50 shadow-[inset_0_0_100px_rgba(245,158,11,0.4)] animate-pulse flex items-center justify-center">
-            <motion.div 
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: [1, 1.15, 1], opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 tracking-widest drop-shadow-[0_0_15px_rgba(245,158,11,0.7)] uppercase text-center"
-            >
-              ⚡ OVERDRIVE STRIKE! ⚡
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <OverdriveStrikeOverlay isVisible={isLimitlessStrike} />
 
       {/* 5. Daily Goal Celebration Modal */}
       <GoalCelebrationModal
@@ -332,63 +190,7 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
         goalToast={goalToast}
       />
 
-      {/* 6. Smart Settings Modal */}
-      <PlaySettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        activeMode={activeMode}
-        applyLearningMode={applyLearningMode}
-        autoPlayAudio={autoPlayAudio as any}
-        setAutoPlayAudio={setAutoPlayAudio}
-        sfxEnabled={sfxEnabled}
-        setSfxEnabled={setSfxEnabled}
-        hapticEnabled={hapticEnabled}
-        setHapticEnabled={setHapticEnabled}
-        copyQuestionToClipboard={copyQuestionToClipboard}
-        currentQuestion={currentQuestion}
-        handleIgnoreQuestion={handleIgnoreQuestion}
-        handleStarQuestion={handleStarQuestion}
-        isStarred={Boolean(currentQuestion?.is_starred)}
-        openEditModal={openEditModal}
-        setIsQuitModalOpen={setIsQuitModalOpen}
-        quickLearnEnabled={quickLearnEnabled}
-        setQuickLearnEnabled={setQuickLearnEnabled}
-        showImages={showImages}
-        setShowImages={setShowImages}
-        showFsrs={effectiveShowFsrs}
-        setShowFsrs={setShowFsrs}
-        randomEnabled={randomEnabled}
-        setRandomEnabled={setRandomEnabled}
-        isCustomized={isCustomized}
-        settingOrigin={settingOrigin}
-        onResetToCreatorDefaults={resetToCreatorDefaults}
-        frontHalign={frontHalign}
-        setFrontHalign={setFrontHalign}
-        frontFontSize={frontFontSize}
-        setFrontFontSize={setFrontFontSize}
-        backHalign={backHalign}
-        setBackHalign={setBackHalign}
-        backFontSize={backFontSize}
-        setBackFontSize={setBackFontSize}
-        frontValign={frontValign}
-        setFrontValign={setFrontValign}
-        backValign={backValign}
-        setBackValign={setBackValign}
-        cardFlipTrigger={deckCardFlipTrigger || userSettings.card_flip_trigger || 'both'}
-        setCardFlipTrigger={(val) => {
-          setCardFlipTrigger(val);
-          saveGeneralSettings({ card_flip_trigger: val });
-        }}
-        cardRatingMode={deckCardRatingMode || userSettings.card_rating_mode || 'both'}
-        setCardRatingMode={(val) => {
-          setCardRatingMode(val);
-          saveGeneralSettings({ card_rating_mode: val });
-        }}
-        isCreator={Boolean(session?.is_creator || session?.creator_id === user?.id || user?.role === 'admin')}
-        onSaveAsCreatorDefaults={saveAsCreatorDefaults}
-      />
-
-      {/* 7. Exit Confirmation Modal */}
+      {/* 6. Exit Confirmation Modal */}
       <QuitSessionModal
         isOpen={isQuitModalOpen}
         onClose={() => setIsQuitModalOpen(false)}

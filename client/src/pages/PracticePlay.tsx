@@ -38,6 +38,8 @@ import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
 import { GoalCelebrationModal } from '@/components/flashcard/GoalCelebrationModal'
+import { QuestionMapModal } from '@/components/QuestionMapModal'
+import { OverdriveStrikeOverlay } from '@/components/OverdriveStrikeOverlay'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 import { FlashcardHeader } from '@/components/flashcard/FlashcardHeader'
@@ -431,8 +433,6 @@ export default function PracticePlay() {
   } | null>(null)
   const [justAnswered, setJustAnswered] = useState(false)
   const [isQuickControlsOpen, setIsQuickControlsOpen] = useState(false)
-  const isSettingsModalOpen = isQuickControlsOpen
-  const setIsSettingsModalOpen = setIsQuickControlsOpen
 
   // Toast notification helper
   const showLocalToast = useCallback((message: string, type: 'info' | 'warning' | 'success' | 'error' = 'info') => {
@@ -5062,7 +5062,7 @@ export default function PracticePlay() {
           hasRated={hasRated}
           justAnswered={justAnswered}
           showFeedback={showFeedback}
-          onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onOpenSettings={() => setIsQuickControlsOpen(true)}
           onPlayAudio={async () => {
             if (mainTab === 'practice') {
               if (showFeedback) {
@@ -5120,65 +5120,20 @@ export default function PracticePlay() {
       />
 
       {/* Mobile Question Map Modal */}
-      <AnimatePresence>
-        {isMapOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            className="fixed inset-x-0 top-0 bottom-12 z-[200] bg-[#F8FAFC] lg:hidden flex flex-col"
-          >
-            {/* Header */}
-            <header className="flex-shrink-0 z-[120] bg-white/95 backdrop-blur-2xl border-b border-slate-100/80 px-4 py-1.5 flex items-center gap-3 shadow-[0_1px_20px_rgba(99,102,241,0.04)]">
-              <button 
-                onClick={() => setIsMapOpen(false)} 
-                className="w-8.5 h-8.5 flex items-center justify-center bg-slate-50 border border-slate-200/60 rounded-xl text-slate-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-90 transition-all flex-shrink-0"
-                title="Return to flashcards"
-              >
-                <ChevronLeft className="w-4.5 h-4.5" />
-              </button>
-              {(() => {
-                const info = getMapTitleInfo(mobileMapFilterMode);
-                const count = getFilteredCount(mobileMapFilterMode);
-                return (
-                  <div className="flex flex-col min-w-0">
-                    <h2 className="text-xs md:text-sm font-extrabold text-slate-800 tracking-tight leading-snug">
-                      {info.title} ({count})
-                    </h2>
-                    <p className="text-[9px] text-slate-400 font-bold">
-                      {info.subtitle}
-                    </p>
-                  </div>
-                );
-              })()}
-              <button
-                onClick={() => setIsMapOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer text-xs font-bold"
-                title="Close"
-              >
-                ✕
-              </button>
-            </header>
-
-            {/* Grid Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar">
-              <QuestionMapGrid
-                questions={session.questions}
-                mainTab={mainTab}
-                practiceAnswers={practiceAnswers}
-                sessionAnswers={sessionAnswers}
-                currentIndex={currentIndex}
-                navigateToQuestion={navigateToQuestion}
-                setIsMapOpen={setIsMapOpen}
-                filterMode={mobileMapFilterMode}
-                setFilterMode={setMobileMapFilterMode}
-                showFiltersInline={true}
-                subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <QuestionMapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        questions={session?.questions || []}
+        mainTab={mainTab}
+        practiceAnswers={practiceAnswers}
+        sessionAnswers={sessionAnswers}
+        currentIndex={currentIndex}
+        navigateToQuestion={navigateToQuestion}
+        filterMode={mobileMapFilterMode}
+        setFilterMode={setMobileMapFilterMode}
+        getFilteredCount={getFilteredCount}
+        subLessonGrouping={session?.practice_settings?.sub_lesson_grouping}
+      />
 
       {/* Mobile Stats Drawer */}
       <PlayStatsDrawer
@@ -5229,21 +5184,7 @@ export default function PracticePlay() {
       />
 
       {/* ⚡ LIMITLESS MODE SCREEN FLASH OVERLAY */}
-      <AnimatePresence>
-        {isLimitlessStrike && (
-          <div className="pointer-events-none fixed inset-0 z-[1999] border-[8px] border-amber-400/50 shadow-[inset_0_0_100px_rgba(245,158,11,0.4)] animate-pulse flex items-center justify-center">
-            <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: [1, 1.15, 1], opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 tracking-widest drop-shadow-[0_0_15px_rgba(245,158,11,0.7)] uppercase text-center"
-            >
-              ⚡ OVERDRIVE STRIKE! ⚡
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <OverdriveStrikeOverlay isVisible={isLimitlessStrike} />
 
       {/* 🏆 DAILY GOAL CELEBRATION MODAL */}
       <GoalCelebrationModal

@@ -1,4 +1,3 @@
-export * from './DeckStudyModal'
 export * from './FlashcardModeModal'
 export * from './PracticeModeModal'
 export * from './DeckCreateModal'

@@ -7,7 +7,7 @@ import { DeckCardItem, type CardData } from '../cards/DeckCardItem'
 import { DeckCardQuickAdd, type QuickAddCardPayload } from '../cards/DeckCardQuickAdd'
 import { DeckCardFilterBar, type CardFilterStatus } from '../cards/DeckCardFilterBar'
 import { DeckCardBatchPasteModal } from '../cards/DeckCardBatchPasteModal'
-import { DeckCardEditModal } from '../cards/DeckCardEditModal'
+import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import { DeckPagination } from '../DeckPagination'
 import { Trash2, Star, EyeOff, X } from 'lucide-react'
 
@@ -508,7 +508,7 @@ export function DeckCardsTab({
         deckId={id!}
       />
 
-      <DeckCardEditModal
+      <FlashcardEditModal
         isOpen={isEditModalOpen || (editingCard !== null)}
         onClose={handleCloseEditModal}
         flashcard={editingCard}

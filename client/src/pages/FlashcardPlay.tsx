@@ -28,7 +28,7 @@ import type { Option, Question } from '@/types/flashcard'
 import { TypewriterText } from '@/components/TypewriterText'
 import { PracticeSetupScreen } from '@/components/PracticeSetupScreen'
 import { QuestionMapGrid } from '@/components/QuestionMapGrid'
-import { useFlashcardAudio } from '@/hooks/useFlashcardAudio'
+import { usePracticeAudio } from '@/hooks/usePracticeAudio'
 import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
@@ -363,10 +363,14 @@ export default function FlashcardPlay() {
     playCardAudio,
     stopAudio,
     activeAudioRef,
-    isAudioEnabled,
     isLoadingAudio,
     isPlayingAudio
-  } = useFlashcardAudio(currentQuestion, modeSettings, autoPlayAudio, setAutoPlayAudio, audioSpeed)
+  } = usePracticeAudio({
+    currentQuestion,
+    session,
+    practiceSettings: modeSettings,
+    audioSpeed
+  })
 
   const [initialTotalXP, setInitialTotalXP] = useState(0)
   const [comboStreak, setComboStreak] = useState(0)
@@ -552,7 +556,6 @@ export default function FlashcardPlay() {
     }
   };
 
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [showRoadmapCompleteModal, setShowRoadmapCompleteModal] = useState<boolean>(false);
   const [headerViewMode, setHeaderViewMode] = useState<0 | 1>(0);
 
@@ -2573,7 +2576,7 @@ export default function FlashcardPlay() {
 
   // Auto-advance timer in Skim Mode (when card is flipped to back face)
   useEffect(() => {
-    if (!isSpeedSkimMode || effectiveAutoNextSec <= 0 || !isFlipped || hasRated || isFlyToolbarOpen || isSettingsModalOpen || isQuitModalOpen) {
+    if (!isSpeedSkimMode || effectiveAutoNextSec <= 0 || !isFlipped || hasRated || isFlyToolbarOpen || isQuitModalOpen) {
       return;
     }
 
@@ -2599,7 +2602,6 @@ export default function FlashcardPlay() {
     isPlayingAudio,
     isLoadingAudio,
     isFlyToolbarOpen,
-    isSettingsModalOpen,
     isQuitModalOpen,
     currentIndex
   ]);
@@ -2611,7 +2613,6 @@ export default function FlashcardPlay() {
     }
     if (
       isFlyToolbarOpen ||
-      isSettingsModalOpen ||
       isQuitModalOpen ||
       isMapOpen ||
       isStatsOpen ||
@@ -2651,7 +2652,6 @@ export default function FlashcardPlay() {
     autoFrontDelay,
     autoBackDelay,
     isFlyToolbarOpen,
-    isSettingsModalOpen,
     isQuitModalOpen,
     isMapOpen,
     isStatsOpen,
@@ -2799,8 +2799,7 @@ export default function FlashcardPlay() {
       isStatsOpen ||
       isEditModalOpen ||
       isQuitModalOpen ||
-      isSessionSummaryOpen ||
-      isSettingsModalOpen
+      isSessionSummaryOpen
     ),
     activeMode,
     isFlipped,
@@ -4216,53 +4215,13 @@ export default function FlashcardPlay() {
         setShowGoalCelebration={setShowGoalCelebration}
         goalToast={goalToast}
 
-        // Settings Modal
-        isSettingsModalOpen={isSettingsModalOpen}
-        setIsSettingsModalOpen={setIsSettingsModalOpen}
+        // Study Console & Navigation
         applyLearningMode={applyLearningMode}
-        autoPlayAudio={autoPlayAudio}
-        setAutoPlayAudio={setAutoPlayAudio}
-        sfxEnabled={sfxEnabled}
-        setSfxEnabled={setSfxEnabled}
-        hapticEnabled={hapticEnabled}
-        setHapticEnabled={setHapticEnabled}
-        copyQuestionToClipboard={copyQuestionToClipboard}
-        handleIgnoreQuestion={handleIgnoreQuestion}
-        handleStarQuestion={handleStarQuestion}
-        openEditModal={openEditModal}
-        setIsQuitModalOpen={setIsQuitModalOpen}
-        quickLearnEnabled={quickLearnEnabled}
-        setQuickLearnEnabled={setQuickLearnEnabled}
-        showImages={showImages}
-        setShowImages={setShowImages}
-        effectiveShowFsrs={effectiveShowFsrs}
-        setShowFsrs={setShowFsrs}
         randomEnabled={randomEnabled}
-        setRandomEnabled={handleToggleRandom}
-        isCustomized={isCustomized}
-        settingOrigin={settingOrigin}
-        resetToCreatorDefaults={resetToCreatorDefaults}
-        frontHalign={frontHalign}
-        setFrontHalign={setFrontHalign}
-        frontFontSize={frontFontSize}
-        setFrontFontSize={setFrontFontSize}
-        backHalign={backHalign}
-        setBackHalign={setBackHalign}
-        backFontSize={backFontSize}
-        setBackFontSize={setBackFontSize}
-        frontValign={frontValign}
-        setFrontValign={setFrontValign}
-        backValign={backValign}
-        setBackValign={setBackValign}
-        deckCardFlipTrigger={deckCardFlipTrigger}
-        setCardFlipTrigger={setCardFlipTrigger}
-        saveGeneralSettings={saveGeneralSettings}
-        deckCardRatingMode={deckCardRatingMode}
-        setCardRatingMode={setCardRatingMode}
-        saveAsCreatorDefaults={saveAsCreatorDefaults}
 
         // Quit Modal
         isQuitModalOpen={isQuitModalOpen}
+        setIsQuitModalOpen={setIsQuitModalOpen}
 
         // Edit Modal
         isEditModalOpen={isEditModalOpen}
@@ -4331,7 +4290,6 @@ export default function FlashcardPlay() {
         currentQuestion={currentQuestion}
         isFlipped={isFlipped}
         setIsFlipped={setIsFlipped}
-        setIsSettingsModalOpen={setIsSettingsModalOpen}
         activeMode={activeMode}
         onSelectMode={(targetMode) => {
           applyLearningMode(targetMode, randomEnabled ? 'random' : 'sequential')

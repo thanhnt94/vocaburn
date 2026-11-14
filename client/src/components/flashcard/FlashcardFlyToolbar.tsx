@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   Volume2,
@@ -124,7 +125,7 @@ export interface FlashcardQuickControlsSheetProps {
   currentQuestion: any
   isFlipped?: boolean
   setIsFlipped?: (val: boolean) => void
-  setIsSettingsModalOpen: (val: boolean) => void
+  setIsSettingsModalOpen?: (val: boolean) => void
   activeMode?: string
   onSelectMode?: (mode: string) => void
   ratingMode?: 'both' | 'swipe_4way' | 'buttons'
@@ -237,6 +238,7 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
   onOpenMap,
   onOpenStats,
 }) => {
+  const { id: deckId } = useParams<{ id: string }>()
   const [copiedFace, setCopiedFace] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
   const dragControls = useDragControls()
@@ -400,15 +402,19 @@ export const FlashcardQuickControlsSheet: React.FC<FlashcardQuickControlsSheetPr
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* All Deck Settings Button (Compact Header Icon) */}
+                {/* Deck Settings Button (Navigates to Deck Settings tab, matching PracticeQuickControlsSheet) */}
                 <button
                   type="button"
                   onClick={() => {
                     onClose()
-                    setIsSettingsModalOpen(true)
+                    if (deckId) {
+                      window.location.href = `/decks/${deckId}?tab=settings`
+                    } else if (setIsSettingsModalOpen) {
+                      setIsSettingsModalOpen(true)
+                    }
                   }}
                   className="w-7 h-7 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition-all active:scale-90 cursor-pointer border border-slate-200/60 shadow-2xs group"
-                  title="All Deck Settings"
+                  title="Deck Settings"
                 >
                   <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
                 </button>
