@@ -236,8 +236,6 @@ export default function PracticePlay() {
     }
     return list
   }, [session?.questions, session?.distractor_pool])
-  const [editingFlashcard, setEditingFlashcard] = useState<any>(null)
-  const [isSaving, setIsSaving] = useState(false)
   const [isHeaderSurging, setIsHeaderSurging] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [showAbsoluteFirst, setShowAbsoluteFirst] = useState(false)
@@ -1810,124 +1808,6 @@ export default function PracticePlay() {
         return;
       }
       navigate('/')
-    }
-  }
-
-
-  const handleCreateNewCard = () => {
-    const initialOthers: Record<string, any> = {
-      back_img: '',
-      back_audio_url: '',
-      front_audio_content: '',
-      back_audio_content: '',
-    }
-    availableColumns.forEach(c => {
-      if (c !== 'front' && c !== 'back') {
-        initialOthers[c] = ''
-      }
-    })
-    setEditingFlashcard({
-      id: undefined,
-      deck_id: Number(id),
-      content: '',
-      explanation: '',
-      ai_explanation: '',
-      image: null,
-      audio: null,
-      others: initialOthers,
-      options: []
-    })
-  }
-
-  const handleUpdateQuickAdd = async (updatedData: any, addAnother = false) => {
-    if (!updatedData) return null
-    setIsSaving(true)
-    try {
-      const updatedOptions = (updatedData.options || []).map((opt: any) => {
-        if (opt.is_correct && updatedData.explanation) {
-          return { ...opt, content: updatedData.explanation }
-        }
-        return opt
-      })
-      const finalOthers = { ...updatedData.others }
-      const systemFields = ['front_img', 'back_img', 'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content']
-      systemFields.forEach(f => delete finalOthers[f])
-      
-      let savedCard: any = null
-
-      if (updatedData.id) {
-        await axios.patch(`/api/v1/deck/flashcard/${updatedData.id}`, {
-          content: updatedData.content,
-          explanation: updatedData.explanation,
-          ai_explanation: updatedData.ai_explanation,
-          image: updatedData.image || null,
-          audio: updatedData.audio || null,
-          front_img: updatedData.front_img || '',
-          back_img: updatedData.back_img || '',
-          front_audio_url: updatedData.front_audio_url || '',
-          back_audio_url: updatedData.back_audio_url || '',
-          front_audio_content: updatedData.front_audio_content || '',
-          back_audio_content: updatedData.back_audio_content || '',
-          others: finalOthers,
-          options: updatedOptions
-        })
-        savedCard = {
-          ...updatedData,
-          options: updatedOptions,
-          others: finalOthers
-        }
-        
-        if (session?.questions) {
-          setSession((prev: any) => {
-            if (!prev) return prev
-            return {
-              ...prev,
-              questions: prev.questions.map((q: any) => q.id === updatedData.id ? savedCard : q)
-            }
-          })
-        }
-      } else {
-        const res = await axios.post(`/api/v1/deck/${id}/flashcard`, {
-          content: updatedData.content,
-          explanation: updatedData.explanation,
-          ai_explanation: updatedData.ai_explanation,
-          image: updatedData.image || null,
-          audio: updatedData.audio || null,
-          front_img: updatedData.front_img || '',
-          back_img: updatedData.back_img || '',
-          front_audio_url: updatedData.front_audio_url || '',
-          back_audio_url: updatedData.back_audio_url || '',
-          front_audio_content: updatedData.front_audio_content || '',
-          back_audio_content: updatedData.back_audio_content || '',
-          others: finalOthers,
-          options: updatedOptions
-        })
-        savedCard = res.data.card
-
-        if (session?.questions) {
-          setSession((prev: any) => {
-            if (!prev) return prev
-            const updatedQs = [...prev.questions]
-            const targetPos = currentIndex + 1
-            updatedQs.splice(targetPos, 0, savedCard)
-            return {
-              ...prev,
-              questions: updatedQs
-            }
-          })
-        }
-      }
-
-      if (!addAnother) {
-        setEditingFlashcard(null)
-      }
-
-      return savedCard
-    } catch (err) {
-      alert('Failed to save flashcard')
-      throw err
-    } finally {
-      setIsSaving(false)
     }
   }
 
@@ -5649,15 +5529,6 @@ export default function PracticePlay() {
           )
         })()}
       </AnimatePresence>
-      {/* Intrusive mid-session popups disabled per user request */}
-      <FlashcardEditModal
-        isOpen={!!editingFlashcard}
-        onClose={() => setEditingFlashcard(null)}
-        flashcard={editingFlashcard}
-        onSave={handleUpdateQuickAdd}
-        isSaving={isSaving}
-        availableColumns={availableColumns}
-      />
       
       {/* Zoomed Image Modal Overlay */}
       <ImageZoomOverlay
