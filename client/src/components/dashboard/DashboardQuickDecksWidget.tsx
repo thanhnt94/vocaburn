@@ -97,10 +97,10 @@ export function DashboardQuickDecksWidget({
     currentSelectedDeck?.study_defaults?.learning_mode ||
     currentSelectedDeck?.practice_settings?.default_learning_mode ||
     currentSelectedDeck?.creator_settings?.learning_mode ||
-    (userSettings?.quiz_learning_mode !== 'hybrid' ? userSettings?.quiz_learning_mode : 'fsrs') ||
+    userSettings?.quiz_learning_mode ||
     'fsrs'
   )
-  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : (rawStudyMode === 'hybrid' ? 'fsrs' : rawStudyMode)
+  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
 
   const studyModeLabel = (() => {
     switch (activeStudyMode) {
@@ -130,8 +130,6 @@ export function DashboardQuickDecksWidget({
 
   const practiceModeLabel = (() => {
     switch (activePracticeMode) {
-      case 'hybrid':
-        return 'Hybrid Recall'
       case 'typing':
         return 'Typing'
       case 'listening':
@@ -343,11 +341,7 @@ export function DashboardQuickDecksWidget({
                   if (currentSelectedDeck) {
                     if (typeof window !== 'undefined' && window.navigator?.vibrate) window.navigator.vibrate(10)
                     const id = currentSelectedDeck.deck_id ?? currentSelectedDeck.id
-                    if (activePracticeMode === 'hybrid') {
-                      navigate(`/hybrid/${id}/play`)
-                    } else {
-                      navigate(`/practice/${id}/${activePracticeMode}`)
-                    }
+                    navigate(`/practice/${id}/${activePracticeMode}`)
                   }
                 }}
                 className="flex-1 h-full px-2.5 flex items-center gap-2 min-w-0 text-left cursor-pointer"

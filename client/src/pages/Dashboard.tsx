@@ -1082,11 +1082,7 @@ export default function Dashboard() {
               queryParams.set('filter', scope)
             }
             const qStr = queryParams.toString() ? `?${queryParams.toString()}` : ''
-            if (mode === 'hybrid') {
-              navigate(`/hybrid/${selectedPracticeQuiz.id}/play${qStr}`)
-            } else {
-              navigate(`/practice/${selectedPracticeQuiz.id}/${mode}${qStr}`)
-            }
+            navigate(`/practice/${selectedPracticeQuiz.id}/${mode}${qStr}`)
           }}
         />
 

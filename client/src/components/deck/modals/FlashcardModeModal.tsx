@@ -76,16 +76,10 @@ export function FlashcardModeModal({
   const handleLaunchMode = (modeKey: string) => {
     onClose()
     const isRandom = cardOrder === 'random'
-    if (modeKey !== 'hybrid') {
-      updateUserSettings({
-        quiz_learning_mode: modeKey as any,
-        random_enabled: isRandom
-      })
-    } else {
-      updateUserSettings({
-        random_enabled: isRandom
-      })
-    }
+    updateUserSettings({
+      quiz_learning_mode: modeKey as any,
+      random_enabled: isRandom
+    })
 
     const filterParam = cardFilter !== 'all' ? `&scope=${cardFilter}&filter=${cardFilter}` : '&scope=all'
     if (modeKey === 'hybrid') {

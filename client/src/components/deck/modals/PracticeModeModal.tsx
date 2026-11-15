@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, Flame, ChevronRight, ArrowUpDown, Shuffle, Filter } from 'lucide-react'
+import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, ChevronRight, ArrowUpDown, Shuffle, Filter } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 
@@ -44,15 +44,6 @@ export function PracticeModeModal({
 
   const practiceModes = [
     {
-      mode: 'hybrid',
-      icon: Flame,
-      iconColor: 'text-rose-600 bg-rose-50 border-rose-100',
-      hoverColor: 'hover:border-rose-500/40 hover:bg-rose-50/15',
-      title: 'Hybrid Recall (Batch Drill)',
-      desc: 'Skim preview + active recall drill test (+5 XP)',
-      badge: 'Interactive'
-    },
-    {
       mode: 'mcq',
       icon: LayoutGrid,
       iconColor: 'text-indigo-600 bg-indigo-50 border-indigo-100',
@@ -87,7 +78,7 @@ export function PracticeModeModal({
     updateUserSettings({
       random_enabled: isRandom,
       practice_range: cardFilter as any,
-      ...(mode !== 'hybrid' ? { practice_submode: mode as any } : {})
+      practice_submode: mode as any
     })
 
     const queryParams = new URLSearchParams()
@@ -101,11 +92,7 @@ export function PracticeModeModal({
     if (onSelectMode) {
       onSelectMode(mode, { order: cardOrder, filter: cardFilter })
     } else {
-      if (mode === 'hybrid') {
-        navigate(`/hybrid/${deck.id}/play${qStr}`)
-      } else {
-        navigate(`/practice/${deck.id}/${mode}${qStr}`)
-      }
+      navigate(`/practice/${deck.id}/${mode}${qStr}`)
     }
   }
 

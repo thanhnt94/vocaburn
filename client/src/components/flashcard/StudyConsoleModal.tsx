@@ -37,6 +37,12 @@ export const StudyConsoleModal: React.FC<StudyConsoleModalProps> = ({
       desc: 'Intelligent spaced repetition with 4 rating buttons' 
     },
     { 
+      mode: 'hybrid', 
+      icon: '🔥', 
+      title: 'Hybrid Recall (Batch Drill)', 
+      desc: '5-card preview then active recall drill test (+5 XP)' 
+    },
+    { 
       mode: 'skim', 
       icon: '⚡', 
       title: 'Speed Skim (1-Tap)', 
