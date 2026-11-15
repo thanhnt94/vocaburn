@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio, preloadAudioUrls } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
-import { selectDistractors } from '@/lib/distractor'
+import { selectDistractors, type SmartDistractorConfig } from '@/lib/distractor'
 import {
   parseUTCDate,
   formatRelativeTime,
@@ -905,7 +905,7 @@ export default function PracticePlay() {
       seenDistractorTexts.add(correctAns.trim().toLowerCase());
 
       for (const other of candidateList) {
-        if (distractor_pool.length >= 40) break;
+        if (distractor_pool.length >= 150) break;
         const d_val = getVal(other, primary_answer_key);
         const d_q_val = getVal(other, question_key);
         const d_front = getVal(other, 'front');
@@ -944,7 +944,8 @@ export default function PracticePlay() {
       };
 
       const needed = num_choices - 1;
-      const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed);
+      const distractorConfig = (activePair as any)?.smart_distractor || (modeSettings as any)?.[baseMode]?.smart_distractor || (session as any)?.practice_settings?.smart_distractor;
+      const selectedDistractors = selectDistractors(correct_item_data, distractor_pool, needed, distractorConfig);
 
       // Robust fallback if selectDistractors filtered out candidates
       if (selectedDistractors.length < needed) {
@@ -2823,6 +2824,34 @@ export default function PracticePlay() {
     }
     showLocalToast(`All ${configuredPairs.length} question pairs active`, 'info');
   }, [configuredPairs, baseMode, showFeedback, selectedOption, typingFeedback, session, currentIndex, showLocalToast]);
+
+  const handleUpdatePairSmartDistractor = useCallback((pairIdx: number, newConfig: SmartDistractorConfig) => {
+    const nextConfigured = configuredPairs.map((p, idx) => {
+      if (idx === pairIdx) {
+        return { ...p, smart_distractor: newConfig };
+      }
+      return p;
+    });
+
+    setModeSettings(prev => ({
+      ...prev,
+      [baseMode]: {
+        ...(prev[baseMode] || {}),
+        active_pairs: nextConfigured
+      }
+    }));
+
+    const newActivePairs = nextConfigured.filter((_, i) => selectedPairIndices.includes(i));
+    setSetupPairs(newActivePairs);
+
+    practiceCardCacheRef.current = {};
+    if (!showFeedback && selectedOption === null && !typingFeedback?.checked && session?.questions?.[currentIndex]) {
+      generatePracticeQuestion(currentIndex, undefined, newActivePairs);
+    }
+
+    savePracticeSettings(nextConfigured, setupNumChoices, false).catch(() => {});
+    showLocalToast('Smart Distractor filters updated', 'info');
+  }, [configuredPairs, baseMode, selectedPairIndices, showFeedback, selectedOption, typingFeedback, session, currentIndex, setupNumChoices, showLocalToast]);
 
   const handleSelectPracticeMode = (targetMode: PracticeSubMode) => {
     practiceCardCacheRef.current = {};
@@ -5233,6 +5262,12 @@ export default function PracticePlay() {
         onToggleBottomNavTabs={handleToggleBottomNavTabs}
         onOpenMap={() => setIsMapOpen(true)}
         onOpenStats={() => setIsStatsOpen(true)}
+        availableColumns={availableColumns}
+        onOpenPracticeSetup={() => {
+          setIsQuickControlsOpen(false);
+          navigate(`/practice/${id}/setting`);
+        }}
+        onUpdatePairSmartDistractor={handleUpdatePairSmartDistractor}
       />
     </div>
   )
