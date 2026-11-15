@@ -248,6 +248,8 @@ export default function PracticePlay() {
   const isFetchingNextBatchRef = useRef<boolean>(false)
   const practiceSeedRef = useRef<number>(Math.floor(Math.random() * 1000000))
   const practiceCardCacheRef = useRef<Record<number, any>>({})
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [loadingStatus, setLoadingStatus] = useState('Connecting to server...')
 
   useEffect(() => {
     setShowAbsoluteFirst(false)
@@ -1478,13 +1480,31 @@ export default function PracticePlay() {
 
       if (isPractice && !isFolder && !isRoadmapTestMode && id !== 'quick') {
         const delimiter = playDataUrl.includes('?') ? '&' : '?'
-        playDataUrl += `${delimiter}limit=30&offset=0${orderParam}&include_distractors=true`
+        playDataUrl += `${delimiter}${orderParam ? orderParam.replace(/^&/, '') : ''}&include_distractors=true`
       }
+
+      setLoadingProgress(15)
+      setLoadingStatus('Connecting to server...')
 
       // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
       // FSRS: fetch play-data + goals + session in parallel.
       const fetchPromises: Promise<any>[] = [
-        axios.get(playDataUrl)
+        axios.get(playDataUrl, {
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total))
+              setLoadingProgress(pct)
+              const kb = Math.round(progressEvent.loaded / 1024)
+              const totalKb = Math.round(progressEvent.total / 1024)
+              setLoadingStatus(`Downloading deck (${kb} / ${totalKb} KB)...`)
+            } else {
+              const kb = Math.round(progressEvent.loaded / 1024)
+              const est = Math.min(92, Math.max(20, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)))
+              setLoadingProgress(est)
+              setLoadingStatus(`Loading deck questions (${kb} KB)...`)
+            }
+          }
+        })
       ]
 
       if (isPractice) {
@@ -1502,6 +1522,8 @@ export default function PracticePlay() {
       }
 
       const results = await Promise.all(fetchPromises)
+      setLoadingProgress(96)
+      setLoadingStatus('Preparing randomized question pool...')
       const quizRes = results[0]
       
       const questions = quizRes.data.questions || []
@@ -1605,6 +1627,8 @@ export default function PracticePlay() {
           const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
           const initialIdx = activeIndices.length > 0 ? activeIndices[0] : 0;
           setCurrentIndex(initialIdx);
+          setLoadingProgress(100);
+          setLoadingStatus('Ready!');
         }
       } else {
         // FSRS mode: apply goals + session
@@ -3919,7 +3943,25 @@ export default function PracticePlay() {
     );
   }
 
-  if (!session || currentIndex < 0) return <SessionLoadingScreen />
+  if (!session || currentIndex < 0) {
+    const modeLabel = practiceSubMode === 'mcq'
+      ? 'MULTIPLE CHOICE (MCQ)'
+      : practiceSubMode === 'typing'
+      ? 'VOCABULARY TYPING'
+      : practiceSubMode === 'listening'
+      ? 'LISTENING COMPREHENSION'
+      : 'PRACTICE SESSION'
+
+    return (
+      <SessionLoadingScreen
+        progress={loadingProgress}
+        statusText={loadingStatus}
+        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading full deck for complete randomness'}
+        modeTitle={modeLabel}
+        onCancel={() => navigate(`/decks/${id}`)}
+      />
+    )
+  }
 
   return (
     <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">

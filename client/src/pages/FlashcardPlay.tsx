@@ -482,6 +482,8 @@ export default function FlashcardPlay() {
   const paginationRef = useRef<{ total: number; offset: number; limit: number; has_more: boolean; next_offset: number } | null>(null);
   const isFetchingNextBatchRef = useRef<boolean>(false);
   const sessionQuestionsRef = useRef<any[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState('Connecting to server...');
 
   useEffect(() => {
     sessionQuestionsRef.current = session?.questions || [];
@@ -1038,10 +1040,10 @@ export default function FlashcardPlay() {
         fetchUrl += `${delimiter}sub_col=${encodeURIComponent(subCol)}&sub_val=${encodeURIComponent(subVal)}`
       }
 
-      // Optimization: pass scope & mode to backend with lazy load slicing on server
+      // Full deck loading for complete coverage & true randomness
       if (!isPractice && !isFolder && !isGlobalFocus && id !== 'quick') {
         const delimiter = fetchUrl.includes('?') ? '&' : '?'
-        const extraParams: string[] = ['limit=50', 'offset=0']
+        const extraParams: string[] = []
         if (urlScope && urlScope !== 'all') {
           extraParams.push(`scope=${encodeURIComponent(urlScope)}`)
         }
@@ -1053,8 +1055,11 @@ export default function FlashcardPlay() {
         }
       } else if (isPractice && !isFolder && !isGlobalFocus && id !== 'quick') {
         const delimiter = fetchUrl.includes('?') ? '&' : '?'
-        fetchUrl += `${delimiter}limit=30&offset=0&include_distractors=true`
+        fetchUrl += `${delimiter}include_distractors=true`
       }
+
+      setLoadingProgress(15);
+      setLoadingStatus('Connecting to server...');
 
       const isSpecialDeck = id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'));
       const rawUrlMode = currentSearchParams.get('mode');
@@ -1077,9 +1082,26 @@ export default function FlashcardPlay() {
           });
 
       const [quizRes, nextCardRes] = await Promise.all([
-        axios.get(fetchUrl),
+        axios.get(fetchUrl, {
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total));
+              setLoadingProgress(pct);
+              const kb = Math.round(progressEvent.loaded / 1024);
+              const totalKb = Math.round(progressEvent.total / 1024);
+              setLoadingStatus(`Downloading cards (${kb} / ${totalKb} KB)...`);
+            } else {
+              const kb = Math.round(progressEvent.loaded / 1024);
+              const est = Math.min(92, Math.max(15, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)));
+              setLoadingProgress(est);
+              setLoadingStatus(`Loading study cards (${kb} KB)...`);
+            }
+          }
+        }),
         nextCardPromise
       ]);
+      setLoadingProgress(96);
+      setLoadingStatus('Preparing study session...');
       paginationRef.current = quizRes.data?.pagination || null;
       let questions = quizRes.data.questions || quizRes.data.cards || []
 
@@ -1225,6 +1247,8 @@ export default function FlashcardPlay() {
       setFsrsCompletionData(completionData);
       setSession({ ...quizRes.data, questions });
       setCurrentIndex(curIdx);
+      setLoadingProgress(100);
+      setLoadingStatus('Ready!');
       setSelectedOption(null);
       setShowFeedback(false);
       setIsFlipped(false);
@@ -3563,7 +3587,17 @@ export default function FlashcardPlay() {
     )
   };
 
-  if (!session || currentIndex < 0) return <SessionLoadingScreen />
+  if (!session || currentIndex < 0) {
+    return (
+      <SessionLoadingScreen
+        progress={loadingProgress}
+        statusText={loadingStatus}
+        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading full deck for complete review'}
+        modeTitle="FLASHCARD STUDY"
+        onCancel={() => navigate(`/decks/${id}`)}
+      />
+    )
+  }
 
   return (
     <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative touch-pan-y">

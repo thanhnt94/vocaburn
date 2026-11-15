@@ -38,7 +38,7 @@ import {
 
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { Flashcard3DCard } from '@/components/flashcard/Flashcard3DCard'
+import { Flashcard3DCard, SessionLoadingScreen } from '@/components/flashcard'
 import {
   PracticeMcqCard,
   PracticeTypingCard,
@@ -110,23 +110,6 @@ export const CardLifecycleBadge = ({
   )
 }
 
-// Clean loading screen
-const SessionLoadingScreen = () => (
-  <div className="h-screen h-[100dvh] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-rose-50/20 to-slate-50 text-slate-800">
-    <div className="relative flex items-center justify-center">
-      <div className="w-16 h-16 rounded-3xl border-4 border-rose-200 border-t-rose-600 animate-spin" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Zap className="w-6 h-6 text-rose-600 animate-pulse" />
-      </div>
-    </div>
-    <p className="mt-5 text-sm font-black text-slate-700 tracking-wide">
-      Initializing Hybrid Pre-Learning Engine...
-    </p>
-    <p className="text-xs text-slate-400 font-medium mt-1">
-      Preparing Skim Preview & Active Recall Drill Batches
-    </p>
-  </div>
-)
 
 export default function HybridPlay() {
   const { id } = useParams<{ id: string }>()
@@ -1747,7 +1730,14 @@ export default function HybridPlay() {
   }, [stage, skimCardIndex, currentBatch.length, answered, batchCorrectCounts, isFlipped])
 
   if (isLoading) {
-    return <SessionLoadingScreen />
+    return (
+      <SessionLoadingScreen
+        modeTitle="HYBRID RECALL (BATCH DRILL)"
+        statusText="Initializing Hybrid Pre-Learning Engine..."
+        subText="Preparing Skim Preview & Active Recall Drill Batches"
+        onCancel={() => navigate(`/decks/${id}`)}
+      />
+    )
   }
 
   // Calculate overall batch progress

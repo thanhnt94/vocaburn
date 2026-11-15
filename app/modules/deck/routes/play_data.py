@@ -671,15 +671,20 @@ async def get_deck_play_data(
             "undrilled": base_cnt
         }
 
+    def clean_card_others(others_dict):
+        if not others_dict or not isinstance(others_dict, dict):
+            return others_dict
+        return {k: v for k, v in others_dict.items() if not k.startswith('_')}
+
     # Generate lightweight distractor pool across entire deck if practice, hybrid, or requested
     distractor_pool = []
     if is_practice or mode in ("mcq", "listening", "hybrid", "drill") or include_distractors:
         all_deck_cards = deck_cards
         import random
-        sample_size = min(len(all_deck_cards), 70)
+        sample_size = min(len(all_deck_cards), 150)
         sampled_cands = random.sample(all_deck_cards, sample_size) if len(all_deck_cards) > sample_size else all_deck_cards
         for sc in sampled_cands:
-            sc_others = sc.others if isinstance(sc.others, dict) else {}
+            sc_others = clean_card_others(sc.others) if isinstance(sc.others, dict) else {}
             distractor_pool.append({
                 "id": sc.id,
                 "front": sc.content,
@@ -796,7 +801,7 @@ async def get_deck_play_data(
                 "options": [],
                 "image": fix_static_urls(c.back_img),
                 "audio": fix_static_urls(c.front_audio_url),
-                "others": fix_static_urls(c.others)
+                "others": fix_static_urls(clean_card_others(c.others))
             })
     else:
         # Predefined static default intervals for new cards (Zero CPU cost)
@@ -881,7 +886,7 @@ async def get_deck_play_data(
                 "options": [],
                 "image": fix_static_urls(c.back_img),
                 "audio": fix_static_urls(c.front_audio_url),
-                "others": fix_static_urls(c.others)
+                "others": fix_static_urls(clean_card_others(c.others))
             })
         
     if user_id:
