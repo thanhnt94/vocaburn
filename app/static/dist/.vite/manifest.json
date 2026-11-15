@@ -17,8 +17,8 @@
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_FlashcardEditModal-legacy-BVDI8mJk.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_DeckPagination-legacy-D32Q5h-3.js",
@@ -31,8 +31,8 @@
     "imports": [
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-d3Jk7mYW.js",
-      "_animations-vendor-legacy-BPPHCDwL.js"
+      "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js"
     ]
   },
   "_DeckPagination-legacy-D32Q5h-3.js": {
@@ -53,8 +53,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_settings-legacy-CXZgSWIg.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
@@ -66,8 +66,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
@@ -78,8 +78,8 @@
     "imports": [
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_FlashcardEditModal-legacy-BVDI8mJk.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_study-legacy-CLyOm2Q_.js",
@@ -94,8 +94,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
   },
@@ -121,8 +121,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
@@ -163,8 +163,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_study-legacy-CLyOm2Q_.js",
       "_utils-legacy-DEWmt4jY.js"
@@ -187,8 +187,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_DailyComparisonChart-legacy-CqYvVtnC.js",
       "_FlashcardEditModal-legacy-BVDI8mJk.js",
       "_LearningInsightsModal-legacy-DYyMQgqi.js",
@@ -230,8 +230,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_utils-legacy-DEWmt4jY.js"
     ],
     "dynamicImports": [
@@ -256,8 +256,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js"
     ]
   },
@@ -271,8 +271,8 @@
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_modals-legacy-CMBn4RAq.js",
       "_usePreventPullToRefresh-legacy-B6qiyloP.js",
@@ -289,8 +289,8 @@
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_DeckPagination-legacy-D32Q5h-3.js",
       "_settings-legacy-CXZgSWIg.js",
@@ -311,8 +311,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_MediaUrlInput-legacy-CCKLC3rB.js",
       "_DeckPagination-legacy-D32Q5h-3.js",
       "_DeckCardsTab-legacy-BqXicUSd.js",
@@ -332,8 +332,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_useLeaderboard-legacy-BHFsirBu.js",
       "_FlashcardEditModal-legacy-BVDI8mJk.js",
       "_LearningInsightsModal-legacy-DYyMQgqi.js",
@@ -352,8 +352,8 @@
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_FlashcardEditModal-legacy-BVDI8mJk.js",
       "_LearningInsightsModal-legacy-DYyMQgqi.js",
       "_practice-legacy-BOp0jkoE.js",
@@ -370,8 +370,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_useLeaderboard-legacy-BHFsirBu.js",
       "_FlashcardEditModal-legacy-BVDI8mJk.js",
       "_LearningInsightsModal-legacy-DYyMQgqi.js",
@@ -390,8 +390,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
   },
@@ -404,8 +404,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
       "index-legacy.html",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_study-legacy-CLyOm2Q_.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
@@ -419,8 +419,8 @@
       "_react-core-vendor-legacy-DwgiRMaL.js",
       "_charts-vendor-legacy-DnSvBVEU.js",
       "_rolldown-runtime-legacy-Djb2rrqm.js",
-      "_vendor-legacy-d3Jk7mYW.js",
       "_animations-vendor-legacy-BPPHCDwL.js",
+      "_vendor-legacy-d3Jk7mYW.js",
       "_DailyComparisonChart-legacy-CqYvVtnC.js",
       "_utils-legacy-DEWmt4jY.js"
     ]
@@ -449,8 +449,8 @@
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_FlashcardEditModal-Q7LCaB6R.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_DeckPagination-DOyQ6hKY.js",
@@ -463,8 +463,8 @@
     "imports": [
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-C1-5hpaE.js",
-      "_animations-vendor-D7IM6gLk.js"
+      "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js"
     ]
   },
   "_DeckPagination-DOyQ6hKY.js": {
@@ -485,8 +485,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_settings-bO4ZCL68.js",
       "_utils-BA4vI8nk.js"
     ]
@@ -498,8 +498,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_utils-BA4vI8nk.js"
     ]
@@ -510,8 +510,8 @@
     "imports": [
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_FlashcardEditModal-Q7LCaB6R.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_study-BVkpbmH9.js",
@@ -526,8 +526,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_utils-BA4vI8nk.js"
     ]
   },
@@ -553,8 +553,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_utils-BA4vI8nk.js"
     ]
@@ -595,8 +595,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_study-BVkpbmH9.js",
       "_utils-BA4vI8nk.js"
@@ -619,8 +619,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_DailyComparisonChart-HQ2EEz8M.js",
       "_FlashcardEditModal-Q7LCaB6R.js",
       "_LearningInsightsModal-zfGURiwa.js",
@@ -662,8 +662,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_utils-BA4vI8nk.js"
     ],
     "dynamicImports": [
@@ -691,8 +691,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js"
     ]
   },
@@ -706,8 +706,8 @@
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_modals-Dw0Y_svL.js",
       "_usePreventPullToRefresh-29uoSpnp.js",
@@ -724,8 +724,8 @@
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_DeckPagination-DOyQ6hKY.js",
       "_settings-bO4ZCL68.js",
@@ -746,8 +746,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_MediaUrlInput-Cz1fzXay.js",
       "_DeckPagination-DOyQ6hKY.js",
       "_DeckCardsTab-D-DjStrr.js",
@@ -767,8 +767,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_useLeaderboard-16ObojBD.js",
       "_FlashcardEditModal-Q7LCaB6R.js",
       "_LearningInsightsModal-zfGURiwa.js",
@@ -787,8 +787,8 @@
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_FlashcardEditModal-Q7LCaB6R.js",
       "_LearningInsightsModal-zfGURiwa.js",
       "_practice-tl8C7O0t.js",
@@ -805,8 +805,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_useLeaderboard-16ObojBD.js",
       "_FlashcardEditModal-Q7LCaB6R.js",
       "_LearningInsightsModal-zfGURiwa.js",
@@ -825,8 +825,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_utils-BA4vI8nk.js"
     ]
   },
@@ -839,8 +839,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_rolldown-runtime-BYbx6iT9.js",
       "index.html",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_study-BVkpbmH9.js",
       "_utils-BA4vI8nk.js"
     ]
@@ -854,8 +854,8 @@
       "_react-core-vendor-DC30xovJ.js",
       "_charts-vendor-D7mjXQR2.js",
       "_rolldown-runtime-BYbx6iT9.js",
-      "_vendor-C1-5hpaE.js",
       "_animations-vendor-D7IM6gLk.js",
+      "_vendor-C1-5hpaE.js",
       "_DailyComparisonChart-HQ2EEz8M.js",
       "_utils-BA4vI8nk.js"
     ]
