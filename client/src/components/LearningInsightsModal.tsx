@@ -38,7 +38,20 @@ const parseBBCodeToHtml = (text: string): string => {
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
   
   // Format bold markdown **word**
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-indigo-600">$1</strong>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-indigo-600 dark:text-indigo-400">$1</strong>');
+
+  // Convert LaTeX math arrows to clean Unicode arrows
+  html = html
+    .replace(/\$\\(?:right|r)arrow\$/gi, '➔')
+    .replace(/\\(?:right|r)arrow/gi, '➔')
+    .replace(/\$\\to\$/gi, '➔')
+    .replace(/\\to\b/gi, '➔')
+    .replace(/\$\\leftarrow\$/gi, '←')
+    .replace(/\$\\leftrightarrow\$/gi, '↔')
+    .replace(/\\leftrightarrow/gi, '↔')
+    .replace(/\$\\Rightarrow\$/gi, '➔')
+    .replace(/\$\\Leftarrow\$/gi, '←')
+    .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] sm:text-xs font-semibold">$1</code>');
 
   return html;
 };
@@ -170,11 +183,12 @@ const renderFormattedInsight = (content: string) => {
         if (line.startsWith('### ') || line.startsWith('## ')) {
           const headerText = line.replace(/^#{2,3}\s*/, '');
           
-          if (headerText.includes('🧩') || headerText.toLowerCase().includes('tổng hòa')) {
+          if (headerText.includes('🧩')) {
+            const cleanWord = headerText.replace(/^🧩\s*/, '').trim();
             return (
               <div key={idx} className="pt-2.5 pb-0.5">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100/90 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 font-black text-xs uppercase tracking-wider shadow-2xs">
-                  {headerText}
+                  🧩 {cleanWord}
                 </span>
               </div>
             );
@@ -203,6 +217,57 @@ const renderFormattedInsight = (content: string) => {
               <div
                 className="flex-1"
                 dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(contentText) }}
+              />
+            </div>
+          );
+        }
+
+        // Audio Mnemonic highlight: 🎧 ...
+        if (line.includes('🎧') || line.toLowerCase().includes('mẹo liên tưởng âm đọc') || line.toLowerCase().includes('mẹo âm đọc')) {
+          const cleanText = line.replace(/^[•\-\*]\s*/, '');
+          return (
+            <div
+              key={idx}
+              className="p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/5 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-transparent border border-purple-200/80 dark:border-purple-800/60 font-semibold text-xs sm:text-sm text-purple-950 dark:text-purple-100 shadow-2xs leading-relaxed flex items-start gap-2.5"
+            >
+              <span className="text-purple-600 dark:text-purple-400 font-black text-base shrink-0 mt-0.5">🎧</span>
+              <div
+                className="flex-1"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(cleanText.replace(/^🎧\s*/, '')) }}
+              />
+            </div>
+          );
+        }
+
+        // Warning / Note / Trap highlight: ⚠️ ... or Lưu ý: ...
+        if (line.includes('⚠️') || line.toLowerCase().startsWith('lưu ý:') || line.toLowerCase().startsWith('• lưu ý:') || line.toLowerCase().startsWith('- lưu ý:')) {
+          const cleanText = line.replace(/^[•\-\*]\s*/, '');
+          return (
+            <div
+              key={idx}
+              className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 font-medium text-xs sm:text-sm text-amber-950 dark:text-amber-100 shadow-2xs leading-relaxed flex items-start gap-2"
+            >
+              <span className="text-amber-600 dark:text-amber-400 font-black text-sm shrink-0 mt-0.5">⚠️</span>
+              <div
+                className="flex-1"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(cleanText.replace(/^⚠️\s*/, '')) }}
+              />
+            </div>
+          );
+        }
+
+        // Ghép âm highlight in Quy tắc chuyển âm
+        if (line.toLowerCase().includes('ghép lại:') || line.toLowerCase().includes('ghép âm:')) {
+          const cleanText = line.replace(/^[•\-\*➔]+\s*/, '');
+          return (
+            <div
+              key={idx}
+              className="p-2.5 px-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 font-bold text-xs sm:text-sm text-indigo-950 dark:text-indigo-100 shadow-2xs leading-relaxed flex items-center gap-2"
+            >
+              <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm shrink-0">🎵</span>
+              <div
+                className="flex-1"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(cleanText) }}
               />
             </div>
           );
