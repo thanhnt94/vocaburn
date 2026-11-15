@@ -1082,8 +1082,22 @@ export default function FlashcardPlay() {
         fetchUrl += `${delimiter}include_distractors=true`
       }
 
+      let currentProgress = 15;
       setLoadingProgress(15);
       setLoadingStatus('Connecting to server...');
+
+      const progressTimer = setInterval(() => {
+        currentProgress += Math.floor(Math.random() * 8) + 5;
+        if (currentProgress > 93) currentProgress = 93;
+        setLoadingProgress(currentProgress);
+        if (currentProgress > 75) {
+          setLoadingStatus('Optimizing memory & interleaving cards...');
+        } else if (currentProgress > 50) {
+          setLoadingStatus('Fetching review due dates & FSRS states...');
+        } else if (currentProgress > 25) {
+          setLoadingStatus('Loading full deck from database...');
+        }
+      }, 100);
 
       const isSpecialDeck = id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'));
       const rawUrlMode = currentSearchParams.get('mode');
@@ -1105,25 +1119,38 @@ export default function FlashcardPlay() {
             return { data: null };
           });
 
-      const [quizRes, nextCardRes] = await Promise.all([
-        axios.get(fetchUrl, {
-          onDownloadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total));
-              setLoadingProgress(pct);
-              const kb = Math.round(progressEvent.loaded / 1024);
-              const totalKb = Math.round(progressEvent.total / 1024);
-              setLoadingStatus(`Downloading cards (${kb} / ${totalKb} KB)...`);
-            } else {
-              const kb = Math.round(progressEvent.loaded / 1024);
-              const est = Math.min(92, Math.max(15, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)));
-              setLoadingProgress(est);
-              setLoadingStatus(`Loading study cards (${kb} KB)...`);
+      let quizRes: any, nextCardRes: any;
+      try {
+        const results = await Promise.all([
+          axios.get(fetchUrl, {
+            onDownloadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total));
+                if (pct > currentProgress) {
+                  currentProgress = pct;
+                  setLoadingProgress(pct);
+                }
+                const kb = Math.round(progressEvent.loaded / 1024);
+                const totalKb = Math.round(progressEvent.total / 1024);
+                setLoadingStatus(`Downloading cards (${kb} / ${totalKb} KB)...`);
+              } else {
+                const kb = Math.round(progressEvent.loaded / 1024);
+                const est = Math.min(92, Math.max(15, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)));
+                if (est > currentProgress) {
+                  currentProgress = est;
+                  setLoadingProgress(est);
+                }
+                setLoadingStatus(`Loading study cards (${kb} KB)...`);
+              }
             }
-          }
-        }),
-        nextCardPromise
-      ]);
+          }),
+          nextCardPromise
+        ]);
+        quizRes = results[0];
+        nextCardRes = results[1];
+      } finally {
+        clearInterval(progressTimer);
+      }
       setLoadingProgress(96);
       setLoadingStatus('Preparing study session...');
       paginationRef.current = quizRes.data?.pagination || null;
@@ -1283,6 +1310,10 @@ export default function FlashcardPlay() {
       }
 
       // Batch all initial states together so React renders directly at the correct target card in a single tick
+      if (effectiveRandom && questions[curIdx]?.original_index === 1 && questions.length > 1) {
+        const alternate = questions.findIndex((q: any, i: number) => i !== curIdx && q?.original_index !== 1);
+        if (alternate !== -1) curIdx = alternate;
+      }
       setFsrsCompletionData(completionData);
       setSession({ ...quizRes.data, questions });
       setCurrentIndex(curIdx);

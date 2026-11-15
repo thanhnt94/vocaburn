@@ -1456,25 +1456,21 @@ export default function PracticePlay() {
 
       const urlOrder = urlParams.get('order')
       const urlRandom = urlParams.get('random')
-      let effectiveRandom = forceRandom
-      if (effectiveRandom === undefined) {
+      let initialRandomCheck = forceRandom
+      if (initialRandomCheck === undefined) {
         if (urlOrder === 'random' || urlRandom === 'true' || urlRandom === '1') {
-          effectiveRandom = true
+          initialRandomCheck = true
         } else if (urlOrder === 'sequential' || urlRandom === 'false' || urlRandom === '0') {
-          effectiveRandom = false
-        } else {
-          effectiveRandom = randomEnabled
+          initialRandomCheck = false
+        } else if (randomEnabled) {
+          initialRandomCheck = true
         }
       }
 
-      if (effectiveRandom !== undefined && effectiveRandom !== randomEnabled) {
-        setRandomEnabled(effectiveRandom)
-      }
-
       let orderParam = ''
-      if (effectiveRandom) {
+      if (initialRandomCheck === true) {
         orderParam = `&order=random&seed=${practiceSeedRef.current}`
-      } else {
+      } else if (initialRandomCheck === false && (urlOrder === 'sequential' || urlRandom === 'false' || urlRandom === '0')) {
         orderParam = '&order=sequential'
       }
 
@@ -1483,69 +1479,117 @@ export default function PracticePlay() {
         playDataUrl += `${delimiter}${orderParam ? orderParam.replace(/^&/, '') : ''}&include_distractors=true`
       }
 
+      let currentProgress = 15
       setLoadingProgress(15)
       setLoadingStatus('Connecting to server...')
 
-      // Practice: only fetch play-data + practice-settings in parallel. No goals. No session restore.
-      // FSRS: fetch play-data + goals + session in parallel.
-      const fetchPromises: Promise<any>[] = [
-        axios.get(playDataUrl, {
-          onDownloadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total))
-              setLoadingProgress(pct)
-              const kb = Math.round(progressEvent.loaded / 1024)
-              const totalKb = Math.round(progressEvent.total / 1024)
-              setLoadingStatus(`Downloading deck (${kb} / ${totalKb} KB)...`)
-            } else {
-              const kb = Math.round(progressEvent.loaded / 1024)
-              const est = Math.min(92, Math.max(20, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)))
-              setLoadingProgress(est)
-              setLoadingStatus(`Loading deck questions (${kb} KB)...`)
-            }
-          }
-        })
-      ]
+      const progressTimer = setInterval(() => {
+        currentProgress += Math.floor(Math.random() * 8) + 5
+        if (currentProgress > 93) currentProgress = 93
+        setLoadingProgress(currentProgress)
+        if (currentProgress > 75) {
+          setLoadingStatus('Randomizing question order...')
+        } else if (currentProgress > 50) {
+          setLoadingStatus('Generating answer choices & distractors...')
+        } else if (currentProgress > 25) {
+          setLoadingStatus('Loading full deck from database...')
+        }
+      }, 100)
 
-      if (isPractice) {
-        // Merge practice-settings into the parallel batch instead of waterfall
-        fetchPromises.push(
-          isFolder
-            ? Promise.resolve({ data: null })
-            : axios.get(`/api/v1/deck/${id}/practice-settings`).catch(e => {
-                console.error("Failed to load practice settings", e)
-                return { data: null }
-              })
-        )
-        fetchPromises.push(Promise.resolve({ data: [] }))
-        fetchPromises.push(Promise.resolve({ data: null }))
+      let results: any[]
+      try {
+        const fetchPromises: Promise<any>[] = [
+          axios.get(playDataUrl, {
+            onDownloadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total))
+                if (pct > currentProgress) {
+                  currentProgress = pct
+                  setLoadingProgress(pct)
+                }
+                const kb = Math.round(progressEvent.loaded / 1024)
+                const totalKb = Math.round(progressEvent.total / 1024)
+                setLoadingStatus(`Downloading deck (${kb} / ${totalKb} KB)...`)
+              } else {
+                const kb = Math.round(progressEvent.loaded / 1024)
+                const est = Math.min(92, Math.max(20, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)))
+                if (est > currentProgress) {
+                  currentProgress = est
+                  setLoadingProgress(est)
+                }
+                setLoadingStatus(`Loading deck questions (${kb} KB)...`)
+              }
+            }
+          })
+        ]
+
+        if (isPractice) {
+          fetchPromises.push(
+            isFolder
+              ? Promise.resolve({ data: null })
+              : axios.get(`/api/v1/deck/${id}/practice-settings`).catch(e => {
+                  console.error("Failed to load practice settings", e)
+                  return { data: null }
+                })
+          )
+          fetchPromises.push(Promise.resolve({ data: [] }))
+          fetchPromises.push(Promise.resolve({ data: null }))
+        }
+
+        results = await Promise.all(fetchPromises)
+      } finally {
+        clearInterval(progressTimer)
       }
 
-      const results = await Promise.all(fetchPromises)
       setLoadingProgress(96)
       setLoadingStatus('Preparing randomized question pool...')
       const quizRes = results[0]
-      
-      const questions = quizRes.data.questions || []
-      if (effectiveRandom && questions.length > 1 && questions[0]?.original_index === 1) {
-        const swapIdx = Math.floor(Math.random() * (questions.length - 1)) + 1;
-        [questions[0], questions[swapIdx]] = [questions[swapIdx], questions[0]];
-      }
-      paginationRef.current = quizRes.data.pagination || null
-      setSession({ ...quizRes.data, questions })
 
-      const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};
-      const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
-      const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {};
-      const isCustom = quizRes.data.is_study_customized;
-      const origin = quizRes.data.setting_origin;
+      const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {}
+      const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {}
+      const userStudyOverrides = quizRes.data.user_study_settings || quizRes.data.user_settings || {}
+      const isCustom = quizRes.data.is_study_customized
+      const origin = quizRes.data.setting_origin
       syncStudySettings(
         effectiveStudy,
         creatorStudyDefs,
         userStudyOverrides,
         isCustom,
         origin
-      );
+      )
+
+      // Resolve true effectiveRandom after settings are fetched from server
+      const isEffectiveRandom = (forceRandom !== undefined)
+        ? forceRandom
+        : (urlOrder === 'random' || urlRandom === 'true' || urlRandom === '1'
+            ? true
+            : (urlOrder === 'sequential' || urlRandom === 'false' || urlRandom === '0'
+                ? false
+                : Boolean(effectiveStudy.random_enabled ?? userStudyOverrides.random_enabled ?? randomEnabled)))
+
+      if (isEffectiveRandom && !randomEnabled) {
+        setRandomEnabled(true)
+      } else if (!isEffectiveRandom && randomEnabled && (urlOrder === 'sequential' || urlRandom === 'false' || urlRandom === '0')) {
+        setRandomEnabled(false)
+      }
+
+      let questions = quizRes.data.questions || []
+      if (isEffectiveRandom && questions.length > 1) {
+        // True Fisher-Yates shuffle on client so entire deck is randomized
+        questions = [...questions]
+        for (let i = questions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [questions[i], questions[j]] = [questions[j], questions[i]];
+        }
+        // Strict guarantee: questions[0] is NEVER Card #1
+        if (questions[0]?.original_index === 1 && questions.length > 1) {
+          const swapIdx = Math.floor(Math.random() * (questions.length - 1)) + 1;
+          [questions[0], questions[swapIdx]] = [questions[swapIdx], questions[0]];
+        }
+      }
+
+      paginationRef.current = quizRes.data.pagination || null
+      setSession({ ...quizRes.data, questions })
       if (forceRandom !== undefined) {
         setRandomEnabled(forceRandom);
       }
@@ -1630,11 +1674,15 @@ export default function PracticePlay() {
           const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
           const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
           let initialIdx = activeIndices.length > 0 ? activeIndices[0] : 0;
-          if (effectiveRandom && activeIndices.length > 1) {
+          if (isEffectiveRandom && activeIndices.length > 1) {
             const nonFirst = activeIndices.filter((idx: number) => idx !== 0 && questions[idx]?.original_index !== 1);
             initialIdx = nonFirst.length > 0
               ? nonFirst[Math.floor(Math.random() * nonFirst.length)]
               : activeIndices[Math.floor(Math.random() * activeIndices.length)];
+          }
+          if (isEffectiveRandom && questions[initialIdx]?.original_index === 1 && activeIndices.length > 1) {
+            const alternate = activeIndices.find((idx: number) => questions[idx]?.original_index !== 1);
+            if (alternate !== undefined) initialIdx = alternate;
           }
           setCurrentIndex(initialIdx);
           setLoadingProgress(100);
