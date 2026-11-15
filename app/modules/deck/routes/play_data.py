@@ -714,9 +714,16 @@ async def get_deck_play_data(
 
     if effective_order in ("random", "rand"):
         import random
-        effective_seed = seed if seed is not None else (int(user_id or 0) * 10007 + int(deck_id or 0) * 1009)
-        rng = random.Random(effective_seed)
-        rng.shuffle(source_cards)
+        if seed is not None:
+            rng = random.Random(seed)
+            rng.shuffle(source_cards)
+        else:
+            random.shuffle(source_cards)
+
+        # If multiple cards exist, ensure card at index 0 is not the deck's card #1
+        if len(source_cards) > 1 and len(deck_cards) > 0 and source_cards[0].id == deck_cards[0].id:
+            swap_idx = random.randint(1, len(source_cards) - 1)
+            source_cards[0], source_cards[swap_idx] = source_cards[swap_idx], source_cards[0]
 
     total_matching = len(source_cards)
 

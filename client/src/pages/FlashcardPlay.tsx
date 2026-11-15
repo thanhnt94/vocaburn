@@ -637,6 +637,26 @@ export default function FlashcardPlay() {
     const newPath = window.location.pathname + '?' + searchParams.toString();
     window.history.replaceState(null, '', newPath);
 
+    if (nextVal && session && session.questions && session.questions.length > 1) {
+      const hasAnswers = Object.keys(sessionAnswers).length > 0;
+      if (!hasAnswers) {
+        const shuffled = [...session.questions];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        if (shuffled[0]?.original_index === 1 && shuffled.length > 1) {
+          const swapIdx = Math.floor(Math.random() * (shuffled.length - 1)) + 1;
+          [shuffled[0], shuffled[swapIdx]] = [shuffled[swapIdx], shuffled[0]];
+        }
+        setSession((prev: any) => ({ ...prev, questions: shuffled }));
+        setCurrentIndex(0);
+        setIsFlipped(false);
+        setSelectedOption(null);
+        setShowFeedback(false);
+      }
+    }
+
     showLocalToast(nextVal ? "Card Order: Random (Shuffle ON)" : "Card Order: Sequential (Shuffle OFF)", "info");
   };
 
@@ -1050,6 +1070,10 @@ export default function FlashcardPlay() {
         if (rawMode) {
           extraParams.push(`mode=${encodeURIComponent(rawMode)}`)
         }
+        const initialOrderParam = currentSearchParams.get('order') || (isRandom ? 'random' : undefined);
+        if (initialOrderParam) {
+          extraParams.push(`order=${encodeURIComponent(initialOrderParam)}`)
+        }
         if (extraParams.length > 0) {
           fetchUrl += `${delimiter}${extraParams.join('&')}`
         }
@@ -1103,73 +1127,7 @@ export default function FlashcardPlay() {
       setLoadingProgress(96);
       setLoadingStatus('Preparing study session...');
       paginationRef.current = quizRes.data?.pagination || null;
-      let questions = quizRes.data.questions || quizRes.data.cards || []
-
-      const shuffleCards = (arr: any[]) => {
-        const copy = [...arr]
-        for (let i = copy.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [copy[i], copy[j]] = [copy[j], copy[i]];
-        }
-        return copy
-      }
-
-      if (isGlobalFocus) {
-        // Daily Focus Queue: thoroughly shuffle cards across all active decks
-        questions = shuffleCards(questions)
-      } else if (urlScope === 'new') {
-        const newCards = questions.filter((q: any) => isCardNew(q))
-        questions = isRandom ? shuffleCards(newCards) : newCards
-      } else if (urlScope === 'due' || urlScope === 'review') {
-        const dueCards = questions.filter((q: any) => isCardReview(q))
-        if (isRandom) {
-          questions = shuffleCards(dueCards)
-        } else {
-          questions = dueCards.sort((a: any, b: any) => {
-            const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
-            const timeB = b.fsrs?.due ? parseUTCDate(b.fsrs.due).getTime() : 0
-            return timeA - timeB
-          })
-        }
-      } else if (urlScope === 'hard') {
-        const hardCards = questions.filter((q: any) => {
-          const diff = q.fsrs?.difficulty || 0
-          const laps = q.fsrs?.lapses || 0
-          return diff >= 6 || laps > 0 || q.is_hard
-        })
-        questions = isRandom ? shuffleCards(hardCards) : hardCards
-      } else {
-        // urlScope === 'all'
-        if (isFsrsMode) {
-          // FSRS All mode: Strict spaced repetition queue
-          // Priority 1: ALL due cards (due <= now) MUST be reviewed first
-          // Priority 2: Only after all due cards are reviewed do new cards appear
-          // Priority 3: Retained cards (not due yet) placed at the end
-          let dueCards = questions.filter((q: any) => isCardReview(q))
-          let newCards = questions.filter((q: any) => isCardNew(q))
-          let retainedCards = questions.filter((q: any) => !isCardReview(q) && !isCardNew(q))
-
-          if (isRandom) {
-            dueCards = shuffleCards(dueCards)
-            newCards = shuffleCards(newCards)
-            retainedCards = shuffleCards(retainedCards)
-          } else {
-            dueCards.sort((a: any, b: any) => {
-              const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
-              const timeB = b.fsrs?.due ? parseUTCDate(b.fsrs.due).getTime() : 0
-              return timeA - timeB
-            })
-          }
-
-          // Strict priority: ALL due cards first, followed by new cards, then retained cards
-          questions = [...dueCards, ...newCards, ...retainedCards]
-        } else {
-          // Skim or AutoPlay All mode: scan all cards
-          if (isRandom) {
-            questions = shuffleCards(questions)
-          }
-        }
-      }
+      let questions = quizRes.data.questions || quizRes.data.cards || [];
 
       const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {};
       const creatorStudyDefs = quizRes.data.creator_study_defaults || quizRes.data.study_defaults || {};
@@ -1203,6 +1161,83 @@ export default function FlashcardPlay() {
         effectiveRandom = Boolean(effectiveStudy.random_enabled);
         setRandomEnabled(effectiveRandom);
       }
+
+      const shuffleCards = (arr: any[]) => {
+        const copy = [...arr]
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy
+      }
+
+      if (isGlobalFocus) {
+        // Daily Focus Queue: thoroughly shuffle cards across all active decks
+        questions = shuffleCards(questions)
+      } else if (urlScope === 'new') {
+        const newCards = questions.filter((q: any) => isCardNew(q))
+        questions = effectiveRandom ? shuffleCards(newCards) : newCards
+      } else if (urlScope === 'due' || urlScope === 'review') {
+        const dueCards = questions.filter((q: any) => isCardReview(q))
+        if (effectiveRandom) {
+          questions = shuffleCards(dueCards)
+        } else {
+          questions = dueCards.sort((a: any, b: any) => {
+            const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
+            const timeB = b.fsrs?.due ? parseUTCDate(b.fsrs.due).getTime() : 0
+            return timeA - timeB
+          })
+        }
+      } else if (urlScope === 'hard') {
+        const hardCards = questions.filter((q: any) => {
+          const diff = q.fsrs?.difficulty || 0
+          const laps = q.fsrs?.lapses || 0
+          return diff >= 6 || laps > 0 || q.is_hard
+        })
+        questions = effectiveRandom ? shuffleCards(hardCards) : hardCards
+      } else {
+        // urlScope === 'all'
+        if (isFsrsMode) {
+          // FSRS All mode: Strict spaced repetition queue
+          // Priority 1: ALL due cards (due <= now) MUST be reviewed first
+          // Priority 2: Only after all due cards are reviewed do new cards appear
+          // Priority 3: Retained cards (not due yet) placed at the end
+          let dueCards = questions.filter((q: any) => isCardReview(q))
+          let newCards = questions.filter((q: any) => isCardNew(q))
+          let retainedCards = questions.filter((q: any) => !isCardReview(q) && !isCardNew(q))
+
+          if (effectiveRandom) {
+            dueCards = shuffleCards(dueCards)
+            newCards = shuffleCards(newCards)
+            retainedCards = shuffleCards(retainedCards)
+          } else {
+            dueCards.sort((a: any, b: any) => {
+              const timeA = a.fsrs?.due ? parseUTCDate(a.fsrs.due).getTime() : 0
+              const timeB = b.fsrs?.due ? parseUTCDate(b.fsrs.due).getTime() : 0
+              return timeA - timeB
+            })
+          }
+
+          // Strict priority: ALL due cards first, followed by new cards, then retained cards
+          questions = [...dueCards, ...newCards, ...retainedCards]
+        } else {
+          // Skim or AutoPlay All mode: scan all cards
+          if (effectiveRandom) {
+            questions = shuffleCards(questions)
+          }
+        }
+      }
+
+      // CRITICAL DIRECTIVE: If Random order is active, NEVER start from Card #1 (original_index === 1)!
+      if (effectiveRandom && questions.length > 1) {
+        const activeGroupCount = isFsrsMode && questions.filter((q: any) => isCardReview(q)).length > 1
+          ? questions.filter((q: any) => isCardReview(q)).length
+          : questions.length;
+        if (questions[0]?.original_index === 1 && activeGroupCount > 1) {
+          const swapIdx = Math.floor(Math.random() * (activeGroupCount - 1)) + 1;
+          [questions[0], questions[swapIdx]] = [questions[swapIdx], questions[0]];
+        }
+      }
       
       setPromptInput(quizRes.data.ai_prompt || '')
       setInitialTotalXP(quizRes.data.user_total_xp || 0)
@@ -1234,9 +1269,13 @@ export default function FlashcardPlay() {
           curIdx = 0;
         } else if (nextCardRes.data.card_id) {
           const targetIdx = questions.findIndex((q: any) => q.id === nextCardRes.data.card_id);
-          curIdx = targetIdx !== -1 ? targetIdx : 0;
+          if (effectiveRandom && questions.length > 1 && questions[targetIdx]?.original_index === 1) {
+            curIdx = 0; // questions[0] is guaranteed not to be Card #1
+          } else {
+            curIdx = targetIdx !== -1 ? targetIdx : 0;
+          }
         } else if (isFsrsMode) {
-          // In FSRS mode, if due cards exist, ALWAYS start with the first due card (index 0)
+          // In FSRS mode, start with questions[0] (which is randomized and guaranteed not to be card #1)
           curIdx = 0;
         } else if (nextCardRes.data.next_index !== undefined && nextCardRes.data.next_index >= 0 && nextCardRes.data.next_index < questions.length) {
           curIdx = nextCardRes.data.next_index;

@@ -163,6 +163,11 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
     )
     user_settings_dict = user_sett_res.scalar_one_or_none() or {}
 
+    # If random_enabled not explicitly passed as true in payload, inspect user's deck study settings
+    if not random_enabled and isinstance(user_settings_dict, dict):
+        if user_settings_dict.get("random_enabled") is True or (user_settings_dict.get("study_settings") or {}).get("random_enabled") is True:
+            random_enabled = True
+
     if mode == "roadmap":
         st_helper = await get_deck_roadmap_status_helper(db, user_id, deck_id, user_settings_dict)
         current_step_idx = st_helper.get("current_step_index", 0)
@@ -227,7 +232,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             if len(answered_indexes) == 0:
                 if random_enabled:
                     import random
-                    next_idx = random.choice(unanswered_learned)
+                    non_first = [i for i in unanswered_learned if i != 0 and i != unanswered_learned[0]]
+                    next_idx = random.choice(non_first) if (non_first and len(unanswered_learned) > 1) else random.choice(unanswered_learned)
                 else:
                     next_idx = unanswered_learned[0]
             else:
@@ -284,7 +290,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
             if len(answered_indexes) == 0:
                 if random_enabled:
                     import random
-                    next_idx = random.choice(unanswered_new)
+                    non_first = [i for i in unanswered_new if i != 0 and i != unanswered_new[0]]
+                    next_idx = random.choice(non_first) if (non_first and len(unanswered_new) > 1) else random.choice(unanswered_new)
                 else:
                     next_idx = unanswered_new[0]
             else:
@@ -481,7 +488,13 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
 
             if random_enabled:
                 import random
-                selected = random.choice(candidates)
+                # If starting a session with random enabled (len(answered_indexes) == 0),
+                # guarantee we start on a card other than card #1 (index 0) if multiple candidates exist!
+                if len(answered_indexes) == 0 and len(candidates) > 1:
+                    non_first = [c for c in candidates if c["idx"] != 0 and c["idx"] != candidates[0]["idx"]]
+                    selected = random.choice(non_first) if non_first else random.choice(candidates)
+                else:
+                    selected = random.choice(candidates)
             else:
                 # Lowest stability first, then earliest due date
                 candidates.sort(key=lambda x: (x["stability"], x["due"] or now_utc))
@@ -540,7 +553,8 @@ async def get_next_card(request: Request, deck_id: int, data: dict, db: AsyncSes
                 if len(answered_indexes) == 0:
                     if random_enabled:
                         import random
-                        next_idx = random.choice(unanswered_new)
+                        non_first = [i for i in unanswered_new if i != 0 and i != unanswered_new[0]]
+                        next_idx = random.choice(non_first) if (non_first and len(unanswered_new) > 1) else random.choice(unanswered_new)
                     else:
                         next_idx = unanswered_new[0]
                 else:

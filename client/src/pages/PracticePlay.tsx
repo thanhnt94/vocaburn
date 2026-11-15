@@ -1527,6 +1527,10 @@ export default function PracticePlay() {
       const quizRes = results[0]
       
       const questions = quizRes.data.questions || []
+      if (effectiveRandom && questions.length > 1 && questions[0]?.original_index === 1) {
+        const swapIdx = Math.floor(Math.random() * (questions.length - 1)) + 1;
+        [questions[0], questions[swapIdx]] = [questions[swapIdx], questions[0]];
+      }
       paginationRef.current = quizRes.data.pagination || null
       setSession({ ...quizRes.data, questions })
 
@@ -1625,7 +1629,13 @@ export default function PracticePlay() {
           const allIndices = questions.map((q: any, i: number) => q.is_ignored ? -1 : i).filter((i: number) => i !== -1);
           const learnedIndices = questions.map((q: any, i: number) => (!q.is_ignored && (q.stats?.total || 0) > 0) ? i : -1).filter((i: number) => i !== -1);
           const activeIndices = (practiceRange === 'learned' && learnedIndices.length > 0) ? learnedIndices : allIndices;
-          const initialIdx = activeIndices.length > 0 ? activeIndices[0] : 0;
+          let initialIdx = activeIndices.length > 0 ? activeIndices[0] : 0;
+          if (effectiveRandom && activeIndices.length > 1) {
+            const nonFirst = activeIndices.filter((idx: number) => idx !== 0 && questions[idx]?.original_index !== 1);
+            initialIdx = nonFirst.length > 0
+              ? nonFirst[Math.floor(Math.random() * nonFirst.length)]
+              : activeIndices[Math.floor(Math.random() * activeIndices.length)];
+          }
           setCurrentIndex(initialIdx);
           setLoadingProgress(100);
           setLoadingStatus('Ready!');
@@ -1720,7 +1730,10 @@ export default function PracticePlay() {
               } else if (savedMode === 'random') {
                 const pool = questions.map((_: any, i: number) => i).filter((i: number) => restoredAnswers[i] === undefined)
                 if (pool.length > 0) {
-                  modeIdx = pool[Math.floor(Math.random() * pool.length)]
+                  const nonFirst = pool.filter((idx: number) => idx !== 0 && questions[idx]?.original_index !== 1);
+                  modeIdx = nonFirst.length > 0
+                    ? nonFirst[Math.floor(Math.random() * nonFirst.length)]
+                    : pool[Math.floor(Math.random() * pool.length)];
                 }
               }
 
@@ -2700,7 +2713,7 @@ export default function PracticePlay() {
     window.history.replaceState(null, '', newPath);
 
     if (mainTab === 'practice') {
-      setCurrentIndex(0);
+      setCurrentIndex(-1);
       setPracticeAnswers({});
       practiceCardCacheRef.current = {};
       fetchSession(mainTab, practiceSubMode, newScope);
@@ -2778,7 +2791,7 @@ export default function PracticePlay() {
     practiceSeedRef.current = Math.floor(Math.random() * 1000000);
     practiceCardCacheRef.current = {};
     setPracticeAnswers({});
-    setCurrentIndex(0);
+    setCurrentIndex(-1);
     setSelectedOption(null);
     setShowFeedback(false);
     await saveGeneralSettings({ random_enabled: nextVal });
@@ -5145,7 +5158,13 @@ export default function PracticePlay() {
           setSessionAnswers({});
           setSelectedOption(null);
           setShowFeedback(false);
-          setCurrentIndex(0);
+          if (randomEnabled && session?.questions && session.questions.length > 1) {
+            const nonFirst = session.questions.map((_: any, i: number) => i).filter((i: number) => session.questions[i]?.original_index !== 1 && !session.questions[i]?.is_ignored);
+            const nextIdx = nonFirst.length > 0 ? nonFirst[Math.floor(Math.random() * nonFirst.length)] : 0;
+            setCurrentIndex(nextIdx);
+          } else {
+            setCurrentIndex(0);
+          }
         }}
         onExitSession={() => setIsQuitModalOpen(true)}
         showLocalToast={showLocalToast}
