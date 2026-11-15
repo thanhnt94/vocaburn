@@ -169,12 +169,42 @@ const renderFormattedInsight = (content: string) => {
         // Markdown Header ### ...
         if (line.startsWith('### ') || line.startsWith('## ')) {
           const headerText = line.replace(/^#{2,3}\s*/, '');
+          
+          if (headerText.includes('🧩') || headerText.toLowerCase().includes('tổng hòa')) {
+            return (
+              <div key={idx} className="pt-2.5 pb-0.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-100/90 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 font-black text-xs uppercase tracking-wider shadow-2xs">
+                  {headerText}
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div
               key={idx}
-              className="font-black text-slate-800 dark:text-slate-100 text-sm sm:text-[15px] pt-2 pb-1 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2"
-              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(headerText) }}
-            />
+              className="font-black text-slate-800 dark:text-slate-100 text-sm sm:text-[15px] pt-3 pb-1 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2 first:pt-0"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+              <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(headerText) }} />
+            </div>
+          );
+        }
+
+        // Dedicated callout for synthesis / tổng hòa: ➔ ...
+        if (line.startsWith('➔') || line.startsWith('->')) {
+          const contentText = line.replace(/^(?:➔|->)+\s*/, '');
+          return (
+            <div
+              key={idx}
+              className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-transparent border border-amber-300/80 dark:border-amber-800/80 font-bold text-xs sm:text-sm text-amber-950 dark:text-amber-100 shadow-2xs leading-relaxed flex items-start gap-2.5"
+            >
+              <span className="text-amber-600 dark:text-amber-400 font-black text-base shrink-0 mt-0.5">✦</span>
+              <div
+                className="flex-1"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(contentText) }}
+              />
+            </div>
           );
         }
 
