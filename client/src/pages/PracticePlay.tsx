@@ -2386,6 +2386,18 @@ export default function PracticePlay() {
         is_first_ever: isFirstEver
       });
       
+      if (currentQuestion) {
+        const prevStats = currentQuestion.stats || { total: 0, correct: 0, avg_time: 0 }
+        const modeKey = practiceSubMode === 'typing' ? 'typing_count' : (practiceSubMode === 'listening' ? 'listening_count' : 'mcq_count')
+        currentQuestion.stats = {
+          ...prevStats,
+          total: (prevStats.total || 0) + 1,
+          encounter_count: ((prevStats.encounter_count ?? prevStats.total) || 0) + 1,
+          correct: isCorrect ? (prevStats.correct || 0) + 1 : (prevStats.correct || 0),
+          [modeKey]: (((prevStats as any)[modeKey]) || 0) + 1
+        }
+      }
+
       const xpGained = res.data.xp_gained || 0;
       if (xpGained > 0) {
         setSessionXP(prev => prev + xpGained);
@@ -2603,6 +2615,18 @@ export default function PracticePlay() {
         is_first_ever: isFirstEver
       });
       
+      if (currentQuestion) {
+        const prevStats = currentQuestion.stats || { total: 0, correct: 0, avg_time: 0 }
+        const modeKey = practiceSubMode === 'typing' ? 'typing_count' : (practiceSubMode === 'listening' ? 'listening_count' : 'mcq_count')
+        currentQuestion.stats = {
+          ...prevStats,
+          total: (prevStats.total || 0) + 1,
+          encounter_count: ((prevStats.encounter_count ?? prevStats.total) || 0) + 1,
+          correct: isCorrect ? (prevStats.correct || 0) + 1 : (prevStats.correct || 0),
+          [modeKey]: (((prevStats as any)[modeKey]) || 0) + 1
+        }
+      }
+
       const xpGained = res.data.xp_gained || 0;
       if (xpGained > 0) {
         setSessionXP(prev => prev + xpGained);

@@ -67,10 +67,16 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
   const stability = fsrs?.stability
   const difficulty = fsrs?.difficulty
   const stats = currentQuestion?.stats
-  const totalRevs = stats?.total ?? 0
+  const pSummary = currentQuestion?.practice_summary
+  const totalEncounters = stats?.encounter_count ?? stats?.total ?? 0
   const correctRevs = stats?.correct ?? 0
-  const accuracy = totalRevs > 0 ? Math.round((correctRevs / totalRevs) * 100) : null
+  const accuracy = totalEncounters > 0 ? Math.round((correctRevs / totalEncounters) * 100) : null
   const streak = (currentQuestion as any)?.consecutive_correct ?? (stats as any)?.consecutive_correct ?? 0
+
+  // Per-mode Drill Counts
+  const mcqCount = stats?.mcq_count ?? pSummary?.mcq_count ?? 0
+  const typingCount = stats?.typing_count ?? pSummary?.typing_count ?? 0
+  const listeningCount = stats?.listening_count ?? pSummary?.listening_count ?? 0
 
   const handlePlayAudio = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -155,19 +161,55 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
             </span>
           )}
 
-          {/* Review History / Stats */}
+          {/* Review History / Encounters ("Đã gặp bao nhiêu lần") */}
           <span 
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[10px] shadow-2xs"
-            title={totalRevs > 0 ? `${totalRevs} reviews (${correctRevs} correct)` : "Not reviewed yet"}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 font-bold text-[10px] shadow-2xs"
+            title={totalEncounters > 0 ? `Đã gặp ${totalEncounters} lần (${correctRevs} đúng${accuracy !== null ? `, ${accuracy}%` : ''})` : "Chưa gặp lần nào"}
           >
-            👁 {totalRevs} rev{totalRevs !== 1 ? 's' : ''}{accuracy !== null ? ` • ${accuracy}%` : ''}
+            👁 Gặp: {totalEncounters}
           </span>
+
+          {/* MCQ Test Count ("Đã test MCQ bao nhiêu lần") */}
+          <span 
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border font-bold text-[10px] shadow-2xs transition-colors",
+              mcqCount > 0 
+                ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/70"
+                : "bg-slate-50 dark:bg-slate-850 text-slate-400 border-slate-200/40"
+            )}
+            title={`Đã test trắc nghiệm MCQ: ${mcqCount} lần`}
+          >
+            ⚡ MCQ: {mcqCount}
+          </span>
+
+          {/* Typing Test Count ("Đã test Typing bao nhiêu lần") */}
+          <span 
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border font-bold text-[10px] shadow-2xs transition-colors",
+              typingCount > 0 
+                ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200/70"
+                : "bg-slate-50 dark:bg-slate-850 text-slate-400 border-slate-200/40"
+            )}
+            title={`Đã test gõ chữ Typing: ${typingCount} lần`}
+          >
+            ⌨️ Type: {typingCount}
+          </span>
+
+          {/* Listening Test Count (nếu có) */}
+          {listeningCount > 0 && (
+            <span 
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200/70 font-bold text-[10px] shadow-2xs"
+              title={`Đã test nghe Listening: ${listeningCount} lần`}
+            >
+              🎧 Listen: {listeningCount}
+            </span>
+          )}
 
           {/* Consecutive Streak */}
           {streak > 1 && (
             <span 
               className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 font-bold text-[10px] shadow-2xs"
-              title={`${streak} streak`}
+              title={`${streak} lần trả lời đúng liên tiếp`}
             >
               🔥 {streak}
             </span>

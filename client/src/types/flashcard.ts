@@ -21,12 +21,20 @@ export interface Question {
     total: number
     correct: number
     wrong?: number
-    avg_time: number
+    avg_time?: number
     again_count?: number
     hard_count?: number
     good_count?: number
     easy_count?: number
     last_answered?: string | null
+    encounter_count?: number
+    mcq_count?: number
+    mcq_correct?: number
+    typing_count?: number
+    typing_correct?: number
+    listening_count?: number
+    listening_correct?: number
+    total_practice?: number
   }
   box_level?: number
   image?: string | null
@@ -51,6 +59,12 @@ export interface Question {
   practice_summary?: {
     total_attempts: number
     drill_correct: number
+    mcq_count?: number
+    mcq_correct?: number
+    typing_count?: number
+    typing_correct?: number
+    listening_count?: number
+    listening_correct?: number
     last_practiced?: string | null
   }
   practice?: {

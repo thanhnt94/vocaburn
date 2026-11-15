@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 from app.modules.auth.services.auth_service import AuthService
 from app.modules.auth.services.user_settings_service import UserSettingsService
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, Integer, or_, desc
+from sqlalchemy import select, delete, func, Integer, or_, desc, case
 from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.modules.deck.services.excel_service import ExcelDeckService
@@ -747,7 +747,8 @@ async def get_deck_play_data(
         source_cards = source_cards[start_offset : start_offset + limit]
 
     active_card_ids = [c.id for c in source_cards]
-    if active_card_ids and not is_practice:
+    card_ans_stats = {}
+    if active_card_ids and user_id:
         p_stats_stmt = select(UserPracticeStats).where(
             UserPracticeStats.user_id == user_id,
             UserPracticeStats.card_id.in_(active_card_ids)
@@ -757,6 +758,22 @@ async def get_deck_play_data(
             if ps.card_id not in practice_records:
                 practice_records[ps.card_id] = []
             practice_records[ps.card_id].append(ps)
+
+        ans_query = select(
+            UserAnswer.card_id,
+            func.count(UserAnswer.id).label("total_answers"),
+            func.sum(case((or_(UserAnswer.is_correct == True, UserAnswer.rating >= 3), 1), else_=0)).label("correct_answers")
+        ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
+            DeckAttempt.user_id == user_id,
+            UserAnswer.card_id.in_(active_card_ids)
+        ).group_by(UserAnswer.card_id)
+        
+        ans_res = await db.execute(ans_query)
+        for r in ans_res.all():
+            card_ans_stats[r.card_id] = {
+                "total": r.total_answers or 0,
+                "correct": r.correct_answers or 0
+            }
 
     # Check settings if practice mode
     practice_needs_setup = False
@@ -789,112 +806,130 @@ async def get_deck_play_data(
 
     cards_list = []
     
-    if is_practice:
-        # Ultra-fast path for practice: just card data, no FSRS computation
-        for i, c in enumerate(source_cards):
-            cards_list.append({
-                "id": c.id,
-                "original_index": card_original_index_map.get(c.id, i + 1),
-                "content": c.content,
-                "explanation": c.explanation,
-                "ai_explanation": c.others.get("ai_explanation") if c.others else None,
-                "hint": c.others.get("hint") if c.others else None,
-                "mnemonic": c.others.get("mnemonic") if c.others else None,
-                "stats": None,
-                "box_level": 1,
-                "is_ignored": False,
-                "is_starred": False,
-                "fsrs": None,
-                "options": [],
-                "image": fix_static_urls(c.back_img),
-                "audio": fix_static_urls(c.front_audio_url),
-                "others": fix_static_urls(clean_card_others(c.others))
-            })
-    else:
-        # Predefined static default intervals for new cards (Zero CPU cost)
-        default_new_intervals = {"1": "1m", "2": "5m", "3": "10m", "4": "4d"}
+    # Predefined static default intervals for new cards (Zero CPU cost)
+    default_new_intervals = {"1": "1m", "2": "5m", "3": "10m", "4": "4d"}
+    
+    for idx, c in enumerate(source_cards):
+        m = mastery_records.get(c.id)
         
-        for idx, c in enumerate(source_cards):
-            m = mastery_records.get(c.id)
-            
-            m_state = m.state if m else 0
-            m_step = m.step if m else 0
-            m_stability = m.stability if m else None
-            m_difficulty = m.difficulty if m else None
-            m_due = m.due if m else datetime.utcnow()
-            m_last_review = m.last_review if m else None
-            m_box_level = m.box_level if m else 1
-            
-            is_new = (m is None) or (m_state == 0 and m_last_review is None)
-            
-            if is_new:
-                intervals = default_new_intervals
-            elif m_stability and m_stability > 0:
-                hard_days = max(1, round(m_stability * 1.2))
-                good_days = max(2, round(m_stability * 2.5))
-                easy_days = max(4, round(m_stability * 4.0))
-                intervals = {
-                    "1": "10m",
-                    "2": f"{hard_days}d",
-                    "3": f"{good_days}d",
-                    "4": f"{easy_days}d"
-                }
-            else:
-                intervals = default_new_intervals
-                        
-            card_p_stats = practice_records.get(c.id)
-            if card_p_stats:
-                total_attempts = sum((ps.correct_count or 0) + (ps.wrong_count or 0) for ps in card_p_stats)
-                drill_correct = sum((ps.correct_count or 0) for ps in card_p_stats if ps.practice_mode == "hybrid_drill")
-                has_hybrid_drill = any(ps.practice_mode == "hybrid_drill" for ps in card_p_stats)
-                has_practice = any(ps.practice_mode != "hybrid_drill" for ps in card_p_stats)
-                p_dates = [ps.last_practiced for ps in card_p_stats if ps.last_practiced]
-                last_practiced_dt = max(p_dates) if p_dates else None
-                practice_summary = {
-                    "total_attempts": total_attempts,
-                    "drill_correct": drill_correct,
-                    "has_hybrid_drill": has_hybrid_drill,
-                    "has_practice": has_practice,
-                    "last_practiced": last_practiced_dt.isoformat() if last_practiced_dt else None
-                }
-            else:
-                practice_summary = None
+        m_state = m.state if m else 0
+        m_step = m.step if m else 0
+        m_stability = m.stability if m else None
+        m_difficulty = m.difficulty if m else None
+        m_due = m.due if m else datetime.utcnow()
+        m_last_review = m.last_review if m else None
+        m_box_level = m.box_level if m else 1
+        
+        is_new = (m is None) or (m_state == 0 and m_last_review is None)
+        
+        if is_new:
+            intervals = default_new_intervals
+        elif m_stability and m_stability > 0:
+            hard_days = max(1, round(m_stability * 1.2))
+            good_days = max(2, round(m_stability * 2.5))
+            easy_days = max(4, round(m_stability * 4.0))
+            intervals = {
+                "1": "10m",
+                "2": f"{hard_days}d",
+                "3": f"{good_days}d",
+                "4": f"{easy_days}d"
+            }
+        else:
+            intervals = default_new_intervals
+                    
+        card_p_stats = practice_records.get(c.id, [])
+        mcq_stat = next((ps for ps in card_p_stats if ps.practice_mode in ("mcq", "roadmap_mcq")), None)
+        typing_stat = next((ps for ps in card_p_stats if ps.practice_mode in ("typing", "roadmap_typing")), None)
+        listening_stat = next((ps for ps in card_p_stats if ps.practice_mode == "listening"), None)
+        hybrid_stat = next((ps for ps in card_p_stats if ps.practice_mode in ("hybrid_drill", "hybrid")), None)
 
-            cards_list.append({
-                "id": c.id,
-                "original_index": card_original_index_map.get(c.id, idx + 1),
-                "content": c.content,
-                "explanation": c.explanation,
-                "front_audio_content": c.front_audio_content,
-                "back_audio_content": c.back_audio_content,
-                "front_audio_url": c.front_audio_url,
-                "back_audio_url": c.back_audio_url,
-                "front_img": c.front_img,
-                "back_img": c.back_img,
-                "practice_summary": practice_summary,
-                "stats": {
-                    "total": m.consecutive_correct if m else 0,
-                    "correct": m.consecutive_correct if m else 0,
-                    "last_answered": m.last_answered.isoformat() if (m and m.last_answered) else None
-                } if m else None,
-                "box_level": m_box_level,
-                "is_ignored": m.is_ignored if m else False,
-                "is_starred": m.is_starred if m else False,
-                "fsrs": {
-                    "state": m_state,
-                    "stability": m_stability,
-                    "difficulty": m_difficulty,
-                    "due": format_utc_iso(m_due),
-                    "last_review": format_utc_iso(m_last_review),
-                    "first_learned": format_utc_iso(m.last_answered) if (m and m.state > 0) else None,
-                    "last_reviewed": format_utc_iso(m_last_review),
-                    "intervals": intervals
-                },
-                "options": [],
-                "image": fix_static_urls(c.back_img),
-                "audio": fix_static_urls(c.front_audio_url),
-                "others": fix_static_urls(clean_card_others(c.others))
-            })
+        mcq_count = ((mcq_stat.correct_count or 0) + (mcq_stat.wrong_count or 0)) if mcq_stat else 0
+        mcq_correct = (mcq_stat.correct_count or 0) if mcq_stat else 0
+        typing_count = ((typing_stat.correct_count or 0) + (typing_stat.wrong_count or 0)) if typing_stat else 0
+        typing_correct = (typing_stat.correct_count or 0) if typing_stat else 0
+        listening_count = ((listening_stat.correct_count or 0) + (listening_stat.wrong_count or 0)) if listening_stat else 0
+        listening_correct = (listening_stat.correct_count or 0) if listening_stat else 0
+
+        total_attempts = sum((ps.correct_count or 0) + (ps.wrong_count or 0) for ps in card_p_stats)
+        drill_correct = sum((ps.correct_count or 0) for ps in card_p_stats if ps.practice_mode == "hybrid_drill")
+        has_hybrid_drill = any(ps.practice_mode == "hybrid_drill" for ps in card_p_stats)
+        has_practice = any(ps.practice_mode != "hybrid_drill" for ps in card_p_stats)
+        p_dates = [ps.last_practiced for ps in card_p_stats if ps.last_practiced]
+        last_practiced_dt = max(p_dates) if p_dates else None
+        
+        practice_summary = {
+            "total_attempts": total_attempts,
+            "drill_correct": drill_correct,
+            "mcq_count": mcq_count,
+            "mcq_correct": mcq_correct,
+            "typing_count": typing_count,
+            "typing_correct": typing_correct,
+            "listening_count": listening_count,
+            "listening_correct": listening_correct,
+            "has_hybrid_drill": has_hybrid_drill,
+            "has_practice": has_practice,
+            "last_practiced": last_practiced_dt.isoformat() if last_practiced_dt else None
+        }
+
+        ans_row = card_ans_stats.get(c.id)
+        total_ans = ans_row["total"] if ans_row else (m.consecutive_correct if m and m.consecutive_correct else 0)
+        correct_ans = ans_row["correct"] if ans_row else (m.consecutive_correct if m and m.consecutive_correct else 0)
+
+        cards_list.append({
+            "id": c.id,
+            "original_index": card_original_index_map.get(c.id, idx + 1),
+            "content": c.content,
+            "explanation": c.explanation,
+            "ai_explanation": c.others.get("ai_explanation") if c.others else None,
+            "hint": c.others.get("hint") if c.others else None,
+            "mnemonic": c.others.get("mnemonic") if c.others else None,
+            "front_audio_content": c.front_audio_content,
+            "back_audio_content": c.back_audio_content,
+            "front_audio_url": c.front_audio_url,
+            "back_audio_url": c.back_audio_url,
+            "front_img": c.front_img,
+            "back_img": c.back_img,
+            "practice_summary": practice_summary,
+            "stats": {
+                "total": total_ans,
+                "correct": correct_ans,
+                "wrong": max(0, total_ans - correct_ans),
+                "encounter_count": total_ans,
+                "mcq_count": mcq_count,
+                "mcq_correct": mcq_correct,
+                "typing_count": typing_count,
+                "typing_correct": typing_correct,
+                "listening_count": listening_count,
+                "listening_correct": listening_correct,
+                "total_practice": total_attempts,
+                "consecutive_correct": m.consecutive_correct if m else 0,
+                "last_answered": m.last_answered.isoformat() if (m and m.last_answered) else None
+            },
+            "box_level": m_box_level,
+            "is_ignored": m.is_ignored if m else False,
+            "is_starred": m.is_starred if m else False,
+            "fsrs": {
+                "state": m_state,
+                "stability": m_stability,
+                "difficulty": m_difficulty,
+                "due": format_utc_iso(m_due),
+                "last_review": format_utc_iso(m_last_review),
+                "first_learned": format_utc_iso(m.last_answered) if (m and m.state > 0) else None,
+                "last_reviewed": format_utc_iso(m_last_review),
+                "intervals": intervals
+            } if m else {
+                "state": 0,
+                "stability": None,
+                "difficulty": None,
+                "due": None,
+                "last_review": None,
+                "intervals": default_new_intervals
+            },
+            "options": [],
+            "image": fix_static_urls(c.back_img),
+            "audio": fix_static_urls(c.front_audio_url),
+            "others": fix_static_urls(clean_card_others(c.others))
+        })
         
     if user_id:
         user_global_sett_obj = await UserSettingsService.get_or_create_settings(db, user_id)
