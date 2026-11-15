@@ -850,6 +850,7 @@ export default function PracticePlay() {
     const raw_answer_key = activePair.a;
     const primary_answer_key = Array.isArray(raw_answer_key) ? (raw_answer_key[0] || 'back') : (raw_answer_key || 'back');
     const audio_col = (activePair as any).audio_col !== undefined ? (activePair as any).audio_col : undefined;
+    const img_col = (activePair as any).img_col !== undefined ? (activePair as any).img_col : undefined;
     const configuredHintCol = (activePair as any)?.hint_col || (activePair as any)?.prompt_hint_col || (activePair as any)?.extra_col;
     const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.result_subtext_col || (activePair as any)?.info_col;
     const num_choices = setupNumChoices || 4;
@@ -1015,7 +1016,8 @@ export default function PracticePlay() {
         correct_answer: correctAns,
         question_key,
         answer_key: primary_answer_key,
-        audio_col: audio_col !== undefined ? audio_col : primary_answer_key
+        audio_col: audio_col !== undefined ? audio_col : primary_answer_key,
+        img_col: img_col !== undefined ? img_col : undefined
       };
       practiceCardCacheRef.current[qObj.id] = finalPracticeData;
       setCurrentPracticeData(finalPracticeData);
@@ -1063,7 +1065,8 @@ export default function PracticePlay() {
         acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
         question_key,
         answer_key: answer_keys.length > 1 ? answer_keys : (answer_keys[0] || 'front'),
-        audio_col: audio_col !== undefined ? audio_col : (answer_keys[0] || 'front')
+        audio_col: audio_col !== undefined ? audio_col : (answer_keys[0] || 'front'),
+        img_col: img_col !== undefined ? img_col : undefined
       };
       practiceCardCacheRef.current[qObj.id] = finalPracticeData;
       setCurrentPracticeData(finalPracticeData);

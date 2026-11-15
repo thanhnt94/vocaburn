@@ -74,8 +74,9 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
 
   const imageSettings = (currentQuestion as any)?.deck_image_configs
   const answerImages = useMemo(() => {
+    if ((practiceData as any)?.img_col === 'none') return []
     return extractCardImages(currentQuestion, 'back', imageSettings)
-  }, [currentQuestion, imageSettings])
+  }, [currentQuestion, imageSettings, (practiceData as any)?.img_col])
 
   const isMcq = listeningType === 'mcq' || (Boolean(choices && choices.length > 0) && listeningType !== 'typing')
 

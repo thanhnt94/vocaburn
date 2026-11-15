@@ -16,6 +16,7 @@ import {
   Target,
   Volume2,
   Info,
+  Image as ImageIcon,
 } from 'lucide-react'
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -34,6 +35,7 @@ export interface QuestionAnswerPair {
   prompt_col?: string
   answer_col?: string | string[]
   audio_col?: string
+  img_col?: string
   hint_col?: string
   subtext_col?: string
   smart_distractor?: SmartDistractorConfig
@@ -119,6 +121,7 @@ function normalizePair(p: any): QuestionAnswerPair {
   }
   const displayA = Array.isArray(a) ? a.join(', ') : a
   const audio_col = p.audio_col !== undefined ? String(p.audio_col).trim() : (p.audio_channel || p.audio_target || '')
+  const img_col = p.img_col !== undefined ? String(p.img_col).trim() : (p.image_col || p.image || '')
   const hint_col = p.hint_col !== undefined ? String(p.hint_col).trim() : (p.extra_col || p.prompt_hint_col || '')
   const subtext_col = p.subtext_col !== undefined ? String(p.subtext_col).trim() : (p.result_subtext_col || p.info_col || '')
   return {
@@ -128,6 +131,7 @@ function normalizePair(p: any): QuestionAnswerPair {
     prompt_col: p.prompt_col ? cleanCol(p.prompt_col) : q,
     answer_col: p.answer_col ? (Array.isArray(p.answer_col) ? p.answer_col.map(cleanCol) : cleanCol(p.answer_col)) : a,
     audio_col,
+    img_col,
     hint_col,
     subtext_col,
     smart_distractor: p.smart_distractor,
@@ -358,6 +362,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        img_col: p.img_col !== undefined ? p.img_col : undefined,
         hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
         smart_distractor: p.smart_distractor || undefined,
@@ -369,6 +374,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        img_col: p.img_col !== undefined ? p.img_col : undefined,
         hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
@@ -379,6 +385,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        img_col: p.img_col !== undefined ? p.img_col : undefined,
         hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
         smart_distractor: p.smart_distractor || undefined,
@@ -390,6 +397,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         prompt_col: p.q,
         answer_col: Array.isArray(p.a) ? p.a : [p.a],
         audio_col: p.audio_col || undefined,
+        img_col: p.img_col !== undefined ? p.img_col : undefined,
         hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
@@ -516,7 +524,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'hint_col' | 'subtext_col' | 'smart_distractor', value: any) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'img_col' | 'hint_col' | 'subtext_col' | 'smart_distractor', value: any) => {
     setCurrentPairs((prev) =>
       prev.map((p, i) => {
         if (i !== index) return p
@@ -524,6 +532,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         if (field === 'q') updated.prompt_col = String(value)
         if (field === 'a') updated.answer_col = value
         if (field === 'audio_col') updated.audio_col = String(value)
+        if (field === 'img_col') updated.img_col = String(value)
         if (field === 'hint_col') updated.hint_col = String(value)
         if (field === 'subtext_col') updated.subtext_col = String(value)
         if (field === 'smart_distractor') updated.smart_distractor = value
@@ -1072,6 +1081,43 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                             ))}
                           </optgroup>
                           <option value="none">🔇 Tắt âm thanh (Không phát sau khi trả lời)</option>
+                        </select>
+                      </div>
+
+                      {/* Image Channel (Cột hiển thị ảnh hoặc tắt hình ảnh) */}
+                      <div className="pt-2.5 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <ImageIcon className="w-3.5 h-3.5 text-pink-500" />
+                            <span>Image Channel (Hình ảnh minh họa / Cột hiển thị ảnh):</span>
+                          </label>
+                          <span className="text-[9px] font-medium text-slate-400">
+                            Hiển thị ảnh minh họa cùng câu hỏi hoặc tắt ảnh
+                          </span>
+                        </div>
+                        <select
+                          value={pair.img_col !== undefined ? pair.img_col : ''}
+                          onChange={(e) => handleUpdatePair(idx, 'img_col', e.target.value)}
+                          className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                        >
+                          <option value="">🎯 Tự động theo mặt câu hỏi (Mặc định: front_img / back_img)</option>
+                          <option value="none">🚫 Tắt hình ảnh (Không hiển thị ảnh trong câu hỏi)</option>
+                          {availableColumns.some(c => c.toLowerCase().includes('img') || c.toLowerCase().includes('image') || c.toLowerCase().includes('ảnh')) && (
+                            <optgroup label="Cột Hình Ảnh Nhận Diện Trong Deck">
+                              {availableColumns.filter(c => c.toLowerCase().includes('img') || c.toLowerCase().includes('image') || c.toLowerCase().includes('ảnh')).map((col) => (
+                                <option key={col} value={col}>
+                                  🖼️ {formatColumnOption(col, 'Cột: ')}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                          <optgroup label="Tất cả các cột trong Deck">
+                            {availableColumns.map((col) => (
+                              <option key={col} value={col}>
+                                {formatColumnOption(col, 'Cột: ')}
+                              </option>
+                            ))}
+                          </optgroup>
                         </select>
                       </div>
 

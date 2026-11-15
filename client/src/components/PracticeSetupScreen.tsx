@@ -9,6 +9,7 @@ interface Pair {
   hint_col?: string
   subtext_col?: string
   audio_col?: string
+  img_col?: string
   smart_distractor?: SmartDistractorConfig
 }
 
@@ -227,6 +228,33 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
                   >
                     <option value="">🎯 Tự động theo cột đáp án (Mặc định)</option>
+                    {availableColumns.map(col => (
+                      <option key={col} value={col}>{col.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Image Channel Column */}
+                <div className="pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">
+                      Image Channel (Hình ảnh minh họa / Cột hiển thị ảnh)
+                    </label>
+                    <span className="text-[9px] text-slate-400">
+                      Hiển thị ảnh minh họa cùng câu hỏi hoặc tắt ảnh
+                    </span>
+                  </div>
+                  <select
+                    value={pair.img_col !== undefined ? pair.img_col : ''}
+                    onChange={(e) => {
+                      const newPairs = [...setupPairs];
+                      newPairs[idx] = { ...newPairs[idx], img_col: e.target.value };
+                      setSetupPairs(newPairs);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="">🎯 Tự động theo mặt câu hỏi (Mặc định: front_img / back_img)</option>
+                    <option value="none">🚫 Tắt hình ảnh (Không hiển thị ảnh trong câu hỏi)</option>
                     {availableColumns.map(col => (
                       <option key={col} value={col}>{col.toUpperCase()}</option>
                     ))}

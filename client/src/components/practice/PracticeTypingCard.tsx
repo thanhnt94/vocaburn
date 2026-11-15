@@ -3,7 +3,7 @@ import { Sparkles, Check, X, Volume2, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
-import { extractCardImages } from '@/lib/image-utils'
+import { extractCardImages, splitImageUrls } from '@/lib/image-utils'
 import { getBackFontSizeStyle, getSubtextFontSizeStyle } from '@/components/common/study'
 import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
@@ -91,19 +91,29 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     return list
   }, [practiceData.acceptable_answers, correct_answer])
 
-  const isImageVisible = showImages !== 'off' && showImages !== 'none' && showImages !== false && showImages !== 'false'
+  const isImageVisible = showImages !== 'off' && showImages !== 'none' && showImages !== false && showImages !== 'false' && (practiceData as any)?.img_col !== 'none'
   const imageSettings = (currentQuestion as any)?.deck_image_configs
   const questionImages = useMemo(() => {
     if (!isImageVisible) return []
+    const imgCol = (practiceData as any)?.img_col
+    if (imgCol && imgCol !== 'auto' && imgCol !== 'none') {
+      const qAny = currentQuestion as any
+      const val = qAny?.[imgCol] ?? qAny?.others?.[imgCol] ?? ''
+      if (val) {
+        return splitImageUrls(String(val))
+      }
+      return []
+    }
     return extractCardImages(currentQuestion, 'front', imageSettings)
-  }, [currentQuestion, isImageVisible, imageSettings])
+  }, [currentQuestion, isImageVisible, imageSettings, (practiceData as any)?.img_col])
 
   const answerImages = useMemo(() => {
     if (!isImageVisible) return []
+    if ((practiceData as any)?.img_col === 'none') return []
     const backImgs = extractCardImages(currentQuestion, 'back', imageSettings)
     const questionUrls = new Set(questionImages)
     return backImgs.filter(url => !questionUrls.has(url))
-  }, [currentQuestion, isImageVisible, imageSettings, questionImages])
+  }, [currentQuestion, isImageVisible, imageSettings, questionImages, (practiceData as any)?.img_col])
 
   const promptLabel = useMemo(() => {
     const qk = String(question_key || 'front').toLowerCase()
