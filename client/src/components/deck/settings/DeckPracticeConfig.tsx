@@ -22,6 +22,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useAutoSaveStore } from './useAutoSaveNotifier'
+import { type SmartDistractorConfig, DEFAULT_SMART_DISTRACTOR_CONFIG } from '@/lib/distractor'
 
 export type PracticeModeKey = 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
 export type LearnModeKey = 'fsrs' | 'skim' | 'autoplay'
@@ -35,6 +36,7 @@ export interface QuestionAnswerPair {
   audio_col?: string
   hint_col?: string
   subtext_col?: string
+  smart_distractor?: SmartDistractorConfig
 }
 
 export interface DeckPracticeConfigProps {
@@ -128,6 +130,7 @@ function normalizePair(p: any): QuestionAnswerPair {
     audio_col,
     hint_col,
     subtext_col,
+    smart_distractor: p.smart_distractor,
   }
 }
 
@@ -357,6 +360,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         audio_col: p.audio_col || undefined,
         hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
+        smart_distractor: p.smart_distractor || undefined,
       }))
 
       const formattedTypingPairs = effTypingPairs.map((p: any) => ({
@@ -377,6 +381,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         audio_col: p.audio_col || undefined,
         hint_col: p.hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
+        smart_distractor: p.smart_distractor || undefined,
       }))
 
       const formattedListeningTypingPairs = effListeningTypingPairs.map((p: any) => ({
@@ -511,7 +516,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'hint_col' | 'subtext_col', value: string | string[]) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'hint_col' | 'subtext_col' | 'smart_distractor', value: any) => {
     setCurrentPairs((prev) =>
       prev.map((p, i) => {
         if (i !== index) return p
@@ -521,6 +526,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         if (field === 'audio_col') updated.audio_col = String(value)
         if (field === 'hint_col') updated.hint_col = String(value)
         if (field === 'subtext_col') updated.subtext_col = String(value)
+        if (field === 'smart_distractor') updated.smart_distractor = value
         updated.name = `${updated.q} ➜ ${Array.isArray(updated.a) ? updated.a.join(', ') : updated.a}`
         return updated
       })
@@ -1118,6 +1124,190 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           ))}
                         </select>
                       </div>
+
+                      {/* 6. Smart Distractor Engine (Bẫy Gây Nhiễu Thông Minh) */}
+                      {(activePracticeTab === 'mcq' || activePracticeTab === 'listening_mcq') && (() => {
+                        const currentCfg = pair.smart_distractor || { ...DEFAULT_SMART_DISTRACTOR_CONFIG }
+                        const isEnabled = currentCfg.enabled !== false
+                        const matchScript = currentCfg.match_script !== false
+                        const matchWordCount = currentCfg.match_word_count !== false
+                        const matchLength = currentCfg.match_length !== false
+                        const matchSharedKanji = Boolean(currentCfg.match_shared_kanji)
+                        const selectedCategoryCol = currentCfg.category_col !== undefined ? currentCfg.category_col : 'pos'
+
+                        return (
+                          <div className="pt-2.5 border-t border-slate-100">
+                            <div className="bg-slate-50/70 rounded-xl p-3 border border-indigo-100/80 space-y-2.5 shadow-2xs">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>6. Smart Distractor (Bẫy Đáp Án Thông Minh):</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleUpdatePair(idx, 'smart_distractor', { ...currentCfg, enabled: !isEnabled })
+                                  }}
+                                  className={cn(
+                                    "text-[9px] font-black px-2.5 py-1 rounded-lg border transition-all cursor-pointer shadow-2xs",
+                                    isEnabled
+                                      ? "bg-indigo-600 border-indigo-600 text-white"
+                                      : "bg-white border-slate-300 text-slate-500"
+                                  )}
+                                >
+                                  {isEnabled ? "ON (BẬT)" : "OFF (TẮT)"}
+                                </button>
+                              </div>
+
+                              {isEnabled && (
+                                <div className="space-y-2 pt-0.5">
+                                  {/* Category Column Match */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                                        Khớp Theo Category / Loại Từ (Cột thuộc tính)
+                                      </span>
+                                      <span className="text-[8.5px] text-slate-400">
+                                        Ưu tiên đáp án có cùng loại từ (vd: Nする chỉ đi với Nする)
+                                      </span>
+                                    </div>
+                                    <select
+                                      value={selectedCategoryCol}
+                                      onChange={(e) => {
+                                        handleUpdatePair(idx, 'smart_distractor', { ...currentCfg, category_col: e.target.value })
+                                      }}
+                                      className="w-full h-9 px-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                                    >
+                                      <option value="">(None - Không giới hạn theo category)</option>
+                                      {availableColumns.map((col) => (
+                                        <option key={col} value={col}>
+                                          {formatColumnOption(col, 'Cột: ')}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  {/* Filter Toggles */}
+                                  <div>
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">
+                                      Các Bộ Lọc Tiêu Chí Gây Nhiễu:
+                                    </span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {/* Filter 1: Script pattern */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleUpdatePair(idx, 'smart_distractor', { ...currentCfg, match_script: !matchScript })
+                                        }}
+                                        className={cn(
+                                          "p-2 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer select-none",
+                                          matchScript
+                                            ? "bg-white border-indigo-200 text-indigo-950 shadow-2xs"
+                                            : "bg-white/60 border-slate-200 text-slate-400 opacity-60"
+                                        )}
+                                      >
+                                        <div className={cn(
+                                          "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
+                                          matchScript
+                                            ? "bg-indigo-600 text-white shadow-2xs"
+                                            : "bg-slate-100 border border-slate-300 text-transparent"
+                                        )}>
+                                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-black leading-tight">Khớp kiểu chữ Kanji / Script</div>
+                                          <div className="text-[8.5px] text-slate-500 leading-tight mt-0.5">2 Kanji (KK) đi với 2 Kanji, Katakana đi với Katakana</div>
+                                        </div>
+                                      </button>
+
+                                      {/* Filter 2: Word Count */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleUpdatePair(idx, 'smart_distractor', { ...currentCfg, match_word_count: !matchWordCount })
+                                        }}
+                                        className={cn(
+                                          "p-2 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer select-none",
+                                          matchWordCount
+                                            ? "bg-white border-indigo-200 text-indigo-950 shadow-2xs"
+                                            : "bg-white/60 border-slate-200 text-slate-400 opacity-60"
+                                        )}
+                                      >
+                                        <div className={cn(
+                                          "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
+                                          matchWordCount
+                                            ? "bg-indigo-600 text-white shadow-2xs"
+                                            : "bg-slate-100 border border-slate-300 text-transparent"
+                                        )}>
+                                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-black leading-tight">Khớp số lượng từ (Word Count)</div>
+                                          <div className="text-[8.5px] text-slate-500 leading-tight mt-0.5">Tiếng Việt / cụm từ: Cùng 2 từ (Bắt tay ➔ Bắt buộc, Ép buộc)</div>
+                                        </div>
+                                      </button>
+
+                                      {/* Filter 3: Length similarity */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleUpdatePair(idx, 'smart_distractor', { ...currentCfg, match_length: !matchLength })
+                                        }}
+                                        className={cn(
+                                          "p-2 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer select-none",
+                                          matchLength
+                                            ? "bg-white border-indigo-200 text-indigo-950 shadow-2xs"
+                                            : "bg-white/60 border-slate-200 text-slate-400 opacity-60"
+                                        )}
+                                      >
+                                        <div className={cn(
+                                          "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
+                                          matchLength
+                                            ? "bg-indigo-600 text-white shadow-2xs"
+                                            : "bg-slate-100 border border-slate-300 text-transparent"
+                                        )}>
+                                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-black leading-tight">Tương đồng độ dài (±30%)</div>
+                                          <div className="text-[8.5px] text-slate-500 leading-tight mt-0.5">Tránh việc đoán ra đáp án vì độ dài quá ngắn hay quá dài</div>
+                                        </div>
+                                      </button>
+
+                                      {/* Filter 4: Shared Kanji trap */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleUpdatePair(idx, 'smart_distractor', { ...currentCfg, match_shared_kanji: !matchSharedKanji })
+                                        }}
+                                        className={cn(
+                                          "p-2 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer select-none",
+                                          matchSharedKanji
+                                            ? "bg-amber-50/80 border-amber-300 text-amber-950 shadow-2xs"
+                                            : "bg-white/60 border-slate-200 text-slate-400 opacity-60"
+                                        )}
+                                      >
+                                        <div className={cn(
+                                          "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
+                                          matchSharedKanji
+                                            ? "bg-amber-600 text-white shadow-2xs"
+                                            : "bg-slate-100 border border-slate-300 text-transparent"
+                                        )}>
+                                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-black leading-tight">Ưu tiên chữ Hán chung (Bẫy JLPT)</div>
+                                          <div className="text-[8.5px] text-slate-500 leading-tight mt-0.5">Chung Hán tự (vd: 合図 ➔ 合同, 合格). Rất thử thách!</div>
+                                        </div>
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })

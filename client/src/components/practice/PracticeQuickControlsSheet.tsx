@@ -30,13 +30,11 @@ import {
   LayoutGrid,
   TrendingUp,
   Gauge,
-  EyeOff,
-  ChevronDown,
-  ChevronUp
+  EyeOff
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Question } from '@/types/flashcard'
-import { type SmartDistractorConfig, DEFAULT_SMART_DISTRACTOR_CONFIG } from '@/lib/distractor'
+import type { SmartDistractorConfig } from '@/lib/distractor'
 
 export type PracticeScope = 'all' | 'review' | 'new' | 'learned'
 export type PracticeSubMode = 'mcq' | 'typing' | 'listening_mcq' | 'listening_typing'
@@ -88,9 +86,6 @@ export interface PracticeQuickControlsSheetProps {
   onToggleBottomNavTabs?: () => void
   onOpenMap?: () => void
   onOpenStats?: () => void
-  availableColumns?: string[]
-  onOpenPracticeSetup?: () => void
-  onUpdatePairSmartDistractor?: (pairIdx: number, newConfig: SmartDistractorConfig) => void
 }
 
 export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProps> = ({
@@ -140,14 +135,9 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
   onToggleBottomNavTabs,
   onOpenMap,
   onOpenStats,
-  availableColumns = [],
-  onOpenPracticeSetup,
-  onUpdatePairSmartDistractor,
 }) => {
   const [copiedQuestion, setCopiedQuestion] = useState(false)
   const [copiedAnswer, setCopiedAnswer] = useState(false)
-  const [isSmartDistractorExpanded, setIsSmartDistractorExpanded] = useState(false)
-  const [editingPairIdx, setEditingPairIdx] = useState(0)
   const dragControls = useDragControls()
   const drawerRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -523,15 +513,11 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                     <button
                       type="button"
                       onClick={() => {
-                        if (onOpenPracticeSetup) {
-                          onOpenPracticeSetup()
-                        } else {
-                          onClose()
-                          window.location.href = `/decks/${deckId}?tab=settings`
-                        }
+                        onClose()
+                        window.location.href = `/decks/${deckId}?tab=settings&subtab=practice`
                       }}
                       className="w-7 h-7 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 flex items-center justify-center transition-all active:scale-90 cursor-pointer border border-slate-200/60 shadow-2xs group"
-                      title="Practice Q&A Settings"
+                      title="Practice Settings"
                     >
                       <Settings className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform duration-300" />
                     </button>
@@ -815,254 +801,6 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                     )
                   })}
                 </div>
-
-                {/* Smart Distractor Interactive Quick Panel */}
-                {(practiceSubMode === 'mcq' || (practiceSubMode as string) === 'listening_mcq') && configuredPairs.length > 0 && (() => {
-                  const targetPairIdx = Math.min(editingPairIdx, configuredPairs.length - 1);
-                  const activePairObj = configuredPairs[targetPairIdx] || configuredPairs[0];
-                  const currentCfg = activePairObj?.smart_distractor || { ...DEFAULT_SMART_DISTRACTOR_CONFIG };
-                  const isEnabled = currentCfg.enabled !== false;
-                  const matchScript = currentCfg.match_script !== false;
-                  const matchWordCount = currentCfg.match_word_count !== false;
-                  const matchLength = currentCfg.match_length !== false;
-                  const matchSharedKanji = Boolean(currentCfg.match_shared_kanji);
-                  const selectedCategoryCol = currentCfg.category_col !== undefined ? currentCfg.category_col : 'pos';
-
-                  return (
-                    <div className="mt-1 bg-white rounded-xl border border-indigo-100 overflow-hidden shadow-2xs">
-                      {/* Section Accordion Header */}
-                      <button
-                        type="button"
-                        onClick={() => setIsSmartDistractorExpanded(prev => !prev)}
-                        className="w-full flex items-center justify-between p-2 bg-indigo-50/40 hover:bg-indigo-50/70 transition-colors text-left cursor-pointer select-none"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                          <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-800">
-                            Smart Distractor Filters (Bẫy Gây Nhiễu)
-                          </span>
-                          <span className={cn(
-                            "text-[8px] font-black px-1.5 py-0.2 rounded-full border",
-                            isEnabled
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-slate-100 text-slate-500 border-slate-200"
-                          )}>
-                            {isEnabled ? "ACTIVE" : "OFF"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-slate-400">
-                          {isSmartDistractorExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          )}
-                        </div>
-                      </button>
-
-                      {isSmartDistractorExpanded && (
-                        <div className="p-2.5 space-y-2 border-t border-indigo-100/60 bg-white">
-                          {/* Pair selector tabs if multiple pairs */}
-                          {configuredPairs.length > 1 && (
-                            <div className="flex items-center gap-1 pb-1 overflow-x-auto no-scrollbar">
-                              <span className="text-[8.5px] font-bold text-slate-400 shrink-0 uppercase tracking-tight">Configure:</span>
-                              {configuredPairs.map((p, pIdx) => (
-                                <button
-                                  key={pIdx}
-                                  type="button"
-                                  onClick={() => setEditingPairIdx(pIdx)}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all shrink-0 cursor-pointer border",
-                                    targetPairIdx === pIdx
-                                      ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                                  )}
-                                >
-                                  Pair #{pIdx + 1}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Master Toggle */}
-                          <div className="flex items-center justify-between pb-1">
-                            <span className="text-[9px] font-black text-slate-700 uppercase tracking-wider">
-                              Smart Distractor Engine
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const nextCfg = { ...currentCfg, enabled: !isEnabled };
-                                onUpdatePairSmartDistractor?.(targetPairIdx, nextCfg);
-                              }}
-                              className={cn(
-                                "text-[9px] font-black px-2 py-0.5 rounded-lg border transition-all cursor-pointer",
-                                isEnabled
-                                  ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
-                                  : "bg-slate-100 border-slate-200 text-slate-500"
-                              )}
-                            >
-                              {isEnabled ? "ON" : "OFF"}
-                            </button>
-                          </div>
-
-                          {isEnabled && (
-                            <div className="space-y-2 pt-0.5">
-                              {/* Category / Column Filter */}
-                              <div>
-                                <div className="flex items-center justify-between mb-0.5">
-                                  <label className="text-[8.5px] font-black text-slate-500 uppercase tracking-wider">
-                                    Khớp Category / Cột thuộc tính
-                                  </label>
-                                  <span className="text-[8px] text-slate-400">Ưu tiên cùng loại từ</span>
-                                </div>
-                                <select
-                                  value={selectedCategoryCol}
-                                  onChange={(e) => {
-                                    const nextCfg = { ...currentCfg, category_col: e.target.value };
-                                    onUpdatePairSmartDistractor?.(targetPairIdx, nextCfg);
-                                  }}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 outline-none focus:border-indigo-500 cursor-pointer"
-                                >
-                                  <option value="">(None - Không giới hạn)</option>
-                                  {availableColumns.map(col => (
-                                    <option key={col} value={col}>Cột: {col.toUpperCase()}</option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              {/* 4 Interactive Filter Checkboxes */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
-                                {/* Filter 1: Script pattern */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const nextCfg = { ...currentCfg, match_script: !matchScript };
-                                    onUpdatePairSmartDistractor?.(targetPairIdx, nextCfg);
-                                  }}
-                                  className={cn(
-                                    "p-1.5 rounded-xl border text-left flex items-start gap-1.5 transition-all cursor-pointer select-none",
-                                    matchScript
-                                      ? "bg-indigo-50/70 border-indigo-200 text-indigo-950"
-                                      : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
-                                    matchScript
-                                      ? "bg-indigo-600 text-white"
-                                      : "bg-white border border-slate-300 text-transparent"
-                                  )}>
-                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                  </div>
-                                  <div>
-                                    <div className="text-[9px] font-black leading-tight">Khớp kiểu chữ Kanji / Script</div>
-                                    <div className="text-[7.5px] text-slate-500 leading-tight">2 Kanji (KK) đi với 2 Kanji</div>
-                                  </div>
-                                </button>
-
-                                {/* Filter 2: Word Count */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const nextCfg = { ...currentCfg, match_word_count: !matchWordCount };
-                                    onUpdatePairSmartDistractor?.(targetPairIdx, nextCfg);
-                                  }}
-                                  className={cn(
-                                    "p-1.5 rounded-xl border text-left flex items-start gap-1.5 transition-all cursor-pointer select-none",
-                                    matchWordCount
-                                      ? "bg-indigo-50/70 border-indigo-200 text-indigo-950"
-                                      : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
-                                    matchWordCount
-                                      ? "bg-indigo-600 text-white"
-                                      : "bg-white border border-slate-300 text-transparent"
-                                  )}>
-                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                  </div>
-                                  <div>
-                                    <div className="text-[9px] font-black leading-tight">Khớp số lượng từ (Word Count)</div>
-                                    <div className="text-[7.5px] text-slate-500 leading-tight">Tiếng Việt / cụm từ: Cùng 2 từ</div>
-                                  </div>
-                                </button>
-
-                                {/* Filter 3: Length similarity */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const nextCfg = { ...currentCfg, match_length: !matchLength };
-                                    onUpdatePairSmartDistractor?.(targetPairIdx, nextCfg);
-                                  }}
-                                  className={cn(
-                                    "p-1.5 rounded-xl border text-left flex items-start gap-1.5 transition-all cursor-pointer select-none",
-                                    matchLength
-                                      ? "bg-indigo-50/70 border-indigo-200 text-indigo-950"
-                                      : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
-                                    matchLength
-                                      ? "bg-indigo-600 text-white"
-                                      : "bg-white border border-slate-300 text-transparent"
-                                  )}>
-                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                  </div>
-                                  <div>
-                                    <div className="text-[9px] font-black leading-tight">Tương đồng độ dài (±30%)</div>
-                                    <div className="text-[7.5px] text-slate-500 leading-tight">Tránh lộ đáp án vì độ dài</div>
-                                  </div>
-                                </button>
-
-                                {/* Filter 4: Shared Kanji trap */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const nextCfg = { ...currentCfg, match_shared_kanji: !matchSharedKanji };
-                                    onUpdatePairSmartDistractor?.(targetPairIdx, nextCfg);
-                                  }}
-                                  className={cn(
-                                    "p-1.5 rounded-xl border text-left flex items-start gap-1.5 transition-all cursor-pointer select-none",
-                                    matchSharedKanji
-                                      ? "bg-amber-50/80 border-amber-300 text-amber-950"
-                                      : "bg-slate-50 border-slate-200 text-slate-400 opacity-60"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 mt-0.5",
-                                    matchSharedKanji
-                                      ? "bg-amber-600 text-white"
-                                      : "bg-white border border-slate-300 text-transparent"
-                                  )}>
-                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                  </div>
-                                  <div>
-                                    <div className="text-[9px] font-black leading-tight">Chung chữ Hán (Bẫy JLPT)</div>
-                                    <div className="text-[7.5px] text-slate-500 leading-tight">Chung Hán tự (合図 ➔ 合同)</div>
-                                  </div>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Configure Setup Screen Shortcut */}
-                {onOpenPracticeSetup && (
-                  <button
-                    type="button"
-                    onClick={onOpenPracticeSetup}
-                    className="w-full mt-1 py-1.5 px-2.5 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/30 hover:bg-indigo-50 text-indigo-700 text-[9.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Open Full Practice Setup ⚙️</span>
-                  </button>
-                )}
               </div>
             )}
 

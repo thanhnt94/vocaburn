@@ -5262,12 +5262,6 @@ export default function PracticePlay() {
         onToggleBottomNavTabs={handleToggleBottomNavTabs}
         onOpenMap={() => setIsMapOpen(true)}
         onOpenStats={() => setIsStatsOpen(true)}
-        availableColumns={availableColumns}
-        onOpenPracticeSetup={() => {
-          setIsQuickControlsOpen(false);
-          navigate(`/practice/${id}/setting`);
-        }}
-        onUpdatePairSmartDistractor={handleUpdatePairSmartDistractor}
       />
     </div>
   )
