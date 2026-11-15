@@ -222,53 +222,122 @@ export function DashboardDailyActivityHUD({
       )}
       title="Click to view detailed daily learning summary"
     >
-      {/* ROW 1: Header + Active Time + Quick Action Button */}
+      {/* ROW 1: Clean Header Title + View Log Action (Zero Duplicates, No 443 Due) */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-orange-500 via-amber-500 to-rose-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
             ⚡
           </div>
-          <div className="flex items-center gap-1.5 truncate">
-            <span className="text-xs sm:text-sm font-black tracking-tight text-slate-900 dark:text-slate-100">
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs sm:text-sm font-black tracking-tight text-slate-900 dark:text-slate-100 leading-tight">
               Today's Activity
             </span>
-            <span className="text-[10px] font-black text-orange-700 dark:text-orange-300 bg-orange-100/90 dark:bg-orange-950/70 px-1.5 py-0.5 rounded-md flex items-center gap-1 tabular-nums">
-              <Clock className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400 shrink-0" />
-              <span>{timeLabel}</span>
+            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 leading-tight">
+              Daily learning progress & session breakdown
             </span>
           </div>
         </div>
 
-        {/* RIGHT: Quick Action CTA (Due queue review or View summary) */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {globalFocus && globalFocus.total_due > 0 ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                if (navigator.vibrate) navigator.vibrate(10)
-                navigate('/flashcard/global-focus/play?mode=fsrs&order=random')
-              }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[11px] shadow-2xs active:scale-95 transition-all cursor-pointer"
-            >
-              <Zap className="w-3 h-3 fill-white stroke-none" />
-              <span>{globalFocus.total_due} Due</span>
-              <ChevronRight className="w-3 h-3 stroke-[3]" />
-            </button>
-          ) : (
-            <div className="flex items-center gap-1 text-[11px] font-bold text-orange-600 dark:text-orange-400 group-hover:underline">
-              <span>View Log</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          )}
+        {/* RIGHT: Subtle View Log link (Replaces 443 Due button) */}
+        <div className="flex items-center gap-1 text-[11px] font-bold text-orange-600 dark:text-orange-400 group-hover:underline shrink-0">
+          <span>View Log</span>
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </div>
       </div>
 
-      {/* ROW 2: Structured 4-Box Metric Grid */}
+      {/* ROW 2: Structured Mode-Centric 4-Box Metric Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {/* Box 1: Study Time */}
-        <div className="bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-50/90 dark:hover:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
+        {/* Box 1: MCQ Practice */}
+        <div className={cn(
+          "rounded-2xl p-2.5 flex flex-col justify-between transition-colors border",
+          mcqCount > 0
+            ? "bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-200/80 dark:border-emerald-800/60"
+            : "bg-slate-50/70 dark:bg-slate-800/25 border-slate-200/70 dark:border-slate-800/60"
+        )}>
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-wider text-amber-800/70 dark:text-amber-400/70">Time</span>
+            <span className="text-[9.5px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">MCQ</span>
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
+              mcqCount > 0 ? "bg-emerald-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
+            )}>
+              🎯
+            </div>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                {mcqCount}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">done</span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              {mcqCount > 0 ? 'questions completed' : 'multiple choice'}
+            </p>
+          </div>
+        </div>
+
+        {/* Box 2: Typing Recall */}
+        <div className={cn(
+          "rounded-2xl p-2.5 flex flex-col justify-between transition-colors border",
+          typingCount > 0
+            ? "bg-violet-50/70 dark:bg-violet-950/25 border-violet-200/80 dark:border-violet-800/60"
+            : "bg-slate-50/70 dark:bg-slate-800/25 border-slate-200/70 dark:border-slate-800/60"
+        )}>
+          <div className="flex items-center justify-between">
+            <span className="text-[9.5px] font-black uppercase tracking-wider text-violet-800 dark:text-violet-300">Typing</span>
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
+              typingCount > 0 ? "bg-violet-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
+            )}>
+              ⌨️
+            </div>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                {typingCount}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">done</span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              {typingCount > 0 ? 'spelling completed' : 'spelling recall'}
+            </p>
+          </div>
+        </div>
+
+        {/* Box 3: Flashcards / FSRS */}
+        <div className={cn(
+          "rounded-2xl p-2.5 flex flex-col justify-between transition-colors border",
+          flashcardCount > 0
+            ? "bg-blue-50/70 dark:bg-blue-950/25 border-blue-200/80 dark:border-blue-800/60"
+            : "bg-slate-50/70 dark:bg-slate-800/25 border-slate-200/70 dark:border-slate-800/60"
+        )}>
+          <div className="flex items-center justify-between">
+            <span className="text-[9.5px] font-black uppercase tracking-wider text-blue-800 dark:text-blue-300">Cards</span>
+            <div className={cn(
+              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
+              flashcardCount > 0 ? "bg-blue-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
+            )}>
+              🗂️
+            </div>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                {flashcardCount}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">cards</span>
+            </div>
+            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+              +{summary.new_cards} new • {summary.reviewed_cards} rev
+            </p>
+          </div>
+        </div>
+
+        {/* Box 4: Focus Time */}
+        <div className="bg-amber-50/70 dark:bg-amber-950/25 hover:bg-amber-50/90 dark:hover:bg-amber-950/35 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[9.5px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-400">Time</span>
             <div className="w-5 h-5 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
               <Clock className="w-3 h-3" />
             </div>
@@ -286,107 +355,48 @@ export function DashboardDailyActivityHUD({
             </p>
           </div>
         </div>
-
-        {/* Box 2: Cards Studied */}
-        <div className="bg-indigo-50/60 dark:bg-indigo-950/20 hover:bg-indigo-50/90 dark:hover:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-800/70 dark:text-indigo-400/70">Studied</span>
-            <div className="w-5 h-5 rounded-lg bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0">
-              <Layers className="w-3 h-3" />
-            </div>
-          </div>
-          <div className="mt-1">
-            <div className="flex items-baseline gap-1">
-              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
-                {summary.total_cards}
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">cards</span>
-            </div>
-            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
-              +{summary.new_cards} new • {summary.reviewed_cards} rev
-            </p>
-          </div>
-        </div>
-
-        {/* Box 3: Practice & Accuracy */}
-        <div className="bg-emerald-50/60 dark:bg-emerald-950/20 hover:bg-emerald-50/90 dark:hover:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800/70 dark:text-emerald-400/70">Accuracy</span>
-            <div className="w-5 h-5 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
-              <Target className="w-3 h-3" />
-            </div>
-          </div>
-          <div className="mt-1">
-            <div className="flex items-baseline gap-1">
-              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
-                {summary.total_cards > 0 ? `${summary.accuracy}%` : `${mcqCount + typingCount}`}
-              </span>
-              {summary.total_cards === 0 && <span className="text-[10px] font-bold text-slate-400">done</span>}
-            </div>
-            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
-              {summary.correct_count} ok • {summary.wrong_count} err
-            </p>
-          </div>
-        </div>
-
-        {/* Box 4: XP Earned & Streak */}
-        <div className="bg-purple-50/60 dark:bg-purple-950/20 hover:bg-purple-50/90 dark:hover:bg-purple-950/30 border border-purple-200/70 dark:border-purple-900/40 rounded-2xl p-2.5 flex flex-col justify-between transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-wider text-purple-800/70 dark:text-purple-400/70">Gain</span>
-            <div className="w-5 h-5 rounded-lg bg-purple-100/80 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0">
-              <Zap className="w-3 h-3 fill-current" />
-            </div>
-          </div>
-          <div className="mt-1">
-            <div className="flex items-baseline gap-1">
-              <span className="text-base sm:text-lg font-black text-purple-700 dark:text-purple-300 tabular-nums tracking-tight">
-                +{summary.xp_earned}
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">XP</span>
-            </div>
-            <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
-              Streak: {summary.streak_count}d 🔥
-            </p>
-          </div>
-        </div>
       </div>
 
-      {/* ROW 3: Sub-breakdown chips if any activity exists */}
-      {hasAnyActivity && (
-        <div className="flex items-center gap-1.5 flex-wrap pt-0.5 border-t border-slate-100/80 dark:border-slate-800/80">
-          {mcqCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 font-bold text-[10.5px]">
-              <span>🎯</span>
-              <span className="tabular-nums font-black">{mcqCount}</span>
-              <span className="opacity-70 text-[9.5px]">MCQ</span>
-            </span>
-          )}
-          {typingCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-50 dark:bg-violet-950/60 border border-violet-200/60 dark:border-violet-800/60 text-violet-800 dark:text-violet-300 font-bold text-[10.5px]">
-              <span>⌨️</span>
-              <span className="tabular-nums font-black">{typingCount}</span>
-              <span className="opacity-70 text-[9.5px]">Typing</span>
-            </span>
-          )}
-          {flashcardCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 font-bold text-[10.5px]">
-              <span>🗂️</span>
-              <span className="tabular-nums font-black">{flashcardCount}</span>
-              <span className="opacity-70 text-[9.5px]">Cards</span>
-            </span>
-          )}
-          {listenCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200/60 dark:border-sky-800/60 text-sky-800 dark:text-sky-300 font-bold text-[10.5px]">
-              <span>🎧</span>
-              <span className="tabular-nums font-black">{listenCount}</span>
-              <span className="opacity-70 text-[9.5px]">Listening</span>
-            </span>
-          )}
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 ml-auto hidden sm:inline">
-            Tap for full session logs & charts →
+      {/* ROW 3: Secondary badges: Streak, XP, Accuracy, Listening */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100/90 dark:border-slate-800/80">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Streak */}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/60 dark:border-orange-800/50 text-orange-800 dark:text-orange-300 font-bold text-[10px]">
+            <span>🔥</span>
+            <span className="font-black tabular-nums">{summary.streak_count}d</span>
+            <span className="opacity-70 text-[9px]">Streak</span>
           </span>
+
+          {/* XP */}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-800/50 text-purple-800 dark:text-purple-300 font-bold text-[10px]">
+            <span>⚡</span>
+            <span className="font-black tabular-nums">+{summary.xp_earned}</span>
+            <span className="opacity-70 text-[9px]">XP</span>
+          </span>
+
+          {/* Accuracy */}
+          {summary.total_cards > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
+              <span>🎯</span>
+              <span className="font-black tabular-nums">{summary.accuracy}%</span>
+              <span className="opacity-70 text-[9px]">({summary.correct_count} ok • {summary.wrong_count} err)</span>
+            </span>
+          )}
+
+          {/* Listening if any */}
+          {listenCount > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200/60 dark:border-sky-800/50 text-sky-800 dark:text-sky-300 font-bold text-[10px]">
+              <span>🎧</span>
+              <span className="font-black tabular-nums">{listenCount}</span>
+              <span className="opacity-70 text-[9px]">Listening</span>
+            </span>
+          )}
         </div>
-      )}
+
+        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 hidden sm:inline group-hover:text-orange-600 transition-colors">
+          Tap to view detailed logs →
+        </span>
+      </div>
     </div>
   )
 }

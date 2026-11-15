@@ -791,15 +791,23 @@ class AnalyticsService:
         )
         today_xp = xp_res.scalar() or 0
 
-        pts_res = await db.execute(
-            select(func.sum(PointTransaction.amount))
-            .where(PointTransaction.user_id == user_id, PointTransaction.created_at >= today_start_utc, PointTransaction.created_at < today_end_utc)
-        )
-        today_pts = pts_res.scalar() or 0
+        today_pts = 0
+        try:
+            pts_res = await db.execute(
+                select(func.sum(PointTransaction.amount))
+                .where(PointTransaction.user_id == user_id, PointTransaction.created_at >= today_start_utc, PointTransaction.created_at < today_end_utc)
+            )
+            today_pts = pts_res.scalar() or 0
+        except Exception:
+            today_pts = 0
 
         # 6. Gamification
-        gamify_res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
-        gamify = gamify_res.scalar_one_or_none()
+        gamify = None
+        try:
+            gamify_res = await db.execute(select(UserGamification).where(UserGamification.user_id == user_id))
+            gamify = gamify_res.scalar_one_or_none()
+        except Exception:
+            gamify = None
 
         # 7. Decks Studied Today Breakdown
         decks_studied_map = {}
@@ -886,26 +894,29 @@ class AnalyticsService:
 
         # 9. Roadmap Goals Completed Today
         today_date_str = today_local_date.strftime("%Y-%m-%d")
-        goals_res = await db.execute(
-            select(UserDailyProgress, UserDeckGoal, FlashcardDeck)
-            .join(UserDeckGoal, UserDailyProgress.goal_id == UserDeckGoal.id)
-            .join(FlashcardDeck, UserDeckGoal.deck_id == FlashcardDeck.id)
-            .where(
-                UserDeckGoal.user_id == user_id,
-                UserDailyProgress.date == today_date_str
-            )
-        )
         today_goals = []
-        for prog, goal, deck in goals_res.all():
-            today_goals.append({
-                "goal_id": goal.id,
-                "deck_id": goal.deck_id,
-                "deck_title": deck.title,
-                "deck_cover": deck.cover_image,
-                "target": goal.daily_target,
-                "done_today": prog.count_done,
-                "is_target_met": prog.is_target_met or (prog.count_done >= goal.daily_target)
-            })
+        try:
+            goals_res = await db.execute(
+                select(UserDailyProgress, UserDeckGoal, FlashcardDeck)
+                .join(UserDeckGoal, UserDailyProgress.goal_id == UserDeckGoal.id)
+                .join(FlashcardDeck, UserDeckGoal.deck_id == FlashcardDeck.id)
+                .where(
+                    UserDeckGoal.user_id == user_id,
+                    UserDailyProgress.date == today_date_str
+                )
+            )
+            for prog, goal, deck in goals_res.all():
+                today_goals.append({
+                    "goal_id": goal.id,
+                    "deck_id": goal.deck_id,
+                    "deck_title": deck.title,
+                    "deck_cover": deck.cover_image,
+                    "target": goal.daily_target,
+                    "done_today": prog.count_done,
+                    "is_target_met": prog.is_target_met or (prog.count_done >= goal.daily_target)
+                })
+        except Exception:
+            today_goals = []
 
         return {
             "date_str": today_local_date.strftime("%A, %b %d, %Y"),
