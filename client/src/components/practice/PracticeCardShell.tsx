@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sparkles, Bookmark, Volume2 } from 'lucide-react'
+import { Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { getFrontFontSizeStyle } from '@/components/common/study'
@@ -7,7 +7,7 @@ import { CardImageGallery } from '@/components/common/CardImageGallery'
 import type { Question } from '@/types/flashcard'
 
 export interface PracticeCardShellProps {
-  badgeLabel: string
+  badgeLabel?: string
   badgeIcon?: React.ReactNode
   badgeColorClass?: string
   currentIndex: number
@@ -59,7 +59,6 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
 }) => {
   const cardIndexDisplay = currentQuestion?.original_index ?? (currentIndex + 1)
   const isStarred = Boolean(currentQuestion?.id && starredCards[currentQuestion.id])
-  const [isPlayingAudio, setIsPlayingAudio] = React.useState(false)
 
   // Card Performance & FSRS Stats
   const fsrs = currentQuestion?.fsrs
@@ -78,19 +77,6 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
   const typingCount = stats?.typing_count ?? pSummary?.typing_count ?? 0
   const listeningCount = stats?.listening_count ?? pSummary?.listening_count ?? 0
 
-  const handlePlayAudio = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!onPlayAudio || isPlayingAudio) return
-    setIsPlayingAudio(true)
-    try {
-      await Promise.resolve(onPlayAudio())
-    } catch (err) {
-      console.warn('[PracticeCardShell] Audio playback failed:', err)
-    } finally {
-      setTimeout(() => setIsPlayingAudio(false), 900)
-    }
-  }
-
   const glowFrom = glowColor === 'cyan'
     ? 'from-cyan-200/20 via-sky-100/10 to-transparent dark:from-cyan-500/5'
     : 'from-indigo-200/20 via-purple-100/10 to-transparent dark:from-indigo-500/5'
@@ -106,109 +92,60 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
 
       {/* ── Top Header Bar ── */}
       <div className="w-full flex items-center justify-between gap-2 relative z-10 select-none pb-2.5 border-b border-slate-100/80 dark:border-slate-800/80 shrink-0">
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
-          <span className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border font-black text-[11px] uppercase tracking-wider shadow-2xs shrink-0",
-            badgeColorClass
-          )}>
-            {badgeIcon || <Sparkles className="w-3.5 h-3.5 fill-current opacity-80" />}
-            <span>{badgeLabel}</span>
-          </span>
-
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[11px] shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 overflow-x-auto no-scrollbar py-0.5">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[10px] border border-slate-200/60 dark:border-slate-700/60 shrink-0">
             #{cardIndexDisplay}{totalCards ? ` / ${totalCards}` : ''}
           </span>
 
           {/* FSRS State Badge */}
           {(!fsrs || fsrsState === undefined || fsrsState === 0) && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs shrink-0">
               ⭐ NEW
             </span>
           )}
           {fsrsState === 1 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs shrink-0">
               ⚡ LEARNING
             </span>
           )}
           {fsrsState === 2 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
-              🌱 REVIEW
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs shrink-0">
+              🌱 REVIEW{typeof stability === 'number' && stability > 0 ? ` · ${stability >= 10 ? Math.round(stability) : stability.toFixed(1)}d` : ''}
             </span>
           )}
           {fsrsState === 3 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs shrink-0">
               🔄 RELEARN
             </span>
           )}
 
-          {/* FSRS Stability */}
-          {typeof stability === 'number' && stability > 0 && (
-            <span 
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200/60 font-bold text-[10px] tracking-tight font-mono shadow-2xs"
-              title="FSRS Memory Stability"
-            >
-              S: {stability >= 10 ? Math.round(stability) : stability.toFixed(1)}d
+          {/* Unified Compact Encounter & Drill Stats Capsule */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs shrink-0 whitespace-nowrap">
+            <span title={`Đã gặp ${totalEncounters} lần (${correctRevs} đúng${accuracy !== null ? `, ${accuracy}%` : ''})`}>
+              Gặp: <span className="font-black text-slate-800 dark:text-slate-100">{totalEncounters}</span>
             </span>
-          )}
-
-          {/* FSRS Difficulty */}
-          {typeof difficulty === 'number' && difficulty > 0 && (
-            <span 
-              className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 font-bold text-[10px] tracking-tight font-mono shadow-2xs"
-              title="FSRS Card Difficulty"
-            >
-              D: {difficulty.toFixed(1)}
+            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span title={`Đã test trắc nghiệm: ${mcqCount} lần`}>
+              MCQ: <span className="font-black text-slate-800 dark:text-slate-100">{mcqCount}</span>
             </span>
-          )}
-
-          {/* Review History / Encounters ("Đã gặp bao nhiêu lần") */}
-          <span 
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 font-bold text-[10px] shadow-2xs"
-            title={totalEncounters > 0 ? `Đã gặp ${totalEncounters} lần (${correctRevs} đúng${accuracy !== null ? `, ${accuracy}%` : ''})` : "Chưa gặp lần nào"}
-          >
-            👁 Gặp: {totalEncounters}
-          </span>
-
-          {/* MCQ Test Count ("Đã test MCQ bao nhiêu lần") */}
-          <span 
-            className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border font-bold text-[10px] shadow-2xs transition-colors",
-              mcqCount > 0 
-                ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/70"
-                : "bg-slate-50 dark:bg-slate-850 text-slate-400 border-slate-200/40"
+            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span title={`Đã test gõ chữ: ${typingCount} lần`}>
+              Type: <span className="font-black text-slate-800 dark:text-slate-100">{typingCount}</span>
+            </span>
+            {listeningCount > 0 && (
+              <>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span title={`Đã test nghe: ${listeningCount} lần`}>
+                  Listen: <span className="font-black text-slate-800 dark:text-slate-100">{listeningCount}</span>
+                </span>
+              </>
             )}
-            title={`Đã test trắc nghiệm MCQ: ${mcqCount} lần`}
-          >
-            ⚡ MCQ: {mcqCount}
-          </span>
-
-          {/* Typing Test Count ("Đã test Typing bao nhiêu lần") */}
-          <span 
-            className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border font-bold text-[10px] shadow-2xs transition-colors",
-              typingCount > 0 
-                ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200/70"
-                : "bg-slate-50 dark:bg-slate-850 text-slate-400 border-slate-200/40"
-            )}
-            title={`Đã test gõ chữ Typing: ${typingCount} lần`}
-          >
-            ⌨️ Type: {typingCount}
-          </span>
-
-          {/* Listening Test Count (nếu có) */}
-          {listeningCount > 0 && (
-            <span 
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200/70 font-bold text-[10px] shadow-2xs"
-              title={`Đã test nghe Listening: ${listeningCount} lần`}
-            >
-              🎧 Listen: {listeningCount}
-            </span>
-          )}
+          </div>
 
           {/* Consecutive Streak */}
           {streak > 1 && (
             <span 
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 font-bold text-[10px] shadow-2xs"
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 font-black text-[10px] shadow-2xs shrink-0"
               title={`${streak} lần trả lời đúng liên tiếp`}
             >
               🔥 {streak}
@@ -217,22 +154,6 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {!hideHeaderActions && onPlayAudio && (
-            <button
-              type="button"
-              onClick={handlePlayAudio}
-              className={cn(
-                "w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 cursor-pointer relative",
-                isPlayingAudio 
-                  ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 ring-2 ring-indigo-400/50 animate-pulse scale-105" 
-                  : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-              )}
-              title="Pronounce question"
-            >
-              <Volume2 className={cn("w-4 h-4 transition-transform", isPlayingAudio && "scale-110")} />
-            </button>
-          )}
-
           <button
             type="button"
             onClick={(e) => {
