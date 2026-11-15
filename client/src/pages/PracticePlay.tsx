@@ -3948,8 +3948,10 @@ export default function PracticePlay() {
       ? 'MULTIPLE CHOICE (MCQ)'
       : practiceSubMode === 'typing'
       ? 'VOCABULARY TYPING'
-      : practiceSubMode === 'listening'
+      : (practiceSubMode === 'listening' || practiceSubMode === 'listening_mcq' || practiceSubMode === 'listening_typing')
       ? 'LISTENING COMPREHENSION'
+      : (practiceSubMode === 'roadmap_test' || practiceSubMode?.startsWith('roadmap_'))
+      ? 'ROADMAP MILESTONE TEST'
       : 'PRACTICE SESSION'
 
     return (

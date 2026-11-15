@@ -130,6 +130,8 @@ export default function HybridPlay() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadError, setIsLoadError] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [loadingStatus, setLoadingStatus] = useState('Connecting to server...')
 
   // ── Study Display & Audio Settings (Inherited from Deck/User defaults) ──
   const playSettings = usePlaySettings(id || '')
@@ -453,11 +455,28 @@ export default function HybridPlay() {
       try {
         setIsLoading(true)
         setIsLoadError(false)
+        setLoadingProgress(15)
+        setLoadingStatus('Connecting to server...')
 
         const scopeParam = urlScope && urlScope !== 'all' ? `&scope=${encodeURIComponent(urlScope)}` : ''
         const subParam = urlSubCol && urlSubVal ? `&sub_col=${encodeURIComponent(urlSubCol)}&sub_val=${encodeURIComponent(urlSubVal)}` : ''
         const [quizRes, settingsRes] = await Promise.all([
-          axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}${subParam}&include_distractors=true`),
+          axios.get(`/api/v1/deck/${id}/play-data?mode=hybrid${scopeParam}${subParam}&include_distractors=true`, {
+            onDownloadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total))
+                setLoadingProgress(pct)
+                const kb = Math.round(progressEvent.loaded / 1024)
+                const totalKb = Math.round(progressEvent.total / 1024)
+                setLoadingStatus(`Downloading batch drill cards (${kb} / ${totalKb} KB)...`)
+              } else {
+                const kb = Math.round(progressEvent.loaded / 1024)
+                const est = Math.min(92, Math.max(15, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)))
+                setLoadingProgress(est)
+                setLoadingStatus(`Loading cards (${kb} KB)...`)
+              }
+            }
+          }),
           axios.get(`/api/v1/deck/${id}/practice-settings`).catch(() => ({ data: {} }))
         ])
         if (!isMounted) return
@@ -479,7 +498,9 @@ export default function HybridPlay() {
           setSession({ ...quizRes.data, questions: [] })
           setRawQuestions([])
           setScopedQuestions([])
-          setIsLoading(false)
+          setLoadingProgress(100)
+        setLoadingStatus('Ready!')
+        setIsLoading(false)
           return
         }
 
@@ -537,7 +558,9 @@ export default function HybridPlay() {
           setSession({ ...quizRes.data, questions: [] })
           setRawQuestions(questions)
           setScopedQuestions([])
-          setIsLoading(false)
+          setLoadingProgress(100)
+        setLoadingStatus('Ready!')
+        setIsLoading(false)
           return
         }
 
@@ -624,6 +647,8 @@ export default function HybridPlay() {
           user_settings: userPracticeSettings,
           practice_settings: creatorPracticeSettings
         })
+        setLoadingProgress(100)
+        setLoadingStatus('Ready!')
         setIsLoading(false)
       } catch (err) {
         console.error('Failed to load hybrid session', err)
@@ -634,6 +659,8 @@ export default function HybridPlay() {
           }, 800)
           return
         }
+        setLoadingProgress(100)
+        setLoadingStatus('Ready!')
         setIsLoading(false)
         setIsLoadError(true)
       }
@@ -873,7 +900,7 @@ export default function HybridPlay() {
           const scopeParam = newScope !== 'all' ? `&scope=${encodeURIComponent(newScope)}` : ''
           const subParam = urlSubCol && urlSubVal ? `&sub_col=${encodeURIComponent(urlSubCol)}&sub_val=${encodeURIComponent(urlSubVal)}` : ''
           const res = await axios.get(
-            `/api/v1/deck/${id}/play-data?mode=hybrid&limit=25&offset=0${scopeParam}${subParam}&include_distractors=true`
+            `/api/v1/deck/${id}/play-data?mode=hybrid${scopeParam}${subParam}&include_distractors=true`
           )
           const questions: Question[] = res.data.questions || res.data.cards || []
           paginationRef.current = res.data.pagination || null
@@ -922,7 +949,9 @@ export default function HybridPlay() {
         } catch (err) {
           console.warn('Background scope sync warning:', err)
         } finally {
-          setIsLoading(false)
+          setLoadingProgress(100)
+        setLoadingStatus('Ready!')
+        setIsLoading(false)
         }
       }
 
@@ -1732,9 +1761,10 @@ export default function HybridPlay() {
   if (isLoading) {
     return (
       <SessionLoadingScreen
+        progress={loadingProgress}
+        statusText={loadingStatus}
         modeTitle="HYBRID RECALL (BATCH DRILL)"
-        statusText="Initializing Hybrid Pre-Learning Engine..."
-        subText="Preparing Skim Preview & Active Recall Drill Batches"
+        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Preparing Skim Preview & Active Recall Drill Batches'}
         onCancel={() => navigate(`/decks/${id}`)}
       />
     )

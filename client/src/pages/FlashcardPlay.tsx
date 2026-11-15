@@ -3588,12 +3588,23 @@ export default function FlashcardPlay() {
   };
 
   if (!session || currentIndex < 0) {
+    const rawMode = searchParams.get('mode') || activeMode || 'fsrs';
+    const modeLabel = rawMode === 'skim' || rawMode === 'speed_skim' || rawMode === 'flip'
+      ? 'SPEED SKIM MODE'
+      : rawMode === 'review' || rawMode === 'due'
+      ? 'CONTINUOUS REVIEW'
+      : rawMode === 'new'
+      ? 'LEARN NEW CARDS'
+      : rawMode === 'leitner'
+      ? 'LEITNER BOX'
+      : 'FSRS SPACED REPETITION';
+
     return (
       <SessionLoadingScreen
         progress={loadingProgress}
         statusText={loadingStatus}
         subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading full deck for complete review'}
-        modeTitle="FLASHCARD STUDY"
+        modeTitle={modeLabel}
         onCancel={() => navigate(`/decks/${id}`)}
       />
     )
