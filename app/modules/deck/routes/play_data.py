@@ -762,7 +762,11 @@ async def get_deck_play_data(
         ans_query = select(
             UserAnswer.card_id,
             func.count(UserAnswer.id).label("total_answers"),
-            func.sum(case((or_(UserAnswer.is_correct == True, UserAnswer.rating >= 3), 1), else_=0)).label("correct_answers")
+            func.sum(case((or_(UserAnswer.is_correct == True, UserAnswer.rating >= 3), 1), else_=0)).label("correct_answers"),
+            func.sum(case((or_(
+                UserAnswer.rating.isnot(None),
+                DeckAttempt.mode.in_(["play", "fsrs", "sequential", "random", "review", "new", "flip", "speed_skim", "skim", "mastery"])
+            ), 1), else_=0)).label("card_study_answers")
         ).join(DeckAttempt, UserAnswer.attempt_id == DeckAttempt.id).where(
             DeckAttempt.user_id == user_id,
             UserAnswer.card_id.in_(active_card_ids)
@@ -772,7 +776,8 @@ async def get_deck_play_data(
         for r in ans_res.all():
             card_ans_stats[r.card_id] = {
                 "total": r.total_answers or 0,
-                "correct": r.correct_answers or 0
+                "correct": r.correct_answers or 0,
+                "card_study": getattr(r, "card_study_answers", 0) or 0
             }
 
     # Check settings if practice mode
@@ -872,7 +877,16 @@ async def get_deck_play_data(
         }
 
         ans_row = card_ans_stats.get(c.id)
-        total_ans = ans_row["total"] if ans_row else (m.consecutive_correct if m and m.consecutive_correct else 0)
+        raw_card_study = ans_row["card_study"] if ans_row else 0
+        if raw_card_study == 0 and m and (m.last_review is not None or (m.state or 0) > 0):
+            raw_card_study = max(1, m.consecutive_correct or 1)
+        card_study_count = raw_card_study
+
+        total_encounters = card_study_count + mcq_count + typing_count + listening_count
+        if ans_row and ans_row.get("total", 0) > total_encounters:
+            card_study_count += (ans_row["total"] - total_encounters)
+            total_encounters = ans_row["total"]
+
         correct_ans = ans_row["correct"] if ans_row else (m.consecutive_correct if m and m.consecutive_correct else 0)
 
         cards_list.append({
@@ -891,10 +905,12 @@ async def get_deck_play_data(
             "back_img": c.back_img,
             "practice_summary": practice_summary,
             "stats": {
-                "total": total_ans,
+                "total": total_encounters,
                 "correct": correct_ans,
-                "wrong": max(0, total_ans - correct_ans),
-                "encounter_count": total_ans,
+                "wrong": max(0, total_encounters - correct_ans),
+                "encounter_count": total_encounters,
+                "card_count": card_study_count,
+                "flashcard_count": card_study_count,
                 "mcq_count": mcq_count,
                 "mcq_correct": mcq_correct,
                 "typing_count": typing_count,

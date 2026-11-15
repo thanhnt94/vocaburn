@@ -48,6 +48,10 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
     prevAnsweredRef.current = hasAnsweredPractice;
   }, [hasAnsweredPractice]);
 
+  if (mainTab === 'practice' && !hasAnsweredPractice && !isTypingMode) {
+    return null;
+  }
+
   return (
     <div className="w-full flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 pt-1 pb-2">
       {/* Audio Button */}
@@ -98,45 +102,25 @@ export const PracticeActionControls: React.FC<PracticeActionControlsProps> = ({
             <ChevronRight className="w-4 h-4" />
           </button>
         ) : isTypingMode ? (
-          <div className="flex-1 flex gap-2 h-12">
-            <button
-              onClick={() => onNext()}
-              className="w-24 h-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-750 font-black text-xs rounded-2xl flex items-center justify-center gap-1 uppercase tracking-widest active:scale-95 transition-all cursor-pointer"
-            >
-              Skip
-            </button>
-            <button
-              onClick={() => {
-                if (typingInput && typingInput.trim() && onCheckTyping) {
-                  justAnsweredAtRef.current = Date.now();
-                  onCheckTyping();
-                }
-              }}
-              disabled={!typingInput || !typingInput.trim()}
-              className={cn(
-                "flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all",
-                typingInput && typingInput.trim()
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/25 active:scale-95 cursor-pointer"
-                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-750 cursor-not-allowed opacity-60"
-              )}
-            >
-              <span>Submit Answer</span>
-              <Check className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex-1 flex gap-2 h-12">
-            <button
-              onClick={() => onNext()}
-              className="flex-1 h-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-[0.98] transition-all cursor-pointer"
-            >
-              Skip <ChevronRight className="w-4 h-4" />
-            </button>
-            <div className="flex-[2] h-12 bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-extrabold text-xs rounded-2xl flex items-center justify-center uppercase tracking-widest pointer-events-none select-none">
-              Waiting...
-            </div>
-          </div>
-        )
+          <button
+            onClick={() => {
+              if (typingInput && typingInput.trim() && onCheckTyping) {
+                justAnsweredAtRef.current = Date.now();
+                onCheckTyping();
+              }
+            }}
+            disabled={!typingInput || !typingInput.trim()}
+            className={cn(
+              "flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all",
+              typingInput && typingInput.trim()
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/25 active:scale-95 cursor-pointer"
+                : "bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-600 border border-slate-200/60 dark:border-slate-750 cursor-not-allowed opacity-60"
+            )}
+          >
+            <span>Submit Answer</span>
+            <Check className="w-4 h-4" />
+          </button>
+        ) : null
       ) : (
         !hasRated ? (
           <button

@@ -83,6 +83,12 @@ export const PracticeBottomBar: React.FC<PracticeBottomBarProps> = ({
     }
   }
 
+  // In practice mode (MCQ / non-typing), hide the bottom bar completely before answering
+  // to give 100% viewport to question & choices without redundant skip/waiting controls
+  if (mainTab === 'practice' && !hasAnsweredPractice && !isTypingMode && !showBottomNavTabs) {
+    return null
+  }
+
   return (
     <footer 
       onTouchStart={!showBottomNavTabs ? handleBarTouchStart : undefined}

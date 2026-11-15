@@ -4444,7 +4444,7 @@ export default function PracticePlay() {
                           }).length
                         )}
                       </span>
-                      <span className="text-[8px] font-bold text-rose-400 uppercase">Sai</span>
+                      <span className="text-[8px] font-bold text-rose-400 uppercase">Wrong</span>
                     </div>
                   </div>
                 </div>

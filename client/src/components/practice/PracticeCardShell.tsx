@@ -67,15 +67,15 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
   const difficulty = fsrs?.difficulty
   const stats = currentQuestion?.stats
   const pSummary = currentQuestion?.practice_summary
-  const totalEncounters = stats?.encounter_count ?? stats?.total ?? 0
-  const correctRevs = stats?.correct ?? 0
-  const accuracy = totalEncounters > 0 ? Math.round((correctRevs / totalEncounters) * 100) : null
-  const streak = (currentQuestion as any)?.consecutive_correct ?? (stats as any)?.consecutive_correct ?? 0
-
-  // Per-mode Drill Counts
+  // Per-mode Drill & Review Counts
+  const cardCount = stats?.card_count ?? stats?.flashcard_count ?? 0
   const mcqCount = stats?.mcq_count ?? pSummary?.mcq_count ?? 0
   const typingCount = stats?.typing_count ?? pSummary?.typing_count ?? 0
   const listeningCount = stats?.listening_count ?? pSummary?.listening_count ?? 0
+  const totalEncounters = stats?.encounter_count ?? stats?.total ?? (cardCount + mcqCount + typingCount + listeningCount)
+  const correctRevs = stats?.correct ?? 0
+  const accuracy = totalEncounters > 0 ? Math.round((correctRevs / totalEncounters) * 100) : null
+  const streak = (currentQuestion as any)?.consecutive_correct ?? (stats as any)?.consecutive_correct ?? 0
 
   const glowFrom = glowColor === 'cyan'
     ? 'from-cyan-200/20 via-sky-100/10 to-transparent dark:from-cyan-500/5'
@@ -121,21 +121,25 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
 
           {/* Unified Compact Encounter & Drill Stats Capsule */}
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs shrink-0 whitespace-nowrap">
-            <span title={`Đã gặp ${totalEncounters} lần (${correctRevs} đúng${accuracy !== null ? `, ${accuracy}%` : ''})`}>
-              Gặp: <span className="font-black text-slate-800 dark:text-slate-100">{totalEncounters}</span>
+            <span title={`Total encounters across all study & practice modes: ${totalEncounters}${accuracy !== null ? ` (${accuracy}% correct)` : ''}`}>
+              Seen: <span className="font-black text-slate-800 dark:text-slate-100">{totalEncounters}</span>
             </span>
             <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span title={`Đã test trắc nghiệm: ${mcqCount} lần`}>
+            <span title={`Flashcard study reviews: ${cardCount}`}>
+              Card: <span className="font-black text-slate-800 dark:text-slate-100">{cardCount}</span>
+            </span>
+            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span title={`Multiple choice practice: ${mcqCount}`}>
               MCQ: <span className="font-black text-slate-800 dark:text-slate-100">{mcqCount}</span>
             </span>
             <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span title={`Đã test gõ chữ: ${typingCount} lần`}>
+            <span title={`Typing recall practice: ${typingCount}`}>
               Type: <span className="font-black text-slate-800 dark:text-slate-100">{typingCount}</span>
             </span>
             {listeningCount > 0 && (
               <>
                 <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span title={`Đã test nghe: ${listeningCount} lần`}>
+                <span title={`Listening drill practice: ${listeningCount}`}>
                   Listen: <span className="font-black text-slate-800 dark:text-slate-100">{listeningCount}</span>
                 </span>
               </>
@@ -146,7 +150,7 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
           {streak > 1 && (
             <span 
               className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 font-black text-[10px] shadow-2xs shrink-0"
-              title={`${streak} lần trả lời đúng liên tiếp`}
+              title={`${streak} consecutive correct answers`}
             >
               🔥 {streak}
             </span>

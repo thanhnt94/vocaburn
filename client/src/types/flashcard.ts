@@ -28,6 +28,8 @@ export interface Question {
     easy_count?: number
     last_answered?: string | null
     encounter_count?: number
+    card_count?: number
+    flashcard_count?: number
     mcq_count?: number
     mcq_correct?: number
     typing_count?: number
