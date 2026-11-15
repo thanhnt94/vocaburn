@@ -100,108 +100,64 @@ export function DashboardDailyActivityHUD({
         className={cn(
           "group w-full rounded-2xl cursor-pointer select-none transition-all duration-200 active:scale-[0.99]",
           "bg-white/95 dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-850",
-          "border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-sm",
-          "py-2 px-2.5 sm:py-2.5 sm:px-3 flex items-center justify-center",
+          "border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-xs",
+          "p-1.5 sm:p-2",
           className
         )}
         title="Click to view detailed daily learning summary"
       >
-        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap w-full">
+        <div className={cn("grid gap-1.5 sm:gap-2 w-full", listenCount > 0 ? "grid-cols-5" : "grid-cols-4")}>
           {/* Box 1: Time */}
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 shadow-2xs">
-            <div className="w-5 h-5 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-              <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2.4]" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{timeLabel}</span>
-              <span className="text-[9.5px] font-bold text-amber-700/80 dark:text-amber-400/80 uppercase">Time</span>
-            </div>
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 shadow-2xs">
+            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2.4] shrink-0" />
+            <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{timeLabel}</span>
+            <span className="text-[9px] sm:text-[9.5px] font-bold text-amber-700/80 dark:text-amber-400/80 uppercase">Time</span>
           </div>
 
           {/* Box 2: MCQ */}
           <div className={cn(
-            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-2xs transition-colors",
+            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border shadow-2xs transition-colors",
             mcqCount > 0
-              ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/90 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"
+              ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"
               : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
           )}>
-            <div className={cn(
-              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
-              mcqCount > 0 ? "bg-emerald-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
-            )}>
-              🎯
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{mcqCount}</span>
-              <span className="text-[9.5px] font-bold opacity-75 uppercase">MCQ</span>
-            </div>
+            <span className="text-xs shrink-0">🎯</span>
+            <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{mcqCount}</span>
+            <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">MCQ</span>
           </div>
 
           {/* Box 3: Typing */}
           <div className={cn(
-            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-2xs transition-colors",
+            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border shadow-2xs transition-colors",
             typingCount > 0
-              ? "bg-violet-50/90 dark:bg-violet-950/40 border-violet-200/90 dark:border-violet-800/60 text-violet-900 dark:text-violet-200"
+              ? "bg-violet-50/90 dark:bg-violet-950/40 border-violet-200/80 dark:border-violet-800/60 text-violet-900 dark:text-violet-200"
               : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
           )}>
-            <div className={cn(
-              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
-              typingCount > 0 ? "bg-violet-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
-            )}>
-              ⌨️
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{typingCount}</span>
-              <span className="text-[9.5px] font-bold opacity-75 uppercase">Type</span>
-            </div>
+            <span className="text-xs shrink-0">⌨️</span>
+            <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{typingCount}</span>
+            <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">Type</span>
           </div>
 
           {/* Box 4: Cards */}
           <div className={cn(
-            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border shadow-2xs transition-colors",
+            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border shadow-2xs transition-colors",
             flashcardCount > 0
-              ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200/90 dark:border-blue-800/60 text-blue-900 dark:text-blue-200"
+              ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-800/60 text-blue-900 dark:text-blue-200"
               : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
           )}>
-            <div className={cn(
-              "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-xs",
-              flashcardCount > 0 ? "bg-blue-500/15" : "bg-slate-200/50 dark:bg-slate-700/50"
-            )}>
-              🗂️
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{flashcardCount}</span>
-              <span className="text-[9.5px] font-bold opacity-75 uppercase">Cards</span>
-            </div>
+            <span className="text-xs shrink-0">🗂️</span>
+            <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{flashcardCount}</span>
+            <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">Cards</span>
           </div>
 
           {/* Box 5: Optional Listening if active */}
           {listenCount > 0 && (
-            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/60 text-sky-900 dark:text-sky-200 shadow-2xs">
-              <div className="w-5 h-5 rounded-lg bg-sky-500/15 flex items-center justify-center shrink-0 text-xs">
-                🎧
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{listenCount}</span>
-                <span className="text-[9.5px] font-bold opacity-75 uppercase">Listen</span>
-              </div>
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/60 text-sky-900 dark:text-sky-200 shadow-2xs">
+              <span className="text-xs shrink-0">🎧</span>
+              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{listenCount}</span>
+              <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">Listen</span>
             </div>
           )}
-
-          {/* Box 6: XP Gain / Streak */}
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200/90 dark:border-orange-800/60 text-orange-900 dark:text-orange-200 shadow-2xs">
-            <div className="w-5 h-5 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
-              <Zap className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 fill-orange-500 stroke-none" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">
-                {summary.xp_earned > 0 ? `+${summary.xp_earned}` : `${summary.streak_count}d`}
-              </span>
-              <span className="text-[9.5px] font-bold text-orange-700/80 dark:text-orange-400/80 uppercase">
-                {summary.xp_earned > 0 ? 'XP' : 'Streak'}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     )
@@ -357,22 +313,17 @@ export function DashboardDailyActivityHUD({
         </div>
       </div>
 
-      {/* ROW 3: Secondary badges: Streak, XP, Accuracy, Listening */}
+      {/* ROW 3: Secondary badges: XP, Accuracy, Listening */}
       <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100/90 dark:border-slate-800/80">
         <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Streak */}
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/60 dark:border-orange-800/50 text-orange-800 dark:text-orange-300 font-bold text-[10px]">
-            <span>🔥</span>
-            <span className="font-black tabular-nums">{summary.streak_count}d</span>
-            <span className="opacity-70 text-[9px]">Streak</span>
-          </span>
-
           {/* XP */}
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-800/50 text-purple-800 dark:text-purple-300 font-bold text-[10px]">
-            <span>⚡</span>
-            <span className="font-black tabular-nums">+{summary.xp_earned}</span>
-            <span className="opacity-70 text-[9px]">XP</span>
-          </span>
+          {summary.xp_earned > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-800/50 text-purple-800 dark:text-purple-300 font-bold text-[10px]">
+              <span>⚡</span>
+              <span className="font-black tabular-nums">+{summary.xp_earned}</span>
+              <span className="opacity-70 text-[9px]">XP</span>
+            </span>
+          )}
 
           {/* Accuracy */}
           {summary.total_cards > 0 && (
