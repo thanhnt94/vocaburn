@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
-import { getBackFontSizeStyle } from '@/components/common/study'
+import { getBackFontSizeStyle, getSubtextFontSizeStyle } from '@/components/common/study'
 import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
@@ -280,7 +280,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
                         {practiceData.subtext_col ? `${String(practiceData.subtext_col).replace(/_/g, ' ')}:` : 'Chi tiết:'}
                       </span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      <span
+                        className="font-bold text-slate-800 dark:text-slate-100"
+                        style={{ fontSize: getSubtextFontSizeStyle(backFontSize) }}
+                      >
                         <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(practiceData.result_subtext) }} />
                       </span>
                     </div>

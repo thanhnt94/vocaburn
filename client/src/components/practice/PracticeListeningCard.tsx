@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml, isJapanese } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
-import { getBackFontSizeStyle } from '@/components/common/study'
+import { getBackFontSizeStyle, getSubtextFontSizeStyle } from '@/components/common/study'
 import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
@@ -325,14 +325,19 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
                           dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice || '') }}
                         />
                         {hasSubtext && (
-                          <div className={cn(
-                            "text-xs mt-1.5 font-medium leading-relaxed transition-all duration-200 whitespace-normal break-words",
-                            isCorrectChoice
-                              ? "inline-block px-2.5 py-1 rounded-xl bg-emerald-800/80 dark:bg-emerald-950/80 border border-emerald-600/50 text-emerald-50 font-semibold shadow-2xs"
-                              : isSelected
-                                ? "inline-block px-2.5 py-1 rounded-xl bg-rose-700/80 dark:bg-rose-950/80 border border-rose-500/50 text-rose-50 font-semibold shadow-2xs"
-                                : "text-slate-500 dark:text-slate-400"
-                          )}>
+                          <div
+                            className={cn(
+                              "mt-1.5 font-medium leading-relaxed transition-all duration-200 whitespace-normal break-words",
+                              isCorrectChoice
+                                ? "inline-block px-2.5 py-1 rounded-xl bg-emerald-800/80 dark:bg-emerald-950/80 border border-emerald-600/50 text-emerald-50 font-semibold shadow-2xs"
+                                : isSelected
+                                  ? "inline-block px-2.5 py-1 rounded-xl bg-rose-700/80 dark:bg-rose-950/80 border border-rose-500/50 text-rose-50 font-semibold shadow-2xs"
+                                  : "text-slate-500 dark:text-slate-400"
+                            )}
+                            style={{
+                              fontSize: getSubtextFontSizeStyle(backFontSize)
+                            }}
+                          >
                             <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(subtext) }} />
                           </div>
                         )}
