@@ -3967,61 +3967,6 @@ export default function PracticePlay() {
 
   return (
     <div className="h-screen h-[100dvh] flex flex-col bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 text-slate-900 font-sans overflow-hidden relative">
-      {/* Animated Feedback Badge (Floating Toast at bottom) */}
-      <AnimatePresence>
-        {badgeVisible && selectedOption !== null && currentQuestion && (() => {
-          const isCorrect = currentQuestion.options && currentQuestion.options.length > 0
-            ? currentQuestion.options[selectedOption]?.is_correct
-            : selectedOption > 0;
-          return (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={cn(
-                "fixed bottom-[136px] left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 rounded-2xl font-black text-[12px] uppercase tracking-[0.1em] shadow-xl flex items-center gap-3 backdrop-blur-md border whitespace-nowrap",
-                isCorrect
-                  ? "bg-emerald-500/90 text-white border-emerald-400/30 shadow-emerald-200/20"
-                  : "bg-amber-400/90 text-slate-800 border-amber-300/30 shadow-amber-200/20"
-              )}
-            >
-              {isCorrect ? (
-                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                  <Check className="w-3 h-3 text-white stroke-[4]" />
-                </div>
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-white/60 flex items-center justify-center">
-                  <Sparkles className="w-3 h-3 text-amber-700" />
-                </div>
-              )}
-              {badgeMessage}
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
-      {/* XP Float Animation */}
-      <AnimatePresence>
-        {xpFloat.visible && (() => {
-          const isLimitless = (activeGoal && activeGoal.done_today > activeGoal.daily_target) || (goalToast && goalToast.doneToday > goalToast.dailyTarget);
-          return (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.5 }}
-              animate={{ opacity: 1, y: -120, scale: isLimitless ? 1.4 : 1.2 }}
-              exit={{ opacity: 0, y: -180, scale: 0.8 }}
-              className={cn(
-                "fixed bottom-32 md:bottom-auto md:top-1/3 left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 rounded-2xl font-black text-base shadow-2xl pointer-events-none transition-all duration-300",
-                isLimitless
-                  ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-amber-500/50 border border-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-bounce"
-                  : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-indigo-300/50"
-              )}
-            >
-              {isLimitless ? "⚡ OVERDRIVE +" : "+"}
-              {xpFloat.amount} XP ✨
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
-
       {/* Learning Mode Alert Toast */}
       <AnimatePresence>
         {learningModeAlert && learningModeAlert.visible && (
@@ -4115,6 +4060,9 @@ export default function PracticePlay() {
             onToggleScoreMode={toggleScoreMode}
             formatHeaderTime={formatHeaderTime}
             onOpenStudyConsole={() => setIsQuickControlsOpen(true)}
+            xpFloat={xpFloat}
+            badgeMessage={badgeMessage}
+            badgeVisible={badgeVisible}
           />
         );
       })()}

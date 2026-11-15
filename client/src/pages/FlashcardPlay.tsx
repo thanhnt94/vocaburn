@@ -3867,6 +3867,9 @@ export default function FlashcardPlay() {
               isRandom={randomEnabled}
               onToggleOrder={() => handleToggleRandom(!randomEnabled)}
               onOpenStudyConsole={() => setIsStudyConsoleOpen(true)}
+              xpFloat={xpFloat}
+              badgeMessage={badgeMessage}
+              badgeVisible={badgeVisible}
             />
           );
         })()}

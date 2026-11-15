@@ -1,6 +1,4 @@
 import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
 import { StudyHeaderTracker, type PipelineStepStatus } from '@/components/StudyHeaderTracker'
 
 export interface FlashcardHeaderProps {
@@ -45,6 +43,9 @@ export interface FlashcardHeaderProps {
   onCreateNewCard?: () => void
   rightAction?: React.ReactNode
   onOpenStudyConsole?: () => void
+  xpFloat?: { visible: boolean; amount: number }
+  badgeMessage?: string
+  badgeVisible?: boolean
 }
 
 export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
@@ -88,22 +89,13 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
   onToggleOrder,
   onCreateNewCard,
   rightAction,
-  onOpenStudyConsole
+  onOpenStudyConsole,
+  xpFloat,
+  badgeMessage,
+  badgeVisible
 }) => {
   return (
     <header className="sticky top-0 flex-shrink-0 z-[120] backdrop-blur-2xl px-2.5 md:px-4 py-1.5 flex items-center justify-between gap-2.5 transition-colors duration-300 relative overflow-hidden bg-white/90 border-b border-indigo-100/70 text-slate-800 shadow-[0_4px_20px_-4px_rgba(99,102,241,0.07)]">
-      {/* Sleek Vibrant Underline Progress Bar at the Bottom Edge of Header */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-[3px] bg-slate-100/80 pointer-events-none z-[125]"
-      >
-        <motion.div 
-          className="h-full rounded-r-full transition-all duration-500 bg-gradient-to-r from-amber-400 via-rose-500 via-purple-500 to-indigo-600 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
-          initial={{ width: 0 }}
-          animate={{ width: `${activePercent}%` }}
-          transition={{ type: "spring", stiffness: 120, damping: 18 }}
-        />
-      </div>
-
       <div className="flex-1 min-w-0 relative z-[140] flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <StudyHeaderTracker
@@ -144,6 +136,9 @@ export const FlashcardHeader: React.FC<FlashcardHeaderProps> = ({
             isRandom={isRandom}
             onToggleOrder={onToggleOrder}
             onOpenStudyConsole={onOpenStudyConsole}
+            xpFloat={xpFloat}
+            badgeMessage={badgeMessage}
+            badgeVisible={badgeVisible}
           />
         </div>
 

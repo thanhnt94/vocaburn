@@ -59,6 +59,9 @@ export interface StudyHeaderTrackerProps {
   isRandom?: boolean
   onToggleOrder?: () => void
   onOpenStudyConsole?: () => void
+  xpFloat?: { visible: boolean; amount: number }
+  badgeMessage?: string
+  badgeVisible?: boolean
 }
 
 const MODE_META_DICT: Record<string, { emoji: string; label: string; short: string; style: string }> = {
@@ -241,7 +244,10 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
   comboStreak = 0,
   isRandom = false,
   onToggleOrder,
-  onOpenStudyConsole
+  onOpenStudyConsole,
+  xpFloat,
+  badgeMessage,
+  badgeVisible
 }) => {
   // 0 = Mặt 1 (Tên bộ thẻ & Chế độ học), 1 = Mặt 2 (Toàn bộ các thông số chi tiết HUD)
   const [viewMode, setViewMode] = useState<0 | 1>(0)
@@ -369,73 +375,6 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
 
   return (
     <div className={cn("relative w-full flex items-center gap-2 select-none min-w-0 h-9", className)}>
-      {/* POWER SURGE EXPANSION OVERLAY */}
-      <AnimatePresence>
-        {isSurging && (
-          <motion.div
-            initial={{ opacity: 0, scaleY: 0.1 }}
-            animate={{ opacity: 1, scaleY: 1 }}
-            exit={{ opacity: 0, scaleY: 0.1 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className={cn(
-              "fixed inset-x-0 top-0 h-[48px] bg-white/95 backdrop-blur-xl flex items-center justify-center overflow-hidden z-[250] border-b shadow-lg pointer-events-none",
-              isOverachieved
-                ? "border-cyan-400/70"
-                : isGoalReached 
-                  ? "border-emerald-400/60" 
-                  : "border-amber-500/50"
-            )}
-          >
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${subPercent}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className={cn(
-                "absolute inset-y-0 left-0",
-                isOverachieved
-                  ? "bg-gradient-to-r from-emerald-600 via-teal-400 to-cyan-400 shadow-[0_0_35px_rgba(34,211,238,0.9)]"
-                  : isGoalReached 
-                    ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-400 shadow-[0_0_30px_rgba(16,185,129,0.9)]" 
-                    : "bg-gradient-to-r from-amber-600 via-orange-500 to-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.9)]"
-              )}
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: '200%' }}
-              transition={{ duration: 1.2, ease: "easeInOut", repeat: 1, repeatType: "reverse" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"
-            />
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: [0.9, 1.08, 1], opacity: 1 }}
-              transition={{ duration: 0.35 }}
-              className="relative z-10 font-black text-slate-800 text-xs sm:text-sm tracking-wider flex items-center gap-2 drop-shadow-sm"
-            >
-              {isOverachieved ? (
-                <Zap className="w-4 h-4 text-cyan-600 fill-cyan-500 animate-bounce" />
-              ) : isGoalReached ? (
-                <Trophy className="w-4 h-4 text-emerald-600 fill-emerald-500 animate-bounce" />
-              ) : (
-                <Flame className="w-4 h-4 text-amber-600 fill-amber-500 animate-bounce" />
-              )}
-              <span>{praiseMsg}</span>
-              {hasSubProg && (
-                <span className={cn(
-                  "px-2.5 py-0.5 rounded-full border text-xs font-black shadow-xs",
-                  isOverachieved
-                    ? "bg-cyan-50 border-cyan-300 text-cyan-700"
-                    : isGoalReached 
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-700" 
-                      : "bg-amber-50 border-amber-300 text-amber-700"
-                )}>
-                  {isOverachieved ? `+${extraCount}` : (progressPillText || `${subProgressCurr} / ${subProgressTotal}`)}
-                </span>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* 1. LEFT: Exit button (always on top and clickable) */}
       <div className="flex items-center shrink-0 z-[260] relative pointer-events-auto">
         {onExit && (
@@ -456,6 +395,41 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
         title="Click to toggle between Deck Info ⇄ Live HUD Stats"
       >
         <div className="w-full h-full flex items-center rounded-full bg-white/90 hover:bg-white border border-slate-200/90 hover:border-indigo-200/90 px-2.5 sm:px-3.5 backdrop-blur-md shadow-xs shadow-indigo-100/30 transition-all overflow-hidden relative">
+          {/* Micro Dynamic Reward Banner inside Quick Bar */}
+          <AnimatePresence>
+            {badgeVisible && (badgeMessage || (xpFloat?.visible && (xpFloat?.amount ?? 0) > 0)) && (
+              <motion.div
+                key="header-reward-banner"
+                initial={{ opacity: 0, y: -24, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -24, scale: 0.95 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className={cn(
+                  "absolute inset-0 z-[160] flex items-center justify-between px-3 font-black text-xs sm:text-sm tracking-wide shadow-xs",
+                  badgeMessage && (badgeMessage.toLowerCase().includes('incorrect') || badgeMessage.toLowerCase().includes('slip') || badgeMessage.toLowerCase().includes('almost') || badgeMessage.toLowerCase().includes('keep going'))
+                    ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white"
+                    : "bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white"
+                )}
+              >
+                <div className="flex items-center gap-1.5 min-w-0 truncate">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin shrink-0" />
+                  <span className="truncate drop-shadow-xs font-black uppercase text-[11px] sm:text-xs">
+                    {badgeMessage || "POINT BONUS!"}
+                  </span>
+                </div>
+                {xpFloat && (xpFloat.amount ?? 0) > 0 ? (
+                  <motion.span
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: [1, 1.15, 1], opacity: 1 }}
+                    className="px-2 py-0.5 rounded-full bg-white/25 text-white text-[10.5px] font-black tracking-tight shrink-0 shadow-xs backdrop-blur-xs ml-2"
+                  >
+                    +{xpFloat.amount} XP ✨
+                  </motion.span>
+                ) : null}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait" initial={false}>
             {viewMode === 0 ? (
               /* ========================================================================= */
@@ -631,7 +605,7 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
 
                 {/* 5. XP Score */}
                 <div 
-                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-50/80 border border-amber-200/50 hover:bg-amber-100/80 transition-colors shrink-0" 
+                  className="flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-50/80 border border-amber-200/50 hover:bg-amber-100/80 transition-colors shrink-0 relative" 
                   title={`Session: +${sessionXP} XP | Total: ${xp.toLocaleString()} XP`}
                 >
                   <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -639,6 +613,21 @@ export const StudyHeaderTracker: React.FC<StudyHeaderTrackerProps> = ({
                     {sessionXP > 0 ? `+${sessionXP}` : displayTotalXP}
                   </span>
                   <span className="text-[9px] text-amber-600/80 font-black">XP</span>
+
+                  {/* Micro floating particle when XP is gained */}
+                  <AnimatePresence>
+                    {xpFloat?.visible && (xpFloat.amount ?? 0) > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, y: -16, scale: 1 }}
+                        exit={{ opacity: 0, y: -24, scale: 0.8 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[9px] shadow-sm pointer-events-none whitespace-nowrap z-[170]"
+                      >
+                        +{xpFloat.amount}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* 6. Streak or Combo */}
