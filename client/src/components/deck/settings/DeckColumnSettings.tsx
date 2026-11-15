@@ -126,6 +126,12 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     return [];
   }, [practiceSettingsData, deckData]);
 
+  const columnFormulas: Record<string, string> = React.useMemo(() => {
+    return practiceSettingsData?.creator_settings?.column_formulas 
+      || deckData?.practice_settings?.column_formulas 
+      || {};
+  }, [practiceSettingsData, deckData]);
+
   // 2. Mutations
   const toggleInsightMutation = useMutation({
     mutationFn: async ({ column, isInsight }: { column: string; isInsight: boolean }) => {
@@ -605,10 +611,19 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-black text-xs text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200/80 shadow-2xs truncate">
                             {colName}
                           </span>
+                          {columnFormulas[colName] && (
+                            <span 
+                              className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[10px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1 border border-purple-200"
+                              title={`Formula: ${columnFormulas[colName]}`}
+                            >
+                              <Sparkles className="w-3 h-3 text-purple-600" />
+                              fx Công thức
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -757,13 +772,22 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-black text-xs text-indigo-700 bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100">
                         {col.name}
                       </span>
                       {col.locked && (
                         <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/60 text-[9px] font-black uppercase">
                           Required
+                        </span>
+                      )}
+                      {columnFormulas[col.name] && (
+                        <span 
+                          className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[10px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1 border border-purple-200"
+                          title={`Formula: ${columnFormulas[col.name]}`}
+                        >
+                          <Sparkles className="w-3 h-3 text-purple-600" />
+                          fx Công thức
                         </span>
                       )}
                     </div>

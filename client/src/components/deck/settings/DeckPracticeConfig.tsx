@@ -218,6 +218,19 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     !['id', 'item_id', 'order_in_container', 'other_content'].includes(c)
   )
 
+  const columnFormulas: Record<string, string> = React.useMemo(() => {
+    return practiceSettingsData?.creator_settings?.column_formulas 
+      || initialSettings?.column_formulas 
+      || {};
+  }, [practiceSettingsData, initialSettings]);
+
+  const formatColumnOption = (col: string, prefix = '') => {
+    if (columnFormulas[col]) {
+      return `⚡ ${prefix}${col} (fx Công thức)`
+    }
+    return `${prefix}${col}`
+  }
+
   const effectiveAudioConfigs = (Array.isArray(practiceSettingsData?.creator_settings?.audio_configs) && practiceSettingsData.creator_settings.audio_configs.length > 0)
     ? practiceSettingsData.creator_settings.audio_configs
     : (Array.isArray(initialSettings?.audio_configs) && initialSettings.audio_configs.length > 0)
@@ -937,7 +950,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           >
                             {availableColumns.map((col) => (
                               <option key={col} value={col}>
-                                {col}
+                                {formatColumnOption(col)}
                               </option>
                             ))}
                           </select>
@@ -980,6 +993,14 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                                   >
                                     <span>{isSelected ? "✓" : "+"}</span>
                                     <span>{col.toUpperCase()}</span>
+                                    {columnFormulas[col] && (
+                                      <span className={cn(
+                                        "text-[8px] font-mono font-black px-1 rounded ml-1",
+                                        isSelected ? "bg-white/30 text-white" : "bg-purple-100 text-purple-700 border border-purple-200"
+                                      )}>
+                                        fx
+                                      </span>
+                                    )}
                                   </button>
                                 )
                               })}
@@ -1000,7 +1021,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                             >
                               {availableColumns.map((col) => (
                                 <option key={col} value={col}>
-                                  {col}
+                                  {formatColumnOption(col)}
                                 </option>
                               ))}
                             </select>
@@ -1040,7 +1061,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           <optgroup label="Tất cả các cột trong Deck">
                             {availableColumns.map((col) => (
                               <option key={col} value={col}>
-                                📄 Cột: {col}
+                                {formatColumnOption(col, 'Cột: ')}
                               </option>
                             ))}
                           </optgroup>
@@ -1067,7 +1088,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           <option value="">(Không hiển thị gợi ý câu hỏi)</option>
                           {availableColumns.map((col) => (
                             <option key={col} value={col}>
-                              📄 Cột: {col}
+                              {formatColumnOption(col, 'Cột: ')}
                             </option>
                           ))}
                         </select>
@@ -1092,7 +1113,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           <option value="">🎯 Tự động theo cột đáp án (Mặc định)</option>
                           {availableColumns.map((col) => (
                             <option key={col} value={col}>
-                              📄 Cột: {col}
+                              {formatColumnOption(col, 'Cột: ')}
                             </option>
                           ))}
                         </select>
