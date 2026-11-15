@@ -37,9 +37,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
-import { GoalCelebrationModal } from '@/components/flashcard/GoalCelebrationModal'
-import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
-import { MilestoneCelebration } from '@/components/MilestoneCelebration'
+
 import { QuestionMapModal } from '@/components/QuestionMapModal'
 import { OverdriveStrikeOverlay } from '@/components/OverdriveStrikeOverlay'
 import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
@@ -368,7 +366,6 @@ export default function PracticePlay() {
   const [selectedChoiceData, setSelectedChoiceData] = useState<any | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
-  const [activeUnlockedBadge, setActiveUnlockedBadge] = useState<any | null>(null)
   const [activeMasteryUpgrade, setActiveMasteryUpgrade] = useState<any | null>(null)
   const [editFormData, setEditFormData] = useState<any>(null)
   const [sessionAnswers, setSessionAnswers] = useState<Record<number, number | number[]>>({})
@@ -393,11 +390,6 @@ export default function PracticePlay() {
     } catch (e) {}
     await fetchSession();
   };
-  const [activeMilestone, setActiveMilestone] = useState<{
-    type: 'streak_10' | 'halfway' | 'mastery' | 'goal_met'
-    title: string
-    message: string
-  } | null>(null)
   // ── Engagement State ──
   const [answerContext, setAnswerContext] = useState<{
     wasCorrect: boolean
@@ -424,7 +416,6 @@ export default function PracticePlay() {
     bonusXP?: number;
   } | null>(null)
   const [activeGoal, setActiveGoal] = useState<any>(null)
-  const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const activeMode = userSettings.quiz_learning_mode || 'fsrs'
   const setActiveMode = (mode: string) => updateUserSettings({ quiz_learning_mode: mode as any })
@@ -1233,9 +1224,7 @@ export default function PracticePlay() {
   useEffect(() => {
     if (isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
       setGoalToast(prev => prev ? { ...prev, visible: false } : null)
-      setShowGoalCelebration(false)
       setBadgeVisible(false)
-      setActiveUnlockedBadge(null)
       setActiveMasteryUpgrade(null)
       setLearningModeAlert(null)
     }
@@ -2139,17 +2128,7 @@ export default function PracticePlay() {
         }
       }
 
-      // Real-time Achievement Badge Unlock
-      const unlockedBadge = res.data.unlocked_badge
-      if (unlockedBadge) {
-        setActiveUnlockedBadge(unlockedBadge)
-        confetti({ zIndex: 9999,
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#8B5CF6', '#EC4899', '#FBBF24', '#3B82F6']
-        })
-      }
+
 
       const goalUpdate = res.data.goal_update
       if (goalUpdate) {
@@ -2209,33 +2188,7 @@ export default function PracticePlay() {
           })
           .catch(e => console.error("Failed to load daily comparison in background", e))
 
-        if (goalUpdate.just_completed) {
-          setShowGoalCelebration(true)
-          // Epic continuous confetti shower from bottom corners
-          const end = Date.now() + 4.5 * 1000;
-          const colors = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
-
-          (function frame() {
-            confetti({ zIndex: 9999,
-              particleCount: 4,
-              angle: 60,
-              spread: 55,
-              origin: { x: 0, y: 0.8 },
-              colors: colors
-            });
-            confetti({ zIndex: 9999,
-              particleCount: 4,
-              angle: 120,
-              spread: 55,
-              origin: { x: 1, y: 0.8 },
-              colors: colors
-            });
-
-            if (Date.now() < end) {
-              requestAnimationFrame(frame);
-            }
-          }());
-        } else if (goalUpdate.is_target_met) {
+        if (goalUpdate.is_target_met) {
           if (correct && goalUpdate.done_today > goalUpdate.daily_target) {
             // Screen flash lightning overlay
             setIsLimitlessStrike(true);
@@ -2340,26 +2293,6 @@ export default function PracticePlay() {
 
       confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 } });
       setBadgeMessage("Correct! 🎯");
-
-      // Trigger 10-streak milestone celebration in practice mode
-      if (updatedStreak === 10) {
-        setActiveMilestone({
-          type: 'streak_10',
-          title: '🔥 Perfect Streak!',
-          message: 'Excellent concentration! You answered 10 practice cards correct in a row.'
-        });
-      }
-
-      // Trigger Halfway completion milestone in practice mode
-      const answeredCount = Object.keys(newAnswers).length;
-      const totalCount = session?.questions?.length || 1;
-      if (answeredCount === Math.floor(totalCount / 2) && totalCount > 4) {
-        setActiveMilestone({
-          type: 'halfway',
-          title: '🎯 Halfway There!',
-          message: `Great progress! You completed ${answeredCount}/${totalCount} cards in this practice session.`
-        });
-      }
     } else {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
@@ -2687,9 +2620,7 @@ export default function PracticePlay() {
 
     // Đóng toàn bộ các popup, toast, thông báo thành tựu khi chuyển sang câu mới
     setGoalToast(prev => prev ? { ...prev, visible: false } : null)
-    setShowGoalCelebration(false)
     setBadgeVisible(false)
-    setActiveUnlockedBadge(null)
     setActiveMasteryUpgrade(null)
     setLearningModeAlert(null)
 
@@ -5126,15 +5057,6 @@ export default function PracticePlay() {
       {/* ⚡ LIMITLESS MODE SCREEN FLASH OVERLAY */}
       <OverdriveStrikeOverlay isVisible={isLimitlessStrike} />
 
-      {/* 🏆 DAILY GOAL CELEBRATION MODAL */}
-      <GoalCelebrationModal
-        isOpen={showGoalCelebration}
-        onClose={() => setShowGoalCelebration(false)}
-        goalToast={goalToast}
-      />
-
-
-
       {/* Exit Confirmation Modal */}
       <QuitSessionModal
         isOpen={isQuitModalOpen}
@@ -5181,22 +5103,6 @@ export default function PracticePlay() {
         practiceSettings={session?.practice_settings || session?.creator_settings}
       />
 
-      {/* Achievement Unlocked Modal Overlay */}
-      <BadgeUnlockOverlay
-        badge={activeUnlockedBadge}
-        onClose={() => setActiveUnlockedBadge(null)}
-      />
-
-      {/* Milestone Celebration Modal */}
-      {activeMilestone && (
-        <MilestoneCelebration
-          type={activeMilestone.type}
-          title={activeMilestone.title}
-          message={activeMilestone.message}
-          onClose={() => setActiveMilestone(null)}
-        />
-      )}
-      
       {/* Zoomed Image Modal Overlay */}
       <ImageZoomOverlay
         zoomedImage={zoomedImage}

@@ -7,7 +7,6 @@ import { PlayStatsDrawer } from '@/components/PlayStatsDrawer'
 import { FlashcardEditModal } from '@/components/FlashcardEditModal'
 import {
   ImageZoomOverlay,
-  GoalCelebrationModal,
   QuitSessionModal,
   StudyConsoleModal
 } from '@/components/flashcard'
@@ -53,11 +52,6 @@ export interface FlashcardModalsContainerProps {
 
   // Overdrive / Strike
   isLimitlessStrike: boolean
-
-  // Goal Celebration
-  showGoalCelebration: boolean
-  setShowGoalCelebration: (val: boolean) => void
-  goalToast: any
 
   // Study Console & Navigation
   applyLearningMode: (mode: any, order?: any) => void
@@ -121,9 +115,6 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
   renderSessionStats,
   onOpenCardHub,
   isLimitlessStrike,
-  showGoalCelebration,
-  setShowGoalCelebration,
-  goalToast,
   applyLearningMode,
   randomEnabled,
   isQuitModalOpen,
@@ -182,13 +173,6 @@ export const FlashcardModalsContainer: React.FC<FlashcardModalsContainerProps> =
 
       {/* 4. Limitless Strike Screen Flash */}
       <OverdriveStrikeOverlay isVisible={isLimitlessStrike} />
-
-      {/* 5. Daily Goal Celebration Modal */}
-      <GoalCelebrationModal
-        isOpen={showGoalCelebration}
-        onClose={() => setShowGoalCelebration(false)}
-        goalToast={goalToast}
-      />
 
       {/* 6. Exit Confirmation Modal */}
       <QuitSessionModal

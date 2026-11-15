@@ -33,7 +33,6 @@ import { useSessionStats } from '@/hooks/useSessionStats'
 import { usePracticeMode } from '@/hooks/usePracticeMode'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { splitImageUrls } from '@/lib/image-utils'
-import { BadgeUnlockOverlay } from '@/components/BadgeUnlockOverlay'
 import { usePlaySettings } from '@/hooks/usePlaySettings'
 import { getFrontFontSizeStyle } from '@/components/common/study'
 import { PlaySessionSummary } from '@/components/PlaySessionSummary'
@@ -453,7 +452,6 @@ export default function FlashcardPlay() {
   };
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
-  const [activeUnlockedBadge, setActiveUnlockedBadge] = useState<any | null>(null)
   const [activeMasteryUpgrade, setActiveMasteryUpgrade] = useState<any | null>(null)
   const [editFormData, setEditFormData] = useState<any>(null)
   const [sessionAnswers, setSessionAnswers] = useState<Record<number, number | number[]>>({})
@@ -461,7 +459,6 @@ export default function FlashcardPlay() {
   // ── Engagement State ──
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false)
   const [activeGoal, setActiveGoal] = useState<any>(null)
-  const [showGoalCelebration, setShowGoalCelebration] = useState(false)
   const [isLimitlessStrike, setIsLimitlessStrike] = useState(false)
   const [activeMode, setActiveMode] = useState<string>(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -990,9 +987,7 @@ export default function FlashcardPlay() {
   useEffect(() => {
     if (isMapOpen || isStatsOpen || isEditModalOpen || isQuitModalOpen || isSessionSummaryOpen) {
       setGoalToast(prev => prev ? { ...prev, visible: false } : null)
-      setShowGoalCelebration(false)
       setBadgeVisible(false)
-      setActiveUnlockedBadge(null)
       setActiveMasteryUpgrade(null)
       setLearningModeAlert(null)
     }
@@ -1674,35 +1669,6 @@ export default function FlashcardPlay() {
         })
         .catch(e => console.error("Failed to load daily comparison in background", e))
 
-      // Trigger 10-Streak Milestone Celebration
-      if (updatedStreak === 10) {
-        setActiveMilestone({
-          type: 'streak_10',
-          title: '🔥 Perfect Streak!',
-          message: 'Amazing focus! You have answered 10 cards correct in a row!'
-        })
-      }
-
-      // Trigger Halfway Completion Milestone Celebration
-      const answeredCount = Object.keys(newAnswers).length
-      const totalCount = session?.questions?.length || 1
-      if (answeredCount === Math.floor(totalCount / 2) && totalCount > 4) {
-        setActiveMilestone({
-          type: 'halfway',
-          title: '🎯 Halfway There!',
-          message: `Great progress! You have studied ${answeredCount}/${totalCount} cards in this deck.`
-        })
-      }
-
-      // Trigger Deck Mastery Milestone Celebration
-      if (res.data.deck_mastered) {
-        setActiveMilestone({
-          type: 'mastery',
-          title: '🏆 Deck Mastered!',
-          message: 'Outstanding achievement! You have mastered every card in this deck!'
-        })
-      }
-
       // Spaced Repetition Mastery Level Up
       const masteryUpdate = res.data.mastery_update
       if (masteryUpdate) {
@@ -1754,18 +1720,6 @@ export default function FlashcardPlay() {
           }, 3000)
         }
         */
-      }
-
-      // Real-time Achievement Badge Unlock
-      const unlockedBadge = res.data.unlocked_badge
-      if (unlockedBadge) {
-        setActiveUnlockedBadge(unlockedBadge)
-        confetti({ zIndex: 9999,
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#8B5CF6', '#EC4899', '#FBBF24', '#3B82F6']
-        })
       }
 
       const goalUpdate = res.data.goal_update
@@ -1882,15 +1836,7 @@ export default function FlashcardPlay() {
         }
       }
 
-      // Tự động chuyển câu (Quick Learn)
-      const quickAnswersCount = Object.keys(newAnswers).length
-      const quickTotalCount = session?.questions?.length || 1
-      const isHalfwayMilestone = (quickAnswersCount === Math.floor(quickTotalCount / 2) && quickTotalCount > 4)
-      const hasMilestone = !!unlockedBadge || 
-                            !!res.data.deck_mastered || 
-                            !!(goalUpdate && goalUpdate.just_completed) || 
-                            (updatedStreak === 10) || 
-                            isHalfwayMilestone
+
 
     } catch (e) {
       console.error("Failed to record answer to server:", e)
@@ -2023,9 +1969,7 @@ export default function FlashcardPlay() {
 
         // Dismiss any remaining toasts/celebrations
         setBadgeVisible(false);
-        setActiveUnlockedBadge(null);
         setActiveMasteryUpgrade(null);
-        setShowGoalCelebration(false);
       }
     } catch (e) {
       console.error("Failed to undo rating:", e);
@@ -2225,9 +2169,7 @@ export default function FlashcardPlay() {
 
     // Đóng toàn bộ các popup, toast, thông báo thành tựu khi chuyển sang câu mới
     setGoalToast(prev => prev ? { ...prev, visible: false } : null)
-    setShowGoalCelebration(false)
     setBadgeVisible(false)
-    setActiveUnlockedBadge(null)
     setActiveMasteryUpgrade(null)
     setLearningModeAlert(null)
     
@@ -4187,11 +4129,6 @@ export default function FlashcardPlay() {
         // Overdrive Strike
         isLimitlessStrike={isLimitlessStrike}
 
-        // Goal Celebration
-        showGoalCelebration={showGoalCelebration}
-        setShowGoalCelebration={setShowGoalCelebration}
-        goalToast={goalToast}
-
         // Study Console & Navigation
         applyLearningMode={applyLearningMode}
         randomEnabled={randomEnabled}
@@ -4243,12 +4180,6 @@ export default function FlashcardPlay() {
           </motion.button>
         )}
       </AnimatePresence>
-
-      {/* Achievement Unlocked Modal Overlay */}
-      <BadgeUnlockOverlay
-        badge={activeUnlockedBadge}
-        onClose={() => setActiveUnlockedBadge(null)}
-      />
 
       {/* ═══════════ QUICK ACTION BOTTOM SHEET (Root-level Global Portal) ═══════════ */}
       <FlashcardQuickControlsSheet
