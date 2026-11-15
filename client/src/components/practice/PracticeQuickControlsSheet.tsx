@@ -56,6 +56,10 @@ export interface PracticeQuickControlsSheetProps {
   setSfxEnabled: (val: boolean) => void
   hapticEnabled: boolean
   setHapticEnabled: (val: boolean) => void
+  frontFontSize?: string
+  setFrontFontSize?: (val: string) => void
+  backFontSize?: string
+  setBackFontSize?: (val: string) => void
   fontSize?: string
   setFontSize?: (val: string) => void
   showImages?: string | boolean
@@ -101,6 +105,10 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
   setSfxEnabled,
   hapticEnabled,
   setHapticEnabled,
+  frontFontSize,
+  setFrontFontSize,
+  backFontSize = '100%',
+  setBackFontSize,
   fontSize = '100%',
   setFontSize,
   showImages = 'always',
@@ -379,25 +387,41 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
     showLocalToast?.(`Images: ${!isImgShown ? 'SHOW' : 'HIDE'}`, 'info')
   }
 
-  // Font Scale Cycle
+  // Font Scale Cycles (Question Font & Answers Font)
   const FONT_SCALES = [
     { val: '85%', alias: 'S' },
     { val: '100%', alias: 'M' },
     { val: '125%', alias: 'L' },
     { val: '150%', alias: 'XL' }
   ]
-  const currentFontAlias = (() => {
-    if (fontSize === '85%' || fontSize === 'S' || fontSize === 'small') return 'S'
-    if (fontSize === '125%' || fontSize === 'L' || fontSize === 'large') return 'L'
-    if (fontSize === '150%' || fontSize === 'XL' || fontSize === 'xlarge') return 'XL'
+  const effectiveFrontFontSize = frontFontSize || fontSize || '100%'
+  const effectiveSetFrontFontSize = setFrontFontSize || setFontSize
+
+  const getFontAlias = (val?: string) => {
+    if (!val) return 'M'
+    if (val === '85%' || val === 'S' || val === 'small') return 'S'
+    if (val === '125%' || val === 'L' || val === 'large') return 'L'
+    if (val === '150%' || val === 'XL' || val === 'xlarge') return 'XL'
     return 'M'
-  })()
-  const handleCycleFont = () => {
-    const curIdx = FONT_SCALES.findIndex(s => s.alias === currentFontAlias)
+  }
+
+  const currentFrontFontAlias = getFontAlias(effectiveFrontFontSize)
+  const currentBackFontAlias = getFontAlias(backFontSize)
+
+  const handleCycleFrontFont = () => {
+    const curIdx = FONT_SCALES.findIndex(s => s.alias === currentFrontFontAlias)
     const nextIdx = (curIdx + 1) % FONT_SCALES.length
     const nextSize = FONT_SCALES[nextIdx]
-    setFontSize?.(nextSize.val)
-    showLocalToast?.(`Font Scale: ${nextSize.alias} (${nextSize.val})`, 'info')
+    effectiveSetFrontFontSize?.(nextSize.val)
+    showLocalToast?.(`Question Font: ${nextSize.alias} (${nextSize.val})`, 'info')
+  }
+
+  const handleCycleBackFont = () => {
+    const curIdx = FONT_SCALES.findIndex(s => s.alias === currentBackFontAlias)
+    const nextIdx = (curIdx + 1) % FONT_SCALES.length
+    const nextSize = FONT_SCALES[nextIdx]
+    setBackFontSize?.(nextSize.val)
+    showLocalToast?.(`Answers Font: ${nextSize.alias} (${nextSize.val})`, 'info')
   }
 
   return createPortal(
@@ -962,25 +986,48 @@ export const PracticeQuickControlsSheet: React.FC<PracticeQuickControlsSheetProp
                     </div>
                   </button>
 
-                  {/* 2. Font Scale */}
+                  {/* 2. Question Font (Front Font Size) */}
                   <button
                     type="button"
-                    onClick={handleCycleFont}
+                    onClick={handleCycleFrontFont}
                     className={cn(
                       "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
-                      currentFontAlias !== 'M'
+                      currentFrontFontAlias !== 'M'
                         ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-2xs"
                         : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
                     )}
-                    title={`Font Scale: ${currentFontAlias}`}
+                    title={`Question Font Scale: ${currentFrontFontAlias}`}
                   >
-                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", currentFontAlias !== 'M' ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", currentFrontFontAlias !== 'M' ? "bg-indigo-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
                       <Type className="w-4 h-4" />
                     </div>
                     <div className="flex flex-col items-center leading-none gap-0.5">
-                      <span className="text-[9.5px] font-bold tracking-tight">Font Scale</span>
-                      <span className={cn("text-[8px] font-black uppercase tracking-wider", currentFontAlias !== 'M' ? "text-indigo-600" : "text-slate-400")}>
-                        {currentFontAlias}
+                      <span className="text-[9.5px] font-bold tracking-tight">Q Font</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", currentFrontFontAlias !== 'M' ? "text-indigo-600" : "text-slate-400")}>
+                        {currentFrontFontAlias}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* 3. Answers Font (Back Font Size) */}
+                  <button
+                    type="button"
+                    onClick={handleCycleBackFont}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-1 sm:p-1.5 rounded-xl border transition-all active:scale-95 text-center min-h-[58px] gap-1 cursor-pointer select-none",
+                      currentBackFontAlias !== 'M'
+                        ? "bg-purple-50 border-purple-300 text-purple-700 shadow-2xs"
+                        : "bg-slate-50 hover:bg-slate-100/80 border-slate-200/70 text-slate-500"
+                    )}
+                    title={`Answers Font Scale: ${currentBackFontAlias}`}
+                  >
+                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", currentBackFontAlias !== 'M' ? "bg-purple-600 text-white shadow-2xs" : "bg-white text-slate-400 border border-slate-200/60")}>
+                      <Type className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col items-center leading-none gap-0.5">
+                      <span className="text-[9.5px] font-bold tracking-tight">A Font</span>
+                      <span className={cn("text-[8px] font-black uppercase tracking-wider", currentBackFontAlias !== 'M' ? "text-purple-600" : "text-slate-400")}>
+                        {currentBackFontAlias}
                       </span>
                     </div>
                   </button>

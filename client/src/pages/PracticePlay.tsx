@@ -591,6 +591,8 @@ export default function PracticePlay() {
     setBackValign,
     backHalign,
     setBackHalign,
+    backFontSize,
+    setBackFontSize,
     creatorDefaults,
     cardFlipTrigger: deckCardFlipTrigger,
     setCardFlipTrigger,
@@ -3742,6 +3744,7 @@ export default function PracticePlay() {
           onPlayAudio={playCardAudio}
           onZoomImage={(url) => setZoomedImage(url)}
           frontFontSize={currentFrontFontSize}
+          backFontSize={backFontSize || '100%'}
           showImages={showImages}
           onPreviewInsight={setPreviewInsightCard}
           autoFocus={false}
@@ -3774,6 +3777,7 @@ export default function PracticePlay() {
           onNext={() => handleNext()}
           onZoomImage={(url) => setZoomedImage(url)}
           frontFontSize={currentFrontFontSize}
+          backFontSize={backFontSize || '100%'}
           autoFocus={false}
           hideInlineSubmit={true}
         />
@@ -3797,6 +3801,7 @@ export default function PracticePlay() {
         onNext={() => handleNext()}
         onZoomImage={(url) => setZoomedImage(url)}
         frontFontSize={currentFrontFontSize}
+        backFontSize={backFontSize || '100%'}
         showImages={showImages}
       />
     );
@@ -5217,6 +5222,10 @@ export default function PracticePlay() {
         setSfxEnabled={setSfxEnabled}
         hapticEnabled={Boolean(hapticEnabled)}
         setHapticEnabled={setHapticEnabled}
+        frontFontSize={frontFontSize}
+        setFrontFontSize={setFrontFontSize}
+        backFontSize={backFontSize}
+        setBackFontSize={setBackFontSize}
         fontSize={frontFontSize}
         setFontSize={setFrontFontSize}
         showImages={showImages}

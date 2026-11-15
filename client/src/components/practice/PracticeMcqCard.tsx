@@ -3,6 +3,7 @@ import { Sparkles, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml, isJapanese } from '@/lib/text'
 import { extractCardImages } from '@/lib/image-utils'
+import { getBackFontSizeStyle } from '@/components/common/study'
 import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
@@ -23,6 +24,7 @@ export interface PracticeMcqCardProps {
   onNext?: () => void
   onZoomImage?: (url: string) => void
   frontFontSize?: string
+  backFontSize?: string
   showImages?: string | boolean
   hideHeaderActions?: boolean
 }
@@ -48,6 +50,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
   onNext,
   onZoomImage,
   frontFontSize = 'M',
+  backFontSize = '100%',
   showImages = 'always',
   hideHeaderActions = false
 }) => {
@@ -208,9 +211,12 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
                   <div className="flex-1 min-w-0 pr-1">
                     <span
                       className={cn(
-                        "font-bold text-sm sm:text-base leading-snug block whitespace-normal break-words",
+                        "font-bold leading-snug block whitespace-normal break-words",
                         answered && (isCorrectChoice || isSelected) ? "text-white" : "text-slate-800 dark:text-slate-100"
                       )}
+                      style={{
+                        fontSize: getBackFontSizeStyle(backFontSize)
+                      }}
                       dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(choice || '') }}
                     />
                     {hasSubtext && (

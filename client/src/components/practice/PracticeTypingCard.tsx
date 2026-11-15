@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
+import { getBackFontSizeStyle } from '@/components/common/study'
 import { PracticeCardShell } from './PracticeCardShell'
 import type { Question } from '@/types/flashcard'
 import type { PracticeQuestionData } from '@/types/practice'
@@ -25,6 +26,7 @@ export interface PracticeTypingCardProps {
   onPlayAudio?: (face?: string, rate?: number) => void
   onZoomImage?: (url: string) => void
   frontFontSize?: string
+  backFontSize?: string
   showImages?: string | boolean
   autoFocus?: boolean
   hideInlineSubmit?: boolean
@@ -48,6 +50,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   onPlayAudio,
   onZoomImage,
   frontFontSize = 'M',
+  backFontSize = '100%',
   showImages = 'always',
   autoFocus = false,
   hideInlineSubmit = false,
@@ -246,7 +249,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
                       Correct Answer:
                     </span>
-                    <div className="px-3.5 py-2 rounded-xl bg-white/90 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-black text-lg">
+                    <div
+                      className="px-3.5 py-2 rounded-xl bg-white/90 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-black text-lg"
+                      style={{ fontSize: getBackFontSizeStyle(backFontSize) }}
+                    >
                       <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(correct_answer || '') }} />
                     </div>
                   </div>
