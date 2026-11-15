@@ -80,6 +80,177 @@ const handlePlayTabAudio = async (cardId?: number, tabId?: string, textContent?:
   speakWithEdgeTTS(cleanText);
 };
 
+const getBoxMeta = (title: string, id: string) => {
+  const norm = (title || id || '').toLowerCase().replace(/_/g, ' ').trim();
+  if (norm.includes('kanji') || norm.includes('chiết tự') || norm.includes('hán tự')) {
+    return {
+      label: '🏛️ PHÂN TÍCH KANJI',
+      badgeClass: 'text-amber-800 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
+      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
+      bgClass: 'bg-gradient-to-br from-amber-50/40 via-white to-amber-50/15 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('chuyển âm')) {
+    return {
+      label: '🎵 QUY TẮC CHUYỂN ÂM',
+      badgeClass: 'text-indigo-800 dark:text-indigo-300 bg-indigo-100/90 dark:bg-indigo-950/70 border-indigo-300/80',
+      borderClass: 'border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-300',
+      bgClass: 'bg-gradient-to-br from-indigo-50/40 via-white to-indigo-50/15 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('nhớ cách đọc') || norm.includes('mẹo nhớ') || norm.includes('mnemonic')) {
+    return {
+      label: '🎧 MẸO NHỚ CÁCH ĐỌC',
+      badgeClass: 'text-purple-800 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/70 border-purple-300/80',
+      borderClass: 'border-purple-200/80 dark:border-purple-800/60 hover:border-purple-300',
+      bgClass: 'bg-gradient-to-br from-purple-50/40 via-white to-purple-50/15 dark:from-purple-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('cụm từ') || norm.includes('collocation')) {
+    return {
+      label: '🔗 CỤM TỪ HAY DÙNG',
+      badgeClass: 'text-emerald-800 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/70 border-emerald-300/80',
+      borderClass: 'border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300',
+      bgClass: 'bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/15 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('sử dụng') || norm.includes('sắc thái') || norm.includes('nuance')) {
+    return {
+      label: '🎯 CÁCH SỬ DỤNG & SẮC THÁI',
+      badgeClass: 'text-sky-800 dark:text-sky-300 bg-sky-100/90 dark:bg-sky-950/70 border-sky-300/80',
+      borderClass: 'border-sky-200/80 dark:border-sky-800/60 hover:border-sky-300',
+      bgClass: 'bg-gradient-to-br from-sky-50/40 via-white to-sky-50/15 dark:from-sky-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('đồng nghĩa')) {
+    return {
+      label: '🔄 TỪ ĐỒNG NGHĨA',
+      badgeClass: 'text-teal-800 dark:text-teal-300 bg-teal-100/90 dark:bg-teal-950/70 border-teal-300/80',
+      borderClass: 'border-teal-200/80 dark:border-teal-800/60 hover:border-teal-300',
+      bgClass: 'bg-gradient-to-br from-teal-50/40 via-white to-teal-50/15 dark:from-teal-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('trái nghĩa') || norm.includes('đối lập')) {
+    return {
+      label: '⚖️ TỪ TRÁI NGHĨA',
+      badgeClass: 'text-rose-800 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-950/70 border-rose-300/80',
+      borderClass: 'border-rose-200/80 dark:border-rose-800/60 hover:border-rose-300',
+      bgClass: 'bg-gradient-to-br from-rose-50/40 via-white to-rose-50/15 dark:from-rose-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('ví dụ') || norm.includes('example')) {
+    return {
+      label: '🌱 CÂU VÍ DỤ THỰC TẾ',
+      badgeClass: 'text-violet-800 dark:text-violet-300 bg-violet-100/90 dark:bg-violet-950/70 border-violet-300/80',
+      borderClass: 'border-violet-200/80 dark:border-violet-800/60 hover:border-violet-300',
+      bgClass: 'bg-gradient-to-br from-violet-50/40 via-white to-violet-50/15 dark:from-violet-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  return {
+    label: title,
+    badgeClass: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700',
+    borderClass: 'border-slate-200/80 dark:border-slate-800',
+    bgClass: 'bg-slate-50/80 dark:bg-slate-900/50'
+  };
+};
+
+const renderFormattedInsight = (content: string) => {
+  if (!content) return null;
+  const lines = content.split('\n');
+
+  return (
+    <div className="space-y-1.5 text-[13px] sm:text-sm leading-relaxed">
+      {lines.map((rawLine, idx) => {
+        const line = rawLine.trim();
+        if (!line) {
+          return <div key={idx} className="h-1.5" />;
+        }
+
+        // Markdown Header ### ...
+        if (line.startsWith('### ') || line.startsWith('## ')) {
+          const headerText = line.replace(/^#{2,3}\s*/, '');
+          return (
+            <div
+              key={idx}
+              className="font-black text-slate-800 dark:text-slate-100 text-sm sm:text-[15px] pt-2 pb-1 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2"
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(headerText) }}
+            />
+          );
+        }
+
+        // Example sentence highlight: 🌱 (JP) or 💡 (VI)
+        if (line.startsWith('🌱')) {
+          return (
+            <div
+              key={idx}
+              className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 font-bold text-sm sm:text-[15px] text-emerald-950 dark:text-emerald-100 shadow-2xs leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(line) }}
+            />
+          );
+        }
+        if (line.startsWith('💡')) {
+          return (
+            <div
+              key={idx}
+              className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 font-medium text-xs sm:text-sm text-amber-950 dark:text-amber-200 shadow-2xs leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(line) }}
+            />
+          );
+        }
+
+        // Key : Value format (e.g. • Key : Value or - Key : Value)
+        const isBullet = line.startsWith('• ') || line.startsWith('- ');
+        const strippedLine = isBullet ? line.slice(2).trim() : line;
+        
+        if (strippedLine.includes(' : ') || strippedLine.includes(' ： ')) {
+          const splitParts = strippedLine.split(/\s*[:：]\s*/);
+          const keyPart = splitParts[0];
+          const valPart = splitParts.slice(1).join(' : ');
+
+          return (
+            <div key={idx} className="flex items-start gap-2 py-0.5 group">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0 group-hover:scale-125 transition-transform" />
+              <div className="flex-1 min-w-0">
+                <span
+                  className="font-black text-indigo-700 dark:text-indigo-400 mr-1.5"
+                  dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(keyPart) }}
+                />
+                <span className="text-slate-400 font-bold mr-1.5">:</span>
+                <span
+                  className="text-slate-700 dark:text-slate-300 font-medium"
+                  dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(valPart) }}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        // Regular bullet line
+        if (isBullet) {
+          return (
+            <div key={idx} className="flex items-start gap-2 py-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 mt-2 shrink-0" />
+              <div
+                className="flex-1 text-slate-700 dark:text-slate-300 font-medium leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(strippedLine) }}
+              />
+            </div>
+          );
+        }
+
+        // Default paragraph
+        return (
+          <div
+            key={idx}
+            className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(line) }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 export type CardHubTabId = 'insight' | 'note' | 'social' | 'stats';
 
 export interface LearningInsightsModalProps {
@@ -436,6 +607,8 @@ export default function LearningInsightsModal({
     // Fallback only when deck has no custom insight configuration defined
     displayTabs = fullCardTabs;
   }
+  // Filter out empty boxes so they never clutter the UI
+  displayTabs = displayTabs.filter(tab => Boolean(tab.content && String(tab.content).trim() !== ''));
 
   // Navigation indexes
   const idx = allQuestions.findIndex(q => String(q.id) === String(card.id));
@@ -592,40 +765,47 @@ export default function LearningInsightsModal({
                     No insight columns configured for this card.
                   </div>
                 ) : (
-                  displayTabs.map((tab) => (
-                    <div 
-                      key={tab.id} 
-                      className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 border border-slate-150/70 text-left relative group hover:border-indigo-200/60 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">
-                          {tab.title}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyText(tab.id, tab.content)}
-                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center transition-all active:scale-90"
-                            title="Copy text"
-                          >
-                            {copiedId === tab.id ? <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handlePlayTabAudio(card?.id, tab.id, tab.content)}
-                            className="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-all active:scale-90"
-                            title="Play pronunciation"
-                          >
-                            <Volume2 className="w-3.5 h-3.5" />
-                          </button>
+                  displayTabs.map((tab) => {
+                    const meta = getBoxMeta(tab.title, tab.id);
+                    return (
+                      <div 
+                        key={tab.id} 
+                        className={cn(
+                          "p-4 sm:p-5 rounded-2xl border text-left relative group transition-all shadow-xs",
+                          meta.bgClass,
+                          meta.borderClass
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-3 border-b border-slate-150/60 dark:border-slate-800/80 pb-2">
+                          <span className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border font-black text-[11px] uppercase tracking-wider shadow-2xs",
+                            meta.badgeClass
+                          )}>
+                            {meta.label}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyText(tab.id, tab.content)}
+                              className="w-7 h-7 rounded-lg bg-white/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition-all active:scale-90"
+                              title="Copy text"
+                            >
+                              {copiedId === tab.id ? <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePlayTabAudio(card?.id, tab.id, tab.content)}
+                              className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center transition-all active:scale-90"
+                              title="Play pronunciation"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
+                        {renderFormattedInsight(tab.content)}
                       </div>
-                      <div
-                        className="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed whitespace-pre-wrap select-text pr-1"
-                        dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(tab.content) }}
-                      />
-                    </div>
-                  ))
+                    );
+                  })
                 )}
 
                 {/* Shortcut to note tab */}
