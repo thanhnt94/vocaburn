@@ -21,7 +21,7 @@ export interface PracticeCardShellProps {
   frontFontSize?: string
   starredCards: Record<number, boolean>
   onToggleStar: (cardId: number) => void
-  onPlayAudio?: () => void
+  onPlayAudio?: () => void | Promise<any>
   onZoomImage?: (url: string) => void
   hideHeaderActions?: boolean
   customCenterStage?: React.ReactNode
@@ -59,6 +59,31 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
 }) => {
   const cardIndexDisplay = currentQuestion?.original_index ?? (currentIndex + 1)
   const isStarred = Boolean(currentQuestion?.id && starredCards[currentQuestion.id])
+  const [isPlayingAudio, setIsPlayingAudio] = React.useState(false)
+
+  // Card Performance & FSRS Stats
+  const fsrs = currentQuestion?.fsrs
+  const fsrsState = fsrs?.state
+  const stability = fsrs?.stability
+  const difficulty = fsrs?.difficulty
+  const stats = currentQuestion?.stats
+  const totalRevs = stats?.total ?? 0
+  const correctRevs = stats?.correct ?? 0
+  const accuracy = totalRevs > 0 ? Math.round((correctRevs / totalRevs) * 100) : null
+  const streak = (currentQuestion as any)?.consecutive_correct ?? (stats as any)?.consecutive_correct ?? 0
+
+  const handlePlayAudio = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!onPlayAudio || isPlayingAudio) return
+    setIsPlayingAudio(true)
+    try {
+      await Promise.resolve(onPlayAudio())
+    } catch (err) {
+      console.warn('[PracticeCardShell] Audio playback failed:', err)
+    } finally {
+      setTimeout(() => setIsPlayingAudio(false), 900)
+    }
+  }
 
   const glowFrom = glowColor === 'cyan'
     ? 'from-cyan-200/20 via-sky-100/10 to-transparent dark:from-cyan-500/5'
@@ -74,39 +99,95 @@ export const PracticeCardShell: React.FC<PracticeCardShellProps> = ({
       <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-amber-100/20 via-slate-100/10 to-transparent dark:from-amber-500/5 blur-3xl pointer-events-none" />
 
       {/* ── Top Header Bar ── */}
-      <div className="w-full flex items-center justify-between gap-2 relative z-10 select-none pb-2 border-b border-slate-100/80 dark:border-slate-800/80 shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="w-full flex items-center justify-between gap-2 relative z-10 select-none pb-2.5 border-b border-slate-100/80 dark:border-slate-800/80 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
           <span className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border font-black text-[11px] uppercase tracking-wider shadow-2xs",
+            "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border font-black text-[11px] uppercase tracking-wider shadow-2xs shrink-0",
             badgeColorClass
           )}>
             {badgeIcon || <Sparkles className="w-3.5 h-3.5 fill-current opacity-80" />}
             <span>{badgeLabel}</span>
           </span>
 
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[11px]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono font-black text-[11px] shrink-0">
             #{cardIndexDisplay}{totalCards ? ` / ${totalCards}` : ''}
           </span>
 
-          {promptLabel && (
-            <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-400 font-bold text-[10px] tracking-wider uppercase">
-              {promptLabel}
+          {/* FSRS State Badge */}
+          {(!fsrs || fsrsState === undefined || fsrsState === 0) && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+              ⭐ NEW
+            </span>
+          )}
+          {fsrsState === 1 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+              ⚡ LEARNING
+            </span>
+          )}
+          {fsrsState === 2 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+              🌱 REVIEW
+            </span>
+          )}
+          {fsrsState === 3 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/60 font-black text-[10px] tracking-wider uppercase shadow-2xs">
+              🔄 RELEARN
+            </span>
+          )}
+
+          {/* FSRS Stability */}
+          {typeof stability === 'number' && stability > 0 && (
+            <span 
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200/60 font-bold text-[10px] tracking-tight font-mono shadow-2xs"
+              title="FSRS Memory Stability"
+            >
+              S: {stability >= 10 ? Math.round(stability) : stability.toFixed(1)}d
+            </span>
+          )}
+
+          {/* FSRS Difficulty */}
+          {typeof difficulty === 'number' && difficulty > 0 && (
+            <span 
+              className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 font-bold text-[10px] tracking-tight font-mono shadow-2xs"
+              title="FSRS Card Difficulty"
+            >
+              D: {difficulty.toFixed(1)}
+            </span>
+          )}
+
+          {/* Review History / Stats */}
+          <span 
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[10px] shadow-2xs"
+            title={totalRevs > 0 ? `${totalRevs} reviews (${correctRevs} correct)` : "Not reviewed yet"}
+          >
+            👁 {totalRevs} rev{totalRevs !== 1 ? 's' : ''}{accuracy !== null ? ` • ${accuracy}%` : ''}
+          </span>
+
+          {/* Consecutive Streak */}
+          {streak > 1 && (
+            <span 
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/60 font-bold text-[10px] shadow-2xs"
+              title={`${streak} streak`}
+            >
+              🔥 {streak}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {!hideHeaderActions && onPlayAudio && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPlayAudio()
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all active:scale-95 cursor-pointer"
+              onClick={handlePlayAudio}
+              className={cn(
+                "w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 cursor-pointer relative",
+                isPlayingAudio 
+                  ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 ring-2 ring-indigo-400/50 animate-pulse scale-105" 
+                  : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+              )}
               title="Pronounce question"
             >
-              <Volume2 className="w-4 h-4" />
+              <Volume2 className={cn("w-4 h-4 transition-transform", isPlayingAudio && "scale-110")} />
             </button>
           )}
 

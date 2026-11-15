@@ -14,7 +14,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
-import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio, preloadAudioUrls } from '@/lib/audio'
+import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio, preloadAudioUrls, registerAudioElement } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
 import { selectDistractors, type SmartDistractorConfig } from '@/lib/distractor'
 import {
@@ -113,7 +113,7 @@ export default function PracticePlay() {
   const currentQuestionIdRef = useRef<number | null>(null)
   const lastAnswerSubmittedAtRef = useRef<number>(0)
 
-  const playCardAudio = async (face: string = 'front', rate: number = 1.0) => {
+  const playCardAudio = async (face: string = 'front', rate: number = 1.0, explicitText?: string) => {
     if (!currentQuestion) return;
     const targetQuestionId = currentQuestion.id;
     currentQuestionIdRef.current = targetQuestionId;
@@ -124,12 +124,14 @@ export default function PracticePlay() {
       activeAudioRef.current = null;
     }
     window.speechSynthesis.cancel();
+    cancelAllAudio();
 
     const qAny = currentQuestion as any;
     const effectiveSettings = session?.practice_settings || session?.creator_settings || modeSettings || {};
     const cfg = resolveAudioConfig(face, effectiveSettings);
 
-    if (!cfg.enabled) {
+    // If explicitText is provided (e.g. user manually tapped speaker button), never block playback even if auto-audio is disabled
+    if (!explicitText && !cfg.enabled) {
       console.log(`[AUDIO] Column '${face}' is disabled in audio settings.`);
       return;
     }
@@ -146,7 +148,7 @@ export default function PracticePlay() {
     }
 
     // Extract text
-    let script = getCardFieldValue(qAny, cfg.sourceCol);
+    let script = explicitText || getCardFieldValue(qAny, cfg.sourceCol);
     if (!script) {
       script = getCardFieldValue(qAny, cfg.dataCol) || getCardFieldValue(qAny, face);
     }
@@ -157,35 +159,11 @@ export default function PracticePlay() {
         script = qAny.explanation || '';
       }
     }
-
-    // Lazily generate audio only if missing
-    if (!audioUrl && currentQuestion.id) {
-      try {
-        console.log(`[CLIENT TTS] Audio link missing. Requesting TTS generation for question ${currentQuestion.id} (${face})...`);
-        const res = await axios.get(`/api/v1/deck/generate-audio/${currentQuestion.id}?face=${encodeURIComponent(face)}`);
-        if (currentQuestionIdRef.current !== targetQuestionId) {
-          console.log(`[CLIENT TTS] Question changed during audio generation. Aborting playback.`);
-          return;
-        }
-        audioUrl = res.data.url;
-        if (audioUrl) {
-          if (!currentQuestion.others) currentQuestion.others = {};
-          if (cfg.urlCol) {
-            currentQuestion.others[cfg.urlCol] = audioUrl;
-            (currentQuestion as any)[cfg.urlCol] = audioUrl;
-          }
-          if (face === 'front' || cfg.dataCol === 'front') {
-            currentQuestion.audio = audioUrl;
-            currentQuestion.front_audio_url = audioUrl;
-            currentQuestion.others.front_audio_url = audioUrl;
-          } else if (face === 'back' || cfg.dataCol === 'back') {
-            currentQuestion.back_audio_url = audioUrl;
-            currentQuestion.others.back_audio_url = audioUrl;
-          }
-        }
-      } catch (err: any) {
-        console.error(`[TTS SERVER ERROR] Backend failed to synthesize ${face} audio for question ${currentQuestion.id}:`, err?.message);
-      }
+    if (!script && explicitText) {
+      script = explicitText;
+    }
+    if (!script && qAny.content) {
+      script = qAny.content;
     }
 
     if (audioUrl) {
@@ -195,15 +173,16 @@ export default function PracticePlay() {
       const audio = new Audio(cacheBustedUrl);
       audio.playbackRate = rate;
       activeAudioRef.current = audio;
+      registerAudioElement(audio);
       audio.play().catch(err => {
         console.warn(`[TTS FALLBACK WARNING] Playback of audio failed. Error:`, err?.message);
         if (script && script.trim()) {
-          speakWithEdgeTTS(script, cfg.lang);
+          speakWithEdgeTTS(script, cfg.lang || 'multi', rate);
         }
       });
     } else if (script && script.trim()) {
       console.log(`[TTS EDGE STREAM] Streaming Edge TTS for face ${face}: "${script}"`);
-      speakWithEdgeTTS(script, cfg.lang);
+      await speakWithEdgeTTS(script, cfg.lang || 'multi', rate);
     }
   };
 

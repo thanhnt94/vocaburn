@@ -145,6 +145,10 @@ export const PracticeListeningCard: React.FC<PracticeListeningCardProps> = ({
       customCenterStage={
         /* ── Hero Audio Player Disc (Center Stage) ── */
         <div className="my-auto py-5 sm:py-8 flex flex-col items-center justify-center text-center relative z-10 max-w-xl mx-auto w-full">
+          <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.2em] text-cyan-600/90 dark:text-cyan-400 mb-4">
+            {isMcq ? 'LISTEN & SELECT ANSWER' : 'LISTEN & TYPE WHAT YOU HEAR'}
+          </p>
+
           {/* Pulsing Audio Ring Button */}
           <div className="relative mb-5">
             {isPlaying && (

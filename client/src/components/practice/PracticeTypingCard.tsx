@@ -23,7 +23,7 @@ export interface PracticeTypingCardProps {
   onCheckTyping: () => void
   onPreviewInsight?: (card: Question) => void
   onNext?: () => void
-  onPlayAudio?: (face?: string, rate?: number) => void
+  onPlayAudio?: (face?: string, rate?: number, explicitText?: string) => void | Promise<any>
   onZoomImage?: (url: string) => void
   frontFontSize?: string
   backFontSize?: string
@@ -142,7 +142,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
       frontFontSize={frontFontSize}
       starredCards={starredCards}
       onToggleStar={onToggleStar}
-      onPlayAudio={onPlayAudio ? () => onPlayAudio(question_key || 'front') : undefined}
+      onPlayAudio={onPlayAudio ? () => onPlayAudio(question_key || 'front', 1.0, question) : undefined}
       onZoomImage={onZoomImage}
       hideHeaderActions={hideHeaderActions}
       answerImages={[]}

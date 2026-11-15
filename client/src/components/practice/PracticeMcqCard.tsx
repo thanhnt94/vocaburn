@@ -20,7 +20,7 @@ export interface PracticeMcqCardProps {
   onSelectOption: (index: number) => void
   onPreviewInsight?: (card: any) => void
   sessionQuestions?: Question[]
-  onPlayAudio?: (face?: string, rate?: number) => void
+  onPlayAudio?: (face?: string, rate?: number, explicitText?: string) => void | Promise<any>
   onNext?: () => void
   onZoomImage?: (url: string) => void
   frontFontSize?: string
@@ -107,7 +107,7 @@ export const PracticeMcqCard: React.FC<PracticeMcqCardProps> = ({
       frontFontSize={frontFontSize}
       starredCards={starredCards}
       onToggleStar={onToggleStar}
-      onPlayAudio={onPlayAudio ? () => onPlayAudio(question_key || 'front') : undefined}
+      onPlayAudio={onPlayAudio ? () => onPlayAudio(question_key || 'front', 1.0, question) : undefined}
       onZoomImage={onZoomImage}
       hideHeaderActions={hideHeaderActions}
       answerImages={answerImages}
