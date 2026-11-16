@@ -498,6 +498,7 @@ export default function Dashboard() {
           seenIds.add(d.deck_id);
           const status = d.status || {};
           list.push({
+            ...d,
             deck_id: d.deck_id,
             title: d.title,
             cover_image: d.cover_image,
@@ -506,7 +507,10 @@ export default function Dashboard() {
             new_remaining: Math.max(0, (status.new_target_today || 0) - (status.new_learned_today || 0)),
             review_remaining: Math.max(0, (status.review_due_today || 0) - (status.review_completed_today || 0)),
             total_pct: status.total_cards > 0 ? Math.min(100, Math.round((status.learned_cards / status.total_cards) * 100)) : 0,
-            has_due: ((status.new_target_today || 0) - (status.new_learned_today || 0) > 0) || ((status.review_due_today || 0) - (status.review_completed_today || 0) > 0)
+            has_due: ((status.new_target_today || 0) - (status.new_learned_today || 0) > 0) || ((status.review_due_today || 0) - (status.review_completed_today || 0) > 0),
+            practice_settings: d.practice_settings,
+            disabled_modes: d.disabled_modes || d.practice_settings?.disabled_modes || status.disabled_modes || [],
+            status: d.status
           });
         }
       });
@@ -520,6 +524,7 @@ export default function Dashboard() {
         if (!seenIds.has(d.deck_id)) {
           seenIds.add(d.deck_id);
           list.push({
+            ...d,
             deck_id: d.deck_id,
             title: d.title,
             cover_image: d.cover_image,
@@ -528,7 +533,9 @@ export default function Dashboard() {
             new_remaining: d.new_count || 0,
             review_remaining: d.due_count || 0,
             total_pct: totalCards > 0 ? Math.min(100, Math.round(((learnedCards || 0) / totalCards) * 100)) : 0,
-            has_due: (d.new_count > 0 || d.due_count > 0)
+            has_due: (d.new_count > 0 || d.due_count > 0),
+            practice_settings: d.practice_settings,
+            disabled_modes: d.disabled_modes || d.practice_settings?.disabled_modes || []
           });
         } else {
           const existing = list.find(item => item.deck_id === d.deck_id);
@@ -536,6 +543,10 @@ export default function Dashboard() {
             if (!existing.total_cards && totalCards) existing.total_cards = totalCards;
             if (!existing.learned_cards && learnedCards) existing.learned_cards = learnedCards;
             if (!existing.cover_image && d.cover_image) existing.cover_image = d.cover_image;
+            if (!existing.practice_settings && d.practice_settings) existing.practice_settings = d.practice_settings;
+            if (!existing.disabled_modes && (d.disabled_modes || d.practice_settings?.disabled_modes)) {
+              existing.disabled_modes = d.disabled_modes || d.practice_settings?.disabled_modes;
+            }
             existing.new_remaining += d.new_count || 0;
             existing.review_remaining += d.due_count || 0;
             existing.has_due = existing.has_due || (d.new_count > 0 || d.due_count > 0);
@@ -565,7 +576,9 @@ export default function Dashboard() {
           new_remaining: 0,
           review_remaining: 0,
           total_pct: cardCnt > 0 ? Math.min(100, Math.round((learnedCnt / cardCnt) * 100)) : 0,
-          has_due: false
+          has_due: false,
+          practice_settings: d.practice_settings,
+          disabled_modes: d.disabled_modes || d.practice_settings?.disabled_modes || []
         });
       } else {
         const existing = list.find(item => item.deck_id === id);
@@ -573,6 +586,10 @@ export default function Dashboard() {
           if (!existing.total_cards && cardCnt) existing.total_cards = cardCnt;
           if (!existing.learned_cards && learnedCnt) existing.learned_cards = learnedCnt;
           if (!existing.cover_image && d.cover_image) existing.cover_image = d.cover_image;
+          if (!existing.practice_settings && d.practice_settings) existing.practice_settings = d.practice_settings;
+          if (!existing.disabled_modes && (d.disabled_modes || d.practice_settings?.disabled_modes)) {
+            existing.disabled_modes = d.disabled_modes || d.practice_settings?.disabled_modes;
+          }
           if (existing.total_cards > 0 && !existing.total_pct) {
             existing.total_pct = Math.min(100, Math.round(((existing.learned_cards || 0) / existing.total_cards) * 100));
           }
@@ -682,11 +699,15 @@ export default function Dashboard() {
   const handleOpenStudyModal = (deck: any, tab: 'flashcard' | 'practice') => {
     const id = deck.deck_id || deck.id
     const status = deck.status || {}
+    const practiceSettings = deck.practice_settings || (status.disabled_modes ? { disabled_modes: status.disabled_modes } : undefined)
+    const disabledModes = deck.disabled_modes || practiceSettings?.disabled_modes || status.disabled_modes || []
     const quizData = {
+      ...deck,
       id: id,
       title: deck.title,
       questions_count: status.total_cards || deck.total_cards || deck.questions_count || 0,
-      practice_settings: deck.practice_settings
+      practice_settings: practiceSettings,
+      disabled_modes: disabledModes
     }
     if (tab === 'practice') {
       setSelectedPracticeQuiz(quizData)

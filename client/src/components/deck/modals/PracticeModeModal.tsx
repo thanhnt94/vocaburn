@@ -1,6 +1,8 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import axios from 'axios'
 import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, ChevronRight, ArrowUpDown, Shuffle, Filter } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -38,13 +40,58 @@ export function PracticeModeModal({
     }
   }, [isOpen, userSettings.random_enabled, userSettings.practice_range])
 
+  const deckId = deck?.id || deck?.deck_id
+
+  const { data: practiceSettingsData } = useQuery({
+    queryKey: ['deck-practice-settings-modal', deckId],
+    queryFn: async () => {
+      if (!deckId) return null
+      const res = await axios.get(`/api/v1/deck/${deckId}/practice-settings`)
+      return res.data
+    },
+    enabled: Boolean(isOpen && deckId),
+    staleTime: 60 * 1000
+  })
+
   if (!isOpen || !deck) return null
 
-  const disabledModes = deck.practice_settings?.disabled_modes || []
+  const rawDisabled = [
+    ...(practiceSettingsData?.disabled_modes || []),
+    ...(deck?.practice_settings?.disabled_modes || []),
+    ...(deck?.disabled_modes || []),
+    ...(deck?.status?.disabled_modes || [])
+  ]
+  const disabledModes = Array.from(new Set(rawDisabled.map(x => String(x).toLowerCase().trim())))
+
+  const isPracticeGloballyDisabled = (
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice')
+  )
+
+  const isMcqDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('mcq')
+  )
+
+  const isTypingDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('typing')
+  )
+
+  const isListeningDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('listening') ||
+    disabledModes.includes('audio') ||
+    (disabledModes.includes('listening_mcq') && disabledModes.includes('listening_typing')) ||
+    (disabledModes.includes('audio_mcq') && disabledModes.includes('audio_typing')) ||
+    (disabledModes.includes('listening_mcq') && disabledModes.includes('audio_typing')) ||
+    (disabledModes.includes('audio_mcq') && disabledModes.includes('listening_typing'))
+  )
 
   const practiceModes = [
     {
       mode: 'mcq',
+      disabled: isMcqDisabled,
       icon: LayoutGrid,
       iconColor: 'text-indigo-600 bg-indigo-50 border-indigo-100',
       hoverColor: 'hover:border-indigo-500/40 hover:bg-indigo-50/15',
@@ -54,6 +101,7 @@ export function PracticeModeModal({
     },
     {
       mode: 'typing',
+      disabled: isTypingDisabled,
       icon: Zap,
       iconColor: 'text-purple-600 bg-purple-50 border-purple-100',
       hoverColor: 'hover:border-purple-500/40 hover:bg-purple-50/15',
@@ -63,6 +111,7 @@ export function PracticeModeModal({
     },
     {
       mode: 'listening',
+      disabled: isListeningDisabled,
       icon: Play,
       iconColor: 'text-sky-600 bg-sky-50 border-sky-100',
       hoverColor: 'hover:border-sky-500/40 hover:bg-sky-50/15',
@@ -70,7 +119,7 @@ export function PracticeModeModal({
       desc: 'Listen to native audio and select the correct answer',
       badge: 'Audio'
     },
-  ].filter(item => !disabledModes.includes(item.mode))
+  ].filter(item => !item.disabled)
 
   const handleSelect = (mode: string) => {
     onClose()
@@ -216,8 +265,14 @@ export function PracticeModeModal({
 
           {/* Practice Modes List */}
           <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar min-h-0">
-            <div className="space-y-2.5">
-              {practiceModes.map(item => {
+            {practiceModes.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-4">
+                <p className="text-xs font-bold text-slate-600">All interactive practice modes are currently disabled for this deck.</p>
+                <p className="text-[10px] text-slate-400 mt-1">You can enable them in Deck Settings &gt; Modes tab.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {practiceModes.map(item => {
                 const IconComp = item.icon
                 return (
                   <button
@@ -250,7 +305,8 @@ export function PracticeModeModal({
                   </button>
                 )
               })}
-            </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

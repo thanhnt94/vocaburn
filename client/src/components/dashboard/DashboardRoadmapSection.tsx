@@ -98,13 +98,43 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
       : 'Intelligent flashcard deck optimized with FSRS v6 spaced repetition for deep memory retention.'
   )
 
-  const disabledModes = (st.disabled_modes || deck?.practice_settings?.disabled_modes || deck?.disabled_modes || []) as string[]
+  const rawDisabled = [
+    ...(st.disabled_modes || []),
+    ...(deck?.practice_settings?.disabled_modes || []),
+    ...(deck?.disabled_modes || [])
+  ]
+  const disabledModes = Array.from(new Set(rawDisabled.map(x => String(x).toLowerCase().trim())))
+
+  const isPracticeGloballyDisabled = (
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice')
+  )
+
+  const isMcqDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('mcq')
+  )
+
+  const isTypingDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('typing')
+  )
+
+  const isListeningDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('listening') ||
+    disabledModes.includes('audio') ||
+    (disabledModes.includes('listening_mcq') && disabledModes.includes('listening_typing')) ||
+    (disabledModes.includes('audio_mcq') && disabledModes.includes('audio_typing')) ||
+    (disabledModes.includes('listening_mcq') && disabledModes.includes('audio_typing')) ||
+    (disabledModes.includes('audio_mcq') && disabledModes.includes('listening_typing'))
+  )
+
   const isPracticeDisabled = Boolean(
     st.is_practice_disabled ||
     deck?.is_practice_disabled ||
-    disabledModes.includes('practice') ||
-    disabledModes.includes('all_practice') ||
-    ['mcq', 'typing', 'listening_mcq', 'listening_typing'].every(m => disabledModes.includes(m))
+    isPracticeGloballyDisabled ||
+    (isMcqDisabled && isTypingDisabled && isListeningDisabled)
   )
 
   const rawStudyMode = (
@@ -115,7 +145,11 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
     userSettings?.quiz_learning_mode ||
     'fsrs'
   )
-  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+  let activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+  if (disabledModes.includes(activeStudyMode) || (activeStudyMode === 'skim' && (disabledModes.includes('skim') || disabledModes.includes('speed_skim')))) {
+    const validModes = ['fsrs', 'hybrid', 'skim', 'autoplay'].filter(m => !disabledModes.includes(m))
+    if (validModes.length > 0) activeStudyMode = validModes[0]
+  }
 
   const studyModeLabel = (() => {
     switch (activeStudyMode) {
@@ -141,7 +175,14 @@ export function computeDeckData(deck: any, userSettings: any, user: any) {
     userSettings?.practice_submode ||
     'mcq'
   )
-  const activePracticeMode = rawPracticeMode || 'mcq'
+  let activePracticeMode = rawPracticeMode || 'mcq'
+  if (activePracticeMode === 'typing' && isTypingDisabled) {
+    activePracticeMode = !isMcqDisabled ? 'mcq' : (!isListeningDisabled ? 'listening' : 'mcq')
+  } else if ((activePracticeMode === 'listening' || activePracticeMode === 'listening_mcq' || activePracticeMode === 'listening_typing') && isListeningDisabled) {
+    activePracticeMode = !isMcqDisabled ? 'mcq' : (!isTypingDisabled ? 'typing' : 'mcq')
+  } else if (activePracticeMode === 'mcq' && isMcqDisabled) {
+    activePracticeMode = !isTypingDisabled ? 'typing' : (!isListeningDisabled ? 'listening' : 'mcq')
+  }
 
   const practiceModeLabel = (() => {
     switch (activePracticeMode) {

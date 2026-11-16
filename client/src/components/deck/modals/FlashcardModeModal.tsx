@@ -1,6 +1,8 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import axios from 'axios'
 import { Brain, BrainCircuit, ChevronRight, X, Shuffle, ArrowUpDown } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -34,13 +36,33 @@ export function FlashcardModeModal({
     }
   }, [userSettings.random_enabled, isOpen])
 
+  const deckId = deck?.id || (deck as any)?.deck_id
+
+  const { data: practiceSettingsData } = useQuery({
+    queryKey: ['deck-practice-settings-modal', deckId],
+    queryFn: async () => {
+      if (!deckId) return null
+      const res = await axios.get(`/api/v1/deck/${deckId}/practice-settings`)
+      return res.data
+    },
+    enabled: Boolean(isOpen && deckId),
+    staleTime: 60 * 1000
+  })
+
   if (!isOpen || !deck) return null
 
-  const disabledModes = deck.practice_settings?.disabled_modes || []
+  const rawDisabled = [
+    ...(practiceSettingsData?.disabled_modes || []),
+    ...(deck?.practice_settings?.disabled_modes || []),
+    ...((deck as any)?.disabled_modes || []),
+    ...((deck as any)?.status?.disabled_modes || [])
+  ]
+  const disabledModes = Array.from(new Set(rawDisabled.map(x => String(x).toLowerCase().trim())))
 
   const learnModes = [
     { 
       mode: 'fsrs', 
+      disabled: disabledModes.includes('fsrs'),
       icon: '🧠', 
       title: 'FSRS Spaced Repetition', 
       desc: 'Adaptive spaced repetition with 4 rating buttons (Again, Hard, Good, Easy)',
@@ -49,6 +71,7 @@ export function FlashcardModeModal({
     },
     { 
       mode: 'hybrid', 
+      disabled: disabledModes.includes('hybrid'),
       icon: '🔥', 
       title: 'Hybrid Recall (Batch Drill)', 
       desc: '5-card preview then active recall drill test (+5 XP)',
@@ -57,6 +80,7 @@ export function FlashcardModeModal({
     },
     { 
       mode: 'skim', 
+      disabled: disabledModes.includes('skim') || disabledModes.includes('speed_skim') || disabledModes.includes('flip'),
       icon: '⚡', 
       title: 'Speed Skim', 
       desc: 'Rapid 1-tap/Space card scanning without rating pressure (+3 XP)',
@@ -65,13 +89,14 @@ export function FlashcardModeModal({
     },
     { 
       mode: 'autoplay', 
+      disabled: disabledModes.includes('autoplay'),
       icon: '🎧', 
       title: 'AutoPlay', 
       desc: 'Automated continuous hands-free listening and reading with speech pacing',
       badge: 'Hands-Free',
       color: 'hover:border-cyan-500/40 hover:bg-cyan-50/15'
     },
-  ].filter(item => !disabledModes.includes(item.mode))
+  ].filter(item => !item.disabled)
 
   const handleLaunchMode = (modeKey: string) => {
     onClose()

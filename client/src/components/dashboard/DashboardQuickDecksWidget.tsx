@@ -92,6 +92,38 @@ export function DashboardQuickDecksWidget({
 
   const userSettings = useAppStore(s => s.userSettings)
 
+  const rawDisabled = [
+    ...(currentSelectedDeck?.practice_settings?.disabled_modes || []),
+    ...(currentSelectedDeck?.disabled_modes || []),
+    ...(currentSelectedDeck?.status?.disabled_modes || [])
+  ]
+  const disabledModes = Array.from(new Set(rawDisabled.map(x => String(x).toLowerCase().trim())))
+
+  const isPracticeGloballyDisabled = (
+    disabledModes.includes('practice') ||
+    disabledModes.includes('all_practice')
+  )
+
+  const isMcqDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('mcq')
+  )
+
+  const isTypingDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('typing')
+  )
+
+  const isListeningDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('listening') ||
+    disabledModes.includes('audio') ||
+    (disabledModes.includes('listening_mcq') && disabledModes.includes('listening_typing')) ||
+    (disabledModes.includes('audio_mcq') && disabledModes.includes('audio_typing')) ||
+    (disabledModes.includes('listening_mcq') && disabledModes.includes('audio_typing')) ||
+    (disabledModes.includes('audio_mcq') && disabledModes.includes('listening_typing'))
+  )
+
   const rawStudyMode = (
     currentSelectedDeck?.user_study_settings?.learning_mode ||
     currentSelectedDeck?.study_defaults?.learning_mode ||
@@ -100,7 +132,11 @@ export function DashboardQuickDecksWidget({
     userSettings?.quiz_learning_mode ||
     'fsrs'
   )
-  const activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+  let activeStudyMode = (rawStudyMode === 'speed_skim' || rawStudyMode === 'flip') ? 'skim' : rawStudyMode
+  if (disabledModes.includes(activeStudyMode) || (activeStudyMode === 'skim' && (disabledModes.includes('skim') || disabledModes.includes('speed_skim')))) {
+    const validModes = ['fsrs', 'hybrid', 'skim', 'autoplay'].filter(m => !disabledModes.includes(m))
+    if (validModes.length > 0) activeStudyMode = validModes[0]
+  }
 
   const studyModeLabel = (() => {
     switch (activeStudyMode) {
@@ -126,7 +162,14 @@ export function DashboardQuickDecksWidget({
     userSettings?.practice_submode ||
     'mcq'
   )
-  const activePracticeMode = rawPracticeMode || 'mcq'
+  let activePracticeMode = rawPracticeMode || 'mcq'
+  if (activePracticeMode === 'typing' && isTypingDisabled) {
+    activePracticeMode = !isMcqDisabled ? 'mcq' : (!isListeningDisabled ? 'listening' : 'mcq')
+  } else if ((activePracticeMode === 'listening' || activePracticeMode === 'listening_mcq' || activePracticeMode === 'listening_typing') && isListeningDisabled) {
+    activePracticeMode = !isMcqDisabled ? 'mcq' : (!isTypingDisabled ? 'typing' : 'mcq')
+  } else if (activePracticeMode === 'mcq' && isMcqDisabled) {
+    activePracticeMode = !isTypingDisabled ? 'typing' : (!isListeningDisabled ? 'listening' : 'mcq')
+  }
 
   const practiceModeLabel = (() => {
     switch (activePracticeMode) {
