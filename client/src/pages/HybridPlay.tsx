@@ -210,6 +210,7 @@ export default function HybridPlay() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
+  const typingPointsRef = useRef<number>(10)
   const [starredCards, setStarredCards] = useState<Record<number, boolean>>({})
 
   // Card Edit Modal state
@@ -1159,6 +1160,7 @@ export default function HybridPlay() {
     setAnswered(false)
     setSelectedOption(null)
     setTypingInput('')
+    typingPointsRef.current = 10
     setTypingFeedback(null)
   }
 
@@ -1457,7 +1459,7 @@ export default function HybridPlay() {
   }
 
   // ── 7. Handle Drill Answer (Typing) ──
-  const handleCheckTyping = (forceGiveUp: boolean = false) => {
+  const handleCheckTyping = (forceGiveUp: boolean = false, earnedPoints?: number) => {
     if (answered || !currentPracticeData || !drillActiveCard) return
     const normalizeAnswer = (str: string) => {
       return str
@@ -1498,13 +1500,16 @@ export default function HybridPlay() {
       return cleanInput === cleanTarget || cleanInput.replace(/\s+/g, '') === cleanTarget.replace(/\s+/g, '')
     })
 
+    const ptsToUse = forceGiveUp ? 0 : (earnedPoints !== undefined ? earnedPoints : typingPointsRef.current)
+    const pointsToAward = isCorrect ? ptsToUse : 0
+
     setTypingFeedback({ checked: true, isCorrect })
     setAnswered(true)
-    handleAnswerResult(isCorrect)
+    handleAnswerResult(isCorrect, pointsToAward)
   }
 
   // Common answer processor with Isolated Practice Stats Recording
-  const handleAnswerResult = (isCorrect: boolean) => {
+  const handleAnswerResult = (isCorrect: boolean, earnedPoints?: number) => {
     if (!drillActiveCard) return
 
     setDrillTotalAttempts(prev => prev + 1)
@@ -1512,11 +1517,12 @@ export default function HybridPlay() {
     const prevCount = batchCorrectCounts[cardId] || 0
 
     let newCount = prevCount
+    const awardedPoints = isCorrect ? (earnedPoints !== undefined ? earnedPoints : (drillSubMode === 'typing' ? 10 : 5)) : 0
     if (isCorrect) {
       newCount = prevCount + 1
       setDrillTotalCorrect(prev => prev + 1)
       playSfx('correct')
-      showXpGain(5) // +5 XP per correct active recall
+      showXpGain(awardedPoints)
     } else {
       playSfx('wrong')
     }
@@ -1551,7 +1557,9 @@ export default function HybridPlay() {
         deck_id: Number(id),
         is_correct: isCorrect,
         is_practice: true,
-        practice_mode: 'hybrid_drill',
+        practice_mode: drillSubMode === 'typing' ? 'typing' : 'hybrid_drill',
+        points: awardedPoints,
+        xp: awardedPoints,
         time_spent: elapsedSec
       }).catch(() => {})
     } catch (e) {}
@@ -2013,7 +2021,8 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onCheckTyping={handleCheckTyping}
-                    onGiveUp={() => handleCheckTyping(true)}
+                    onGiveUp={() => handleCheckTyping(true, 0)}
+                    onPointsChange={(pts) => { typingPointsRef.current = pts }}
                     onPreviewInsight={(card) => setPreviewInsightCard(card || drillActiveCard)}
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                     frontFontSize={playSettings.frontFontSize}
@@ -2103,6 +2112,7 @@ export default function HybridPlay() {
                     setAnswered(false)
                     setSelectedOption(null)
                     setTypingInput('')
+                    typingPointsRef.current = 10
                     setTypingFeedback(null)
                     drillCursorRef.current = -1
                     activeSecondsRef.current = 0
@@ -2351,7 +2361,7 @@ export default function HybridPlay() {
             ) : drillSubMode === 'typing' ? (
               <button
                 type="button"
-                onClick={() => handleCheckTyping()}
+                onClick={() => handleCheckTyping(false, typingPointsRef.current)}
                 className="flex-1 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-500/25 active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 <span>Submit Answer</span>

@@ -503,6 +503,7 @@ export default function PracticePlay() {
   const [setupNumChoices, setSetupNumChoices] = useState<number>(4)
   const [typingInput, setTypingInput] = useState('')
   const [typingFeedback, setTypingFeedback] = useState<{ checked: boolean; isCorrect: boolean } | null>(null)
+  const typingPointsRef = useRef<number>(10)
   const [currentPracticeData, setCurrentPracticeData] = useState<any>(null)
 
   // Per-mode settings state
@@ -2520,7 +2521,7 @@ export default function PracticePlay() {
     }
   };
 
-  const handleTypingAnswer = async (forceGiveUp: boolean = false) => {
+  const handleTypingAnswer = async (forceGiveUp: boolean = false, earnedPoints?: number) => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
     lastAnswerSubmittedAtRef.current = Date.now();
 
@@ -2563,6 +2564,8 @@ export default function PracticePlay() {
       return cleanInput === cleanTarget || cleanInput.replace(/\s+/g, '') === cleanTarget.replace(/\s+/g, '');
     });
 
+    const pointsToAward = isCorrect ? (earnedPoints !== undefined ? earnedPoints : typingPointsRef.current) : 0;
+
     const updatedTotalAnswered = practiceTotalAnswered + 1;
     const updatedCorrectCount = isCorrect ? practiceCorrectCount + 1 : practiceCorrectCount;
 
@@ -2590,7 +2593,7 @@ export default function PracticePlay() {
       setStreak(updatedStreak);
 
       confetti({ zIndex: 9999, particleCount: 100, spread: 60, origin: { y: 0.6 } });
-      setBadgeMessage("Excellent! ⌨️");
+      setBadgeMessage(`Excellent! +${pointsToAward} PTS ⌨️`);
     } else {
       if (sfxEnabled) playIncorrectSound();
       updatedStreak = 0;
@@ -2629,6 +2632,8 @@ export default function PracticePlay() {
         is_correct: isCorrect,
         is_practice: true,
         practice_mode: practiceSubMode,
+        points: pointsToAward,
+        xp: pointsToAward,
         rating: isCorrect ? 3 : 1,
         time_spent: timeLeftRef.current,
         local_date: new Date().toISOString().slice(0, 10),
@@ -2648,7 +2653,7 @@ export default function PracticePlay() {
         }
       }
 
-      const xpGained = res.data.xp_gained || 0;
+      const xpGained = res.data.xp_gained !== undefined ? res.data.xp_gained : pointsToAward;
       if (xpGained > 0) {
         setSessionXP(prev => prev + xpGained);
         addXp(xpGained);
@@ -2728,6 +2733,7 @@ export default function PracticePlay() {
     setActivelyRatedCurrentCard(false)
     setJustAnswered(false)
     setTypingInput('')
+    typingPointsRef.current = 10
     setTypingFeedback(null)
     setSelectedOption(null)
 
@@ -3812,7 +3818,8 @@ export default function PracticePlay() {
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onCheckTyping={handleTypingAnswer}
-          onGiveUp={() => handleTypingAnswer(true)}
+          onGiveUp={() => handleTypingAnswer(true, 0)}
+          onPointsChange={(pts) => { typingPointsRef.current = pts; }}
           onNext={() => handleNext()}
           onPlayAudio={playCardAudio}
           onZoomImage={(url) => setZoomedImage(url)}

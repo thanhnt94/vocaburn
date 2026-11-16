@@ -20,8 +20,9 @@ export interface PracticeTypingCardProps {
   typingFeedback: { isCorrect: boolean } | null
   starredCards: Record<number, boolean>
   onToggleStar: (cardId: number) => void
-  onCheckTyping: (forceGiveUp?: boolean) => void
+  onCheckTyping: (forceGiveUp?: boolean, earnedPoints?: number) => void
   onGiveUp?: () => void
+  onPointsChange?: (points: number) => void
   onPreviewInsight?: (card: Question) => void
   onNext?: () => void
   onPlayAudio?: (face?: string, rate?: number, explicitText?: string) => void | Promise<any>
@@ -47,6 +48,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   onToggleStar,
   onCheckTyping,
   onGiveUp,
+  onPointsChange,
   onPreviewInsight,
   onNext,
   onPlayAudio,
@@ -130,6 +132,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     }
   }, [hintTier, hasTier1])
 
+  useEffect(() => {
+    onPointsChange?.(currentPoints)
+  }, [currentPoints, onPointsChange])
+
   const handleRequestHint = () => {
     if (answered || hintTier >= maxHints) return
 
@@ -159,7 +165,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     if (onGiveUp) {
       onGiveUp()
     } else {
-      onCheckTyping(true)
+      onCheckTyping(true, 0)
     }
   }
 
@@ -390,7 +396,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
               e.preventDefault()
               e.stopPropagation()
               if (typingInput && typingInput.trim()) {
-                onCheckTyping()
+                onCheckTyping(false, currentPoints)
               }
             }}
             className="flex flex-col gap-3"
@@ -406,7 +412,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     e.preventDefault()
                     e.stopPropagation()
                     if (typingInput && typingInput.trim()) {
-                      onCheckTyping()
+                      onCheckTyping(false, currentPoints)
                     }
                   }
                 }}

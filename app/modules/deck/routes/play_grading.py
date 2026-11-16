@@ -480,14 +480,23 @@ async def record_answer(request: Request, data: dict, background_tasks: Backgrou
             if is_first_ever:
                 bonus_xp_gained += 2
         elif is_correct:
-            if practice_mode == "typing":
-                base_xp = 5
+            if "points" in data or "xp" in data:
+                try:
+                    custom_pts = int(data.get("points") if "points" in data else data.get("xp"))
+                    base_xp = max(0, custom_pts)
+                except (ValueError, TypeError):
+                    base_xp = 10 if practice_mode == "typing" else 3
+            elif practice_mode == "typing":
+                base_xp = 10
             else:  # mcq, listening
                 base_xp = 3
         else:
-            base_xp = 1
+            if practice_mode == "typing":
+                base_xp = 0
+            else:
+                base_xp = 1
             bonus_xp_gained = 0
-        if session_streak >= 5:
+        if is_correct and session_streak >= 5:
             bonus_xp_gained += 1
     else:
         if rating_val == 4:
