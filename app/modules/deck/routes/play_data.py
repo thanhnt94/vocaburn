@@ -1013,7 +1013,12 @@ async def get_deck_play_data(
     try:
         import orjson
         content_bytes = orjson.dumps(final_result, option=orjson.OPT_NON_STR_KEYS)
-        return Response(content=content_bytes, media_type="application/json")
+        resp_headers = {
+            "X-Total-Bytes": str(len(content_bytes)),
+            "X-Total-Cards": str(total_matching),
+            "Access-Control-Expose-Headers": "X-Total-Bytes, X-Total-Cards, Content-Length"
+        }
+        return Response(content=content_bytes, media_type="application/json", headers=resp_headers)
     except Exception as e:
         logger.warning(f"orjson dump fallback in play_data: {e}")
         return final_result

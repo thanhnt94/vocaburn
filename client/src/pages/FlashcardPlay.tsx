@@ -1082,22 +1082,12 @@ export default function FlashcardPlay() {
         fetchUrl += `${delimiter}include_distractors=true`
       }
 
-      let currentProgress = 15;
-      setLoadingProgress(15);
+      let currentProgress = 5;
+      setLoadingProgress(5);
       setLoadingStatus('Connecting to server...');
 
-      const progressTimer = setInterval(() => {
-        currentProgress += Math.floor(Math.random() * 8) + 5;
-        if (currentProgress > 93) currentProgress = 93;
-        setLoadingProgress(currentProgress);
-        if (currentProgress > 75) {
-          setLoadingStatus('Optimizing memory & interleaving cards...');
-        } else if (currentProgress > 50) {
-          setLoadingStatus('Fetching review due dates & FSRS states...');
-        } else if (currentProgress > 25) {
-          setLoadingStatus('Loading full deck from database...');
-        }
-      }, 100);
+      let knownTotalBytes = 0;
+      let knownTotalCards = 0;
 
       const isSpecialDeck = id === 'global-focus' || id === 'quick' || (typeof id === 'string' && id.startsWith('folder_'));
       const rawUrlMode = currentSearchParams.get('mode');
@@ -1124,23 +1114,34 @@ export default function FlashcardPlay() {
         const results = await Promise.all([
           axios.get(fetchUrl, {
             onDownloadProgress: (progressEvent) => {
-              if (progressEvent.total) {
-                const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total));
-                if (pct > currentProgress) {
-                  currentProgress = pct;
-                  setLoadingProgress(pct);
+              const xhr = progressEvent.event?.target;
+              if (!knownTotalBytes && xhr && typeof xhr.getResponseHeader === 'function') {
+                const headerBytes = xhr.getResponseHeader('x-total-bytes') || xhr.getResponseHeader('content-length');
+                if (headerBytes) knownTotalBytes = parseInt(headerBytes, 10);
+                const headerCards = xhr.getResponseHeader('x-total-cards');
+                if (headerCards) knownTotalCards = parseInt(headerCards, 10);
+              }
+
+              const effectiveTotal = progressEvent.total || knownTotalBytes;
+
+              if (effectiveTotal > 0) {
+                const pct = Math.min(99, Math.max(5, Math.round((progressEvent.loaded * 100) / effectiveTotal)));
+                currentProgress = pct;
+                setLoadingProgress(pct);
+                const mbLoaded = (progressEvent.loaded / (1024 * 1024)).toFixed(1);
+                const mbTotal = (effectiveTotal / (1024 * 1024)).toFixed(1);
+                if (knownTotalCards > 0) {
+                  const cardsLoaded = Math.min(knownTotalCards, Math.round((progressEvent.loaded / effectiveTotal) * knownTotalCards));
+                  setLoadingStatus(`Loading cards: ${cardsLoaded.toLocaleString()} / ${knownTotalCards.toLocaleString()} (${pct}%)...`);
+                } else {
+                  setLoadingStatus(`Downloading deck: ${mbLoaded} / ${mbTotal} MB (${pct}%)...`);
                 }
-                const kb = Math.round(progressEvent.loaded / 1024);
-                const totalKb = Math.round(progressEvent.total / 1024);
-                setLoadingStatus(`Downloading cards (${kb} / ${totalKb} KB)...`);
               } else {
-                const kb = Math.round(progressEvent.loaded / 1024);
-                const est = Math.min(92, Math.max(15, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)));
-                if (est > currentProgress) {
-                  currentProgress = est;
-                  setLoadingProgress(est);
-                }
-                setLoadingStatus(`Loading study cards (${kb} KB)...`);
+                const mbLoaded = (progressEvent.loaded / (1024 * 1024)).toFixed(1);
+                const estPct = Math.min(95, Math.max(8, Math.round((progressEvent.loaded / (12 * 1024 * 1024)) * 100)));
+                currentProgress = estPct;
+                setLoadingProgress(estPct);
+                setLoadingStatus(`Downloading cards (${mbLoaded} MB)...`);
               }
             }
           }),
@@ -1149,10 +1150,10 @@ export default function FlashcardPlay() {
         quizRes = results[0];
         nextCardRes = results[1];
       } finally {
-        clearInterval(progressTimer);
+        // Real progress tracking — no fake timer to clear
       }
-      setLoadingProgress(96);
-      setLoadingStatus('Preparing study session...');
+      setLoadingProgress(100);
+      setLoadingStatus('Ready! Launching study session...');
       paginationRef.current = quizRes.data?.pagination || null;
       let questions = quizRes.data.questions || quizRes.data.cards || [];
 
@@ -3673,7 +3674,7 @@ export default function FlashcardPlay() {
       <SessionLoadingScreen
         progress={loadingProgress}
         statusText={loadingStatus}
-        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading full deck for complete review'}
+        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading study cards'}
         modeTitle={modeLabel}
         onCancel={() => navigate(`/decks/${id}`)}
       />

@@ -124,7 +124,7 @@ export const SessionLoadingScreen: React.FC<SessionLoadingScreenProps> = ({
           {statusText || (isDone ? "Ready! Launching session..." : "Loading session data...")}
         </h3>
         <p className="text-xs font-medium text-slate-400 mb-6">
-          {subText || "Loading full deck for complete randomness"}
+          {subText || "Preparing cards & study session"}
         </p>
 
         {/* Rotating Inspiring Tip */}

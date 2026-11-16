@@ -1480,45 +1480,46 @@ export default function PracticePlay() {
         playDataUrl += `${delimiter}${orderParam ? orderParam.replace(/^&/, '') : ''}&include_distractors=true`
       }
 
-      let currentProgress = 15
-      setLoadingProgress(15)
+      let currentProgress = 5
+      setLoadingProgress(5)
       setLoadingStatus('Connecting to server...')
 
-      const progressTimer = setInterval(() => {
-        currentProgress += Math.floor(Math.random() * 8) + 5
-        if (currentProgress > 93) currentProgress = 93
-        setLoadingProgress(currentProgress)
-        if (currentProgress > 75) {
-          setLoadingStatus('Randomizing question order...')
-        } else if (currentProgress > 50) {
-          setLoadingStatus('Generating answer choices & distractors...')
-        } else if (currentProgress > 25) {
-          setLoadingStatus('Loading full deck from database...')
-        }
-      }, 100)
+      let knownTotalBytes = 0
+      let knownTotalCards = 0
 
       let results: any[]
       try {
         const fetchPromises: Promise<any>[] = [
           axios.get(playDataUrl, {
             onDownloadProgress: (progressEvent) => {
-              if (progressEvent.total) {
-                const pct = Math.min(95, Math.round((progressEvent.loaded * 100) / progressEvent.total))
-                if (pct > currentProgress) {
-                  currentProgress = pct
-                  setLoadingProgress(pct)
+              const xhr = progressEvent.event?.target
+              if (!knownTotalBytes && xhr && typeof xhr.getResponseHeader === 'function') {
+                const headerBytes = xhr.getResponseHeader('x-total-bytes') || xhr.getResponseHeader('content-length')
+                if (headerBytes) knownTotalBytes = parseInt(headerBytes, 10)
+                const headerCards = xhr.getResponseHeader('x-total-cards')
+                if (headerCards) knownTotalCards = parseInt(headerCards, 10)
+              }
+
+              const effectiveTotal = progressEvent.total || knownTotalBytes
+
+              if (effectiveTotal > 0) {
+                const pct = Math.min(99, Math.max(5, Math.round((progressEvent.loaded * 100) / effectiveTotal)))
+                currentProgress = pct
+                setLoadingProgress(pct)
+                const mbLoaded = (progressEvent.loaded / (1024 * 1024)).toFixed(1)
+                const mbTotal = (effectiveTotal / (1024 * 1024)).toFixed(1)
+                if (knownTotalCards > 0) {
+                  const cardsLoaded = Math.min(knownTotalCards, Math.round((progressEvent.loaded / effectiveTotal) * knownTotalCards))
+                  setLoadingStatus(`Loading cards: ${cardsLoaded.toLocaleString()} / ${knownTotalCards.toLocaleString()} (${pct}%)...`)
+                } else {
+                  setLoadingStatus(`Downloading deck: ${mbLoaded} / ${mbTotal} MB (${pct}%)...`)
                 }
-                const kb = Math.round(progressEvent.loaded / 1024)
-                const totalKb = Math.round(progressEvent.total / 1024)
-                setLoadingStatus(`Downloading deck (${kb} / ${totalKb} KB)...`)
               } else {
-                const kb = Math.round(progressEvent.loaded / 1024)
-                const est = Math.min(92, Math.max(20, Math.round((progressEvent.loaded / (1.5 * 1024 * 1024)) * 100)))
-                if (est > currentProgress) {
-                  currentProgress = est
-                  setLoadingProgress(est)
-                }
-                setLoadingStatus(`Loading deck questions (${kb} KB)...`)
+                const mbLoaded = (progressEvent.loaded / (1024 * 1024)).toFixed(1)
+                const estPct = Math.min(95, Math.max(8, Math.round((progressEvent.loaded / (12 * 1024 * 1024)) * 100)))
+                currentProgress = estPct
+                setLoadingProgress(estPct)
+                setLoadingStatus(`Downloading cards (${mbLoaded} MB)...`)
               }
             }
           })
@@ -1539,11 +1540,11 @@ export default function PracticePlay() {
 
         results = await Promise.all(fetchPromises)
       } finally {
-        clearInterval(progressTimer)
+        // Real progress tracking — no fake timer to clear
       }
 
-      setLoadingProgress(96)
-      setLoadingStatus('Preparing randomized question pool...')
+      setLoadingProgress(100)
+      setLoadingStatus('Ready! Launching practice session...')
       const quizRes = results[0]
 
       const effectiveStudy = quizRes.data.effective_study_settings || quizRes.data.user_settings || {}
@@ -4075,7 +4076,7 @@ export default function PracticePlay() {
       <SessionLoadingScreen
         progress={loadingProgress}
         statusText={loadingStatus}
-        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading full deck for complete randomness'}
+        subText={session?.total_cards ? `Preparing ${session.total_cards} cards` : 'Loading practice cards'}
         modeTitle={modeLabel}
         onCancel={() => navigate(`/decks/${id}`)}
       />
