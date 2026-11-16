@@ -1457,7 +1457,7 @@ export default function HybridPlay() {
   }
 
   // ── 7. Handle Drill Answer (Typing) ──
-  const handleCheckTyping = () => {
+  const handleCheckTyping = (forceGiveUp: boolean = false) => {
     if (answered || !currentPracticeData || !drillActiveCard) return
     const normalizeAnswer = (str: string) => {
       return str
@@ -1492,7 +1492,7 @@ export default function HybridPlay() {
       }
     })
 
-    const isCorrect = acceptableAnswers.some((ans: string) => {
+    const isCorrect = forceGiveUp ? false : acceptableAnswers.some((ans: string) => {
       if (!ans) return false
       const cleanTarget = normalizeAnswer(ans)
       return cleanInput === cleanTarget || cleanInput.replace(/\s+/g, '') === cleanTarget.replace(/\s+/g, '')
@@ -2013,6 +2013,7 @@ export default function HybridPlay() {
                     starredCards={starredCards}
                     onToggleStar={(cId) => setStarredCards(prev => ({ ...prev, [cId]: !prev[cId] }))}
                     onCheckTyping={handleCheckTyping}
+                    onGiveUp={() => handleCheckTyping(true)}
                     onPreviewInsight={(card) => setPreviewInsightCard(card || drillActiveCard)}
                     onPlayAudio={() => playCardAudio(currentPracticeData?.audio_col || 'front')}
                     frontFontSize={playSettings.frontFontSize}
@@ -2350,7 +2351,7 @@ export default function HybridPlay() {
             ) : drillSubMode === 'typing' ? (
               <button
                 type="button"
-                onClick={handleCheckTyping}
+                onClick={() => handleCheckTyping()}
                 className="flex-1 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-500/25 active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 <span>Submit Answer</span>

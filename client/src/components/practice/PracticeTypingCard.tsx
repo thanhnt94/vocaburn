@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
-import { Sparkles, Check, X, Volume2, CornerDownLeft, HelpCircle } from 'lucide-react'
+import { Sparkles, Check, X, Volume2, CornerDownLeft, HelpCircle, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
@@ -20,7 +20,8 @@ export interface PracticeTypingCardProps {
   typingFeedback: { isCorrect: boolean } | null
   starredCards: Record<number, boolean>
   onToggleStar: (cardId: number) => void
-  onCheckTyping: () => void
+  onCheckTyping: (forceGiveUp?: boolean) => void
+  onGiveUp?: () => void
   onPreviewInsight?: (card: Question) => void
   onNext?: () => void
   onPlayAudio?: (face?: string, rate?: number, explicitText?: string) => void | Promise<any>
@@ -45,6 +46,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
   starredCards,
   onToggleStar,
   onCheckTyping,
+  onGiveUp,
   onPreviewInsight,
   onNext,
   onPlayAudio,
@@ -150,6 +152,15 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
       setRevealedCharIndices(prev => [...prev, randomIdx])
     }
     setHintTier(prev => (prev + 1) as any)
+  }
+
+  const handleGiveUp = () => {
+    if (answered) return
+    if (onGiveUp) {
+      onGiveUp()
+    } else {
+      onCheckTyping(true)
+    }
   }
 
   // Only auto-focus if explicitly requested and NOT on touch devices (to avoid popping up mobile keyboard)
@@ -270,21 +281,33 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
             )}
           </div>
 
-          {!answered && maxHints > 0 && hintTier < maxHints && (
-            <button
-              type="button"
-              onClick={handleRequestHint}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 border border-amber-300/80 dark:border-amber-700/80 text-amber-800 dark:text-amber-300 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>
-                {hasTier1 && hintTier === 0
-                  ? `Trợ giúp (${progressiveHintLabel || 'Bậc 1'} -2đ)`
-                  : (hasTier1 ? hintTier === 1 : hintTier === 0)
-                  ? 'Mở 1 chữ (-3đ)'
-                  : 'Mở thêm 1 chữ (-3đ)'}
-              </span>
-            </button>
+          {!answered && (
+            maxHints > 0 && hintTier < maxHints ? (
+              <button
+                type="button"
+                onClick={handleRequestHint}
+                className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 border border-amber-300/80 dark:border-amber-700/80 text-amber-800 dark:text-amber-300 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>
+                  {hasTier1 && hintTier === 0
+                    ? `Trợ giúp (${progressiveHintLabel || 'Bậc 1'} -2đ)`
+                    : (hasTier1 ? hintTier === 1 : hintTier === 0)
+                    ? 'Mở 1 chữ (-3đ)'
+                    : 'Mở thêm 1 chữ (-3đ)'}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleGiveUp}
+                className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 border border-rose-300/80 dark:border-rose-700/80 text-rose-700 dark:text-rose-300 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                title="Bỏ cuộc & Xem đáp án (0 PTS)"
+              >
+                <Eye className="w-3.5 h-3.5 text-rose-500" />
+                <span>Xem đáp án (0đ)</span>
+              </button>
+            )
           )}
         </div>
 
@@ -343,6 +366,21 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Quick Give Up & Reveal Answer inside Hint Container */}
+            <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60 flex items-center justify-between gap-2">
+              <span className="text-[10px] text-amber-800/80 dark:text-amber-300/80 font-medium">
+                Vẫn chưa nhớ ra từ vựng?
+              </span>
+              <button
+                type="button"
+                onClick={handleGiveUp}
+                className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300/70 dark:border-rose-700/70 font-black text-[11px] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              >
+                <Eye className="w-3.5 h-3.5 text-rose-500" />
+                <span>Xem đáp án (0đ)</span>
+              </button>
+            </div>
           </div>
         )}
 

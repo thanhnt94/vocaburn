@@ -2519,7 +2519,7 @@ export default function PracticePlay() {
     }
   };
 
-  const handleTypingAnswer = async () => {
+  const handleTypingAnswer = async (forceGiveUp: boolean = false) => {
     if (showFeedback || !currentQuestion || !currentPracticeData) return;
     lastAnswerSubmittedAtRef.current = Date.now();
 
@@ -2556,7 +2556,7 @@ export default function PracticePlay() {
       }
     });
 
-    const isCorrect = acceptableAnswers.some((ans: string) => {
+    const isCorrect = forceGiveUp ? false : acceptableAnswers.some((ans: string) => {
       if (!ans) return false;
       const cleanTarget = normalizeAnswer(ans);
       return cleanInput === cleanTarget || cleanInput.replace(/\s+/g, '') === cleanTarget.replace(/\s+/g, '');
@@ -3811,6 +3811,7 @@ export default function PracticePlay() {
           starredCards={starredCards}
           onToggleStar={(cardId) => setStarredCards(prev => ({ ...prev, [cardId]: !prev[cardId] }))}
           onCheckTyping={handleTypingAnswer}
+          onGiveUp={() => handleTypingAnswer(true)}
           onNext={() => handleNext()}
           onPlayAudio={playCardAudio}
           onZoomImage={(url) => setZoomedImage(url)}
