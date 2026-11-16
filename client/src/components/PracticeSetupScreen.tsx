@@ -10,6 +10,8 @@ interface Pair {
   subtext_col?: string
   audio_col?: string
   img_col?: string
+  progressive_hint_col?: string
+  char_hint_col?: string
   smart_distractor?: SmartDistractorConfig
 }
 
@@ -207,6 +209,61 @@ export const PracticeSetupScreen: React.FC<PracticeSetupScreenProps> = ({
                     ))}
                   </select>
                 </div>
+
+                {/* Typing Progressive Hints (Bậc 1 & Bậc 2-3) */}
+                {isInputMode && (
+                  <>
+                    <div className="pt-2 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[9px] font-black text-amber-600 uppercase tracking-wider block">
+                          Typing Hint Tier 1 (Cột gợi ý Bậc 1 - ví dụ: Hán Việt)
+                        </label>
+                        <span className="text-[9px] text-slate-400">
+                          Mở khi bấm Trợ giúp Bậc 1 (-2đ)
+                        </span>
+                      </div>
+                      <select
+                        value={pair.progressive_hint_col || ''}
+                        onChange={(e) => {
+                          const newPairs = [...setupPairs];
+                          newPairs[idx] = { ...newPairs[idx], progressive_hint_col: e.target.value };
+                          setSetupPairs(newPairs);
+                        }}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-amber-500 transition-all cursor-pointer"
+                      >
+                        <option value="">🎯 Tự động tìm cột Hán Việt / Info (Mặc định)</option>
+                        {availableColumns.map(col => (
+                          <option key={col} value={col}>{col.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-200/60">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[9px] font-black text-amber-600 uppercase tracking-wider block">
+                          Typing Char Reveal (Cột gợi ý ký tự Bậc 2 & 3)
+                        </label>
+                        <span className="text-[9px] text-slate-400">
+                          Mở 1-2 chữ bất kỳ (-3đ/chữ)
+                        </span>
+                      </div>
+                      <select
+                        value={pair.char_hint_col || ''}
+                        onChange={(e) => {
+                          const newPairs = [...setupPairs];
+                          newPairs[idx] = { ...newPairs[idx], char_hint_col: e.target.value };
+                          setSetupPairs(newPairs);
+                        }}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-amber-500 transition-all cursor-pointer"
+                      >
+                        <option value="">🎯 Theo cột đáp án đang gõ (Mặc định)</option>
+                        {availableColumns.map(col => (
+                          <option key={col} value={col}>{col.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 {/* Result Details Column (After answering) */}
                 <div className="pt-2 border-t border-slate-200/60">

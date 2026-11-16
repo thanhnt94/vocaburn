@@ -11,6 +11,8 @@ export interface PracticePair {
   audio_col?: string
   hint_col?: string
   subtext_col?: string
+  progressive_hint_col?: string
+  char_hint_col?: string
 }
 
 export interface PracticeQuestionData {
@@ -19,6 +21,10 @@ export interface PracticeQuestionData {
   hint_col?: string
   result_subtext?: string
   subtext_col?: string
+  progressive_hint_col?: string
+  progressive_hint_value?: string
+  char_hint_col?: string
+  char_hint_value?: string
   choices?: string[]
   choices_data?: any[]
   choice_item_ids?: number[]

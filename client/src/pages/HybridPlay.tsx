@@ -1219,6 +1219,8 @@ export default function HybridPlay() {
     const audio_col = activePair.audio_col || (chosenMode === 'listening' ? 'front' : undefined)
     const configuredHintCol = (activePair as any)?.hint_col || (activePair as any)?.prompt_hint_col || (activePair as any)?.extra_col;
     const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.result_subtext_col || (activePair as any)?.info_col;
+    const configuredProgressiveHintCol = (activePair as any)?.progressive_hint_col;
+    const configuredCharHintCol = (activePair as any)?.char_hint_col;
 
     const questionText = getVal(q, question_key) || q.content || (q as any).front || 'Vocabulary Item'
     const correctAns = getVal(q, primary_answer_key) || q.explanation || (q as any).back || ''
@@ -1409,12 +1411,42 @@ export default function HybridPlay() {
 
       const primary_answer = acceptable_answers[0] || correctAns || getVal(q, 'front') || q.content || ''
 
+      let progressiveHintVal = '';
+      let progressiveHintLabel = configuredProgressiveHintCol || '';
+      if (configuredProgressiveHintCol) {
+        progressiveHintVal = getVal(q, configuredProgressiveHintCol);
+      } else {
+        const possibleHvCols = ['hán việt', 'han_viet', 'hanviet', 'sino_vietnamese', 'hv'];
+        const qOthers = q?.others || {};
+        for (const col of possibleHvCols) {
+          const val = getVal(q, col) || qOthers[col] || qOthers['Hán Việt'] || qOthers['hán việt'];
+          if (val) {
+            progressiveHintVal = String(val);
+            progressiveHintLabel = 'Hán Việt';
+            break;
+          }
+        }
+      }
+
+      let charHintVal = '';
+      let charHintLabel = configuredCharHintCol || '';
+      if (configuredCharHintCol) {
+        charHintVal = getVal(q, configuredCharHintCol);
+      } else {
+        charHintVal = primary_answer;
+        charHintLabel = answer_keys[0] || 'Đáp án';
+      }
+
       const practiceObj: PracticeQuestionData = {
         question: questionText,
         question_subtext: questionSubtext,
         hint_col: configuredHintCol,
         result_subtext: resultSubtext,
         subtext_col: configuredSubtextCol,
+        progressive_hint_col: progressiveHintLabel,
+        progressive_hint_value: progressiveHintVal,
+        char_hint_col: charHintLabel,
+        char_hint_value: charHintVal,
         choices: [],
         correct_index: 0,
         correct_answer: primary_answer,

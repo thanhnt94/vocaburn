@@ -832,6 +832,8 @@ export default function PracticePlay() {
     const img_col = (activePair as any).img_col !== undefined ? (activePair as any).img_col : undefined;
     const configuredHintCol = (activePair as any)?.hint_col || (activePair as any)?.prompt_hint_col || (activePair as any)?.extra_col;
     const configuredSubtextCol = (activePair as any)?.subtext_col || (activePair as any)?.result_subtext_col || (activePair as any)?.info_col;
+    const configuredProgressiveHintCol = (activePair as any)?.progressive_hint_col;
+    const configuredCharHintCol = (activePair as any)?.char_hint_col;
     const num_choices = setupNumChoices || 4;
 
     const questionText = getVal(qObj, question_key);
@@ -1033,6 +1035,32 @@ export default function PracticePlay() {
       if (cardRomaji) addAnswer(cardRomaji);
       const primary_answer = acceptable_answers[0] || correctAns || getVal(qObj, 'front');
 
+      let progressiveHintVal = '';
+      let progressiveHintLabel = configuredProgressiveHintCol || '';
+      if (configuredProgressiveHintCol) {
+        progressiveHintVal = getVal(qObj, configuredProgressiveHintCol);
+      } else {
+        const possibleHvCols = ['hán việt', 'han_viet', 'hanviet', 'sino_vietnamese', 'hv'];
+        const qOthers = qObj?.others || {};
+        for (const col of possibleHvCols) {
+          const val = getVal(qObj, col) || qOthers[col] || qOthers['Hán Việt'] || qOthers['hán việt'];
+          if (val) {
+            progressiveHintVal = String(val);
+            progressiveHintLabel = 'Hán Việt';
+            break;
+          }
+        }
+      }
+
+      let charHintVal = '';
+      let charHintLabel = configuredCharHintCol || '';
+      if (configuredCharHintCol) {
+        charHintVal = getVal(qObj, configuredCharHintCol);
+      } else {
+        charHintVal = primary_answer;
+        charHintLabel = answer_keys[0] || 'Đáp án';
+      }
+
       const finalPracticeData = {
         card_id: qObj.id,
         question: questionText,
@@ -1040,6 +1068,10 @@ export default function PracticePlay() {
         hint_col: configuredHintCol,
         result_subtext: resultSubtext,
         subtext_col: configuredSubtextCol,
+        progressive_hint_col: progressiveHintLabel,
+        progressive_hint_value: progressiveHintVal,
+        char_hint_col: charHintLabel,
+        char_hint_value: charHintVal,
         correct_answer: primary_answer,
         acceptable_answers: acceptable_answers.length > 0 ? acceptable_answers : [primary_answer],
         question_key,

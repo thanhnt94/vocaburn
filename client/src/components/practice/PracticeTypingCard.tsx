@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useEffect } from 'react'
-import { Sparkles, Check, X, Volume2, CornerDownLeft } from 'lucide-react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { Sparkles, Check, X, Volume2, CornerDownLeft, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
@@ -58,6 +58,101 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 }) => {
   const { question, correct_answer, question_key, answer_key } = practiceData
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // ── 3-Tier Progressive Hint State ──
+  const [hintTier, setHintTier] = useState<0 | 1 | 2 | 3>(0)
+  const [revealedCharIndices, setRevealedCharIndices] = useState<number[]>([])
+
+  // Reset hint state when switching cards
+  useEffect(() => {
+    setHintTier(0)
+    setRevealedCharIndices([])
+  }, [currentIndex, currentQuestion?.id])
+
+  // Scoring: 10 pts initially, 8 pts after tier 1, 5 pts after tier 2, 2 pts after tier 3
+  const currentPoints = useMemo(() => {
+    if (hintTier === 0) return 10
+    if (hintTier === 1) return 8
+    if (hintTier === 2) return 5
+    return 2
+  }, [hintTier])
+
+  // Tier 1 Hint: Extra Column value (e.g. Hán Việt)
+  const { progressiveHintVal, progressiveHintLabel } = useMemo(() => {
+    let val = practiceData.progressive_hint_value
+    let col = practiceData.progressive_hint_col
+
+    if (!val && currentQuestion) {
+      if (col) {
+        val = (currentQuestion as any)[col] ?? (currentQuestion as any)?.others?.[col]
+      }
+      if (!val) {
+        const qOthers = (currentQuestion as any)?.others || {}
+        const possible = ['hán việt', 'han_viet', 'hanviet', 'sino_vietnamese', 'hv']
+        for (const k of possible) {
+          const found = (currentQuestion as any)[k] ?? qOthers[k] ?? qOthers['Hán Việt'] ?? qOthers['hán việt']
+          if (found) {
+            val = String(found)
+            col = 'Hán Việt'
+            break
+          }
+        }
+      }
+    }
+    return {
+      progressiveHintVal: val ? String(val) : '',
+      progressiveHintLabel: col ? String(col).replace(/_/g, ' ') : 'Hán Việt'
+    }
+  }, [practiceData, currentQuestion])
+
+  // Tier 2 & 3 Target String for Character Reveals
+  const { targetCharStr, charHintLabel } = useMemo(() => {
+    let str = practiceData.char_hint_value
+    let col = practiceData.char_hint_col
+
+    if (!str && col && currentQuestion) {
+      str = (currentQuestion as any)[col] ?? (currentQuestion as any)?.others?.[col]
+    }
+    if (!str) {
+      str = practiceData.correct_answer || ''
+      col = 'Đáp án'
+    }
+    const cleanStr = String(str)
+      .replace(/<rt>.*?<\/rt>/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\[\/?(b|i|u|s|color|size|highlight|align).*?\]/gi, '')
+      .replace(/\[.*?\|(.*?)\]/g, '$1')
+      .trim()
+
+    return {
+      targetCharStr: cleanStr,
+      charHintLabel: col ? String(col).replace(/_/g, ' ') : 'Ký tự'
+    }
+  }, [practiceData, currentQuestion])
+
+  const handleRequestHint = () => {
+    if (answered || hintTier >= 3) return
+
+    if (hintTier === 0) {
+      setHintTier(1)
+      return
+    }
+
+    const chars = Array.from(targetCharStr)
+    const validIndices: number[] = []
+    chars.forEach((ch, idx) => {
+      if (ch.trim() && !/[.,/#!$%^&*;:{}=\-_`~()]/g.test(ch)) {
+        validIndices.push(idx)
+      }
+    })
+
+    const availableIndices = validIndices.filter(i => !revealedCharIndices.includes(i))
+    if (availableIndices.length > 0) {
+      const randomIdx = availableIndices[Math.floor(Math.random() * availableIndices.length)]
+      setRevealedCharIndices(prev => [...prev, randomIdx])
+    }
+    setHintTier(prev => (prev === 1 ? 2 : 3))
+  }
 
   // Only auto-focus if explicitly requested and NOT on touch devices (to avoid popping up mobile keyboard)
   useEffect(() => {
@@ -151,6 +246,108 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     >
       {/* ── Active Interactive Typing & Result Section ── */}
       <div className="w-full max-w-xl mx-auto relative z-10 pt-2 shrink-0">
+        {/* ── 3-Tier Progressive Hint Bar & Score Badge ── */}
+        <div className="flex items-center justify-between gap-2 mb-2 select-none">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "px-2.5 py-1 rounded-xl text-xs font-black tracking-wider uppercase border shadow-2xs transition-all flex items-center gap-1.5",
+                hintTier === 0
+                  ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300"
+                  : hintTier === 1
+                  ? "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300"
+                  : hintTier === 2
+                  ? "bg-orange-50 dark:bg-orange-950/60 border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300"
+                  : "bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-300"
+              )}
+            >
+              <span>🎯</span>
+              <span>{currentPoints} PTS</span>
+            </span>
+
+            {hintTier > 0 && (
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                (Bậc {hintTier}/3)
+              </span>
+            )}
+          </div>
+
+          {!answered && hintTier < 3 && (
+            <button
+              type="button"
+              onClick={handleRequestHint}
+              className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 border border-amber-300/80 dark:border-amber-700/80 text-amber-800 dark:text-amber-300 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>
+                {hintTier === 0
+                  ? 'Trợ giúp (-2đ)'
+                  : hintTier === 1
+                  ? 'Mở 1 chữ (-3đ)'
+                  : 'Mở thêm 1 chữ (-3đ)'}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* ── Progressive Hint Container (Dedicated Outside Area) ── */}
+        {hintTier > 0 && (
+          <div className="mb-3 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-amber-50/90 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-amber-950/40 border border-amber-300/80 dark:border-amber-800/80 shadow-xs space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Tier 1: Extra Column Content */}
+            {progressiveHintVal && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-lg bg-amber-200/80 dark:bg-amber-900/80 border border-amber-400/80 dark:border-amber-700 text-[10px] font-black uppercase text-amber-950 dark:text-amber-200 tracking-wider">
+                  💡 {progressiveHintLabel}
+                </span>
+                <span className="font-black text-sm text-slate-800 dark:text-slate-100">
+                  {progressiveHintVal}
+                </span>
+              </div>
+            )}
+
+            {/* Tier 2 & 3: Character Reveal Slots */}
+            {hintTier >= 2 && targetCharStr && (
+              <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60">
+                <div className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1.5">
+                  Gợi ý ký tự ({charHintLabel}):
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {Array.from(targetCharStr).map((ch, idx) => {
+                    const isRevealed = revealedCharIndices.includes(idx)
+                    const isPunctuation = !ch.trim() || /[.,/#!$%^&*;:{}=\-_`~()]/g.test(ch)
+
+                    if (isRevealed) {
+                      return (
+                        <span
+                          key={idx}
+                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 border-2 border-amber-400 dark:border-amber-600 text-amber-950 dark:text-amber-100 font-black text-sm sm:text-base flex items-center justify-center shadow-xs animate-in zoom-in-75 duration-200"
+                        >
+                          {ch}
+                        </span>
+                      )
+                    }
+                    if (isPunctuation) {
+                      return (
+                        <span key={idx} className="px-1 text-slate-400 font-bold self-center">
+                          {ch}
+                        </span>
+                      )
+                    }
+                    return (
+                      <span
+                        key={idx}
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 dark:bg-slate-800/90 border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 font-mono text-xs flex items-center justify-center"
+                      >
+                        _
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {!answered ? (
           <form
             onSubmit={(e) => {
@@ -233,7 +430,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
                     </div>
                     <div>
                       <span className="font-black text-sm tracking-wide block">
-                        {typingFeedback.isCorrect ? "Excellent! 🎯" : "Not quite right!"}
+                        {typingFeedback.isCorrect ? `Excellent! 🎯 (+${currentPoints} PTS)` : "Not quite right! (0 PTS)"}
                       </span>
                       <span className="text-[11px] font-semibold opacity-75">
                         You typed: <strong className="font-mono">{typingInput || "(Empty)"}</strong>
