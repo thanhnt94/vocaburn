@@ -2542,6 +2542,7 @@ export default function PracticePlay() {
         .replace(/<[^<]+?>/g, '')
         .trim()
         .toLowerCase()
+        .replace(/[\u3000]/g, ' ')
         .replace(/[〜~]/g, '')
         .replace(/[ōóòỏõọ]/g, 'o')
         .replace(/[ūúùủũụ]/g, 'u')
@@ -2571,7 +2572,8 @@ export default function PracticePlay() {
 
     const isCorrect = acceptableAnswers.some((ans: string) => {
       if (!ans) return false;
-      return cleanInput === normalizeAnswer(ans);
+      const cleanTarget = normalizeAnswer(ans);
+      return cleanInput === cleanTarget || cleanInput.replace(/\s+/g, '') === cleanTarget.replace(/\s+/g, '');
     });
 
     const updatedTotalAnswered = practiceTotalAnswered + 1;

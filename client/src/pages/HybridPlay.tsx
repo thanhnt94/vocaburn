@@ -1482,6 +1482,7 @@ export default function HybridPlay() {
         .replace(/[ōóòỏõọ]/g, 'o')
         .replace(/[ūúùủũụ]/g, 'u')
         .replace(/[āáàảãạ]/g, 'a')
+        .replace(/[\u3000]/g, ' ')
         .replace(/[ēéèẻẽẹ]/g, 'e')
         .replace(/[īíìỉĩị]/g, 'i')
         .trim()
@@ -1507,7 +1508,8 @@ export default function HybridPlay() {
 
     const isCorrect = acceptableAnswers.some((ans: string) => {
       if (!ans) return false
-      return cleanInput === normalizeAnswer(ans)
+      const cleanTarget = normalizeAnswer(ans)
+      return cleanInput === cleanTarget || cleanInput.replace(/\s+/g, '') === cleanTarget.replace(/\s+/g, '')
     })
 
     setTypingFeedback({ checked: true, isCorrect })
