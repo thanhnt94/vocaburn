@@ -69,43 +69,22 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
     setRevealedCharIndices([])
   }, [currentIndex, currentQuestion?.id])
 
-  // Scoring: 10 pts initially, 8 pts after tier 1, 5 pts after tier 2, 2 pts after tier 3
-  const currentPoints = useMemo(() => {
-    if (hintTier === 0) return 10
-    if (hintTier === 1) return 8
-    if (hintTier === 2) return 5
-    return 2
-  }, [hintTier])
 
-  // Tier 1 Hint: Extra Column value (e.g. Hán Việt)
+  // Tier 1 Hint: Extra Column value (strictly user-configured column only)
   const { progressiveHintVal, progressiveHintLabel } = useMemo(() => {
     let val = practiceData.progressive_hint_value
     let col = practiceData.progressive_hint_col
 
-    if (!val && currentQuestion) {
-      if (col) {
-        val = (currentQuestion as any)[col] ?? (currentQuestion as any)?.others?.[col]
-      }
-      if (!val) {
-        const qOthers = (currentQuestion as any)?.others || {}
-        const possible = ['hán việt', 'han_viet', 'hanviet', 'sino_vietnamese', 'hv']
-        for (const k of possible) {
-          const found = (currentQuestion as any)[k] ?? qOthers[k] ?? qOthers['Hán Việt'] ?? qOthers['hán việt']
-          if (found) {
-            val = String(found)
-            col = 'Hán Việt'
-            break
-          }
-        }
-      }
+    if (!val && col && currentQuestion) {
+      val = (currentQuestion as any)[col] ?? (currentQuestion as any)?.others?.[col]
     }
     return {
       progressiveHintVal: val ? String(val) : '',
-      progressiveHintLabel: col ? String(col).replace(/_/g, ' ') : 'Hán Việt'
+      progressiveHintLabel: col ? String(col).replace(/_/g, ' ') : ''
     }
   }, [practiceData, currentQuestion])
 
-  // Tier 2 & 3 Target String for Character Reveals
+  // Tier 2 & 3 Target String for Character Reveals (strictly user-configured column only)
   const { targetCharStr, charHintLabel } = useMemo(() => {
     let str = practiceData.char_hint_value
     let col = practiceData.char_hint_col
@@ -114,8 +93,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
       str = (currentQuestion as any)[col] ?? (currentQuestion as any)?.others?.[col]
     }
     if (!str) {
-      str = practiceData.correct_answer || ''
-      col = 'Đáp án'
+      return {
+        targetCharStr: '',
+        charHintLabel: ''
+      }
     }
     const cleanStr = String(str)
       .replace(/<rt>.*?<\/rt>/g, '')
@@ -126,14 +107,31 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
 
     return {
       targetCharStr: cleanStr,
-      charHintLabel: col ? String(col).replace(/_/g, ' ') : 'Ký tự'
+      charHintLabel: col ? String(col).replace(/_/g, ' ') : ''
     }
   }, [practiceData, currentQuestion])
 
-  const handleRequestHint = () => {
-    if (answered || hintTier >= 3) return
+  const hasTier1 = Boolean(progressiveHintVal)
+  const hasChars = Boolean(targetCharStr)
+  const maxHints = (hasTier1 ? 1 : 0) + (hasChars ? 2 : 0)
 
-    if (hintTier === 0) {
+  // Scoring: 10 pts base, minus penalties for used hints
+  const currentPoints = useMemo(() => {
+    if (hintTier === 0) return 10
+    if (hasTier1) {
+      if (hintTier === 1) return 8
+      if (hintTier === 2) return 5
+      return 2
+    } else {
+      if (hintTier === 1) return 7
+      return 4
+    }
+  }, [hintTier, hasTier1])
+
+  const handleRequestHint = () => {
+    if (answered || hintTier >= maxHints) return
+
+    if (hasTier1 && hintTier === 0) {
       setHintTier(1)
       return
     }
@@ -151,7 +149,7 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
       const randomIdx = availableIndices[Math.floor(Math.random() * availableIndices.length)]
       setRevealedCharIndices(prev => [...prev, randomIdx])
     }
-    setHintTier(prev => (prev === 1 ? 2 : 3))
+    setHintTier(prev => (prev + 1) as any)
   }
 
   // Only auto-focus if explicitly requested and NOT on touch devices (to avoid popping up mobile keyboard)
@@ -265,14 +263,14 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
               <span>{currentPoints} PTS</span>
             </span>
 
-            {hintTier > 0 && (
+            {hintTier > 0 && maxHints > 0 && (
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                (Bậc {hintTier}/3)
+                (Bậc {hintTier}/{maxHints})
               </span>
             )}
           </div>
 
-          {!answered && hintTier < 3 && (
+          {!answered && maxHints > 0 && hintTier < maxHints && (
             <button
               type="button"
               onClick={handleRequestHint}
@@ -280,9 +278,9 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>
-                {hintTier === 0
-                  ? 'Trợ giúp (-2đ)'
-                  : hintTier === 1
+                {hasTier1 && hintTier === 0
+                  ? `Trợ giúp (${progressiveHintLabel || 'Bậc 1'} -2đ)`
+                  : (hasTier1 ? hintTier === 1 : hintTier === 0)
                   ? 'Mở 1 chữ (-3đ)'
                   : 'Mở thêm 1 chữ (-3đ)'}
               </span>
@@ -291,10 +289,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
         </div>
 
         {/* ── Progressive Hint Container (Dedicated Outside Area) ── */}
-        {hintTier > 0 && (
+        {hintTier > 0 && (hasTier1 || revealedCharIndices.length > 0) && (
           <div className="mb-3 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-amber-50/90 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-amber-950/40 border border-amber-300/80 dark:border-amber-800/80 shadow-xs space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
             {/* Tier 1: Extra Column Content */}
-            {progressiveHintVal && (
+            {hasTier1 && hintTier >= 1 && progressiveHintVal && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2 py-0.5 rounded-lg bg-amber-200/80 dark:bg-amber-900/80 border border-amber-400/80 dark:border-amber-700 text-[10px] font-black uppercase text-amber-950 dark:text-amber-200 tracking-wider">
                   💡 {progressiveHintLabel}
@@ -306,10 +304,10 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
             )}
 
             {/* Tier 2 & 3: Character Reveal Slots */}
-            {hintTier >= 2 && targetCharStr && (
-              <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60">
+            {revealedCharIndices.length > 0 && targetCharStr && (
+              <div className={cn("pt-2", hasTier1 && hintTier >= 1 && progressiveHintVal && "border-t border-amber-200/60 dark:border-amber-800/60")}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1.5">
-                  Gợi ý ký tự ({charHintLabel}):
+                  Gợi ý ký tự {charHintLabel ? `(${charHintLabel})` : ''}:
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {Array.from(targetCharStr).map((ch, idx) => {

@@ -1039,26 +1039,12 @@ export default function PracticePlay() {
       let progressiveHintLabel = configuredProgressiveHintCol || '';
       if (configuredProgressiveHintCol) {
         progressiveHintVal = getVal(qObj, configuredProgressiveHintCol);
-      } else {
-        const possibleHvCols = ['hán việt', 'han_viet', 'hanviet', 'sino_vietnamese', 'hv'];
-        const qOthers = qObj?.others || {};
-        for (const col of possibleHvCols) {
-          const val = getVal(qObj, col) || qOthers[col] || qOthers['Hán Việt'] || qOthers['hán việt'];
-          if (val) {
-            progressiveHintVal = String(val);
-            progressiveHintLabel = 'Hán Việt';
-            break;
-          }
-        }
       }
 
       let charHintVal = '';
       let charHintLabel = configuredCharHintCol || '';
       if (configuredCharHintCol) {
         charHintVal = getVal(qObj, configuredCharHintCol);
-      } else {
-        charHintVal = primary_answer;
-        charHintLabel = answer_keys[0] || 'Đáp án';
       }
 
       const finalPracticeData = {

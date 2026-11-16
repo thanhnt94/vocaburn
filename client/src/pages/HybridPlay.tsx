@@ -1415,26 +1415,12 @@ export default function HybridPlay() {
       let progressiveHintLabel = configuredProgressiveHintCol || '';
       if (configuredProgressiveHintCol) {
         progressiveHintVal = getVal(q, configuredProgressiveHintCol);
-      } else {
-        const possibleHvCols = ['hán việt', 'han_viet', 'hanviet', 'sino_vietnamese', 'hv'];
-        const qOthers = q?.others || {};
-        for (const col of possibleHvCols) {
-          const val = getVal(q, col) || qOthers[col] || qOthers['Hán Việt'] || qOthers['hán việt'];
-          if (val) {
-            progressiveHintVal = String(val);
-            progressiveHintLabel = 'Hán Việt';
-            break;
-          }
-        }
       }
 
       let charHintVal = '';
       let charHintLabel = configuredCharHintCol || '';
       if (configuredCharHintCol) {
         charHintVal = getVal(q, configuredCharHintCol);
-      } else {
-        charHintVal = primary_answer;
-        charHintLabel = answer_keys[0] || 'Đáp án';
       }
 
       const practiceObj: PracticeQuestionData = {

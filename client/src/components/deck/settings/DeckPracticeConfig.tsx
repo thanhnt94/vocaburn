@@ -1190,10 +1190,10 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                             <div className="flex items-center justify-between mb-1">
                               <label className="text-[10px] font-black text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
                                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                <span>6. Typing Hint Tier 1 (Cột gợi ý Bậc 1 - ví dụ: Hán Việt):</span>
+                                <span>6. Typing Hint Tier 1 (Cột mở gợi ý Bậc 1):</span>
                               </label>
                               <span className="text-[9px] font-medium text-slate-400">
-                                Mở khi bấm Trợ giúp Bậc 1 (-2đ)
+                                Mở nội dung cột khi bấm Trợ giúp (-2đ)
                               </span>
                             </div>
                             <select
@@ -1201,7 +1201,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                               onChange={(e) => handleUpdatePair(idx, 'progressive_hint_col', e.target.value)}
                               className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
                             >
-                              <option value="">🎯 Tự động tìm Hán Việt / Info (Mặc định)</option>
+                              <option value="">(Không dùng gợi ý Bậc 1)</option>
                               {availableColumns.map((col) => (
                                 <option key={col} value={col}>
                                   {formatColumnOption(col, 'Cột: ')}
@@ -1218,7 +1218,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                                 <span>7. Typing Char Reveal (Cột gợi ý ký tự Bậc 2 & 3):</span>
                               </label>
                               <span className="text-[9px] font-medium text-slate-400">
-                                Mở 1-2 chữ bất kỳ (-3đ/chữ)
+                                Chọn cột để mở ngẫu nhiên 1-2 chữ (-3đ/chữ)
                               </span>
                             </div>
                             <select
@@ -1226,7 +1226,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                               onChange={(e) => handleUpdatePair(idx, 'char_hint_col', e.target.value)}
                               className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
                             >
-                              <option value="">🎯 Theo cột đáp án đang gõ (Mặc định)</option>
+                              <option value="">(Không dùng gợi ý ký tự Bậc 2 & 3)</option>
                               {availableColumns.map((col) => (
                                 <option key={col} value={col}>
                                   {formatColumnOption(col, 'Cột: ')}
