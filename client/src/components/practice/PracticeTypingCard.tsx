@@ -373,20 +373,22 @@ export const PracticeTypingCard: React.FC<PracticeTypingCardProps> = ({
               </div>
             )}
 
-            {/* Quick Give Up & Reveal Answer inside Hint Container */}
-            <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60 flex items-center justify-between gap-2">
-              <span className="text-[10px] text-amber-800/80 dark:text-amber-300/80 font-medium">
-                Vẫn chưa nhớ ra từ vựng?
-              </span>
-              <button
-                type="button"
-                onClick={handleGiveUp}
-                className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300/70 dark:border-rose-700/70 font-black text-[11px] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-              >
-                <Eye className="w-3.5 h-3.5 text-rose-500" />
-                <span>Xem đáp án (0đ)</span>
-              </button>
-            </div>
+            {/* Quick Give Up & Reveal Answer inside Hint Container: Only visible when all hints are exhausted */}
+            {hintTier >= maxHints && (
+              <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60 flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                <span className="text-[10px] text-amber-800/80 dark:text-amber-300/80 font-medium">
+                  Vẫn chưa nhớ ra từ vựng?
+                </span>
+                <button
+                  type="button"
+                  onClick={handleGiveUp}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300/70 dark:border-rose-700/70 font-black text-[11px] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                >
+                  <Eye className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Xem đáp án (0đ)</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
