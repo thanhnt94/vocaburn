@@ -37,6 +37,8 @@ export interface QuestionAnswerPair {
   audio_col?: string
   img_col?: string
   hint_col?: string
+  progressive_hint_col?: string
+  char_hint_col?: string
   subtext_col?: string
   smart_distractor?: SmartDistractorConfig
 }
@@ -123,6 +125,8 @@ function normalizePair(p: any): QuestionAnswerPair {
   const audio_col = p.audio_col !== undefined ? String(p.audio_col).trim() : (p.audio_channel || p.audio_target || '')
   const img_col = p.img_col !== undefined ? String(p.img_col).trim() : (p.image_col || p.image || '')
   const hint_col = p.hint_col !== undefined ? String(p.hint_col).trim() : (p.extra_col || p.prompt_hint_col || '')
+  const progressive_hint_col = p.progressive_hint_col !== undefined ? String(p.progressive_hint_col).trim() : ''
+  const char_hint_col = p.char_hint_col !== undefined ? String(p.char_hint_col).trim() : ''
   const subtext_col = p.subtext_col !== undefined ? String(p.subtext_col).trim() : (p.result_subtext_col || p.info_col || '')
   return {
     q,
@@ -133,6 +137,8 @@ function normalizePair(p: any): QuestionAnswerPair {
     audio_col,
     img_col,
     hint_col,
+    progressive_hint_col,
+    char_hint_col,
     subtext_col,
     smart_distractor: p.smart_distractor,
   }
@@ -376,6 +382,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         audio_col: p.audio_col || undefined,
         img_col: p.img_col !== undefined ? p.img_col : undefined,
         hint_col: p.hint_col || undefined,
+        progressive_hint_col: p.progressive_hint_col || undefined,
+        char_hint_col: p.char_hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
 
@@ -399,6 +407,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         audio_col: p.audio_col || undefined,
         img_col: p.img_col !== undefined ? p.img_col : undefined,
         hint_col: p.hint_col || undefined,
+        progressive_hint_col: p.progressive_hint_col || undefined,
+        char_hint_col: p.char_hint_col || undefined,
         subtext_col: p.subtext_col || undefined,
       }))
 
@@ -524,7 +534,7 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
     setCurrentPairs((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'img_col' | 'hint_col' | 'subtext_col' | 'smart_distractor', value: any) => {
+  const handleUpdatePair = (index: number, field: 'q' | 'a' | 'audio_col' | 'img_col' | 'hint_col' | 'progressive_hint_col' | 'char_hint_col' | 'subtext_col' | 'smart_distractor', value: any) => {
     setCurrentPairs((prev) =>
       prev.map((p, i) => {
         if (i !== index) return p
@@ -534,6 +544,8 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
         if (field === 'audio_col') updated.audio_col = String(value)
         if (field === 'img_col') updated.img_col = String(value)
         if (field === 'hint_col') updated.hint_col = String(value)
+        if (field === 'progressive_hint_col') updated.progressive_hint_col = String(value)
+        if (field === 'char_hint_col') updated.char_hint_col = String(value)
         if (field === 'subtext_col') updated.subtext_col = String(value)
         if (field === 'smart_distractor') updated.smart_distractor = value
         updated.name = `${updated.q} ➜ ${Array.isArray(updated.a) ? updated.a.join(', ') : updated.a}`
@@ -1170,6 +1182,60 @@ export function DeckPracticeConfig({ deckId, initialSettings, onSaved, section }
                           ))}
                         </select>
                       </div>
+
+                      {/* 6. Typing Hint Tier 1 (Cột gợi ý Bậc 1 - Mở khi bấm Trợ giúp Bậc 1) */}
+                      {(activePracticeTab === 'typing' || activePracticeTab === 'listening_typing') && (
+                        <>
+                          <div className="pt-2.5 border-t border-slate-100">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-black text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                <span>6. Typing Hint Tier 1 (Cột gợi ý Bậc 1 - ví dụ: Hán Việt):</span>
+                              </label>
+                              <span className="text-[9px] font-medium text-slate-400">
+                                Mở khi bấm Trợ giúp Bậc 1 (-2đ)
+                              </span>
+                            </div>
+                            <select
+                              value={pair.progressive_hint_col || ''}
+                              onChange={(e) => handleUpdatePair(idx, 'progressive_hint_col', e.target.value)}
+                              className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
+                            >
+                              <option value="">🎯 Tự động tìm Hán Việt / Info (Mặc định)</option>
+                              {availableColumns.map((col) => (
+                                <option key={col} value={col}>
+                                  {formatColumnOption(col, 'Cột: ')}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 7. Typing Char Reveal (Cột gợi ý ký tự Bậc 2 & 3) */}
+                          <div className="pt-2.5 border-t border-slate-100">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] font-black text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
+                                <HelpCircle className="w-3.5 h-3.5 text-amber-500" />
+                                <span>7. Typing Char Reveal (Cột gợi ý ký tự Bậc 2 & 3):</span>
+                              </label>
+                              <span className="text-[9px] font-medium text-slate-400">
+                                Mở 1-2 chữ bất kỳ (-3đ/chữ)
+                              </span>
+                            </div>
+                            <select
+                              value={pair.char_hint_col || ''}
+                              onChange={(e) => handleUpdatePair(idx, 'char_hint_col', e.target.value)}
+                              className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
+                            >
+                              <option value="">🎯 Theo cột đáp án đang gõ (Mặc định)</option>
+                              {availableColumns.map((col) => (
+                                <option key={col} value={col}>
+                                  {formatColumnOption(col, 'Cột: ')}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </>
+                      )}
 
                       {/* 6. Smart Distractor Engine (Bẫy Gây Nhiễu Thông Minh) */}
                       {(activePracticeTab === 'mcq' || activePracticeTab === 'listening_mcq') && (() => {
