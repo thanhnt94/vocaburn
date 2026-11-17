@@ -2,6 +2,27 @@
 
 Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, và các bản vá lỗi của dự án Vocaburn.
 
+### [2026-11-17]
+#### Tùy Biến Thứ Tự Learning Insights, Ẩn Khối Kanji/Chuyển Âm Cho Từ Thuần Kana & Tối Ưu Mẹo Âm Thanh AI
+- **Chuẩn Hóa Thứ Tự Hiển Thị Mặc Định Learning Insights**:
+  - Áp dụng thứ tự ưu tiên hiển thị khoa học cho các khối phân tích:
+    1. **Tóm tắt & Nghĩa cốt lõi** (`tóm_tắt_1`, `tóm_tắt_2`, `summary`...)
+    2. **Cụm từ hay dùng** (`cụm_từ_hay_dùng`, `collocations`...)
+    3. **Cách sử dụng & Sắc thái** (`cách_sử_dụng`, `từ_liên_quan_&_sắc_thái`, `vùng_cấm_lưu_ý`...)
+    4. **Ví dụ thực tế** (`câu_ví_dụ_thực_tế`, `câu ví dụ`, `đục lỗ`...)
+    5. **Mẹo nhớ & Phân tích** (`mẹo_nhớ_cách_đọc`, `chiết_tự_&_mẹo_nhớ_kanji`...)
+    6. **Các trường mở rộng khác** (từ đồng nghĩa, từ trái nghĩa, v.v.).
+- **Giao Diện Tùy Chỉnh Thứ Tự Insight Linh Hoạt (Reorder UI)**:
+  - Bổ sung nút **"Sắp xếp thứ tự"** và modal kéo/thay đổi vị trí trực tiếp trong `LearningInsightsModal.tsx` và `DeckColumnSettings.tsx`.
+  - Hỗ trợ nút thao tác nhanh **"✦ Đặt thứ tự chuẩn"** và lưu cấu hình tức thì vào `practice-settings` (`insight_columns_customized: true`).
+- **Tự Động Ẩn Phân Tích Kanji & Chuyển Âm Cho Thẻ Thuần Kana / Tượng Hình**:
+  - Tự động nhận diện từ vựng không chứa ký tự Kanji (như `たっぷり`, `すっきり`...).
+  - Tự động ẩn hoàn toàn khối `Phân tích Kanji`, `Chiết tự`, và `Quy tắc chuyển âm Hán Việt` khi từ không có chữ Hán, loại bỏ nội dung rác.
+- **Nâng Cấp Chuẩn Prompt Mẹo Nhớ Cách Đọc & Phân Tích Kanji**:
+  - Cập nhật `AI_PROMPT_GUIDE.md`, `excel_service.py` và `DeckAISettings.tsx`:
+    - Bắt buộc tách âm tiết cụ thể (ví dụ: `tap-pu-ri`), tạo câu chuyện liên tưởng âm thanh tiếng Việt dí dỏm, bựa, dễ nhớ gắn liền trực tiếp với nghĩa từ vựng.
+    - Cấm giải thích lặp lại từ điển khô khan hoặc phân tích Kanji cho từ thuần Kana.
+
 ### [2026-11-08]
 #### Nâng Cấp Toàn Diện Bộ Học Ngữ Pháp Shinkanzen Master N2 (143/143 Thẻ)
 - **Trụ Cột 1: Trắc Nghiệm Đục Lỗ Câu Ví Dụ Chuẩn Format JLPT Mondai 7 (`câu_hỏi_đục_lỗ` ➜ `mẫu_ngữ_pháp`)**:

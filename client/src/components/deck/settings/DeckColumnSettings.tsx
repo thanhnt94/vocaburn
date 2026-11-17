@@ -15,11 +15,15 @@ import {
   Search,
   Lightbulb,
   FolderTree,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { DeckSubLessonSettings } from './DeckSubLessonSettings'
+import { getInsightSectionPriority } from '@/components/LearningInsightsModal'
 
 interface DeckColumnSettingsProps {
   deckId: string | number
@@ -158,6 +162,28 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
     },
     onError: (err: any) => {
       setErrorMsg(err.response?.data?.error || 'Failed to save insight column settings.')
+    }
+  })
+
+  const reorderInsightMutation = useMutation({
+    mutationFn: async (updatedCols: string[]) => {
+      const res = await axios.post(`/api/v1/deck/${deckId}/practice-settings`, {
+        is_creator: true,
+        settings: {
+          insight_columns: updatedCols,
+          insights_columns: updatedCols,
+          insight_columns_customized: true
+        }
+      })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deck-practice-settings', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['quiz', String(deckId)] })
+      queryClient.invalidateQueries({ queryKey: ['deck-settings', deckId] })
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.error || 'Failed to save insight column order.')
     }
   })
 
@@ -853,6 +879,112 @@ export function DeckColumnSettings({ deckId, isOwner = true, hideSubLessons = fa
           })}
         </div>
       </div>
+
+      {/* ── SECTION 2.2: INSIGHT SECTION SEQUENCE & REORDERING ── */}
+      {currentInsightCols.length > 0 && (
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-amber-500" />
+                Insight Display Sequence ({currentInsightCols.length} Columns Active)
+              </h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Customize the display sequence of Learning Insight sections. Priority: Tóm tắt ➔ Cụm từ ➔ Cách dùng & sắc thái ➔ Ví dụ ➔ Mẹo nhớ.
+              </p>
+            </div>
+
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  const sorted = [...currentInsightCols].sort(
+                    (a, b) => getInsightSectionPriority(a) - getInsightSectionPriority(b)
+                  );
+                  reorderInsightMutation.mutate(sorted);
+                }}
+                disabled={reorderInsightMutation.isPending}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-black border border-amber-200/80 transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-2xs active:scale-95 disabled:opacity-50"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Đặt thứ tự chuẩn</span>
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {currentInsightCols.map((colName, index) => {
+              const handleMove = (direction: 'up' | 'down') => {
+                if (!isOwner) return;
+                const nextCols = [...currentInsightCols];
+                if (direction === 'up' && index > 0) {
+                  const tmp = nextCols[index - 1];
+                  nextCols[index - 1] = nextCols[index];
+                  nextCols[index] = tmp;
+                } else if (direction === 'down' && index < nextCols.length - 1) {
+                  const tmp = nextCols[index + 1];
+                  nextCols[index + 1] = nextCols[index];
+                  nextCols[index] = tmp;
+                }
+                reorderInsightMutation.mutate(nextCols);
+              };
+
+              return (
+                <div
+                  key={colName}
+                  className="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-50 flex items-center justify-between gap-3 transition-all shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-black text-[11px] flex items-center justify-center shrink-0">
+                      #{index + 1}
+                    </span>
+                    <span className="font-mono font-black text-xs text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200/80 truncate">
+                      {colName}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0 hidden sm:inline-flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-600" />
+                      Insight Box
+                    </span>
+                  </div>
+
+                  {isOwner && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleMove('up')}
+                        disabled={index === 0 || reorderInsightMutation.isPending}
+                        className={cn(
+                          "w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer",
+                          index === 0
+                            ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                            : "bg-white border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-600 active:scale-90"
+                        )}
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMove('down')}
+                        disabled={index === currentInsightCols.length - 1 || reorderInsightMutation.isPending}
+                        className={cn(
+                          "w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer",
+                          index === currentInsightCols.length - 1
+                            ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                            : "bg-white border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-600 active:scale-90"
+                        )}
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── SECTION 2.5: MULTI-IMAGE CONFIGURATION ── */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">

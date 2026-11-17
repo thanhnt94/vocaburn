@@ -4,7 +4,7 @@ import {
   Sparkles, StickyNote, MessageSquare, BarChart3, Volume2, X, ChevronLeft, 
   ChevronRight, Edit2, Edit3, Check, Copy, Trash2, Send, ThumbsUp, 
   CornerDownRight, CheckCircle2, XCircle, Clock, RotateCcw, AlertCircle, 
-  Heart, Flame, Target, Timer
+  Heart, Flame, Target, Timer, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -93,8 +93,64 @@ const handlePlayTabAudio = async (cardId?: number, tabId?: string, textContent?:
   speakWithEdgeTTS(cleanText);
 };
 
+export const getInsightSectionPriority = (nameOrId: string): number => {
+  const norm = (nameOrId || '').toLowerCase().replace(/_/g, ' ').trim();
+  
+  // 1. Tóm tắt & Nghĩa cốt lõi
+  if (norm.includes('tóm tắt') || norm.includes('tom tat') || norm.includes('summary') || norm.includes('cốt lõi')) {
+    return 1;
+  }
+  
+  // 2. Cụm từ hay dùng (Collocations / Phrases)
+  if (norm.includes('cụm từ') || norm.includes('cum tu') || norm.includes('collocation') || norm.includes('cụm')) {
+    return 2;
+  }
+  
+  // 3. Cách sử dụng & Sắc thái (Usage, Nuances, Notes, Traps)
+  if (
+    norm.includes('cách sử dụng') || norm.includes('cach su dung') ||
+    norm.includes('sắc thái') || norm.includes('sac thai') ||
+    norm.includes('ngữ cảnh') || norm.includes('ngu canh') ||
+    norm.includes('lưu ý') || norm.includes('luu y') ||
+    norm.includes('vùng cấm') || norm.includes('vung cam') ||
+    norm.includes('văn phong') || norm.includes('van phong') ||
+    norm.includes('từ liên quan') || norm.includes('bản chất') ||
+    norm.includes('nuance') || norm.includes('usage')
+  ) {
+    return 3;
+  }
+  
+  // 4. Ví dụ thực tế (Examples, Sentence drill)
+  if (norm.includes('ví dụ') || norm.includes('vi du') || norm.includes('example') || norm.includes('câu hỏi đục lỗ') || norm.includes('đục lỗ')) {
+    return 4;
+  }
+  
+  // 5. Mẹo nhớ & Phân tích (Mnemonics, Reading tip, Kanji, Sound change)
+  if (
+    norm.includes('mẹo nhớ') || norm.includes('meo nho') ||
+    norm.includes('cách ghi nhớ') || norm.includes('ghi nhớ') ||
+    norm.includes('mnemonic') || norm.includes('chiết tự') ||
+    norm.includes('chuyển âm') || norm.includes('kanji') ||
+    norm.includes('hán tự') || norm.includes('hán việt') ||
+    norm.includes('han viet')
+  ) {
+    return 5;
+  }
+  
+  // 6. Các trường mở rộng khác (đồng nghĩa, trái nghĩa, từ vựng...)
+  return 6;
+};
+
 const getBoxMeta = (title: string, id: string) => {
   const norm = (title || id || '').toLowerCase().replace(/_/g, ' ').trim();
+  if (norm.includes('tóm tắt') || norm.includes('tom tat') || norm.includes('summary') || norm.includes('cốt lõi')) {
+    return {
+      label: '📋 TÓM TẮT & NGHĨA CỐT LÕI',
+      badgeClass: 'text-amber-950 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
+      borderClass: 'border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400',
+      bgClass: 'bg-gradient-to-br from-amber-50/60 via-white to-orange-50/20 dark:from-amber-950/30 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
   if (norm.includes('kanji') || norm.includes('chiết tự') || norm.includes('hán tự')) {
     return {
       label: '🏛️ PHÂN TÍCH KANJI',
@@ -405,6 +461,13 @@ export default function LearningInsightsModal({
   // Copy feedback
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Reorder state
+  const [isReorderOpen, setIsReorderOpen] = useState<boolean>(false);
+  const [reorderList, setReorderList] = useState<string[]>([]);
+  const [isSavingOrder, setIsSavingOrder] = useState<boolean>(false);
+  const [orderSaveMsg, setOrderSaveMsg] = useState<string | null>(null);
+  const [localInsightOrder, setLocalInsightOrder] = useState<string[] | null>(null);
+
   // Sync initial tab when changed
   useEffect(() => {
     if (initialTab) {
@@ -692,18 +755,112 @@ export default function LearningInsightsModal({
       );
   const effectiveInsightColumns: string[] | undefined = Array.isArray(rawInsightCols) ? rawInsightCols : undefined;
 
+  // Check if headword contains any Kanji (CJK characters)
+  const rawHeadword = String(
+    card.content || card.front || (othersObj && (othersObj['từ vựng'] || othersObj['front'])) || ''
+  );
+  const hasKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(rawHeadword);
+
+  const isKanjiTab = (idOrTitle: string) => {
+    const norm = idOrTitle.toLowerCase().replace(/_/g, ' ');
+    return (
+      norm.includes('kanji') ||
+      norm.includes('chiết tự') ||
+      norm.includes('chuyển âm') ||
+      norm.includes('hán tự') ||
+      norm.includes('phân tích kanji') ||
+      norm.includes('quy tắc chuyển âm')
+    );
+  };
+
+  const activeOrderList = localInsightOrder || effectiveInsightColumns;
+
   let displayTabs: { id: string; title: string; content: string }[] = [];
-  if (effectiveInsightColumns && Array.isArray(effectiveInsightColumns)) {
+  if (activeOrderList && Array.isArray(activeOrderList) && activeOrderList.length > 0) {
     // Only display columns that have the Learning Insights checkbox explicitly enabled
-    displayTabs = effectiveInsightColumns
+    displayTabs = activeOrderList
       .map(colId => fullCardTabs.find(tab => tab.id.toLowerCase() === colId.toLowerCase()))
       .filter((tab): tab is { id: string; title: string; content: string } => tab !== undefined);
+
+    // If order was not manually saved by user, apply the standard priority order:
+    // Tóm tắt ➔ Cụm từ ➔ Cách dùng & Sắc thái ➔ Ví dụ ➔ Mẹo nhớ
+    const isExplicitlyCustomized = (card as any)?.practice_settings?.insight_columns_customized 
+      || (card as any)?.creator_settings?.insight_columns_customized 
+      || Boolean(localInsightOrder);
+
+    if (!isExplicitlyCustomized) {
+      displayTabs.sort((a, b) => getInsightSectionPriority(a.title || a.id) - getInsightSectionPriority(b.title || b.id));
+    }
   } else {
     // Fallback only when deck has no custom insight configuration defined
-    displayTabs = fullCardTabs;
+    displayTabs = [...fullCardTabs].sort((a, b) => getInsightSectionPriority(a.title || a.id) - getInsightSectionPriority(b.title || b.id));
   }
   // Filter out empty boxes so they never clutter the UI
   displayTabs = displayTabs.filter(tab => Boolean(tab.content && String(tab.content).trim() !== ''));
+
+  // Omit Kanji & Sound Change sections for terms without any Kanji (e.g. たっぷり)
+  if (!hasKanji) {
+    displayTabs = displayTabs.filter(tab => !isKanjiTab(tab.id || tab.title));
+  }
+
+  const handleOpenReorder = () => {
+    const currentCols = activeOrderList && activeOrderList.length > 0
+      ? activeOrderList
+      : displayTabs.map(t => t.id);
+    setReorderList([...currentCols]);
+    setOrderSaveMsg(null);
+    setIsReorderOpen(true);
+  };
+
+  const handleMoveReorder = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index > 0) {
+      const next = [...reorderList];
+      const tmp = next[index - 1];
+      next[index - 1] = next[index];
+      next[index] = tmp;
+      setReorderList(next);
+    } else if (direction === 'down' && index < reorderList.length - 1) {
+      const next = [...reorderList];
+      const tmp = next[index + 1];
+      next[index + 1] = next[index];
+      next[index] = tmp;
+      setReorderList(next);
+    }
+  };
+
+  const handleApplyStandardOrder = () => {
+    const sorted = [...reorderList].sort((a, b) => getInsightSectionPriority(a) - getInsightSectionPriority(b));
+    setReorderList(sorted);
+  };
+
+  const handleSaveOrder = async () => {
+    setIsSavingOrder(true);
+    setOrderSaveMsg(null);
+    try {
+      const currentDeckId = card?.deck_id || deckInfo?.id;
+      if (currentDeckId) {
+        await axios.post(`/api/v1/deck/${currentDeckId}/practice-settings`, {
+          is_creator: true,
+          settings: {
+            insight_columns: reorderList,
+            insights_columns: reorderList,
+            insight_columns_customized: true
+          }
+        });
+      }
+      setLocalInsightOrder(reorderList);
+      setOrderSaveMsg('Đã lưu thứ tự hiển thị thành công!');
+      setTimeout(() => {
+        setIsReorderOpen(false);
+        setOrderSaveMsg(null);
+      }, 700);
+    } catch (e: any) {
+      console.error('Failed to save insight column order', e);
+      setOrderSaveMsg(e?.response?.data?.error || 'Không thể lưu thứ tự.');
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
 
   // Navigation indexes
   const idx = allQuestions.findIndex(q => String(q.id) === String(card.id));
@@ -796,6 +953,16 @@ export default function LearningInsightsModal({
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
+              {activeTab === 'insight' && (
+                <button
+                  type="button"
+                  onClick={handleOpenReorder}
+                  className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  title="Sắp xếp thứ tự mục Insight (Reorder)"
+                >
+                  <ArrowUpDown className="w-4 h-4 text-amber-600" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => speakWithEdgeTTS(card.content || card.front || '')}
@@ -855,6 +1022,19 @@ export default function LearningInsightsModal({
                ───────────────────────────────────────────────────────────── */}
             {activeTab === 'insight' && (
               <div className="space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between px-1 text-xs text-slate-500 font-bold">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                    {displayTabs.length} mục phân tích
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleOpenReorder}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50/90 hover:bg-amber-100 text-amber-800 text-[11px] font-black border border-amber-200/80 transition-all cursor-pointer shadow-2xs active:scale-95"
+                  >
+                    <ArrowUpDown className="w-3.5 h-3.5 text-amber-600" />
+                    Sắp xếp thứ tự
+                  </button>
+                </div>
                 {displayTabs.length === 0 ? (
                   <div className="py-12 text-center text-slate-400 italic text-xs">
                     No insight columns configured for this card.
@@ -1374,6 +1554,152 @@ export default function LearningInsightsModal({
             )}
           </div>
         </motion.div>
+
+        {/* Reorder Modal Sheet */}
+        <AnimatePresence>
+          {isReorderOpen && (
+            <div className="fixed inset-0 z-[1050] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs overscroll-none touch-none">
+              <motion.div
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh] p-5 z-20"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
+                      <ArrowUpDown className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide">
+                        Sắp xếp thứ tự Insight
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Ưu tiên mục muốn nhìn thấy trước khi học thẻ
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsReorderOpen(false)}
+                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quick Action: Reset to Standard Order */}
+                <div className="py-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleApplyStandardOrder}
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 text-amber-900 font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-100 transition-all cursor-pointer shadow-2xs active:scale-98"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Đặt thứ tự chuẩn (Tóm tắt ➔ Cụm từ ➔ Cách dùng ➔ Ví dụ ➔ Mẹo nhớ)</span>
+                  </button>
+                </div>
+
+                {/* Column List */}
+                <div className="flex-1 overflow-y-auto space-y-2 py-1 pr-1 custom-scrollbar min-h-0">
+                  {reorderList.map((colId, index) => {
+                    const meta = getBoxMeta(colId.toUpperCase().replace(/_/g, ' '), colId);
+                    return (
+                      <div
+                        key={colId}
+                        className="p-2.5 rounded-2xl border border-slate-200/80 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between gap-2 transition-all shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-6 h-6 rounded-lg bg-slate-200/80 text-slate-700 font-black text-[10px] flex items-center justify-center shrink-0">
+                            #{index + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-md font-black text-[10px] uppercase tracking-wider truncate max-w-[200px] sm:max-w-[260px]",
+                              meta.badgeClass
+                            )}>
+                              {meta.label}
+                            </span>
+                            <p className="text-[10px] text-slate-400 font-mono font-medium truncate mt-0.5">
+                              {colId}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Up / Down Controls */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveReorder(index, 'up')}
+                            disabled={index === 0}
+                            className={cn(
+                              "w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer",
+                              index === 0
+                                ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                                : "bg-white border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-600 active:scale-90"
+                            )}
+                            title="Move Up"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveReorder(index, 'down')}
+                            disabled={index === reorderList.length - 1}
+                            className={cn(
+                              "w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer",
+                              index === reorderList.length - 1
+                                ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                                : "bg-white border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-600 active:scale-90"
+                            )}
+                            title="Move Down"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {orderSaveMsg && (
+                  <div className={cn(
+                    "mt-2 p-2 rounded-xl text-center text-xs font-bold animate-in fade-in shrink-0",
+                    orderSaveMsg.includes('Không thể') || orderSaveMsg.includes('Failed')
+                      ? "bg-rose-50 text-rose-600 border border-rose-200"
+                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  )}>
+                    {orderSaveMsg}
+                  </div>
+                )}
+
+                {/* Footer buttons */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsReorderOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-black transition-all cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveOrder}
+                    disabled={isSavingOrder}
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5 active:scale-95"
+                  >
+                    {isSavingOrder ? (
+                      <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    )}
+                    <span>Lưu thứ tự</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </AnimatePresence>
   );

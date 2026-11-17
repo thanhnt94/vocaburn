@@ -66,13 +66,15 @@ Hãy trình bày theo định dạng Markdown ngắn gọn, rõ ràng, đẹp m�
 > **Mục đích**: Biến mặt chữ Kanji / Hanzi khô khan thành hình ảnh và câu chuyện ghi nhớ sâu.
 
 ```text
-Bạn là bậc thầy giảng dạy chữ Hán. Hãy phân tích chi tiết chữ Hán sau: {{front}} (Ý nghĩa: {{back}})
+Bạn là bậc thầy giảng dạy chữ Hán. Hãy phân tích chữ Hán sau: {{front}} (Ý nghĩa: {{back}})
 
-Trình bày theo các mục sau:
-1. 🈴 **Âm Hán Việt**: Ghi rõ âm Hán Việt chuẩn xác.
-2. 🧩 **Bộ thủ & Chiết tự**: Tách chữ Hán thành các bộ thủ cấu thành và ý nghĩa từng bộ.
-3. 🎨 **Câu chuyện ghi nhớ (Mnemonic)**: Sáng tạo một câu chuyện ngắn hoặc liên tưởng hình ảnh thú vị giúp người học nhớ ngay cách viết và mặt chữ trong 10 giây.
-4. 🌟 **Từ ghép thông dụng**: Liệt kê 3 từ ghép phổ biến nhất chứa chữ Hán này kèm dịch nghĩa.
+LƯU Ý ĐẶC BIỆT:
+- Nếu từ vựng là TỪ THUẦN KANA, TỪ TƯỢNG HÌNH/TƯỢNG THANH (Onomatopoeia) hoặc TỪ NGOẠI LAI (Katakana) KHÔNG CÓ CHỮ HÁN: Hãy xuất chính xác "Từ thuần Kana / không có Hán tự" hoặc để trống, TUYỆT ĐỐI KHÔNG phân tích chữ Hán cho từ không có chữ Hán!
+- Nếu từ CÓ CHỮ HÁN: Trình bày theo các mục sau:
+  1. 🈴 **Âm Hán Việt**: Ghi rõ âm Hán Việt chuẩn xác.
+  2. 🧩 **Bộ thủ & Chiết tự**: Tách chữ Hán thành các bộ thủ cấu thành và ý nghĩa từng bộ.
+  3. 🎨 **Câu chuyện ghi nhớ (Mnemonic)**: Sáng tạo câu chuyện ngắn hoặc liên tưởng hình ảnh thú vị giúp người học nhớ ngay cách viết và mặt chữ trong 10 giây.
+  4. 🌟 **Từ ghép thông dụng**: Liệt kê 3 từ ghép phổ biến nhất chứa chữ Hán này kèm dịch nghĩa.
 ```
 
 ---
@@ -91,17 +93,20 @@ Giữ câu ngắn gọn dưới 20 từ, từ vựng dễ hiểu để người 
 
 ---
 
-### Mẫu 4: Mẹo Ghi Nhớ Siêu Tốc (Dành Cho Cột `mnemonic` / `memory_tip`)
+### Mẫu 4: Mẹo Nhớ Cách Đọc & Phát Âm Bằng Phương Pháp Bắc Cầu Âm Thanh (Phonetic Mnemonic)
 > **Mục đích**: Kích thích trí tưởng tượng và liên tưởng âm thanh tương đồng để khắc sâu vào trí nhớ dài hạn FSRS.
 
 ```text
-Hãy đóng vai một chuyên gia siêu trí nhớ. Hãy giúp tôi tạo mẹo ghi nhớ (mnemonic) cho từ sau:
-Từ: {{front}}
-Nghĩa: {{back}}
+Hãy đóng vai một chuyên gia siêu trí nhớ. Hãy giúp tôi tạo mẹo nhớ cách phát âm (cách đọc) cho từ sau:
+- Từ: {{front}}
+- Cách đọc: {{cách đọc}}
+- Nghĩa: {{back}}
 
-Hãy cung cấp:
-1. 🧠 **Cầu nối âm thanh (Sound-alike)**: Tìm một từ hoặc cụm từ tiếng Việt có phát âm na ná từ {{front}}.
-2. 🎬 **Hoạt cảnh liên tưởng hài hước**: Ghép cầu nối âm thanh đó với ý nghĩa "{{back}}" thành một hình ảnh hài hước, ấn tượng và khó quên.
+QUY TẮC BẮT BUỘC (Phương pháp bắc cầu âm thanh):
+1. ✂️ **Tách âm tiết**: Phân rã từ vựng thành từng âm tiết cụ thể (Ví dụ: たっぷり -> tap - pu - ri).
+2. 🧠 **Cầu nối âm thanh tiếng Việt**: Tìm từ ngữ hoặc âm thanh tiếng Việt tương đồng na ná cho từng âm tiết đó (Ví dụ: "tap" -> Táp, "pu" -> Phù / Phúp, "ri" -> Ri).
+3. 🎬 **Câu chuyện liên tưởng bựa/vui nhộn**: Ghép các âm thanh đó thành một câu chuyện ngắn, hài hước, ấn tượng và gắn liền trực tiếp với ý nghĩa "{{back}}" (Ví dụ: "Táp một bát bún đầy phù cả mỏ -> Đầy ắp, dồi dào, tràn trề").
+CẤM giải thích lặp lại từ điển khô khan, bắt buộc phải có câu chuyện liên tưởng âm thanh tiếng Việt cụ thể!
 ```
 
 ---

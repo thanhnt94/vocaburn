@@ -35,19 +35,61 @@ Yêu cầu định dạng đầu ra ngắn gọn, đẹp mắt:
 3. Lưu ý ngữ pháp hoặc từ đồng nghĩa/trái nghĩa nếu có.`
   },
   {
+    name: 'Mẹo nhớ cách đọc (Bắc cầu âm thanh)',
+    column: 'mẹo_nhớ_cách_đọc',
+    prompt: `Từ vựng: {front}
+Cách đọc: {cách đọc}
+Nghĩa: {back}
+
+QUY TẮC BẮT BUỘC (Phương pháp bắc cầu âm thanh):
+1. Tách từ vựng thành các âm tiết rõ ràng (Ví dụ: たっぷり -> tap-pu-ri).
+2. Tạo liên tưởng âm thanh tương tự với tiếng Việt thật vui nhộn, hài hước, ấn tượng, bựa hoặc độc đáo (Ví dụ: 'tap' -> Táp, 'pu' -> Phù / Phúp, 'ri' -> Ri).
+3. Ghép thành một câu chuyện ngắn hoặc hình ảnh sinh động gắn liền trực tiếp với nghĩa '{back}' để người học đọc một lần là nhớ ngay (Ví dụ: 'Táp một bát bún đầy phù cả mỏ -> Đầy ắp, dồi dào, tràn trề').
+CẤM giải thích lặp lại từ điển khô khan, bắt buộc phải có câu chuyện liên tưởng âm thanh tiếng Việt!`
+  },
+  {
+    name: 'Phân tích Hán tự & Chiết tự (Bỏ qua Kana)',
+    column: 'phân_tích_kanji',
+    prompt: `Từ vựng: {front}
+Hán tự: {hán việt}
+Nghĩa: {back}
+
+LƯU Ý ĐẶC BIỆT:
+- Nếu từ vựng là từ THUẦN KANA, TỪ TƯỢNG HÌNH/TƯỢNG THANH (Onomatopoeia) hoặc TỪ NGOẠI LAI (Katakana) KHÔNG CHỨA CHỮ HÁN: Hãy xuất chính xác "Từ thuần Kana / không có Hán tự" hoặc để trống, TUYỆT ĐỐI KHÔNG phân tích chữ Hán cho từ không có chữ Hán!
+- Nếu từ CÓ CHỮ HÁN: Phân tích chiết tự các bộ thủ cấu thành chữ Hán và đưa ra câu chuyện ghi nhớ mặt chữ dễ hiểu, sinh động.`
+  },
+  {
+    name: 'Quy tắc chuyển âm Hán Việt (Bỏ qua Kana)',
+    column: 'quy_tắc_chuyển_âm',
+    prompt: `Từ vựng: {front}
+Cách đọc: {cách đọc}
+Hán tự: {hán việt}
+
+LƯU Ý ĐẶC BIỆT:
+- Nếu từ vựng là từ THUẦN KANA, TỪ TƯỢNG THANH/TƯỢNG HÌNH hoặc TỪ MƯỢN KATAKANA (không có chữ Hán): Xuất "Từ thuần Kana / không áp dụng quy tắc chuyển âm" hoặc để trống.
+- Nếu từ CÓ CHỮ HÁN: Chỉ ra quy tắc chuyển âm tương ứng giữa âm Hán Việt và âm đọc Nhật (On/Kun).`
+  },
+  {
+    name: 'Cụm từ hay dùng (Collocations)',
+    column: 'cụm_từ_hay_dùng',
+    prompt: `Từ vựng: {front}
+Nghĩa: {back}
+
+Liệt kê 2-3 cụm từ (collocations) hoặc cách kết hợp từ phổ biến nhất trong thực tế kèm dịch nghĩa tiếng Việt chuẩn tự nhiên.`
+  },
+  {
+    name: 'Cách sử dụng & Sắc thái từ',
+    column: 'cách_sử_dụng',
+    prompt: `Từ vựng: {front}
+Nghĩa: {back}
+
+Giải thích ngắn gọn 2-3 dòng về sắc thái sử dụng, ngữ cảnh nên dùng và vùng cấm / lỗi người học Việt Nam hay nhầm lẫn.`
+  },
+  {
     name: 'Tạo ví dụ câu song ngữ',
     column: 'example',
     prompt: `Hãy tạo 2 câu ví dụ tiếng Nhật tự nhiên chứa từ vựng sau kèm dịch nghĩa tiếng Việt:
 Từ: {front} ({back})`
-  },
-  {
-    name: 'Phân tích Hán tự & Bộ thủ',
-    column: 'hán việt',
-    prompt: `Hãy phân tích chi tiết chữ Hán sau: {front}
-Bao gồm:
-- Âm Hán Việt
-- Âm Onyomi & Kunyomi
-- Bộ thủ chính & Cách nhớ chữ Hán qua hình ảnh/câu chuyện.`
   }
 ]
 

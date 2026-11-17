@@ -1819,12 +1819,27 @@ class ExcelDeckService:
             [
                 "Cách nhớ Hán Tự",
                 "Gợi Ý Cách Nhớ Hán Tự",
-                "Từ vựng: {từ vựng}\nHán tự: {hán việt}\nNghĩa: {nghĩa}\n\nHãy phân tích chiết tự các bộ thủ cấu tạo nên chữ Hán này và đưa ra câu chuyện ghi nhớ dễ hiểu."
+                "Từ vựng: {từ vựng}\nHán tự: {hán việt}\nNghĩa: {nghĩa}\n\nLƯU Ý QUAN TRỌNG:\n- Nếu từ là TỪ THUẦN KANA, TỪ TƯỢNG HÌNH/TƯỢNG THANH hoặc TỪ NGOẠI LAI (Katakana) KHÔNG CÓ CHỮ HÁN: Hãy xuất 'Từ thuần Kana / không có Hán tự' hoặc để trống. TUYỆT ĐỐI KHÔNG phân tích chữ Hán cho từ không có chữ Hán!\n- Nếu từ CÓ CHỮ HÁN: Phân tích chiết tự các bộ thủ cấu thành chữ Hán và đưa ra câu chuyện ghi nhớ mặt chữ dễ hiểu."
             ],
             [
                 "Cách nhớ cách đọc",
                 "Mẹo Nhớ Cách Đọc",
-                "Từ vựng: {từ vựng}\nCách đọc: {cách đọc}\n\nHãy đưa ra mẹo nhớ cách phát âm bằng cách liên tưởng âm thanh tương tự hoặc quy tắc chuyển âm Hán Việt."
+                "Từ vựng: {từ vựng}\nCách đọc: {cách đọc}\nNghĩa: {nghĩa}\n\nQUY TẮC BẮT BUỘC (Phương pháp bắc cầu âm thanh):\n1. Tách từ vựng thành các âm tiết rõ ràng (Ví dụ: たっぷり -> tap-pu-ri).\n2. Liên tưởng từng âm tiết đó với âm thanh tiếng Việt vui nhộn, hài hước, ấn tượng, bựa hoặc độc đáo (Ví dụ: 'tap' -> Táp, 'pu' -> Phù / Phúp, 'ri' -> Ri).\n3. Ghép thành một câu chuyện ngắn hoặc hình ảnh sinh động gắn liền trực tiếp với nghĩa '{nghĩa}' để người học đọc một lần là nhớ ngay (Ví dụ: 'Táp một bát bún đầy phù cả mỏ -> Đầy ắp, dồi dào, tràn trề').\nCẤM giải thích lặp lại từ điển khô khan, bắt buộc phải có câu chuyện liên tưởng âm thanh tiếng Việt!"
+            ],
+            [
+                "Quy tắc chuyển âm",
+                "Quy Tắc Chuyển Âm",
+                "Từ vựng: {từ vựng}\nCách đọc: {cách đọc}\nHán tự: {hán việt}\n\nLƯU Ý:\n- Nếu từ là từ thuần Kana / tượng hình tượng thanh / Katakana không có chữ Hán: Để trống hoặc xuất 'Từ thuần Kana / không áp dụng quy tắc chuyển âm'.\n- Nếu từ có chữ Hán: Chỉ ra quy tắc chuyển âm tương ứng giữa âm Hán Việt và âm đọc Nhật (On/Kun)."
+            ],
+            [
+                "Cụm từ hay dùng",
+                "Cụm Từ & Collocations",
+                "Từ vựng: {từ vựng}\nNghĩa: {nghĩa}\n\nLiệt kê 2-3 cụm từ (collocations) hoặc cách kết hợp từ phổ biến nhất trong thực tế kèm dịch nghĩa tiếng Việt chuẩn tự nhiên."
+            ],
+            [
+                "Cách sử dụng",
+                "Cách Sử Dụng & Sắc Thái",
+                "Từ vựng: {từ vựng}\nNghĩa: {nghĩa}\n\nGiải thích ngắn gọn 2-3 dòng về sắc thái sử dụng, ngữ cảnh nên dùng và vùng cấm / lỗi người học Việt Nam hay nhầm lẫn."
             ]
         ]
 
