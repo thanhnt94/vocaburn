@@ -15,9 +15,9 @@ Tài liệu này lưu lại lịch sử thay đổi cấu trúc, tính năng, v�
 - **Giao Diện Tùy Chỉnh Thứ Tự Insight Linh Hoạt (Reorder UI)**:
   - Bổ sung nút **"Sắp xếp thứ tự"** và modal kéo/thay đổi vị trí trực tiếp trong `LearningInsightsModal.tsx` và `DeckColumnSettings.tsx`.
   - Hỗ trợ nút thao tác nhanh **"✦ Đặt thứ tự chuẩn"** và lưu cấu hình tức thì vào `practice-settings` (`insight_columns_customized: true`).
-- **Tự Động Ẩn Phân Tích Kanji & Chuyển Âm Cho Thẻ Thuần Kana / Tượng Hình**:
-  - Tự động nhận diện từ vựng không chứa ký tự Kanji (như `たっぷり`, `すっきり`...).
-  - Tự động ẩn hoàn toàn khối `Phân tích Kanji`, `Chiết tự`, và `Quy tắc chuyển âm Hán Việt` khi từ không có chữ Hán, loại bỏ nội dung rác.
+- **Không Hardcode - Dữ Liệu Thuần Túy (Zero Hardcode Data-Driven)**:
+  - Khối hiển thị tuân thủ nghiêm ngặt nguyên tắc dữ liệu: Bất kỳ trường nào rỗng (hoặc chỉ chứa ký tự `-`) sẽ tuyệt đối không hiển thị trong Learning Insights.
+  - Các từ thuần Kana / tượng thanh / ngoại lai không có Kanji chỉ cần để trống hoặc xóa dữ liệu trường `phân_tích_kanji` / `quy_tắc_chuyển_âm` thì thẻ sẽ không xuất hiện các mục này.
 - **Nâng Cấp Chuẩn Prompt Mẹo Nhớ Cách Đọc & Phân Tích Kanji**:
   - Cập nhật `AI_PROMPT_GUIDE.md`, `excel_service.py` và `DeckAISettings.tsx`:
     - Bắt buộc tách âm tiết cụ thể (ví dụ: `tap-pu-ri`), tạo câu chuyện liên tưởng âm thanh tiếng Việt dí dỏm, bựa, dễ nhớ gắn liền trực tiếp với nghĩa từ vựng.

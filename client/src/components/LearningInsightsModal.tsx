@@ -755,24 +755,6 @@ export default function LearningInsightsModal({
       );
   const effectiveInsightColumns: string[] | undefined = Array.isArray(rawInsightCols) ? rawInsightCols : undefined;
 
-  // Check if headword contains any Kanji (CJK characters)
-  const rawHeadword = String(
-    card.content || card.front || (othersObj && (othersObj['từ vựng'] || othersObj['front'])) || ''
-  );
-  const hasKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(rawHeadword);
-
-  const isKanjiTab = (idOrTitle: string) => {
-    const norm = idOrTitle.toLowerCase().replace(/_/g, ' ');
-    return (
-      norm.includes('kanji') ||
-      norm.includes('chiết tự') ||
-      norm.includes('chuyển âm') ||
-      norm.includes('hán tự') ||
-      norm.includes('phân tích kanji') ||
-      norm.includes('quy tắc chuyển âm')
-    );
-  };
-
   const activeOrderList = localInsightOrder || effectiveInsightColumns;
 
   let displayTabs: { id: string; title: string; content: string }[] = [];
@@ -796,12 +778,7 @@ export default function LearningInsightsModal({
     displayTabs = [...fullCardTabs].sort((a, b) => getInsightSectionPriority(a.title || a.id) - getInsightSectionPriority(b.title || b.id));
   }
   // Filter out empty boxes so they never clutter the UI
-  displayTabs = displayTabs.filter(tab => Boolean(tab.content && String(tab.content).trim() !== ''));
-
-  // Omit Kanji & Sound Change sections for terms without any Kanji (e.g. たっぷり)
-  if (!hasKanji) {
-    displayTabs = displayTabs.filter(tab => !isKanjiTab(tab.id || tab.title));
-  }
+  displayTabs = displayTabs.filter(tab => Boolean(tab.content && String(tab.content).trim() !== '' && String(tab.content).trim() !== '-'));
 
   const handleOpenReorder = () => {
     const currentCols = activeOrderList && activeOrderList.length > 0
