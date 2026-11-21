@@ -123,6 +123,15 @@ export const getInsightSectionPriority = (nameOrId: string): number => {
   ) {
     return 4;
   }
+
+  // 4.5. Phân biệt đúng sai (Maru vs Batsu)
+  if (
+    norm.includes('đúng sai') || norm.includes('dung sai') ||
+    norm.includes('cách dùng đúng') || norm.includes('cach dung dung') ||
+    norm.includes('maru') || norm.includes('batsu')
+  ) {
+    return 4.5;
+  }
   
   // 5. Cặp dễ nhầm lẫn (So sánh 2D) & Phản xạ 3s & Dấu hiệu nhận biết
   if (
@@ -213,6 +222,16 @@ const getBoxMeta = (title: string, id: string) => {
       badgeClass: 'text-indigo-900 dark:text-indigo-200 bg-indigo-100/90 dark:bg-indigo-950/70 border-indigo-300/80',
       borderClass: 'border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-300',
       bgClass: 'bg-gradient-to-br from-indigo-50/40 via-white to-indigo-50/15 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+
+  // 5.5. Phân biệt đúng sai (⭕ Maru vs ❌ Batsu)
+  if (norm.includes('đúng sai') || norm.includes('dung sai') || norm.includes('cách dùng đúng') || norm.includes('cach dung dung') || norm.includes('maru') || norm.includes('batsu')) {
+    return {
+      label: '⚖️ CÁCH DÙNG ĐÚNG (⭕ MARU) & SAI (❌ BATSU)',
+      badgeClass: 'text-sky-900 dark:text-sky-200 bg-sky-100/90 dark:bg-sky-950/70 border-sky-300/80',
+      borderClass: 'border-sky-200/80 dark:border-sky-800/60 hover:border-sky-300',
+      bgClass: 'bg-gradient-to-br from-sky-50/40 via-white to-blue-50/15 dark:from-sky-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
 
@@ -628,6 +647,40 @@ const renderFormattedInsight = (content: string, tabId?: string, tabTitle?: stri
               <span className="text-amber-600 dark:text-amber-400 font-black text-base shrink-0 mt-0.5">✦</span>
               <div
                 className="flex-1"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(contentText) }}
+              />
+            </div>
+          );
+        }
+
+        // Maru / Cách dùng đúng highlight: ⭕ ... or ○ ... or [ĐÚNG]
+        if (line.startsWith('⭕') || line.startsWith('○') || line.startsWith('[ĐÚNG]') || line.toLowerCase().startsWith('đúng:')) {
+          const contentText = line.replace(/^(?:⭕|○|\[ĐÚNG\]|đúng:)\s*/i, '');
+          return (
+            <div
+              key={idx}
+              className="p-3 sm:p-3.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/80 font-medium text-xs sm:text-sm text-emerald-950 dark:text-emerald-100 shadow-2xs leading-relaxed flex items-start gap-2.5 my-1.5"
+            >
+              <span className="text-emerald-600 dark:text-emerald-400 font-black text-base shrink-0 mt-0.5">⭕</span>
+              <div
+                className="flex-1 min-w-0"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(contentText) }}
+              />
+            </div>
+          );
+        }
+
+        // Batsu / Cách dùng sai highlight: ❌ ... or × ... or [SAI]
+        if (line.startsWith('❌') || line.startsWith('×') || line.startsWith('[SAI]') || line.toLowerCase().startsWith('sai:') || line.toLowerCase().startsWith('cấm:')) {
+          const contentText = line.replace(/^(?:❌|×|\[SAI\]|sai:|cấm:)\s*/i, '');
+          return (
+            <div
+              key={idx}
+              className="p-3 sm:p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-300/80 dark:border-rose-800/80 font-medium text-xs sm:text-sm text-rose-950 dark:text-rose-100 shadow-2xs leading-relaxed flex items-start gap-2.5 my-1.5"
+            >
+              <span className="text-rose-600 dark:text-rose-400 font-black text-base shrink-0 mt-0.5">❌</span>
+              <div
+                className="flex-1 min-w-0"
                 dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(contentText) }}
               />
             </div>
