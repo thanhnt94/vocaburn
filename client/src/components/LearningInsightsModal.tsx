@@ -143,20 +143,68 @@ export const getInsightSectionPriority = (nameOrId: string): number => {
 
 const getBoxMeta = (title: string, id: string) => {
   const norm = (title || id || '').toLowerCase().replace(/_/g, ' ').trim();
+  if (norm.includes('vùng cấm') || norm.includes('vung cam') || norm.includes('bẫy thi') || norm.includes('bay thi')) {
+    return {
+      label: '🚫 VÙNG CẤM & BẪY THI',
+      badgeClass: 'text-rose-900 dark:text-rose-200 bg-rose-100/90 dark:bg-rose-950/70 border-rose-300/80',
+      borderClass: 'border-rose-200/80 dark:border-rose-800/60 hover:border-rose-300',
+      bgClass: 'bg-gradient-to-br from-rose-50/40 via-white to-rose-50/15 dark:from-rose-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('nhầm lẫn') || norm.includes('nham lan') || norm.includes('so sánh') || norm.includes('cặp dễ')) {
+    return {
+      label: '⚖️ CẶP DỄ NHẦM LẪN (SO SÁNH 2D)',
+      badgeClass: 'text-indigo-900 dark:text-indigo-200 bg-indigo-100/90 dark:bg-indigo-950/70 border-indigo-300/80',
+      borderClass: 'border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-300',
+      bgClass: 'bg-gradient-to-br from-indigo-50/40 via-white to-indigo-50/15 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('dấu hiệu') || norm.includes('dau hieu') || norm.includes('nhận biết')) {
+    return {
+      label: '⚡ DẤU HIỆU NHẬN BIẾT & PHẢN XẠ',
+      badgeClass: 'text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
+      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
+      bgClass: 'bg-gradient-to-br from-amber-50/40 via-white to-amber-50/15 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('nguồn gốc') || norm.includes('nguon goc') || norm.includes('kanji') || norm.includes('chiết tự') || norm.includes('hán tự')) {
+    return {
+      label: '🔍 NGUỒN GỐC & CẤU TẠO HÁN TỰ',
+      badgeClass: 'text-cyan-900 dark:text-cyan-200 bg-cyan-100/90 dark:bg-cyan-950/70 border-cyan-300/80',
+      borderClass: 'border-cyan-200/80 dark:border-cyan-800/60 hover:border-cyan-300',
+      bgClass: 'bg-gradient-to-br from-cyan-50/40 via-white to-cyan-50/15 dark:from-cyan-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('ngữ cảnh') || norm.includes('ngu canh')) {
+    return {
+      label: '🌐 NGỮ CẢNH SỬ DỤNG',
+      badgeClass: 'text-emerald-900 dark:text-emerald-200 bg-emerald-100/90 dark:bg-emerald-950/70 border-emerald-300/80',
+      borderClass: 'border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300',
+      bgClass: 'bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/15 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('bản chất') || norm.includes('ban chat') || norm.includes('sắc thái') || norm.includes('sac thai')) {
+    return {
+      label: '🧬 BẢN CHẤT & SẮC THÁI CỐT LÕI',
+      badgeClass: 'text-sky-900 dark:text-sky-200 bg-sky-100/90 dark:bg-sky-950/70 border-sky-300/80',
+      borderClass: 'border-sky-200/80 dark:border-sky-800/60 hover:border-sky-300',
+      bgClass: 'bg-gradient-to-br from-sky-50/40 via-white to-sky-50/15 dark:from-sky-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('kết hợp') || norm.includes('ket hop')) {
+    return {
+      label: '🧩 CÁCH KẾT HỢP NGỮ PHÁP',
+      badgeClass: 'text-violet-900 dark:text-violet-200 bg-violet-100/90 dark:bg-violet-950/70 border-violet-300/80',
+      borderClass: 'border-violet-200/80 dark:border-violet-800/60 hover:border-violet-300',
+      bgClass: 'bg-gradient-to-br from-violet-50/40 via-white to-violet-50/15 dark:from-violet-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
   if (norm.includes('tóm tắt') || norm.includes('tom tat') || norm.includes('summary') || norm.includes('cốt lõi')) {
     return {
       label: '📋 TÓM TẮT & NGHĨA CỐT LÕI',
       badgeClass: 'text-amber-950 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
       borderClass: 'border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400',
       bgClass: 'bg-gradient-to-br from-amber-50/60 via-white to-orange-50/20 dark:from-amber-950/30 dark:via-slate-900/40 dark:to-slate-900/60'
-    };
-  }
-  if (norm.includes('kanji') || norm.includes('chiết tự') || norm.includes('hán tự')) {
-    return {
-      label: '🏛️ PHÂN TÍCH KANJI',
-      badgeClass: 'text-amber-800 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
-      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
-      bgClass: 'bg-gradient-to-br from-amber-50/40 via-white to-amber-50/15 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
   if (norm.includes('chuyển âm')) {
@@ -223,8 +271,49 @@ const getBoxMeta = (title: string, id: string) => {
   };
 };
 
+const getKeyBadgeStyle = (keyText: string) => {
+  const norm = keyText.toLowerCase().trim();
+  if (norm.includes('cốt lõi') || norm.includes('bản chất')) {
+    return 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/80 dark:text-sky-200 dark:border-sky-700';
+  }
+  if (norm.includes('sắc thái') || norm.includes('văn phong')) {
+    return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/80 dark:text-purple-200 dark:border-purple-700';
+  }
+  if (norm.includes('bối cảnh') || norm.includes('ngữ cảnh')) {
+    return 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-700';
+  }
+  if (norm.includes('cấm') || norm.includes('lưu ý') || norm.includes('bẫy')) {
+    return 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-700';
+  }
+  if (norm.includes('vế trước') || norm.includes('vế 1') || norm.includes('trước')) {
+    return 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/80 dark:text-teal-200 dark:border-teal-700';
+  }
+  if (norm.includes('vế sau') || norm.includes('vế 2') || norm.includes('sau')) {
+    return 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700';
+  }
+  if (norm.includes('bắt bài') || norm.includes('mẹo') || norm.includes('khẩu quyết') || norm.includes('thần chú')) {
+    return 'bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-950/80 dark:text-violet-200 dark:border-violet-700';
+  }
+  if (norm.includes('hán tự') || norm.includes('nguồn gốc') || norm.includes('gốc') || norm.includes('chiết tự')) {
+    return 'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/80 dark:text-cyan-200 dark:border-cyan-700';
+  }
+  return 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/80 dark:text-indigo-200 dark:border-indigo-700';
+};
+
 const renderFormattedInsight = (content: string) => {
   if (!content) return null;
+
+  // Support full Markdown Tables in Insight (e.g. Cặp dễ nhầm lẫn)
+  const hasMarkdownTable = content.includes('|') && (content.includes('\n|') || content.startsWith('|'));
+  if (hasMarkdownTable) {
+    return (
+      <div className="markdown-content text-[13px] sm:text-sm overflow-x-auto select-text">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  }
   const lines = content.split('\n');
 
   return (
@@ -349,32 +438,31 @@ const renderFormattedInsight = (content: string) => {
           );
         }
 
-        // Key : Value format (e.g. • Key : Value or - Key : Value)
-        const isBullet = line.startsWith('• ') || line.startsWith('- ');
-        const strippedLine = isBullet ? line.slice(2).trim() : line;
-        
-        if (strippedLine.includes(' : ') || strippedLine.includes(' ： ')) {
-          const splitParts = strippedLine.split(/\s*[:：]\s*/);
-          const keyPart = splitParts[0];
-          const valPart = splitParts.slice(1).join(' : ');
+        // Key : Value format (e.g. • Key: Value or - Key: Value or Key: Value)
+        const kvMatch = line.match(/^([•\-\*]?\s*)([^:：\n]+)\s*[:：]\s*(.*)$/);
+        if (kvMatch && kvMatch[2].trim().length <= 25) {
+          const keyPart = kvMatch[2].trim();
+          const valPart = kvMatch[3].trim();
+          const badgeStyle = getKeyBadgeStyle(keyPart);
 
           return (
-            <div key={idx} className="flex items-start gap-2 py-0.5 group">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0 group-hover:scale-125 transition-transform" />
-              <div className="flex-1 min-w-0">
-                <span
-                  className="font-black text-indigo-700 dark:text-indigo-400 mr-1.5"
-                  dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(keyPart) }}
-                />
-                <span className="text-slate-400 font-bold mr-1.5">:</span>
-                <span
-                  className="text-slate-700 dark:text-slate-300 font-medium"
-                  dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(valPart) }}
-                />
-              </div>
+            <div key={idx} className="flex items-start gap-2.5 py-1 select-text">
+              <span className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded-lg border font-black text-[10.5px] uppercase tracking-wider shrink-0 mt-0.5 shadow-2xs select-none",
+                badgeStyle
+              )}>
+                {keyPart}
+              </span>
+              <div
+                className="flex-1 text-slate-700 dark:text-slate-200 font-medium leading-relaxed min-w-0"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(valPart) }}
+              />
             </div>
           );
         }
+
+        const isBullet = line.startsWith('• ') || line.startsWith('- ');
+        const strippedLine = isBullet ? line.slice(2).trim() : line;
 
         // Regular bullet line
         if (isBullet) {
@@ -923,9 +1011,10 @@ export default function LearningInsightsModal({
                     {activeTab}
                   </span>
                 </div>
-                <p className="text-[10.5px] font-bold text-slate-500 mt-1 truncate max-w-[280px] sm:max-w-[360px]">
-                  {card.content || card.front || 'Card Details'}
-                </p>
+                <p 
+                  className="text-[10.5px] font-bold text-slate-500 mt-1 truncate max-w-[280px] sm:max-w-[360px]"
+                  dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(card.content || card.front || 'Card Details') }}
+                />
               </div>
             </div>
 
