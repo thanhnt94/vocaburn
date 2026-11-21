@@ -97,52 +97,106 @@ export const getInsightSectionPriority = (nameOrId: string): number => {
   const norm = (nameOrId || '').toLowerCase().replace(/_/g, ' ').trim();
   
   // 1. Tóm tắt & Nghĩa cốt lõi
-  if (norm.includes('tóm tắt') || norm.includes('tom tat') || norm.includes('summary') || norm.includes('cốt lõi')) {
+  if (norm === 'nghĩa' || norm === 'nghia' || norm.includes('tóm tắt') || norm.includes('tom tat') || norm.includes('summary') || norm.includes('cốt lõi') || norm.includes('ý nghĩa') || norm.includes('y nghia') || norm.includes('meaning')) {
     return 1;
   }
   
-  // 2. Cụm từ hay dùng (Collocations / Phrases)
-  if (norm.includes('cụm từ') || norm.includes('cum tu') || norm.includes('collocation') || norm.includes('cụm')) {
+  // 2. Cách kết hợp & Cấu trúc ngữ pháp
+  if (norm.includes('kết hợp') || norm.includes('ket hop') || norm.includes('cấu trúc') || norm.includes('cau truc') || norm.includes('connection')) {
     return 2;
   }
   
-  // 3. Cách sử dụng & Sắc thái (Usage, Nuances, Notes, Traps)
-  if (
-    norm.includes('cách sử dụng') || norm.includes('cach su dung') ||
-    norm.includes('sắc thái') || norm.includes('sac thai') ||
-    norm.includes('ngữ cảnh') || norm.includes('ngu canh') ||
-    norm.includes('lưu ý') || norm.includes('luu y') ||
-    norm.includes('vùng cấm') || norm.includes('vung cam') ||
-    norm.includes('văn phong') || norm.includes('van phong') ||
-    norm.includes('từ liên quan') || norm.includes('bản chất') ||
-    norm.includes('nuance') || norm.includes('usage')
-  ) {
+  // 3. Từ đi kèm tiêu biểu (Collocations / Phrases)
+  if (norm.includes('từ đi kèm') || norm.includes('tu di kem') || norm.includes('cụm từ') || norm.includes('cum tu') || norm.includes('collocation') || norm.includes('cụm') || norm.includes('tiêu biểu')) {
     return 3;
   }
   
-  // 4. Ví dụ thực tế (Examples, Sentence drill)
-  if (norm.includes('ví dụ') || norm.includes('vi du') || norm.includes('example') || norm.includes('câu hỏi đục lỗ') || norm.includes('đục lỗ')) {
+  // 4. Bản chất & Sắc thái cốt lõi & Ngữ cảnh
+  if (
+    norm.includes('bản chất') || norm.includes('ban chat') ||
+    norm.includes('sắc thái') || norm.includes('sac thai') ||
+    norm.includes('cách sử dụng') || norm.includes('cach su dung') ||
+    norm.includes('ngữ cảnh') || norm.includes('ngu canh') ||
+    norm.includes('văn phong') || norm.includes('van phong') ||
+    norm.includes('trang trọng') || norm.includes('ý chí') ||
+    norm.includes('nuance') || norm.includes('usage')
+  ) {
     return 4;
   }
   
-  // 5. Mẹo nhớ & Phân tích (Mnemonics, Reading tip, Kanji, Sound change)
+  // 5. Cặp dễ nhầm lẫn (So sánh 2D) & Phản xạ 3s & Dấu hiệu nhận biết
+  if (
+    norm.includes('nhầm lẫn') || norm.includes('nham lan') ||
+    norm.includes('so sánh') || norm.includes('cặp dễ') ||
+    norm.includes('phản xạ') || norm.includes('dấu hiệu') ||
+    norm.includes('bắt bài') || norm.includes('3s')
+  ) {
+    return 5;
+  }
+
+  // 6. Vùng cấm, Bẫy thi, Lưu ý
+  if (
+    norm.includes('vùng cấm') || norm.includes('vung cam') ||
+    norm.includes('bẫy thi') || norm.includes('bay thi') ||
+    norm.includes('lưu ý') || norm.includes('luu y')
+  ) {
+    return 6;
+  }
+  
+  // 7. Ví dụ thực tế
+  if (norm.includes('ví dụ') || norm.includes('vi du') || norm.includes('example') || norm.includes('câu hỏi đục lỗ') || norm.includes('đục lỗ')) {
+    return 7;
+  }
+  
+  // 8. Mẹo nhớ & Nguồn gốc & Hán tự
   if (
     norm.includes('mẹo nhớ') || norm.includes('meo nho') ||
     norm.includes('cách ghi nhớ') || norm.includes('ghi nhớ') ||
     norm.includes('mnemonic') || norm.includes('chiết tự') ||
     norm.includes('chuyển âm') || norm.includes('kanji') ||
     norm.includes('hán tự') || norm.includes('hán việt') ||
-    norm.includes('han viet')
+    norm.includes('han viet') || norm.includes('nguồn gốc')
   ) {
-    return 5;
+    return 8;
   }
   
-  // 6. Các trường mở rộng khác (đồng nghĩa, trái nghĩa, từ vựng...)
-  return 6;
+  return 9;
 };
 
 const getBoxMeta = (title: string, id: string) => {
   const norm = (title || id || '').toLowerCase().replace(/_/g, ' ').trim();
+
+  // 1. Ý nghĩa & Nghĩa cốt lõi
+  if (norm === 'nghĩa' || norm === 'nghia' || norm.includes('ý nghĩa') || norm.includes('y nghia') || norm.includes('nghĩa cốt lõi') || norm.includes('tóm tắt') || norm.includes('cốt lõi') || norm.includes('meaning')) {
+    return {
+      label: '🎯 Ý NGHĨA CỐT LÕI',
+      badgeClass: 'text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
+      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
+      bgClass: 'bg-gradient-to-br from-amber-50/50 via-white to-orange-50/20 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+
+  // 2. Cách kết hợp ngữ pháp
+  if (norm.includes('kết hợp') || norm.includes('ket hop') || norm.includes('cấu trúc') || norm.includes('cau truc') || norm.includes('connection')) {
+    return {
+      label: '🧩 CÁCH KẾT HỢP NGỮ PHÁP',
+      badgeClass: 'text-violet-900 dark:text-violet-200 bg-violet-100/90 dark:bg-violet-950/70 border-violet-300/80',
+      borderClass: 'border-violet-200/80 dark:border-violet-800/60 hover:border-violet-300',
+      bgClass: 'bg-gradient-to-br from-violet-50/40 via-white to-violet-50/15 dark:from-violet-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+
+  // 3. Từ đi kèm tiêu biểu & Collocations
+  if (norm.includes('từ đi kèm') || norm.includes('tu di kem') || norm.includes('cụm từ') || norm.includes('cum tu') || norm.includes('collocation') || norm.includes('tiêu biểu')) {
+    return {
+      label: '🌟 TỪ ĐI KÈM TIÊU BIỂU (COLLOCATIONS)',
+      badgeClass: 'text-emerald-900 dark:text-emerald-200 bg-emerald-100/90 dark:bg-emerald-950/70 border-emerald-300/80',
+      borderClass: 'border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300',
+      bgClass: 'bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/15 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+
+  // 4. Vùng cấm & Bẫy thi
   if (norm.includes('vùng cấm') || norm.includes('vung cam') || norm.includes('bẫy thi') || norm.includes('bay thi')) {
     return {
       label: '🚫 VÙNG CẤM & BẪY THI',
@@ -151,6 +205,8 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-rose-50/40 via-white to-rose-50/15 dark:from-rose-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
+
+  // 5. Cặp dễ nhầm lẫn (So sánh 2D)
   if (norm.includes('nhầm lẫn') || norm.includes('nham lan') || norm.includes('so sánh') || norm.includes('cặp dễ')) {
     return {
       label: '⚖️ CẶP DỄ NHẦM LẪN (SO SÁNH 2D)',
@@ -159,14 +215,18 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-indigo-50/40 via-white to-indigo-50/15 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
-  if (norm.includes('dấu hiệu') || norm.includes('dau hieu') || norm.includes('nhận biết')) {
+
+  // 6. Dấu hiệu nhận biết & Phản xạ 3s
+  if (norm.includes('dấu hiệu') || norm.includes('dau hieu') || norm.includes('nhận biết') || norm.includes('phản xạ') || norm.includes('3s') || norm.includes('bắt bài')) {
     return {
-      label: '⚡ DẤU HIỆU NHẬN BIẾT & PHẢN XẠ',
-      badgeClass: 'text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
-      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
-      bgClass: 'bg-gradient-to-br from-amber-50/40 via-white to-amber-50/15 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+      label: '⚡ DẤU HIỆU NHẬN BIẾT & PHẢN XẠ 3S',
+      badgeClass: 'text-teal-900 dark:text-teal-200 bg-teal-100/90 dark:bg-teal-950/70 border-teal-300/80',
+      borderClass: 'border-teal-200/80 dark:border-teal-800/60 hover:border-teal-300',
+      bgClass: 'bg-gradient-to-br from-teal-50/40 via-white to-teal-50/15 dark:from-teal-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
+
+  // 7. Nguồn gốc & Hán tự
   if (norm.includes('nguồn gốc') || norm.includes('nguon goc') || norm.includes('kanji') || norm.includes('chiết tự') || norm.includes('hán tự')) {
     return {
       label: '🔍 NGUỒN GỐC & CẤU TẠO HÁN TỰ',
@@ -175,7 +235,9 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-cyan-50/40 via-white to-cyan-50/15 dark:from-cyan-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
-  if (norm.includes('ngữ cảnh') || norm.includes('ngu canh')) {
+
+  // 8. Ngữ cảnh sử dụng
+  if (norm.includes('ngữ cảnh') || norm.includes('ngu canh') || norm.includes('bối cảnh')) {
     return {
       label: '🌐 NGỮ CẢNH SỬ DỤNG',
       badgeClass: 'text-emerald-900 dark:text-emerald-200 bg-emerald-100/90 dark:bg-emerald-950/70 border-emerald-300/80',
@@ -183,7 +245,9 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/15 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
-  if (norm.includes('bản chất') || norm.includes('ban chat') || norm.includes('sắc thái') || norm.includes('sac thai')) {
+
+  // 9. Bản chất & Sắc thái
+  if (norm.includes('bản chất') || norm.includes('ban chat') || norm.includes('sắc thái') || norm.includes('sac thai') || norm.includes('sử dụng') || norm.includes('nuance')) {
     return {
       label: '🧬 BẢN CHẤT & SẮC THÁI CỐT LÕI',
       badgeClass: 'text-sky-900 dark:text-sky-200 bg-sky-100/90 dark:bg-sky-950/70 border-sky-300/80',
@@ -191,20 +255,58 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-sky-50/40 via-white to-sky-50/15 dark:from-sky-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
-  if (norm.includes('kết hợp') || norm.includes('ket hop')) {
+
+  // 10. Văn phong
+  if (norm.includes('văn phong') || norm.includes('van phong')) {
     return {
-      label: '🧩 CÁCH KẾT HỢP NGỮ PHÁP',
-      badgeClass: 'text-violet-900 dark:text-violet-200 bg-violet-100/90 dark:bg-violet-950/70 border-violet-300/80',
-      borderClass: 'border-violet-200/80 dark:border-violet-800/60 hover:border-violet-300',
-      bgClass: 'bg-gradient-to-br from-violet-50/40 via-white to-violet-50/15 dark:from-violet-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+      label: '🖋️ VĂN PHONG',
+      badgeClass: 'text-purple-900 dark:text-purple-200 bg-purple-100/90 dark:bg-purple-950/70 border-purple-300/80',
+      borderClass: 'border-purple-200/80 dark:border-purple-800/60 hover:border-purple-300',
+      bgClass: 'bg-gradient-to-br from-purple-50/40 via-white to-purple-50/15 dark:from-purple-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
-  if (norm.includes('tóm tắt') || norm.includes('tom tat') || norm.includes('summary') || norm.includes('cốt lõi')) {
+
+  // 11. Độ trang trọng
+  if (norm.includes('trang trọng') || norm.includes('trang trong')) {
     return {
-      label: '📋 TÓM TẮT & NGHĨA CỐT LÕI',
-      badgeClass: 'text-amber-950 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
-      borderClass: 'border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400',
-      bgClass: 'bg-gradient-to-br from-amber-50/60 via-white to-orange-50/20 dark:from-amber-950/30 dark:via-slate-900/40 dark:to-slate-900/60'
+      label: '👑 ĐỘ TRANG TRỌNG',
+      badgeClass: 'text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80',
+      borderClass: 'border-amber-200/80 dark:border-amber-800/60 hover:border-amber-300',
+      bgClass: 'bg-gradient-to-br from-amber-50/40 via-white to-amber-50/15 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+
+  // 12. Tính ý chí & Quan hệ hai vế
+  if (norm.includes('ý chí') || norm.includes('y chi')) {
+    return {
+      label: '🧠 TÍNH Ý CHÍ',
+      badgeClass: 'text-blue-900 dark:text-blue-200 bg-blue-100/90 dark:bg-blue-950/70 border-blue-300/80',
+      borderClass: 'border-blue-200/80 dark:border-blue-800/60 hover:border-blue-300',
+      bgClass: 'bg-gradient-to-br from-blue-50/40 via-white to-blue-50/15 dark:from-blue-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('quan hệ') || norm.includes('hai vế')) {
+    return {
+      label: '🔀 QUAN HỆ HAI VẾ',
+      badgeClass: 'text-teal-900 dark:text-teal-200 bg-teal-100/90 dark:bg-teal-950/70 border-teal-300/80',
+      borderClass: 'border-teal-200/80 dark:border-teal-800/60 hover:border-teal-300',
+      bgClass: 'bg-gradient-to-br from-teal-50/40 via-white to-teal-50/15 dark:from-teal-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('hướng đánh giá') || norm.includes('danh gia')) {
+    return {
+      label: '⚖️ HƯỚNG ĐÁNH GIÁ',
+      badgeClass: 'text-indigo-900 dark:text-indigo-200 bg-indigo-100/90 dark:bg-indigo-950/70 border-indigo-300/80',
+      borderClass: 'border-indigo-200/80 dark:border-indigo-800/60 hover:border-indigo-300',
+      bgClass: 'bg-gradient-to-br from-indigo-50/40 via-white to-indigo-50/15 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
+    };
+  }
+  if (norm.includes('chủ ngữ') || norm.includes('chu ngu')) {
+    return {
+      label: '👤 NGÔI CHỦ NGỮ',
+      badgeClass: 'text-pink-900 dark:text-pink-200 bg-pink-100/90 dark:bg-pink-950/70 border-pink-300/80',
+      borderClass: 'border-pink-200/80 dark:border-pink-800/60 hover:border-pink-300',
+      bgClass: 'bg-gradient-to-br from-pink-50/40 via-white to-pink-50/15 dark:from-pink-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
   if (norm.includes('chuyển âm')) {
@@ -215,46 +317,6 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-indigo-50/40 via-white to-indigo-50/15 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
-  if (norm.includes('nhớ cách đọc') || norm.includes('mẹo nhớ') || norm.includes('mnemonic')) {
-    return {
-      label: '🎧 MẸO NHỚ CÁCH ĐỌC',
-      badgeClass: 'text-purple-800 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/70 border-purple-300/80',
-      borderClass: 'border-purple-200/80 dark:border-purple-800/60 hover:border-purple-300',
-      bgClass: 'bg-gradient-to-br from-purple-50/40 via-white to-purple-50/15 dark:from-purple-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
-    };
-  }
-  if (norm.includes('cụm từ') || norm.includes('collocation')) {
-    return {
-      label: '🔗 CỤM TỪ HAY DÙNG',
-      badgeClass: 'text-emerald-800 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/70 border-emerald-300/80',
-      borderClass: 'border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300',
-      bgClass: 'bg-gradient-to-br from-emerald-50/40 via-white to-emerald-50/15 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
-    };
-  }
-  if (norm.includes('sử dụng') || norm.includes('sắc thái') || norm.includes('nuance')) {
-    return {
-      label: '🎯 CÁCH SỬ DỤNG & SẮC THÁI',
-      badgeClass: 'text-sky-800 dark:text-sky-300 bg-sky-100/90 dark:bg-sky-950/70 border-sky-300/80',
-      borderClass: 'border-sky-200/80 dark:border-sky-800/60 hover:border-sky-300',
-      bgClass: 'bg-gradient-to-br from-sky-50/40 via-white to-sky-50/15 dark:from-sky-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
-    };
-  }
-  if (norm.includes('đồng nghĩa')) {
-    return {
-      label: '🔄 TỪ ĐỒNG NGHĨA',
-      badgeClass: 'text-teal-800 dark:text-teal-300 bg-teal-100/90 dark:bg-teal-950/70 border-teal-300/80',
-      borderClass: 'border-teal-200/80 dark:border-teal-800/60 hover:border-teal-300',
-      bgClass: 'bg-gradient-to-br from-teal-50/40 via-white to-teal-50/15 dark:from-teal-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
-    };
-  }
-  if (norm.includes('trái nghĩa') || norm.includes('đối lập')) {
-    return {
-      label: '⚖️ TỪ TRÁI NGHĨA',
-      badgeClass: 'text-rose-800 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-950/70 border-rose-300/80',
-      borderClass: 'border-rose-200/80 dark:border-rose-800/60 hover:border-rose-300',
-      bgClass: 'bg-gradient-to-br from-rose-50/40 via-white to-rose-50/15 dark:from-rose-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
-    };
-  }
   if (norm.includes('ví dụ') || norm.includes('example')) {
     return {
       label: '🌱 CÂU VÍ DỤ THỰC TẾ',
@@ -263,6 +325,7 @@ const getBoxMeta = (title: string, id: string) => {
       bgClass: 'bg-gradient-to-br from-violet-50/40 via-white to-violet-50/15 dark:from-violet-950/20 dark:via-slate-900/40 dark:to-slate-900/60'
     };
   }
+
   return {
     label: title,
     badgeClass: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700',
@@ -300,10 +363,214 @@ const getKeyBadgeStyle = (keyText: string) => {
   return 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/80 dark:text-indigo-200 dark:border-indigo-700';
 };
 
-const renderFormattedInsight = (content: string) => {
+const renderFormattedInsight = (content: string, tabId?: string, tabTitle?: string) => {
   if (!content) return null;
 
-  // Support full Markdown Tables in Insight (e.g. Cặp dễ nhầm lẫn)
+  const normId = (tabId || tabTitle || '').toLowerCase().replace(/_/g, ' ').trim();
+
+  // 1. DEDICATED RENDERER: Ý nghĩa cốt lõi
+  if (normId === 'nghĩa' || normId === 'nghia' || normId === 'ý nghĩa' || normId === 'y nghia' || normId === 'meaning') {
+    const trimmed = content.trim();
+    const match = trimmed.match(/^(.*?)(?:\s*\(([^)]+)\))?$/);
+    const mainText = match ? match[1].trim() : trimmed;
+    const nuanceText = match && match[2] ? match[2].trim() : null;
+
+    return (
+      <div className="py-1 space-y-2.5 select-text">
+        <div className="text-[15px] sm:text-[16px] font-black text-slate-900 dark:text-slate-100 leading-snug tracking-tight">
+          <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(mainText) }} />
+        </div>
+        {nuanceText && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs sm:text-[13px] font-medium leading-relaxed shadow-2xs">
+            <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0">💡</span>
+            <span>{nuanceText}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. DEDICATED RENDERER: Cách kết hợp ngữ pháp
+  if (normId.includes('kết hợp') || normId.includes('ket hop')) {
+    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+    return (
+      <div className="space-y-2 select-text">
+        {lines.map((line, idx) => {
+          const hasPlus = line.includes('＋') || line.includes('+');
+          if (hasPlus) {
+            const tokens = line.split(/[＋+]/);
+            return (
+              <div 
+                key={idx} 
+                className="p-2.5 px-3 rounded-xl bg-white/95 dark:bg-slate-850/90 border border-violet-200/80 dark:border-violet-800/60 shadow-2xs flex items-center flex-wrap gap-1.5 sm:gap-2 leading-relaxed"
+              >
+                {tokens.map((token, tIdx) => {
+                  const isLast = tIdx === tokens.length - 1;
+                  const trimmed = token.trim();
+                  
+                  if (isLast && tokens.length > 1) {
+                    return (
+                      <div key={tIdx} className="flex items-center gap-1.5">
+                        <span className="text-violet-500 dark:text-violet-400 font-black text-sm select-none">＋</span>
+                        <span 
+                          className="font-black text-[14px] sm:text-[15px] text-violet-700 dark:text-violet-300 tracking-wide"
+                          dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(trimmed) }}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={tIdx} className="flex items-center gap-1.5 flex-wrap">
+                      {tIdx > 0 && <span className="text-violet-500 dark:text-violet-400 font-black text-sm select-none">＋</span>}
+                      {trimmed.split('/').map((sub, sIdx, sArr) => (
+                        <span key={sIdx} className="flex items-center gap-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-black text-xs sm:text-[12.5px] shadow-2xs">
+                            {sub.trim()}
+                          </span>
+                          {sIdx < sArr.length - 1 && <span className="text-slate-400 font-bold text-xs select-none">/</span>}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          return (
+            <div 
+              key={idx}
+              className="p-2.5 px-3 rounded-xl bg-white/95 dark:bg-slate-850/90 border border-violet-200/80 dark:border-violet-800/60 shadow-2xs font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200"
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(line) }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 3. DEDICATED RENDERER: Từ đi kèm tiêu biểu (Collocations)
+  if (normId.includes('từ đi kèm') || normId.includes('tu di kem') || normId.includes('collocation')) {
+    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+    return (
+      <div className="space-y-2 select-text">
+        {lines.map((line, idx) => {
+          const clean = line.replace(/^[•\-\*]\s*/, '').trim();
+          const m = clean.match(/^(.*?)\s*[:：]\s*(.*)$/);
+          if (m) {
+            const jaPart = m[1].trim();
+            const viPart = m[2].trim();
+            return (
+              <div 
+                key={idx}
+                className="p-3 rounded-xl bg-white/95 dark:bg-slate-850/90 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col gap-1"
+              >
+                <div className="font-bold text-sm sm:text-[15px] text-slate-900 dark:text-slate-100 leading-normal flex items-baseline gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 mt-2 select-none" />
+                  <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(jaPart) }} />
+                </div>
+                {viPart && (
+                  <div className="text-xs sm:text-[13px] text-emerald-800/90 dark:text-emerald-300/90 font-medium italic pl-3.5 flex items-start gap-1.5">
+                    <span className="text-emerald-500 shrink-0 select-none">↳</span>
+                    <span dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(viPart) }} />
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div 
+              key={idx}
+              className="p-2.5 px-3 rounded-xl bg-white/95 dark:bg-slate-850/90 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200"
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(clean) }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 4. DEDICATED RENDERER: Phản xạ 3s (JSON / dict format)
+  if (normId.includes('phản xạ') || normId.includes('phan xa') || normId.includes('3s') || content.trim().startsWith('{')) {
+    let pxObj: Record<string, string> | null = null;
+    if (content.trim().startsWith('{')) {
+      try {
+        pxObj = JSON.parse(content);
+      } catch (e) {
+        try {
+          const jsonStr = content.replace(/'/g, '"');
+          pxObj = JSON.parse(jsonStr);
+        } catch (e2) {}
+      }
+    }
+
+    if (pxObj && typeof pxObj === 'object') {
+      return (
+        <div className="space-y-2.5 select-text">
+          {pxObj['tín_hiệu_vế_1'] && (
+            <div className="p-3 rounded-xl bg-teal-50/90 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60 shadow-2xs">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 dark:bg-teal-900/80 dark:text-teal-200 font-black text-[10.5px] uppercase tracking-wider mb-1.5 shadow-2xs select-none">
+                ⚡ TÍN HIỆU VẾ 1
+              </span>
+              <div 
+                className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(pxObj['tín_hiệu_vế_1']) }}
+              />
+            </div>
+          )}
+          {pxObj['quy_luật_vế_2'] && (
+            <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 shadow-2xs">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 dark:bg-amber-900/80 dark:text-amber-200 font-black text-[10.5px] uppercase tracking-wider mb-1.5 shadow-2xs select-none">
+                🎯 QUY LUẬT VẾ 2
+              </span>
+              <div 
+                className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(pxObj['quy_luật_vế_2']) }}
+              />
+            </div>
+          )}
+          {pxObj['thần_chú_3s'] && (
+            <div className="p-3 rounded-xl bg-violet-50/90 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-800/60 shadow-2xs">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-violet-100 text-violet-800 dark:bg-violet-900/80 dark:text-violet-200 font-black text-[10.5px] uppercase tracking-wider mb-1.5 shadow-2xs select-none">
+                💡 THẦN CHÚ 3 GIÂY
+              </span>
+              <div 
+                className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(pxObj['thần_chú_3s']) }}
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+  }
+
+  // 5. Short metadata values (văn phong, độ trang trọng, tính ý chí, quan hệ hai vế...)
+  const isShortMetaField = (
+    normId === 'văn phong' || normId === 'van phong' ||
+    normId === 'độ trang trọng' || normId === 'do trang trong' ||
+    normId === 'tính ý chí' || normId === 'tinh y chi' ||
+    normId === 'ngôi chủ ngữ' || normId === 'ngoi chu ngu' ||
+    normId === 'hướng đánh giá' || normId === 'huong danh gia' ||
+    normId === 'quan hệ hai vế' || normId === 'quan he hai ve' ||
+    normId === 'mức độ jlpt' || normId === 'muc do jlpt' ||
+    normId === 'kiểu cấu trúc' || normId === 'kieu cau truc'
+  );
+
+  if (isShortMetaField && !content.includes('\n') && content.length < 90) {
+    return (
+      <div className="py-1 flex items-center select-text">
+        <div 
+          className="text-sm sm:text-[15px] font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+          dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(content) }}
+        />
+      </div>
+    );
+  }
+
+  // 6. Support full Markdown Tables in Insight (e.g. Cặp dễ nhầm lẫn)
   const hasMarkdownTable = content.includes('|') && (content.includes('\n|') || content.startsWith('|'));
   if (hasMarkdownTable) {
     return (
@@ -401,64 +668,30 @@ const renderFormattedInsight = (content: string) => {
           );
         }
 
-        // Ghép âm highlight in Quy tắc chuyển âm
-        if (line.toLowerCase().includes('ghép lại:') || line.toLowerCase().includes('ghép âm:')) {
-          const cleanText = line.replace(/^[•\-\*➔]+\s*/, '');
-          return (
-            <div
-              key={idx}
-              className="p-2.5 px-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 font-bold text-xs sm:text-sm text-indigo-950 dark:text-indigo-100 shadow-2xs leading-relaxed flex items-center gap-2"
-            >
-              <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm shrink-0">🎵</span>
-              <div
-                className="flex-1"
-                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(cleanText) }}
-              />
-            </div>
-          );
-        }
-
-        // Example sentence highlight: 🌱 (JP) or 💡 (VI)
-        if (line.startsWith('🌱')) {
-          return (
-            <div
-              key={idx}
-              className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 font-bold text-sm sm:text-[15px] text-emerald-950 dark:text-emerald-100 shadow-2xs leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(line) }}
-            />
-          );
-        }
-        if (line.startsWith('💡')) {
-          return (
-            <div
-              key={idx}
-              className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 font-medium text-xs sm:text-sm text-amber-950 dark:text-amber-200 shadow-2xs leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(line) }}
-            />
-          );
-        }
-
         // Key : Value format (e.g. • Key: Value or - Key: Value or Key: Value)
         const kvMatch = line.match(/^([•\-\*]?\s*)([^:：\n]+)\s*[:：]\s*(.*)$/);
-        if (kvMatch && kvMatch[2].trim().length <= 25) {
-          const keyPart = kvMatch[2].trim();
-          const valPart = kvMatch[3].trim();
-          const badgeStyle = getKeyBadgeStyle(keyPart);
+        if (kvMatch) {
+          const plainKey = kvMatch[2].replace(/<[^>]+>/g, '').trim();
+          if (plainKey.length > 0 && plainKey.length <= 35) {
+            const keyPart = kvMatch[2].trim();
+            const valPart = kvMatch[3].trim();
+            const badgeStyle = getKeyBadgeStyle(plainKey);
 
-          return (
-            <div key={idx} className="flex items-start gap-2.5 py-1 select-text">
-              <span className={cn(
-                "inline-flex items-center px-2 py-0.5 rounded-lg border font-black text-[10.5px] uppercase tracking-wider shrink-0 mt-0.5 shadow-2xs select-none",
-                badgeStyle
-              )}>
-                {keyPart}
-              </span>
-              <div
-                className="flex-1 text-slate-700 dark:text-slate-200 font-medium leading-relaxed min-w-0"
-                dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(valPart) }}
-              />
-            </div>
-          );
+            return (
+              <div key={idx} className="flex items-start gap-2.5 py-1 select-text">
+                <span className={cn(
+                  "inline-flex items-center px-2 py-0.5 rounded-lg border font-black text-[10.5px] uppercase tracking-wider shrink-0 mt-0.5 shadow-2xs select-none",
+                  badgeStyle
+                )}>
+                  {keyPart}
+                </span>
+                <div
+                  className="flex-1 text-slate-700 dark:text-slate-200 font-medium leading-relaxed min-w-0"
+                  dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(valPart) }}
+                />
+              </div>
+            );
+          }
         }
 
         const isBullet = line.startsWith('• ') || line.startsWith('- ');
@@ -1143,7 +1376,7 @@ export default function LearningInsightsModal({
                             </button>
                           </div>
                         </div>
-                        {renderFormattedInsight(tab.content)}
+                        {renderFormattedInsight(tab.content, tab.id, tab.title)}
                       </div>
                     );
                   })
