@@ -204,10 +204,12 @@ export function usePlaySettings(
       if (effectiveSettings.back_font_size !== undefined) {
         setBackFontSizeState(effectiveSettings.back_font_size)
       }
-      if (effectiveSettings.back_pages !== undefined && Array.isArray(effectiveSettings.back_pages)) {
+      if (effectiveSettings.back_pages !== undefined && Array.isArray(effectiveSettings.back_pages) && effectiveSettings.back_pages.length > 0) {
         setBackPagesState(effectiveSettings.back_pages)
-      } else if (creatorStudyDefaults?.back_pages && Array.isArray(creatorStudyDefaults.back_pages)) {
+      } else if (creatorStudyDefaults?.back_pages && Array.isArray(creatorStudyDefaults.back_pages) && creatorStudyDefaults.back_pages.length > 0) {
         setBackPagesState(creatorStudyDefaults.back_pages)
+      } else if (effectiveSettings.back_pages !== undefined && Array.isArray(effectiveSettings.back_pages)) {
+        setBackPagesState(effectiveSettings.back_pages)
       }
       // Sync interaction and gesture settings from effective study settings (profile/user/creator)
       if (effectiveSettings.card_flip_trigger !== undefined) {

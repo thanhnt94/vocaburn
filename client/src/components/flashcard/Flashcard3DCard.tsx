@@ -344,7 +344,15 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     setActiveBackPageIndex(0)
   }, [currentIndex, isFlipped])
 
-  const rawBackPages = backPages || (currentQuestion as any)?.deck_practice_settings?.study_defaults?.back_pages || (currentQuestion as any)?.deck_practice_settings?.back_pages || []
+  const rawBackPages = (backPages && backPages.length > 0)
+    ? backPages
+    : (
+        ((currentQuestion as any)?.deck_practice_settings?.study_defaults?.back_pages?.length > 0)
+          ? (currentQuestion as any).deck_practice_settings.study_defaults.back_pages
+          : (((currentQuestion as any)?.deck_practice_settings?.back_pages?.length > 0)
+              ? (currentQuestion as any).deck_practice_settings.back_pages
+              : [])
+      )
 
   const resolvedBackPages = React.useMemo(() => {
     const list: { id: string; column: string; label: string }[] = [
