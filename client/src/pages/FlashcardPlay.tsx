@@ -2868,8 +2868,9 @@ export default function FlashcardPlay() {
         const formulaNghia = finalOthers.nghĩa || updatedCardData.explanation || ''
         const formulaVd1 = finalOthers.ví_dụ_1 || ''
         const formulaDich1 = finalOthers.dịch_ví_dụ_1 || ''
+        const formulaTag = finalOthers.tag || finalOthers.chú_ý || ''
         if (formulaNghia && formulaKetHop && formulaVd1) {
-          const compiledBack = compileGrammarBackFormula(formulaNghia, formulaKetHop, formulaVd1, formulaDich1)
+          const compiledBack = compileGrammarBackFormula(formulaNghia, formulaKetHop, formulaVd1, formulaDich1, formulaTag)
           finalOthers.back = compiledBack
           finalOthers.cong_thuc = formulaKetHop
           if (updatedCardData.explanation === currentQuestion?.explanation || !updatedCardData.explanation) {

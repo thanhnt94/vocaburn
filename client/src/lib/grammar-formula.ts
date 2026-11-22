@@ -1,7 +1,7 @@
 /**
  * Grammar Card Back Formula Standard
  * Single Source of Truth for generating the rich 3-section back face:
- * 1. 🎯 Ý NGHĨA (Hero title + subtle sub-meaning nuance)
+ * 1. 🎯 Ý NGHĨA + TAG/CHÚ Ý (Hero title + Badges + subtle sub-meaning nuance)
  * 2. 🧩 CÁCH KẾT HỢP (Pill-formatted formation syntax)
  * 3. 💡 VÍ DỤ TIÊU BIỂU (Highlighted Japanese sentence + Vietnamese translation)
  */
@@ -10,7 +10,8 @@ export function compileGrammarBackFormula(
   nghia: string = '',
   cachKetHop: string = '',
   viDu1: string = '',
-  dichViDu1: string = ''
+  dichViDu1: string = '',
+  tag: string = ''
 ): string {
   let mainMeaning = (nghia || '').trim()
   let subMeaning = ''
@@ -50,12 +51,21 @@ export function compileGrammarBackFormula(
     ? `<div style="font-size: 14px; color: #6366f1; font-weight: 600; margin-top: 5px; line-height: 1.4;">${subMeaning}</div>`
     : ''
 
+  const tagHeader = tag
+    ? `<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+        <div style="font-size: 11px; font-weight: 900; color: #6366f1; text-transform: uppercase; letter-spacing: 0.1em;">
+          🎯 Ý NGHĨA
+        </div>
+        <div>${tag}</div>
+      </div>`
+    : `<div style="font-size: 11px; font-weight: 900; color: #6366f1; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;">
+        🎯 Ý NGHĨA
+      </div>`
+
   return `<div style="padding: 6px 2px;">
-  <!-- HERO MEANING -->
+  <!-- HERO MEANING & TAG -->
   <div style="margin-bottom: 20px;">
-    <div style="font-size: 11px; font-weight: 900; color: #6366f1; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;">
-      🎯 Ý NGHĨA
-    </div>
+    ${tagHeader}
     <div style="font-size: 21px; font-weight: 900; color: #0f172a; line-height: 1.35; letter-spacing: -0.01em;">
       ${mainMeaning}
     </div>
