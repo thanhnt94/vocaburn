@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { 
   ChevronLeft, 
   ArrowLeftRight, 
@@ -8,20 +8,19 @@ import {
   Shuffle, 
   RotateCcw, 
   Volume2, 
-  SlidersHorizontal, 
   Search, 
   Check, 
   X, 
   Filter, 
   Layers, 
   Sparkles, 
-  BookOpen, 
   Columns3,
+  SlidersHorizontal,
+  ChevronDown,
+  ArrowUp,
   CheckCircle2,
   XCircle,
-  HelpCircle,
-  ChevronDown,
-  ArrowUp
+  HelpCircle
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -31,7 +30,7 @@ import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { parseBBCodeToHtml } from '@/lib/text'
-import { speakWithEdgeTTS, speakMultiLanguage, playCorrectSound } from '@/lib/audio'
+import { speakWithEdgeTTS, playCorrectSound } from '@/lib/audio'
 import { MarkdownComponents } from '@/lib/markdown'
 import { SessionLoadingScreen } from '@/components/flashcard'
 import { getCardColumnValue } from '@/components/flashcard/Flashcard3DCard'
@@ -39,11 +38,23 @@ import { getCardColumnValue } from '@/components/flashcard/Flashcard3DCard'
 export type MaskStrategy = 'random' | 'hide_right' | 'hide_left' | 'hide_both'
 export type SelfCheckStatus = 'neutral' | 'remembered' | 'forgotten'
 
+export interface ColumnPairConfig {
+  id: string
+  name: string
+  short_name?: string
+  col1: string
+  col2: string
+  icon?: string
+  col1_label?: string
+  col2_label?: string
+}
+
 interface CardItem {
   id: number
   original_index?: number
-  content: string
-  explanation: string
+  front?: string
+  content?: string
+  explanation?: string
   others?: Record<string, any>
   front_audio_url?: string
   back_audio_url?: string
@@ -52,7 +63,6 @@ interface CardItem {
 export default function ColumnPracticePlay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { userSettings } = useAppStore()
 
   // Data Loading State
@@ -63,15 +73,23 @@ export default function ColumnPracticePlay() {
   const [subLessons, setSubLessons] = useState<string[]>([])
   const [subLessonCol, setSubLessonCol] = useState<string>('')
 
-  // User Filter & Setup State
+  // Pre-configured Pairs State (Setup sẵn trong option - không bắt người dùng chọn phức tạp)
+  const [presetPairs, setPresetPairs] = useState<ColumnPairConfig[]>([])
+  const [selectedPairId, setSelectedPairId] = useState<string>('')
+
+  // Active Columns
   const [colLeft, setColLeft] = useState<string>('front')
   const [colRight, setColRight] = useState<string>('back')
+  const [colLeftLabel, setColLeftLabel] = useState<string>('Cột 1')
+  const [colRightLabel, setColRightLabel] = useState<string>('Cột 2')
+
+  // Mask & Filter State
   const [maskStrategy, setMaskStrategy] = useState<MaskStrategy>('random')
   const [cardLimit, setCardLimit] = useState<number | 'all'>('all')
   const [selectedSubLesson, setSelectedSubLesson] = useState<string>('all')
   const [isShuffled, setIsShuffled] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
+  const [showAdvancedPicker, setShowAdvancedPicker] = useState(false)
 
   // Interactive Card State: cardId -> { leftRevealed: boolean, rightRevealed: boolean }
   const [revealedMap, setRevealedMap] = useState<Record<number, { left: boolean; right: boolean }>>({})
@@ -80,7 +98,7 @@ export default function ColumnPracticePlay() {
 
   const listScrollRef = useRef<HTMLDivElement>(null)
 
-  // 1. Fetch Deck Cards & Available Columns
+  // 1. Fetch Deck Cards & Preset Column Pairs
   useEffect(() => {
     let isMounted = true
     const fetchDeck = async () => {
@@ -95,18 +113,16 @@ export default function ColumnPracticePlay() {
         const title = data.deck?.title || 'Vocabulary Deck'
         setDeckTitle(title)
 
-        // Detect Columns
+        // Detect all available columns
         const colsSet = new Set<string>()
         colsSet.add('front')
         colsSet.add('back')
 
-        // Add from practice_settings.custom_columns
         const customCols: string[] = data.practice_settings?.custom_columns || []
         customCols.forEach(c => {
           if (c && typeof c === 'string' && c.trim()) colsSet.add(c.trim())
         })
 
-        // Add from cards[].others
         fetchedCards.slice(0, 30).forEach(card => {
           if (card.others && typeof card.others === 'object') {
             Object.keys(card.others).forEach(k => {
@@ -121,14 +137,110 @@ export default function ColumnPracticePlay() {
         const allCols = Array.from(colsSet)
         setAvailableColumns(allCols)
 
-        // Set default columns
-        if (allCols.includes('front')) setColLeft('front')
-        else if (allCols.length > 0) setColLeft(allCols[0])
+        // Load or build Pre-configured Pairs (Setup sẵn trong option)
+        const loadedPairs: ColumnPairConfig[] = data.practice_settings?.column_pairs || []
+        let finalPairs: ColumnPairConfig[] = []
 
-        if (allCols.includes('back')) setColRight('back')
-        else if (allCols.length > 1) setColRight(allCols[1])
+        if (Array.isArray(loadedPairs) && loadedPairs.length > 0) {
+          finalPairs = loadedPairs
+        } else {
+          // Fallback smart presets based on detected columns
+          const hasGrammar = allCols.includes('mẫu_ngữ_pháp')
+          const hasMeaning = allCols.includes('nghĩa')
+          const hasFormation = allCols.includes('cách_kết_hợp')
+          const hasExample = allCols.includes('ví_dụ_1')
+          const hasCloze = allCols.includes('câu_hỏi_đục_lỗ')
 
-        // Detect Sub-lesson column
+          if (hasGrammar && hasMeaning) {
+            finalPairs.push({
+              id: 'pair_grammar_meaning',
+              name: 'Mẫu ⇄ Ý nghĩa',
+              short_name: 'Mẫu ⇄ Nghĩa',
+              col1: 'mẫu_ngữ_pháp',
+              col2: 'nghĩa',
+              icon: '🎯',
+              col1_label: 'Mẫu ngữ pháp',
+              col2_label: 'Ý nghĩa'
+            })
+          }
+          if (hasGrammar && hasFormation) {
+            finalPairs.push({
+              id: 'pair_grammar_formation',
+              name: 'Mẫu ⇄ Kết hợp',
+              short_name: 'Mẫu ⇄ Kết hợp',
+              col1: 'mẫu_ngữ_pháp',
+              col2: 'cách_kết_hợp',
+              icon: '🧩',
+              col1_label: 'Mẫu ngữ pháp',
+              col2_label: 'Cách kết hợp'
+            })
+          }
+          if (hasGrammar && hasExample) {
+            finalPairs.push({
+              id: 'pair_grammar_example',
+              name: 'Mẫu ⇄ Ví dụ',
+              short_name: 'Mẫu ⇄ Ví dụ',
+              col1: 'mẫu_ngữ_pháp',
+              col2: 'ví_dụ_1',
+              icon: '💡',
+              col1_label: 'Mẫu ngữ pháp',
+              col2_label: 'Ví dụ'
+            })
+          }
+          if (hasMeaning && hasFormation) {
+            finalPairs.push({
+              id: 'pair_meaning_formation',
+              name: 'Nghĩa ⇄ Kết hợp',
+              short_name: 'Nghĩa ⇄ Kết hợp',
+              col1: 'nghĩa',
+              col2: 'cách_kết_hợp',
+              icon: '📖',
+              col1_label: 'Ý nghĩa',
+              col2_label: 'Cách kết hợp'
+            })
+          }
+          if (hasGrammar && hasCloze) {
+            finalPairs.push({
+              id: 'pair_grammar_cloze',
+              name: 'Mẫu ⇄ Đục lỗ',
+              short_name: 'Mẫu ⇄ Đục lỗ',
+              col1: 'mẫu_ngữ_pháp',
+              col2: 'câu_hỏi_đục_lỗ',
+              icon: '📝',
+              col1_label: 'Mẫu ngữ pháp',
+              col2_label: 'Câu đục lỗ'
+            })
+          }
+
+          // Default fallback if no grammar columns
+          if (finalPairs.length === 0) {
+            finalPairs.push({
+              id: 'pair_front_back',
+              name: 'Mặt trước ⇄ Mặt sau',
+              short_name: 'Trước ⇄ Sau',
+              col1: allCols.includes('front') ? 'front' : (allCols[0] || 'front'),
+              col2: allCols.includes('back') ? 'back' : (allCols[1] || 'back'),
+              icon: '📑',
+              col1_label: 'Mặt trước',
+              col2_label: 'Mặt sau'
+            })
+          }
+        }
+
+        setPresetPairs(finalPairs)
+
+        // Select initial pair
+        const defaultPairId = data.practice_settings?.default_column_pair || finalPairs[0]?.id || ''
+        const activePair = finalPairs.find(p => p.id === defaultPairId) || finalPairs[0]
+        if (activePair) {
+          setSelectedPairId(activePair.id)
+          setColLeft(activePair.col1)
+          setColRight(activePair.col2)
+          setColLeftLabel(activePair.col1_label || activePair.col1)
+          setColRightLabel(activePair.col2_label || activePair.col2)
+        }
+
+        // Sub-lesson detection
         const subCol = data.practice_settings?.sub_lesson_column || 'unit'
         setSubLessonCol(subCol)
 
@@ -152,13 +264,13 @@ export default function ColumnPracticePlay() {
     return () => { isMounted = false }
   }, [id])
 
-  // Helper: Generate initial revealed state for a list of cards based on maskStrategy
+  // Helper: Generate mask state
   const generateMaskState = useCallback((cards: CardItem[], strategy: MaskStrategy) => {
     const nextMap: Record<number, { left: boolean; right: boolean }> = {}
     cards.forEach((c, idx) => {
       if (strategy === 'random') {
-        // Randomly hide one side (50% left revealed, 50% right revealed)
-        const showLeft = idx % 2 === 0 ? Math.random() > 0.5 : Math.random() <= 0.5
+        // Alternating / random 50-50 per row
+        const showLeft = idx % 2 === 0 ? Math.random() > 0.45 : Math.random() <= 0.55
         nextMap[c.id] = { left: showLeft, right: !showLeft }
       } else if (strategy === 'hide_right') {
         nextMap[c.id] = { left: true, right: false }
@@ -171,11 +283,20 @@ export default function ColumnPracticePlay() {
     return nextMap
   }, [])
 
-  // 2. Filter & Prepare Active Card List
+  // 2. Select Preset Pair Handler (1-tap setup)
+  const handleSelectPair = (pair: ColumnPairConfig) => {
+    setSelectedPairId(pair.id)
+    setColLeft(pair.col1)
+    setColRight(pair.col2)
+    setColLeftLabel(pair.col1_label || pair.col1)
+    setColRightLabel(pair.col2_label || pair.col2)
+    setRevealedMap(generateMaskState(activeCards, maskStrategy))
+  }
+
+  // 3. Filter & Prepare Active Card List
   const activeCards = useMemo(() => {
     let list = [...rawCards]
 
-    // Filter by Sub-lesson
     if (selectedSubLesson !== 'all' && subLessonCol) {
       list = list.filter(c => {
         const val = c.others?.[subLessonCol] || (c as any)[subLessonCol]
@@ -183,7 +304,6 @@ export default function ColumnPracticePlay() {
       })
     }
 
-    // Filter by Search Query
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase()
       list = list.filter(c => {
@@ -193,13 +313,10 @@ export default function ColumnPracticePlay() {
       })
     }
 
-    // Shuffle if enabled
     if (isShuffled) {
-      // Deterministic sort or Fisher-Yates
       list = [...list].sort(() => Math.sin(list.length) - 0.5)
     }
 
-    // Limit cards count
     if (typeof cardLimit === 'number' && cardLimit > 0) {
       list = list.slice(0, cardLimit)
     }
@@ -207,11 +324,10 @@ export default function ColumnPracticePlay() {
     return list
   }, [rawCards, selectedSubLesson, subLessonCol, searchQuery, isShuffled, cardLimit, colLeft, colRight])
 
-  // 3. Initialize or Reset Masks when cards or strategy changes
+  // Initialize masks on cards change
   useEffect(() => {
     if (activeCards.length > 0) {
       setRevealedMap(prev => {
-        // Only generate for cards not already mapped
         const isFresh = Object.keys(prev).length === 0
         if (isFresh) {
           return generateMaskState(activeCards, maskStrategy)
@@ -247,7 +363,10 @@ export default function ColumnPracticePlay() {
   const handleSwapColumns = () => {
     setColLeft(colRight)
     setColRight(colLeft)
-    // Swap revealed flags so revealed state stays with respective columns
+    const oldLeftLabel = colLeftLabel
+    setColLeftLabel(colRightLabel)
+    setColRightLabel(oldLeftLabel)
+
     setRevealedMap(prev => {
       const next: Record<number, { left: boolean; right: boolean }> = {}
       Object.entries(prev).forEach(([cardId, val]) => {
@@ -317,78 +436,65 @@ export default function ColumnPracticePlay() {
 
   return (
     <div className="h-[100dvh] w-full flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden select-none font-sans">
-      {/* ═══════════ TOP HEADER ═══════════ */}
-      <header className="shrink-0 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 md:px-5 flex items-center justify-between z-30">
-        <div className="flex items-center gap-2.5 min-w-0">
+      
+      {/* ═══════════ TOP HEADER (COMPACT & MOBILE-FIRST) ═══════════ */}
+      <header className="shrink-0 h-13 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-2.5 md:px-5 flex items-center justify-between z-30">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => navigate(`/decks/${id}`)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
             title="Quay lại bộ thẻ"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           
           <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate max-w-[180px] md:max-w-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-xs md:text-sm text-slate-900 dark:text-slate-100 truncate max-w-[150px] xs:max-w-[200px] md:max-w-xs">
                 {deckTitle}
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-                <Columns3 className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                <Columns3 className="w-2.5 h-2.5" />
                 2-Col Drill
               </span>
             </div>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-              Đã mở {stats.revealed}/{stats.total} thẻ ({stats.percent}%)
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+              Đã mở {stats.revealed}/{stats.total} ({stats.percent}%)
             </span>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1.5 md:gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => {
               setIsShuffled(prev => !prev)
               handleResetMasks()
             }}
             className={cn(
-              "h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all",
+              "h-7.5 px-2 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all active:scale-95",
               isShuffled 
                 ? "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-300"
                 : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
             )}
             title="Xáo trộn danh sách thẻ"
           >
-            <Shuffle className="w-3.5 h-3.5" />
+            <Shuffle className="w-3 h-3" />
             <span className="hidden sm:inline">Xáo trộn</span>
           </button>
 
           <button
-            onClick={() => setShowFilters(prev => !prev)}
-            className={cn(
-              "h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all",
-              showFilters
-                ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-300"
-                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
-            )}
-            title="Tùy chọn cột và bộ lọc"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Tùy chỉnh</span>
-          </button>
-
-          <button
             onClick={stats.revealed === stats.total ? handleMaskAll : handleRevealAll}
-            className="h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95 shrink-0"
+            className="h-7.5 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1 shadow-sm transition-all active:scale-95 shrink-0"
           >
             {stats.revealed === stats.total ? (
               <>
-                <EyeOff className="w-3.5 h-3.5" />
+                <EyeOff className="w-3 h-3" />
                 <span className="hidden xs:inline">Ẩn lại</span>
               </>
             ) : (
               <>
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="w-3 h-3" />
                 <span className="hidden xs:inline">Mở hết</span>
               </>
             )}
@@ -396,157 +502,113 @@ export default function ColumnPracticePlay() {
         </div>
       </header>
 
-      {/* ═══════════ FILTER & SETUP TOOLBAR (COLLAPSIBLE / STICKY) ═══════════ */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 md:px-5 py-3 overflow-hidden shadow-xs z-20"
-          >
-            <div className="max-w-4xl mx-auto flex flex-col gap-3">
-              {/* Row 1: Column Selectors & Swap */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex-1 min-w-[130px] flex flex-col gap-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Cột 1 (Trái)</label>
-                  <select
-                    value={colLeft}
-                    onChange={(e) => {
-                      setColLeft(e.target.value)
-                      handleResetMasks()
-                    }}
-                    className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-hidden"
-                  >
-                    {availableColumns.map(col => (
-                      <option key={`left-${col}`} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  onClick={handleSwapColumns}
-                  className="w-8 h-8 rounded-lg mt-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 transition-colors shrink-0"
-                  title="Đảo 2 cột"
-                >
-                  <ArrowLeftRight className="w-4 h-4" />
-                </button>
-
-                <div className="flex-1 min-w-[130px] flex flex-col gap-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Cột 2 (Phải)</label>
-                  <select
-                    value={colRight}
-                    onChange={(e) => {
-                      setColRight(e.target.value)
-                      handleResetMasks()
-                    }}
-                    className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-hidden"
-                  >
-                    {availableColumns.map(col => (
-                      <option key={`right-${col}`} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Mask Strategy */}
-                <div className="flex-1 min-w-[140px] flex flex-col gap-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Chế độ che</label>
-                  <select
-                    value={maskStrategy}
-                    onChange={(e) => {
-                      const val = e.target.value as MaskStrategy
-                      setMaskStrategy(val)
-                      handleResetMasks(val)
-                    }}
-                    className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-hidden"
-                  >
-                    <option value="random">🎲 Ẩn ngẫu nhiên</option>
-                    <option value="hide_right">👉 Chỉ ẩn cột 2</option>
-                    <option value="hide_left">👈 Chỉ ẩn cột 1</option>
-                    <option value="hide_both">🙈 Ẩn cả 2 cột</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Row 2: Sub-lesson, Limit & Search */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {subLessons.length > 0 && (
-                  <div className="flex-1 min-w-[120px] flex flex-col gap-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Bài học (Unit)</label>
-                    <select
-                      value={selectedSubLesson}
-                      onChange={(e) => setSelectedSubLesson(e.target.value)}
-                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-hidden"
-                    >
-                      <option value="all">Toàn bộ ({subLessons.length} units)</option>
-                      {subLessons.map(u => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
-                    </select>
-                  </div>
+      {/* ═══════════ PRE-CONFIGURED PAIR SELECTOR (THUMB-REACHABLE CAROUSEL) ═══════════ */}
+      <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2 md:px-5 py-2 shadow-2xs z-20">
+        <div className="max-w-4xl mx-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1 hidden xs:inline">
+            Cặp:
+          </span>
+          {presetPairs.map(p => {
+            const isSelected = p.id === selectedPairId
+            return (
+              <button
+                key={p.id}
+                onClick={() => handleSelectPair(p)}
+                className={cn(
+                  "h-7.5 px-2.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 flex items-center gap-1.5 transition-all active:scale-95",
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-xs font-black"
+                    : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
                 )}
+              >
+                <span>{p.icon || '📑'}</span>
+                <span>{p.short_name || p.name}</span>
+              </button>
+            )
+          })}
 
-                <div className="w-28 flex flex-col gap-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Số lượng</label>
-                  <select
-                    value={cardLimit}
-                    onChange={(e) => setCardLimit(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                    className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-hidden"
-                  >
-                    <option value="all">Tất cả ({rawCards.length})</option>
-                    <option value={10}>10 thẻ</option>
-                    <option value={20}>20 thẻ</option>
-                    <option value={30}>30 thẻ</option>
-                    <option value={50}>50 thẻ</option>
-                    <option value={100}>100 thẻ</option>
-                  </select>
-                </div>
-
-                <div className="flex-1 min-w-[150px] flex flex-col gap-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Tìm kiếm nhanh</label>
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                    <input
-                      type="text"
-                      placeholder="Lọc từ, nghĩa..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full h-8 pl-8 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 outline-hidden"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ═══════════ TABLE HEADER ROW ═══════════ */}
-      <div className="shrink-0 bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-3 md:px-5 py-2 flex items-center gap-2 max-w-4xl mx-auto w-full z-10 text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-        <div className="w-7 text-center shrink-0">#</div>
-        <div className="flex-1 truncate flex items-center gap-1">
-          <span>{colLeft}</span>
-          <span className="text-[9px] font-normal lowercase opacity-70">({activeCards.length})</span>
+          <button
+            onClick={handleSwapColumns}
+            className="h-7.5 px-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shrink-0 ml-auto transition-colors active:scale-95"
+            title="Đảo chiều 2 cột"
+          >
+            <ArrowLeftRight className="w-3 h-3" />
+            <span className="text-[10px] font-bold hidden sm:inline">Đảo cột</span>
+          </button>
         </div>
-        <div className="w-5 text-center shrink-0">⇄</div>
-        <div className="flex-1 truncate flex items-center gap-1">
-          <span>{colRight}</span>
-          <span className="text-[9px] font-normal lowercase opacity-70">({activeCards.length})</span>
+
+        {/* ═══════════ MASKING MODE PILLS (MOBILE-OPTIMIZED) ═══════════ */}
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-1.5 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 shrink-0">
+            {[
+              { id: 'random', label: '🎲 Ngẫu nhiên' },
+              { id: 'hide_right', label: '👉 Ẩn phải' },
+              { id: 'hide_left', label: '👈 Ẩn trái' },
+              { id: 'hide_both', label: '🙈 Ẩn cả 2' },
+            ].map(m => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  const val = m.id as MaskStrategy
+                  setMaskStrategy(val)
+                  handleResetMasks(val)
+                }}
+                className={cn(
+                  "h-6 px-2 rounded-md text-[11px] font-bold whitespace-nowrap transition-all",
+                  maskStrategy === m.id
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Card Limit Pill */}
+          <div className="flex items-center gap-1 shrink-0">
+            <select
+              value={cardLimit}
+              onChange={(e) => setCardLimit(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="h-6 px-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 outline-hidden"
+            >
+              <option value="all">Tất cả ({rawCards.length})</option>
+              <option value={10}>10 thẻ</option>
+              <option value={20}>20 thẻ</option>
+              <option value={50}>50 thẻ</option>
+              <option value={100}>100 thẻ</option>
+            </select>
+          </div>
         </div>
-        <div className="w-10 text-center shrink-0">Nhớ?</div>
       </div>
 
-      {/* ═══════════ SCROLLABLE CARDS CONTAINER ═══════════ */}
+      {/* ═══════════ TABLE HEADER ROW ═══════════ */}
+      <div className="shrink-0 bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-2.5 md:px-5 py-1.5 flex items-center gap-1.5 max-w-4xl mx-auto w-full z-10 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div className="w-6 text-center shrink-0">#</div>
+        <div className="flex-1 truncate flex items-center gap-1">
+          <span className="truncate">{colLeftLabel}</span>
+        </div>
+        <div className="w-4 text-center shrink-0 text-slate-300 dark:text-slate-600">⇄</div>
+        <div className="flex-1 truncate flex items-center gap-1">
+          <span className="truncate">{colRightLabel}</span>
+        </div>
+        <div className="w-8 text-center shrink-0">Nhớ</div>
+      </div>
+
+      {/* ═══════════ SCROLLABLE CARDS CONTAINER (MOBILE-OPTIMIZED) ═══════════ */}
       <div 
         ref={listScrollRef}
-        className="flex-1 overflow-y-auto px-2 md:px-5 py-2.5 space-y-2 pb-24 custom-scrollbar"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="flex-1 overflow-y-auto px-2 md:px-5 py-2 space-y-1.5 pb-24 custom-scrollbar"
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain'
+        }}
       >
-        <div className="max-w-4xl mx-auto space-y-2">
+        <div className="max-w-4xl mx-auto space-y-1.5">
           {activeCards.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 text-sm flex flex-col items-center gap-2 mt-6">
+            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs flex flex-col items-center gap-2 mt-6">
               <HelpCircle className="w-8 h-8 text-slate-400" />
-              <span>Không tìm thấy thẻ nào phù hợp với bộ lọc hiện tại.</span>
+              <span>Không có thẻ nào phù hợp.</span>
             </div>
           ) : (
             activeCards.map((card, idx) => {
@@ -561,13 +623,13 @@ export default function ColumnPracticePlay() {
                 <div
                   key={card.id}
                   className={cn(
-                    "flex items-stretch gap-1.5 md:gap-2.5 p-2 rounded-xl border bg-white dark:bg-slate-900 transition-all shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700",
-                    checkState === 'remembered' && "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/20",
-                    checkState === 'forgotten' && "border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20"
+                    "flex items-stretch gap-1 md:gap-2 p-1.5 md:p-2 rounded-xl border bg-white dark:bg-slate-900 transition-all shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700",
+                    checkState === 'remembered' && "border-emerald-200/90 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/20",
+                    checkState === 'forgotten' && "border-rose-200/90 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20"
                   )}
                 >
-                  {/* Index Pill */}
-                  <div className="w-7 shrink-0 flex items-center justify-center text-[10px] font-black text-slate-400 dark:text-slate-500 select-none">
+                  {/* Index */}
+                  <div className="w-6 shrink-0 flex items-center justify-center text-[10px] font-black text-slate-400 dark:text-slate-500 select-none">
                     {idx + 1}
                   </div>
 
@@ -575,22 +637,22 @@ export default function ColumnPracticePlay() {
                   <div
                     onClick={() => handleToggleCell(card.id, 'left')}
                     className={cn(
-                      "flex-1 min-w-0 p-2.5 rounded-lg border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center",
+                      "flex-1 min-w-0 p-2 rounded-lg border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[48px]",
                       isLeftRevealed 
-                        ? "bg-slate-50/70 dark:bg-slate-800/70 border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100" 
-                        : "bg-slate-100 dark:bg-slate-800/40 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500"
+                        ? "bg-slate-50/80 dark:bg-slate-800/80 border-slate-200/90 dark:border-slate-700/80 text-slate-900 dark:text-slate-100" 
+                        : "bg-slate-100/90 dark:bg-slate-800/40 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500"
                     )}
                   >
                     {isLeftRevealed ? (
-                      <div className="text-xs md:text-sm font-semibold leading-relaxed break-words markdown-content select-text">
+                      <div className="text-[12px] md:text-sm font-semibold leading-relaxed break-words markdown-content select-text">
                         <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
                           {parseBBCodeToHtml(leftVal || '—')}
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center gap-1.5 py-2 text-slate-400 dark:text-slate-500 text-xs font-bold select-none">
+                      <div className="flex items-center justify-center gap-1.5 py-1 text-slate-400 dark:text-slate-500 text-[11px] font-bold select-none">
                         <Eye className="w-3.5 h-3.5 animate-pulse text-indigo-500" />
-                        <span>Chạm để mở</span>
+                        <span>Chạm mở</span>
                       </div>
                     )}
                   </div>
@@ -599,43 +661,43 @@ export default function ColumnPracticePlay() {
                   <div
                     onClick={() => handleToggleCell(card.id, 'right')}
                     className={cn(
-                      "flex-1 min-w-0 p-2.5 rounded-lg border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center",
+                      "flex-1 min-w-0 p-2 rounded-lg border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-center min-h-[48px]",
                       isRightRevealed 
-                        ? "bg-slate-50/70 dark:bg-slate-800/70 border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100" 
-                        : "bg-slate-100 dark:bg-slate-800/40 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500"
+                        ? "bg-slate-50/80 dark:bg-slate-800/80 border-slate-200/90 dark:border-slate-700/80 text-slate-900 dark:text-slate-100" 
+                        : "bg-slate-100/90 dark:bg-slate-800/40 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500"
                     )}
                   >
                     {isRightRevealed ? (
-                      <div className="text-xs md:text-sm font-semibold leading-relaxed break-words markdown-content select-text">
+                      <div className="text-[12px] md:text-sm font-semibold leading-relaxed break-words markdown-content select-text">
                         <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={MarkdownComponents}>
                           {parseBBCodeToHtml(rightVal || '—')}
                         </ReactMarkdown>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center gap-1.5 py-2 text-slate-400 dark:text-slate-500 text-xs font-bold select-none">
+                      <div className="flex items-center justify-center gap-1.5 py-1 text-slate-400 dark:text-slate-500 text-[11px] font-bold select-none">
                         <Eye className="w-3.5 h-3.5 animate-pulse text-indigo-500" />
-                        <span>Chạm để mở</span>
+                        <span>Chạm mở</span>
                       </div>
                     )}
                   </div>
 
-                  {/* SELF-CHECK BUTTON */}
-                  <div className="w-10 shrink-0 flex items-center justify-center">
+                  {/* SELF-CHECK BUTTON (MOBILE THUMB-SIZED) */}
+                  <div className="w-8 shrink-0 flex items-center justify-center">
                     <button
                       onClick={(e) => handleCycleCheck(card.id, e)}
                       className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                        "w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-90",
                         checkState === 'remembered' && "bg-emerald-500 text-white shadow-xs",
                         checkState === 'forgotten' && "bg-rose-500 text-white shadow-xs",
-                        checkState === 'neutral' && "border border-slate-200 dark:border-slate-700 text-slate-300 hover:text-slate-400 dark:text-slate-600 hover:border-slate-300"
+                        checkState === 'neutral' && "border border-slate-200 dark:border-slate-700 text-slate-300 hover:text-slate-400 dark:text-slate-600"
                       )}
                       title={
-                        checkState === 'remembered' ? 'Đã nhớ (Bấm để đổi)' : (checkState === 'forgotten' ? 'Chưa nhớ (Bấm để đổi)' : 'Chưa đánh giá')
+                        checkState === 'remembered' ? 'Đã nhớ' : (checkState === 'forgotten' ? 'Chưa nhớ' : 'Chưa đánh giá')
                       }
                     >
-                      {checkState === 'remembered' && <Check className="w-4 h-4 stroke-[3]" />}
-                      {checkState === 'forgotten' && <X className="w-4 h-4 stroke-[3]" />}
-                      {checkState === 'neutral' && <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />}
+                      {checkState === 'remembered' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      {checkState === 'forgotten' && <X className="w-3.5 h-3.5 stroke-[3]" />}
+                      {checkState === 'neutral' && <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />}
                     </button>
                   </div>
                 </div>
@@ -645,11 +707,11 @@ export default function ColumnPracticePlay() {
         </div>
       </div>
 
-      {/* ═══════════ DOCKED BOTTOM BAR ═══════════ */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-3 md:px-5 py-2.5 z-30 shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          {/* Quick Stats Pill */}
-          <div className="flex items-center gap-2 text-xs font-bold">
+      {/* ═══════════ DOCKED BOTTOM BAR (MOBILE THUMB CONTROLS) ═══════════ */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-3 md:px-5 py-2 z-30 shadow-lg">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
+          {/* Stats Summary */}
+          <div className="flex items-center gap-1.5 text-[11px] font-bold">
             <span className="text-slate-600 dark:text-slate-300">
               Đã mở: <strong className="text-indigo-600 dark:text-indigo-400">{stats.revealed}</strong>/{stats.total}
             </span>
@@ -667,10 +729,10 @@ export default function ColumnPracticePlay() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => handleResetMasks(maskStrategy)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-colors"
+              className="h-7.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 transition-colors active:scale-95"
               title="Khôi phục trạng thái che ban đầu"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3" />
               <span className="hidden sm:inline">Ẩn lại</span>
             </button>
 
@@ -678,10 +740,10 @@ export default function ColumnPracticePlay() {
               onClick={() => {
                 listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
               }}
-              className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
+              className="w-7.5 h-7.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors active:scale-95"
               title="Cuộn lên đầu trang"
             >
-              <ArrowUp className="w-4 h-4" />
+              <ArrowUp className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
