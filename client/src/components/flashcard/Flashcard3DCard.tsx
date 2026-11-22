@@ -385,27 +385,86 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
       others = {};
     }
 
-    const vpRaw = String(others.văn_phong || others['văn phong'] || question.văn_phong || '').trim().toLowerCase();
-    const ttRaw = String(others.độ_trang_trọng || others['độ trang trọng'] || others.trang_trong || question.độ_trang_trọng || '').trim().toLowerCase();
+    const originalVp = String(others.văn_phong || others['văn phong'] || question.văn_phong || '').trim();
+    const originalTt = String(others.độ_trang_trọng || others['độ trang trọng'] || others.trang_trong || question.độ_trang_trọng || '').trim();
 
-    // 1. Văn phong: Thư (văn viết) / Nói (văn nói) / Cả 2
+    if (!originalVp && !originalTt) return null;
+
+    const vpRaw = originalVp.toLowerCase();
+    const ttRaw = originalTt.toLowerCase();
+
+    // 1. Văn phong: lấy tag từ DB nếu có, hoặc suy ra từ nội dung thực tế của thẻ
     let vpItem: { label: string; full: string; icon: string; textClass: string } | null = null;
-    if (vpRaw.includes('viết') || vpRaw.includes('thư')) {
-      vpItem = { label: 'Thư', full: 'Chuyên văn viết (書き言葉)', icon: '✍️', textClass: 'text-indigo-600 dark:text-indigo-400' };
-    } else if (vpRaw.includes('nói') || vpRaw.includes('khẩu')) {
-      vpItem = { label: 'Nói', full: 'Chuyên văn nói (話し言葉)', icon: '🗣️', textClass: 'text-amber-600 dark:text-amber-400' };
-    } else if (vpRaw.includes('cả hai') || vpRaw.includes('cả 2') || vpRaw.includes('chung')) {
-      vpItem = { label: 'Cả 2', full: 'Dùng cả hai (共通)', icon: '🔄', textClass: 'text-slate-600 dark:text-slate-400' };
+    if (originalVp) {
+      let label = others.tag_van_phong ? String(others.tag_van_phong).trim() : '';
+      let icon = '✍️';
+      let textClass = 'text-indigo-600 dark:text-indigo-400';
+
+      if (!label) {
+        if (vpRaw.includes('viết') || vpRaw.includes('thư')) {
+          label = 'Thư';
+          icon = '✍️';
+          textClass = 'text-indigo-600 dark:text-indigo-400';
+        } else if (vpRaw.includes('nói') || vpRaw.includes('khẩu')) {
+          label = 'Nói';
+          icon = '🗣️';
+          textClass = 'text-amber-600 dark:text-amber-400';
+        } else if (vpRaw.includes('cả hai') || vpRaw.includes('cả 2') || vpRaw.includes('chung')) {
+          label = 'Cả 2';
+          icon = '🔄';
+          textClass = 'text-slate-600 dark:text-slate-400';
+        } else {
+          label = originalVp.slice(0, 10);
+          icon = '📝';
+        }
+      } else {
+        if (label === 'Nói' || vpRaw.includes('nói')) {
+          icon = '🗣️';
+          textClass = 'text-amber-600 dark:text-amber-400';
+        } else if (label === 'Cả 2' || vpRaw.includes('cả hai')) {
+          icon = '🔄';
+          textClass = 'text-slate-600 dark:text-slate-400';
+        }
+      }
+
+      vpItem = { label, full: originalVp, icon, textClass };
     }
 
-    // 2. Độ trang trọng: Cứng (trang trọng/kiểu cách) / Lịch sự / Mềm (thân mật/xuồng xã)
+    // 2. Độ trang trọng: lấy tag từ DB nếu có, hoặc suy ra từ nội dung thực tế của thẻ
     let ttItem: { label: string; full: string; icon: string; textClass: string } | null = null;
-    if (ttRaw.includes('trang trọng') || ttRaw.includes('kiểu cách') || ttRaw.includes('cứng')) {
-      ttItem = { label: 'Cứng', full: 'Trang trọng / Kiểu cách (硬い表現)', icon: '🏛️', textClass: 'text-purple-600 dark:text-purple-400' };
-    } else if (ttRaw.includes('lịch sự') || ttRaw.includes('thông dụng') || ttRaw.includes('chuẩn')) {
-      ttItem = { label: 'Lịch sự', full: 'Lịch sự thông dụng (丁寧 / 普通)', icon: '👔', textClass: 'text-emerald-600 dark:text-emerald-400' };
-    } else if (ttRaw.includes('thân mật') || ttRaw.includes('xuồng xã') || ttRaw.includes('mềm') || ttRaw.includes('khẩu ngữ')) {
-      ttItem = { label: 'Mềm', full: 'Thân mật / Xuồng xã (くだけた)', icon: '💬', textClass: 'text-rose-600 dark:text-rose-400' };
+    if (originalTt) {
+      let label = others.tag_trang_trong ? String(others.tag_trang_trong).trim() : '';
+      let icon = '🏛️';
+      let textClass = 'text-purple-600 dark:text-purple-400';
+
+      if (!label) {
+        if (ttRaw.includes('trang trọng') || ttRaw.includes('kiểu cách') || ttRaw.includes('cứng')) {
+          label = 'Cứng';
+          icon = '🏛️';
+          textClass = 'text-purple-600 dark:text-purple-400';
+        } else if (ttRaw.includes('lịch sự') || ttRaw.includes('thông dụng') || ttRaw.includes('chuẩn')) {
+          label = 'Lịch sự';
+          icon = '👔';
+          textClass = 'text-emerald-600 dark:text-emerald-400';
+        } else if (ttRaw.includes('thân mật') || ttRaw.includes('xuồng xã') || ttRaw.includes('mềm') || ttRaw.includes('khẩu ngữ')) {
+          label = 'Mềm';
+          icon = '💬';
+          textClass = 'text-rose-600 dark:text-rose-400';
+        } else {
+          label = originalTt.slice(0, 10);
+          icon = '🏷️';
+        }
+      } else {
+        if (label === 'Lịch sự' || ttRaw.includes('lịch sự')) {
+          icon = '👔';
+          textClass = 'text-emerald-600 dark:text-emerald-400';
+        } else if (label === 'Mềm' || ttRaw.includes('thân mật')) {
+          icon = '💬';
+          textClass = 'text-rose-600 dark:text-rose-400';
+        }
+      }
+
+      ttItem = { label, full: originalTt, icon, textClass };
     }
 
     if (!vpItem && !ttItem) return null;
