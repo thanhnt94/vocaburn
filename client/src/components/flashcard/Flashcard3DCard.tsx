@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { MarkdownComponents } from '@/lib/markdown'
-import { parseBBCodeToHtml } from '@/lib/text'
+import { parseBBCodeToHtml, formatFrontText } from '@/lib/text'
 import {
   parseUTCDate,
   formatRelativeTime,
@@ -249,9 +249,10 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   const isNonRatingMode = activeMode === 'speed_skim' || activeMode === 'skim' || activeMode === 'flip';
   const isHorizontalOnlyDrag = isFlipped && isNonRatingMode;
 
-  const frontText = flipSides
+  const rawFrontText = flipSides
     ? (currentQuestion?.options?.find((o: any) => o.is_correct)?.content || currentQuestion?.explanation || currentQuestion?.others?.back || currentQuestion?.back || '')
     : (currentQuestion?.content || '');
+  const frontText = formatFrontText(rawFrontText);
 
   const imageSettings = (currentQuestion as any)?.deck_image_configs || (currentQuestion as any)?.practice_settings?.image_configs
   const frontImages = React.useMemo(() => {
@@ -271,7 +272,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
 
   if (flipSides) {
     // When flipSides is true, back face is the front prompt (word/kanji)
-    primaryBackText = currentQuestion?.content || '';
+    primaryBackText = formatFrontText(currentQuestion?.content || '');
     secondaryExplanation = '';
   } else {
     // Standard mode: Front is word/kanji, Back is definition/explanation

@@ -16,7 +16,7 @@ import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio, preloadAudioUrls, registerAudioElement } from '@/lib/audio'
-import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
+import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh, formatFrontText } from '@/lib/text'
 import { selectDistractors, type SmartDistractorConfig } from '@/lib/distractor'
 import {
   parseUTCDate,
@@ -4550,7 +4550,7 @@ export default function PracticePlay() {
                                   p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>
                                 }}
                               >
-                                {parseBBCodeToHtml(currentQuestion?.content || '')}
+                                {parseBBCodeToHtml(formatFrontText(currentQuestion?.content || ''))}
                               </ReactMarkdown>
                             </div>
                           </div>

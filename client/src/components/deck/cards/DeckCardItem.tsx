@@ -1,6 +1,6 @@
 import React, { memo } from 'react'
 import { Volume2, Star, EyeOff, Eye, Edit2, Trash2, Image as ImageIcon, Sparkles } from 'lucide-react'
-import { parseBBCodeToHtml } from '@/lib/text'
+import { parseBBCodeToHtml, formatFrontText } from '@/lib/text'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { registerAudioElement, cancelAllAudio } from '@/lib/audio'
 
@@ -112,7 +112,7 @@ export const DeckCardItem = memo(function DeckCardItem({
             </div>
             <div
               className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 leading-snug break-words"
-              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(card.content || '') }}
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(formatFrontText(card.content || '')) }}
             />
             {frontImg && (
               <div className="mt-1 w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">

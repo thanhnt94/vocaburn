@@ -43,6 +43,31 @@ export const stripBBCode = (text: string): string => {
   return text.replace(/\[\/?[a-zA-Z0-9=#_\-]+\]/g, '');
 };
 
+/**
+ * Automatically splits multiple grammar patterns / alternatives separated by '/' or '／' into clean lines (<br />).
+ * Safely preserves fractions like (1/2) and HTML closing tags like </ruby> or </rt>.
+ */
+export const formatFrontText = (text: string): string => {
+  if (!text) return '';
+  if (typeof text !== 'string') return String(text);
+
+  return text.replace(/\s*[/／]\s*/g, (match, offset, str) => {
+    // Safety check: ensure not inside an HTML tag <...>
+    const beforeStr = str.slice(0, offset);
+    const lastOpenTag = beforeStr.lastIndexOf('<');
+    const lastCloseTag = beforeStr.lastIndexOf('>');
+    if (lastOpenTag > lastCloseTag) {
+      return match;
+    }
+    // Safety check: ensure not inside a fraction like (1/2)
+    const around = str.slice(Math.max(0, offset - 3), Math.min(str.length, offset + match.length + 3));
+    if (/\(\d+[/／]\d+\)/.test(around)) {
+      return match;
+    }
+    return '<br />';
+  });
+};
+
 export const isJapanese = (text: string): boolean => {
   if (!text) return false;
   for (let i = 0; i < text.length; i++) {
