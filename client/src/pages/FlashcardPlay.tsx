@@ -13,6 +13,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakWithEdgeTTS, cancelAllAudio, preloadAudioUrls } from '@/lib/audio'
 import { triggerHaptic } from '@/lib/haptic'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh } from '@/lib/text'
+import { compileGrammarBackFormula } from '@/lib/grammar-formula'
 import { selectDistractors } from '@/lib/distractor'
 import { MarkdownComponents } from '@/lib/markdown'
 import {
@@ -2858,6 +2859,22 @@ export default function FlashcardPlay() {
             : finalOthers.other_content;
         } catch (je) {
           console.warn("other_content is not JSON, saving as raw string:", je)
+        }
+      }
+
+      // Auto-recompile grammar back formula if card has grammar formula components
+      if (finalOthers.cách_kết_hợp || finalOthers.cong_thuc) {
+        const formulaKetHop = finalOthers.cách_kết_hợp || finalOthers.cong_thuc || ''
+        const formulaNghia = finalOthers.nghĩa || updatedCardData.explanation || ''
+        const formulaVd1 = finalOthers.ví_dụ_1 || ''
+        const formulaDich1 = finalOthers.dịch_ví_dụ_1 || ''
+        if (formulaNghia && formulaKetHop && formulaVd1) {
+          const compiledBack = compileGrammarBackFormula(formulaNghia, formulaKetHop, formulaVd1, formulaDich1)
+          finalOthers.back = compiledBack
+          finalOthers.cong_thuc = formulaKetHop
+          if (updatedCardData.explanation === currentQuestion?.explanation || !updatedCardData.explanation) {
+            updatedCardData.explanation = compiledBack
+          }
         }
       }
 

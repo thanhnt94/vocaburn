@@ -28,21 +28,33 @@ export const getCardColumnValue = (card: any, colName: string): string => {
     return String(card[cleanCol])
   }
 
-  if (card.others && typeof card.others === 'object') {
-    if (card.others[cleanCol] !== undefined && card.others[cleanCol] !== null && String(card.others[cleanCol]).trim() !== '') {
-      return String(card.others[cleanCol])
+  // Parse others if string
+  let othersObj = card.others
+  if (typeof othersObj === 'string') {
+    try {
+      othersObj = JSON.parse(othersObj)
+    } catch {
+      othersObj = null
+    }
+  }
+
+  if (othersObj && typeof othersObj === 'object') {
+    if (othersObj[cleanCol] !== undefined && othersObj[cleanCol] !== null && String(othersObj[cleanCol]).trim() !== '') {
+      return String(othersObj[cleanCol])
     }
     const lowerCol = cleanCol.toLowerCase()
-    for (const [k, v] of Object.entries(card.others)) {
+    for (const [k, v] of Object.entries(othersObj)) {
       if (k.toLowerCase() === lowerCol && v !== undefined && v !== null && String(v).trim() !== '') {
         return String(v)
       }
     }
-    // Smart alias fallback for cong_thuc -> cách_kết_hợp
-    if (lowerCol === 'cong_thuc' || lowerCol === 'công_thức' || lowerCol === 'congthuc') {
-      if (card.others['cách_kết_hợp']) return String(card.others['cách_kết_hợp'])
-      if (card.others['cach_ket_hop']) return String(card.others['cach_ket_hop'])
-      if (card.others['kết_hợp']) return String(card.others['kết_hợp'])
+    // Smart alias fallback for cong_thuc <-> cách_kết_hợp
+    if (lowerCol === 'cong_thuc' || lowerCol === 'công_thức' || lowerCol === 'congthuc' || lowerCol === 'cách_kết_hợp' || lowerCol === 'cach_ket_hop') {
+      if (othersObj['cách_kết_hợp']) return String(othersObj['cách_kết_hợp'])
+      if (othersObj['cong_thuc']) return String(othersObj['cong_thuc'])
+      if (othersObj['cach_ket_hop']) return String(othersObj['cach_ket_hop'])
+      if (othersObj['kết_hợp']) return String(othersObj['kết_hợp'])
+      if (othersObj['ket_hop']) return String(othersObj['ket_hop'])
     }
   }
 
