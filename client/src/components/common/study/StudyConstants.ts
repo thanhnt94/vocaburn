@@ -26,6 +26,13 @@ export interface StudySettings {
   auto_back_delay?: number | null
   swipe_to_rate?: boolean
   disabled_modes?: string[]
+  back_pages?: BackPageItem[]
+}
+
+export interface BackPageItem {
+  id: string
+  column: string
+  label?: string
 }
 
 export interface LearnModeOption {
@@ -143,6 +150,7 @@ export const DEFAULT_STUDY_SETTINGS: StudySettings = {
   auto_back_delay: 3.0,
   swipe_to_rate: true,
   disabled_modes: [],
+  back_pages: [],
 }
 
 export const SYSTEM_TEMPLATES: StudyTemplateItem[] = [

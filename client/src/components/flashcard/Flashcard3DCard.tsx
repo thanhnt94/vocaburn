@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, Undo2, Eye, Lightbulb, Volume2, RefreshCw, BookOpen, Sparkles } from 'lucide-react'
+import { Star, RotateCcw, Check, AlertCircle, Zap, ChevronRight, ChevronLeft, Undo2, Eye, Lightbulb, Volume2, RefreshCw, BookOpen, Sparkles, Layers } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -16,8 +16,35 @@ import {
 } from '@/lib/flashcard-utils'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { getFrontFontSizeStyle, getBackFontSizeStyle } from '@/components/common/study'
+import type { BackPageItem } from '@/components/common/study/StudyConstants'
 import { CardImageGallery } from '@/components/common/CardImageGallery'
 import { extractCardImages } from '@/lib/image-utils'
+
+export const getCardColumnValue = (card: any, colName: string): string => {
+  if (!card || !colName) return ''
+  const cleanCol = colName.trim()
+
+  if (card[cleanCol] !== undefined && card[cleanCol] !== null && String(card[cleanCol]).trim() !== '') {
+    return String(card[cleanCol])
+  }
+
+  if (card.others && typeof card.others === 'object') {
+    if (card.others[cleanCol] !== undefined && card.others[cleanCol] !== null && String(card.others[cleanCol]).trim() !== '') {
+      return String(card.others[cleanCol])
+    }
+    const lowerCol = cleanCol.toLowerCase()
+    for (const [k, v] of Object.entries(card.others)) {
+      if (k.toLowerCase() === lowerCol && v !== undefined && v !== null && String(v).trim() !== '') {
+        return String(v)
+      }
+    }
+  }
+
+  if (cleanCol === 'back' || cleanCol === 'explanation') return card.explanation || card.back || ''
+  if (cleanCol === 'front' || cleanCol === 'content') return card.content || card.front || ''
+
+  return ''
+}
 
 export interface Flashcard3DCardProps {
   currentQuestion: any
@@ -66,6 +93,7 @@ export interface Flashcard3DCardProps {
   isPlayingAudio?: boolean
   onOpenQuickSettings?: () => void
   onOpenStudySettings?: () => void
+  backPages?: BackPageItem[]
 }
 
 export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
@@ -77,6 +105,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
   effectiveCardFlipTrigger,
   isFlyingOut = false,
   flipSides = false,
+  backPages,
   setIsFlyToolbarOpen,
   setShowFeedback,
   setJustAnswered,
@@ -308,6 +337,37 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     ? (currentQuestion?.front_img || currentQuestion?.others?.front_img)
     : (currentQuestion?.back_img || currentQuestion?.others?.back_img || currentQuestion?.img_url));
 
+  const [activeBackPageIndex, setActiveBackPageIndex] = useState(0)
+
+  // Reset to first page when question changes or when flipped back to front
+  useEffect(() => {
+    setActiveBackPageIndex(0)
+  }, [currentIndex, isFlipped])
+
+  const rawBackPages = backPages || (currentQuestion as any)?.deck_practice_settings?.study_defaults?.back_pages || (currentQuestion as any)?.deck_practice_settings?.back_pages || []
+
+  const resolvedBackPages = React.useMemo(() => {
+    const list: { id: string; column: string; label: string }[] = [
+      { id: 'page_1_default', column: 'back', label: (rawBackPages?.[0]?.column === 'back' && rawBackPages?.[0]?.label) ? rawBackPages[0].label : 'Back' }
+    ]
+    if (Array.isArray(rawBackPages) && rawBackPages.length > 0) {
+      for (let i = 0; i < rawBackPages.length; i++) {
+        const p = rawBackPages[i]
+        if (!p || !p.column) continue
+        if (i === 0 && (p.column === 'back' || p.column === 'explanation')) {
+          if (p.label) list[0].label = p.label
+          continue
+        }
+        list.push({
+          id: p.id || `page_${i + 1}`,
+          column: p.column,
+          label: p.label || p.column.replace(/[_-]/g, ' ')
+        })
+      }
+    }
+    return list
+  }, [rawBackPages])
+
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
       <motion.div
@@ -484,102 +544,241 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                 backHalign === 'center' ? "items-center text-center" : "items-start text-left",
                 isSelectMode && "select-text cursor-text"
               )}>
-                {/* Primary Back / Definition Content */}
-                {primaryBackText && (
-                  <div 
-                    className={cn(
-                      "text-slate-800 font-extrabold leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
-                      backHalign === 'center' ? "items-center text-center" : "items-start text-left",
-                      isSelectMode && "select-text cursor-text"
-                    )}
-                    style={{
-                      textAlign: backHalign === 'center' ? 'center' : 'left',
-                      fontSize: getBackFontSizeStyle(backFontSize || '100%')
-                    }}
-                  >
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]} 
-                      rehypePlugins={[rehypeRaw]} 
-                      components={{
-                        ...MarkdownComponents,
-                        p: ({ children }) => (
-                          <p 
-                            className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
-                            style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                          >
-                            {children}
-                          </p>
-                        )
-                      }}
-                    >
-                      {parseBBCodeToHtml(primaryBackText)}
-                    </ReactMarkdown>
-                  </div>
-                )}
-
-                {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && backImages.length > 0 && (
-                  <CardImageGallery
-                    images={backImages}
-                    onZoom={setZoomedImage}
-                    maxHeight="max-h-40 md:max-h-48"
-                  />
-                )}
-
-                {currentQuestion?.mnemonic && (
-                  <div className={cn("p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500 w-full text-left", isSelectMode && "select-text cursor-text")}>
-                    <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
-                      💡
-                    </div>
-                    <div className={cn("text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap", isSelectMode && "select-text cursor-text")}>
-                      <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">AI Mnemonic</span>
-                      {currentQuestion.mnemonic}
-                    </div>
-                  </div>
-                )}
-
-                {/* Secondary Explanation (only if distinct and not duplicated) */}
-                {secondaryExplanation && (
-                  <div 
-                    className={cn(
-                      "w-full flex flex-col min-h-0 pt-3 border-t border-slate-100/80",
-                      backHalign === 'center' ? "text-center items-center" : "text-left items-start",
-                      isSelectMode && "select-text cursor-text"
-                    )}
-                    style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                  >
-                    <div 
-                      className={cn(
-                        "text-slate-700 font-semibold leading-relaxed markdown-content w-full whitespace-pre-wrap",
-                        backHalign === 'center' ? "text-center" : "text-left",
-                        isSelectMode && "select-text cursor-text"
-                      )}
-                      style={{
-                        textAlign: backHalign === 'center' ? 'center' : 'left',
-                        fontSize: `calc(${getBackFontSizeStyle(backFontSize || '100%')} * 0.9)`
-                      }}
-                    >
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]} 
-                        rehypePlugins={[rehypeRaw]} 
-                        components={{
-                          ...MarkdownComponents,
-                          p: ({ children }) => (
-                            <p 
-                              className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
-                              style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
-                            >
-                              {children}
-                            </p>
-                          )
+                {activeBackPageIndex === 0 ? (
+                  <>
+                    {/* Primary Back / Definition Content */}
+                    {primaryBackText && (
+                      <div 
+                        className={cn(
+                          "text-slate-800 font-extrabold leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
+                          backHalign === 'center' ? "items-center text-center" : "items-start text-left",
+                          isSelectMode && "select-text cursor-text"
+                        )}
+                        style={{
+                          textAlign: backHalign === 'center' ? 'center' : 'left',
+                          fontSize: getBackFontSizeStyle(backFontSize || '100%')
                         }}
                       >
-                        {parseBBCodeToHtml(secondaryExplanation)}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]} 
+                          rehypePlugins={[rehypeRaw]} 
+                          components={{
+                            ...MarkdownComponents,
+                            p: ({ children }) => (
+                              <p 
+                                className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                                style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                              >
+                                {children}
+                              </p>
+                            )
+                          }}
+                        >
+                          {parseBBCodeToHtml(primaryBackText)}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+
+                    {(showImages as any === 'always' || showImages as any === 'back' || showImages as any === true || showImages as any === 'true') && backImages.length > 0 && (
+                      <CardImageGallery
+                        images={backImages}
+                        onZoom={setZoomedImage}
+                        maxHeight="max-h-40 md:max-h-48"
+                      />
+                    )}
+
+                    {currentQuestion?.mnemonic && (
+                      <div className={cn("p-4 rounded-2xl bg-amber-50/50 border border-amber-100/60 flex items-start gap-3 shadow-inner mt-2 animate-in slide-in-from-bottom-3 duration-500 w-full text-left", isSelectMode && "select-text cursor-text")}>
+                        <div className="w-7 h-7 rounded-xl bg-amber-500 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0 mt-0.5">
+                          💡
+                        </div>
+                        <div className={cn("text-slate-700 font-bold text-xs md:text-sm leading-relaxed flex-1 whitespace-pre-wrap", isSelectMode && "select-text cursor-text")}>
+                          <span className="font-black text-[9px] uppercase tracking-wider text-amber-500 block mb-0.5">AI Mnemonic</span>
+                          {currentQuestion.mnemonic}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Secondary Explanation (only if distinct and not duplicated) */}
+                    {secondaryExplanation && (
+                      <div 
+                        className={cn(
+                          "w-full flex flex-col min-h-0 pt-3 border-t border-slate-100/80",
+                          backHalign === 'center' ? "text-center items-center" : "text-left items-start",
+                          isSelectMode && "select-text cursor-text"
+                        )}
+                        style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                      >
+                        <div 
+                          className={cn(
+                            "text-slate-700 font-semibold leading-relaxed markdown-content w-full whitespace-pre-wrap",
+                            backHalign === 'center' ? "text-center" : "text-left",
+                            isSelectMode && "select-text cursor-text"
+                          )}
+                          style={{
+                            textAlign: backHalign === 'center' ? 'center' : 'left',
+                            fontSize: `calc(${getBackFontSizeStyle(backFontSize || '100%')} * 0.9)`
+                          }}
+                        >
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]} 
+                            rehypePlugins={[rehypeRaw]} 
+                            components={{
+                              ...MarkdownComponents,
+                              p: ({ children }) => (
+                                <p 
+                                  className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                                  style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                                >
+                                  {children}
+                                </p>
+                              )
+                            }}
+                          >
+                            {parseBBCodeToHtml(secondaryExplanation)}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* ═══════════ SUB-PAGE CONTENT (Trang 2, 3...) ═══════════ */
+                  (() => {
+                    const currentSubPage = resolvedBackPages[activeBackPageIndex];
+                    const pageContent = getCardColumnValue(currentQuestion, currentSubPage?.column);
+
+                    return (
+                      <div className="w-full flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100/90">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100/60 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+                            <Layers className="w-3 h-3" />
+                            <span>{currentSubPage.label || currentSubPage.column}</span>
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            Trang {activeBackPageIndex + 1} / {resolvedBackPages.length}
+                          </span>
+                        </div>
+
+                        {pageContent ? (
+                          <div 
+                            className={cn(
+                              "text-slate-800 font-extrabold leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
+                              backHalign === 'center' ? "items-center text-center" : "items-start text-left",
+                              isSelectMode && "select-text cursor-text"
+                            )}
+                            style={{
+                              textAlign: backHalign === 'center' ? 'center' : 'left',
+                              fontSize: getBackFontSizeStyle(backFontSize || '100%')
+                            }}
+                          >
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]} 
+                              rehypePlugins={[rehypeRaw]} 
+                              components={{
+                                ...MarkdownComponents,
+                                p: ({ children }) => (
+                                  <p 
+                                    className={cn("mb-2 last:mb-0 whitespace-pre-wrap w-full", backHalign === 'center' ? "text-center" : "text-left")}
+                                    style={{ textAlign: backHalign === 'center' ? 'center' : 'left' }}
+                                  >
+                                    {children}
+                                  </p>
+                                )
+                              }}
+                            >
+                              {parseBBCodeToHtml(pageContent)}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-1.5 text-center">
+                            <span className="text-xl opacity-60">📭</span>
+                            <span className="text-xs font-semibold">Chưa có dữ liệu cho mục &ldquo;{currentSubPage.label || currentSubPage.column}&rdquo;</span>
+                            <span className="text-[10px] text-slate-400">Thẻ này hiện chưa có nội dung ở cột này</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 )}
               </div>
             </div>
+
+            {/* ═══════════ MULTI-PAGE BACK PAGINATION BAR ═══════════ */}
+            {resolvedBackPages.length > 1 && (
+              <div 
+                data-no-flip="true"
+                onClick={(e) => e.stopPropagation()}
+                className="my-1 py-1 px-1 border-t border-slate-100 flex items-center justify-between gap-1 w-full shrink-0 select-none bg-slate-50/50 rounded-xl"
+              >
+                {/* Prev Button */}
+                <button
+                  type="button"
+                  data-no-flip="true"
+                  disabled={activeBackPageIndex === 0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveBackPageIndex(prev => Math.max(0, prev - 1));
+                  }}
+                  className={cn(
+                    "w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer shrink-0",
+                    activeBackPageIndex === 0
+                      ? "opacity-25 border-transparent text-slate-300 cursor-not-allowed"
+                      : "border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600 shadow-2xs active:scale-95"
+                  )}
+                  title="Trang trước"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Page Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 px-0.5 max-w-[calc(100%-64px)] justify-center">
+                  {resolvedBackPages.map((page, idx) => {
+                    const isActive = activeBackPageIndex === idx;
+                    return (
+                      <button
+                        key={page.id || idx}
+                        type="button"
+                        data-no-flip="true"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveBackPageIndex(idx);
+                        }}
+                        className={cn(
+                          "flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-black transition-all cursor-pointer shrink-0 truncate max-w-[120px]",
+                          isActive
+                            ? "bg-indigo-600 text-white shadow-xs scale-102"
+                            : "bg-white hover:bg-slate-100 border border-slate-200/70 text-slate-600 hover:text-slate-900"
+                        )}
+                        title={page.label || page.column}
+                      >
+                        <span className="opacity-80">{idx + 1}.</span>
+                        <span className="truncate">{page.label || page.column}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  type="button"
+                  data-no-flip="true"
+                  disabled={activeBackPageIndex === resolvedBackPages.length - 1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveBackPageIndex(prev => Math.min(resolvedBackPages.length - 1, prev + 1));
+                  }}
+                  className={cn(
+                    "w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer shrink-0",
+                    activeBackPageIndex === resolvedBackPages.length - 1
+                      ? "opacity-25 border-transparent text-slate-300 cursor-not-allowed"
+                      : "border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600 shadow-2xs active:scale-95"
+                  )}
+                  title="Trang tiếp theo"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Card Answer Frequency & Statistics Bar */}
             {(() => {

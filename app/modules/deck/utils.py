@@ -329,7 +329,8 @@ SYSTEM_STUDY_DEFAULTS = {
     "swipe_to_rate": True,          # boolean
     "show_bottom_nav_tabs": False,  # boolean: Show 3-tab bar (Map, Card, Stats) at bottom on mobile
     "audio_speed": 1.0,             # float
-    "flip_sides": False             # boolean
+    "flip_sides": False,            # boolean
+    "back_pages": []                # list of {"id": str, "column": str, "label": str}
 }
 
 STUDY_SETTINGS_KEYS = set(SYSTEM_STUDY_DEFAULTS.keys())
@@ -581,6 +582,18 @@ def normalize_study_setting_value(key: str, val: Any) -> Any:
         if val_str in ("memrise", "gieo hạt", "gieo hat", "tưới cây", "tuoi cay"):
             return "fsrs"
         return "fsrs"
+    if key == "back_pages":
+        if isinstance(val, list):
+            clean_pages = []
+            for p in val:
+                if isinstance(p, dict) and p.get("column"):
+                    clean_pages.append({
+                        "id": str(p.get("id") or f"page_{len(clean_pages) + 1}"),
+                        "column": str(p.get("column")).strip(),
+                        "label": str(p.get("label") or p.get("column")).strip()
+                    })
+            return clean_pages
+        return []
     return val
 
 

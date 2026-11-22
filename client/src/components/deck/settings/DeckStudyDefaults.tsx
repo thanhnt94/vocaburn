@@ -13,6 +13,7 @@ import {
   StudySettingsEditor,
   type StudySettings,
 } from '@/components/common/study'
+import { DeckBackPagesEditor } from './DeckBackPagesEditor'
 import { useAutoSaveStore } from './useAutoSaveNotifier'
 
 export interface DeckStudyDefaultsProps {
@@ -189,6 +190,13 @@ export function DeckStudyDefaults({ deckId, onSaved }: DeckStudyDefaultsProps) {
           <StudySettingsEditor
             settings={settings}
             onChange={updateSetting}
+          />
+
+          {/* MULTI-PAGE BACK FACE CONFIGURATION */}
+          <DeckBackPagesEditor
+            backPages={settings.back_pages || []}
+            availableColumns={settingsData?.available_columns || []}
+            onChange={(pages) => updateSetting('back_pages', pages)}
           />
 
           {/* Footer Actions */}

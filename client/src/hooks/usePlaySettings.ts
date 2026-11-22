@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import axios from 'axios'
+import type { BackPageItem } from '@/components/common/study/StudyConstants'
 
 export type AutoPlayMode = 'always' | 'front' | 'back' | 'none'
 export type ImageDisplayMode = 'always' | 'front' | 'back' | 'none'
@@ -35,6 +36,7 @@ export interface StudySettingsState {
   show_action_dock?: boolean
   swipe_to_rate?: boolean
   show_bottom_nav_tabs?: boolean
+  back_pages?: BackPageItem[]
 }
 
 export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
@@ -62,7 +64,8 @@ export const DEFAULT_STUDY_SETTINGS: StudySettingsState = {
   tap_to_flip: true,
   show_action_dock: true,
   swipe_to_rate: true,
-  show_bottom_nav_tabs: false
+  show_bottom_nav_tabs: false,
+  back_pages: []
 }
 
 export function usePlaySettings(
@@ -96,6 +99,7 @@ export function usePlaySettings(
   const [showBottomNavTabs, setShowBottomNavTabsState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.show_bottom_nav_tabs ?? false)
   const [audioSpeed, setAudioSpeedState] = useState<number>(DEFAULT_STUDY_SETTINGS.audio_speed ?? 1.0)
   const [flipSides, setFlipSidesState] = useState<boolean>(DEFAULT_STUDY_SETTINGS.flip_sides ?? false)
+  const [backPages, setBackPagesState] = useState<BackPageItem[]>(DEFAULT_STUDY_SETTINGS.back_pages || [])
 
   // Creator baseline & user customization status
   const [creatorDefaults, setCreatorDefaults] = useState<Partial<StudySettingsState>>({})
@@ -199,6 +203,11 @@ export function usePlaySettings(
       }
       if (effectiveSettings.back_font_size !== undefined) {
         setBackFontSizeState(effectiveSettings.back_font_size)
+      }
+      if (effectiveSettings.back_pages !== undefined && Array.isArray(effectiveSettings.back_pages)) {
+        setBackPagesState(effectiveSettings.back_pages)
+      } else if (creatorStudyDefaults?.back_pages && Array.isArray(creatorStudyDefaults.back_pages)) {
+        setBackPagesState(creatorStudyDefaults.back_pages)
       }
       // Sync interaction and gesture settings from effective study settings (profile/user/creator)
       if (effectiveSettings.card_flip_trigger !== undefined) {
@@ -579,6 +588,11 @@ export function usePlaySettings(
     setFlipSides: (flip: boolean) => {
       setFlipSidesState(flip)
       saveGeneralSettings({ flip_sides: flip })
+    },
+    backPages,
+    setBackPages: (pages: BackPageItem[]) => {
+      setBackPagesState(pages)
+      saveGeneralSettings({ back_pages: pages })
     },
     creatorDefaults,
     isCustomized,

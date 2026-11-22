@@ -286,6 +286,7 @@ export default function FlashcardPlay() {
     setAudioSpeed,
     flipSides,
     setFlipSides,
+    backPages,
     tapToFlip: deckTapToFlip,
     setTapToFlip,
     showBottomNavTabs,
@@ -3993,6 +3994,7 @@ export default function FlashcardPlay() {
                   effectiveCardFlipTrigger={effectiveCardFlipTrigger}
                   isFlyingOut={isFlyingOut}
                   flipSides={flipSides}
+                  backPages={backPages}
                   setIsFlyToolbarOpen={setIsFlyToolbarOpen}
                   setShowFeedback={setShowFeedback}
                   setJustAnswered={setJustAnswered}
