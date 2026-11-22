@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, ChevronRight, ArrowUpDown, Shuffle, Filter } from 'lucide-react'
+import { X, Trophy, BrainCircuit, LayoutGrid, Zap, Play, ChevronRight, ArrowUpDown, Shuffle, Filter, Columns3 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 
@@ -88,6 +88,11 @@ export function PracticeModeModal({
     (disabledModes.includes('audio_mcq') && disabledModes.includes('listening_typing'))
   )
 
+  const isColumnsDisabled = (
+    isPracticeGloballyDisabled ||
+    disabledModes.includes('columns')
+  )
+
   const practiceModes = [
     {
       mode: 'mcq',
@@ -108,6 +113,16 @@ export function PracticeModeModal({
       title: 'Vocabulary Typing',
       desc: 'Type vocabulary characters for deep spelling recall',
       badge: 'Spelling'
+    },
+    {
+      mode: 'columns',
+      disabled: isColumnsDisabled,
+      icon: Columns3,
+      iconColor: 'text-amber-600 bg-amber-50 border-amber-100',
+      hoverColor: 'hover:border-amber-500/40 hover:bg-amber-50/15',
+      title: 'Column Drill (Luyện 2 Cột)',
+      desc: 'Blind-mask & tap to reveal pre-set pairs',
+      badge: 'Drill'
     },
     {
       mode: 'listening',
