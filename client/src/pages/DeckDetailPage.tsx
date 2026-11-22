@@ -144,6 +144,17 @@ export const STUDY_MODES: StudyModeOption[] = [
     badgeColor: 'bg-cyan-100 text-cyan-700',
     color: 'from-cyan-500 to-teal-600',
     getUrl: (id) => `/practice/${id}/listening_typing`
+  },
+  {
+    id: 'columns',
+    name: 'Column Drill',
+    fullName: '2-Column Blind Drill',
+    emoji: '📑',
+    desc: 'Pick 2 columns, blind-mask one side and tap to reveal for rapid self-testing',
+    badge: () => 'Drill',
+    badgeColor: 'bg-amber-100 text-amber-700',
+    color: 'from-amber-500 to-orange-600',
+    getUrl: (id) => `/practice/${id}/columns`
   }
 ]
 

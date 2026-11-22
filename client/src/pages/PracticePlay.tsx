@@ -98,6 +98,8 @@ export default function PracticePlay() {
   useEffect(() => {
     if (subMode === 'hybrid') {
       navigate(`/hybrid/${id}/play`, { replace: true });
+    } else if (subMode === 'columns') {
+      navigate(`/practice/${id}/columns`, { replace: true });
     }
   }, [id, subMode, navigate]);
 

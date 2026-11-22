@@ -14,6 +14,7 @@ const DeckDetailPage = lazy(() => import('./pages/DeckDetailPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const FlashcardPlay = lazy(() => import('./pages/FlashcardPlay'))
 const PracticePlay = lazy(() => import('./pages/PracticePlay'))
+const ColumnPracticePlay = lazy(() => import('./pages/ColumnPracticePlay'))
 const HybridPlay = lazy(() => import('./pages/HybridPlay'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Stats = lazy(() => import('./pages/Stats'))
@@ -88,6 +89,7 @@ function AppContent() {
             <Route path="/flashcard/:id/roadmap" element={isLoggedIn ? <FlashcardPlay /> : <Navigate to="/login" replace />} />
             <Route path="/practice/:id/hybrid" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
             <Route path="/practice/:id/hybrid/play" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
+            <Route path="/practice/:id/columns" element={isLoggedIn ? <ColumnPracticePlay /> : <Navigate to="/login" replace />} />
             <Route path="/practice/:id/:subMode?" element={isLoggedIn ? <PracticePlay /> : <Navigate to="/login" replace />} />
             <Route path="/hybrid/:id" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
             <Route path="/hybrid/:id/play" element={isLoggedIn ? <HybridPlay /> : <Navigate to="/login" replace />} />
