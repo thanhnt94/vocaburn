@@ -148,8 +148,8 @@ export default function ColumnPracticePlay() {
           const hasGrammar = allCols.includes('mẫu_ngữ_pháp')
           const hasMeaning = allCols.includes('nghĩa')
           const hasFormation = allCols.includes('cách_kết_hợp')
-          const hasExample = allCols.includes('ví_dụ_1')
-          const hasCloze = allCols.includes('câu_hỏi_đục_lỗ')
+          const hasExample = allCols.includes('ví_dụ_1') || allCols.includes('ví_dụ')
+          const hasRightWrong = allCols.includes('ví_dụ_đúng_sai') || allCols.includes('phân_biệt_đúng_sai')
 
           if (hasGrammar && hasMeaning) {
             finalPairs.push({
@@ -176,15 +176,29 @@ export default function ColumnPracticePlay() {
             })
           }
           if (hasGrammar && hasExample) {
+            const exCol = allCols.includes('ví_dụ_1') ? 'ví_dụ_1' : 'ví_dụ'
             finalPairs.push({
               id: 'pair_grammar_example',
               name: 'Mẫu ⇄ Ví dụ',
               short_name: 'Mẫu ⇄ Ví dụ',
               col1: 'mẫu_ngữ_pháp',
-              col2: 'ví_dụ_1',
+              col2: exCol,
               icon: '💡',
               col1_label: 'Mẫu ngữ pháp',
               col2_label: 'Ví dụ'
+            })
+          }
+          if (hasGrammar && hasRightWrong) {
+            const rwCol = allCols.includes('ví_dụ_đúng_sai') ? 'ví_dụ_đúng_sai' : 'phân_biệt_đúng_sai'
+            finalPairs.push({
+              id: 'pair_grammar_rightwrong',
+              name: 'Mẫu ⇄ Đúng/Sai',
+              short_name: 'Mẫu ⇄ Đúng/Sai',
+              col1: 'mẫu_ngữ_pháp',
+              col2: rwCol,
+              icon: '⚖️',
+              col1_label: 'Mẫu ngữ pháp',
+              col2_label: 'Ví dụ Đúng vs Sai & Cách sửa'
             })
           }
           if (hasMeaning && hasFormation) {
@@ -197,18 +211,6 @@ export default function ColumnPracticePlay() {
               icon: '📖',
               col1_label: 'Ý nghĩa',
               col2_label: 'Cách kết hợp'
-            })
-          }
-          if (hasGrammar && hasCloze) {
-            finalPairs.push({
-              id: 'pair_grammar_cloze',
-              name: 'Mẫu ⇄ Đục lỗ',
-              short_name: 'Mẫu ⇄ Đục lỗ',
-              col1: 'mẫu_ngữ_pháp',
-              col2: 'câu_hỏi_đục_lỗ',
-              icon: '📝',
-              col1_label: 'Mẫu ngữ pháp',
-              col2_label: 'Câu đục lỗ'
             })
           }
 
