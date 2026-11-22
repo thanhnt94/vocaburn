@@ -6,6 +6,53 @@
  * 3. 💡 VÍ DỤ TIÊU BIỂU (Highlighted Japanese sentence + Vietnamese translation)
  */
 
+function isTagToken(tok: string): boolean {
+  const t = tok.trim()
+  if (!t) return false
+
+  if (t.includes('/')) {
+    const subTokens = t.split('/').map(s => s.trim())
+    if (subTokens.every(isTagToken)) return true
+  }
+
+  const ssotExact = new Set([
+    'N', 'Nだ', 'Nで', 'Nの', 'Nである', 'Nではない', 'Nだった', 'Nではなかった',
+    'Nする', 'N×する', 'N+助詞', 'N+であり', 'Nであった',
+    '普通形', '普通形(名詞修飾型)', '普通形(である型)', 'S',
+    '助数詞', '数詞', '助詞', '接頭辞', '接尾辞', '1', 'お', 'ご',
+    'ADV', '疑問詞', '指示詞', '代名詞'
+  ])
+  if (ssotExact.has(t)) return true
+  if (t.startsWith('V') || t.startsWith('A')) return true
+
+  return false
+}
+
+function formatConnectionLine(line: string): string {
+  const l = line.trim()
+  if (!l) return ''
+  if (l.includes('<span')) return l
+
+  const parts = l.split(/\s*[＋+]\s*/)
+  const formattedParts: string[] = []
+  for (const p of parts) {
+    const pt = p.trim()
+    if (!pt) continue
+    if (isTagToken(pt)) {
+      formattedParts.push(
+        `<span style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 13.5px;">${pt}</span>`
+      )
+    } else {
+      formattedParts.push(
+        `<span style="color: #4f46e5; font-weight: 800; font-size: 15.5px;">${pt}</span>`
+      )
+    }
+  }
+
+  const plusSep = ' <span style="color: #94a3b8; font-weight: bold;">＋</span> '
+  return formattedParts.join(plusSep)
+}
+
 export function compileGrammarBackFormula(
   nghia: string = '',
   cachKetHop: string = '',
@@ -26,26 +73,7 @@ export function compileGrammarBackFormula(
     .map(l => l.trim())
     .filter(Boolean)
 
-  const formattedPills: string[] = []
-  for (const line of lines) {
-    if (line.includes('<span')) {
-      formattedPills.push(line)
-    } else {
-      const parts = line.split(/\s*[＋+]\s*/)
-      if (parts.length >= 2) {
-        const leftPart = parts[0]
-        const rightPart = parts.slice(1).join(' ＋ ')
-        formattedPills.push(
-          `<span style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 13.5px;">${leftPart}</span> ` +
-          `<span style="color: #94a3b8; font-weight: bold;">＋</span> ` +
-          `<span style="color: #4f46e5; font-weight: 800; font-size: 15.5px;">${rightPart}</span>`
-        )
-      } else {
-        formattedPills.push(line)
-      }
-    }
-  }
-
+  const formattedPills: string[] = lines.map(formatConnectionLine)
   const connectionHtml = formattedPills.join('<br/>\n')
   const subDiv = subMeaning
     ? `<div style="font-size: 14px; color: #6366f1; font-weight: 600; margin-top: 5px; line-height: 1.4;">${subMeaning}</div>`
