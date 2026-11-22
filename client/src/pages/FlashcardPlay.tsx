@@ -1514,8 +1514,17 @@ export default function FlashcardPlay() {
     if (correct) {
       if (sfxEnabled) playCorrectSound()
       if (hapticEnabled) triggerHaptic('success')
-      const confettiColors = streak >= 5 ? ['#f59e0b', '#ef4444', '#f97316'] : ['#6366f1', '#a855f7', '#ec4899']
-      confetti({ zIndex: 9999, particleCount: streak >= 5 ? 250 : 150, spread: streak >= 5 ? 100 : 70, origin: { y: 0.6 }, colors: confettiColors })
+      const confettiColors = streak >= 5 ? ['#F59E0B', '#FCD34D', '#F97316'] : ['#818CF8', '#A78BFA', '#F472B6']
+      confetti({
+        zIndex: 9999,
+        particleCount: streak >= 5 ? 24 : 14,
+        spread: 45,
+        origin: { y: 0.08 },
+        scalar: 0.7,
+        shapes: ['circle', 'star'],
+        ticks: 110,
+        colors: confettiColors
+      })
       if (alreadyRated) setBadgeMessage("Correct! 🎯")
     } else {
       if (sfxEnabled) playIncorrectSound()
@@ -1865,67 +1874,58 @@ export default function FlashcardPlay() {
         }, 4500)
 
         if (goalUpdate.just_completed) {
-          // Disabled full screen goal celebration popup
-          // setShowGoalCelebration(true)
-          // Epic continuous confetti shower from bottom corners
-          const end = Date.now() + 4.5 * 1000;
-          const colors = ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
-          
-          (function frame() {
-            confetti({ zIndex: 9999,
-              particleCount: 4,
-              angle: 60,
-              spread: 55,
-              origin: { x: 0, y: 0.8 },
-              colors: colors
-            });
-            confetti({ zIndex: 9999,
-              particleCount: 4,
-              angle: 120,
-              spread: 55,
-              origin: { x: 1, y: 0.8 },
-              colors: colors
-            });
-            
-            if (Date.now() < end) {
-              requestAnimationFrame(frame);
-            }
-          }());
+          // Elegant, subtle top-corner celebratory sparkle (does not obscure the card)
+          confetti({
+            zIndex: 9999,
+            particleCount: 20,
+            angle: 315,
+            spread: 35,
+            origin: { x: 0.08, y: 0.08 },
+            scalar: 0.7,
+            shapes: ['circle', 'star'],
+            ticks: 120,
+            colors: ['#F59E0B', '#10B981', '#3B82F6', '#EC4899']
+          });
+          confetti({
+            zIndex: 9999,
+            particleCount: 20,
+            angle: 225,
+            spread: 35,
+            origin: { x: 0.92, y: 0.08 },
+            scalar: 0.7,
+            shapes: ['circle', 'star'],
+            ticks: 120,
+            colors: ['#F59E0B', '#10B981', '#3B82F6', '#EC4899']
+          });
         } else if (goalUpdate.is_target_met) {
           if (correct && goalUpdate.done_today > goalUpdate.daily_target) {
-            // Screen flash lightning overlay
+            // Screen flash lightning overlay (top floating pill)
             setIsLimitlessStrike(true);
-            setTimeout(() => setIsLimitlessStrike(false), 800);
+            setTimeout(() => setIsLimitlessStrike(false), 900);
 
-            // Epic multi-angle golden/purple fireworks cascade!
-            confetti({ zIndex: 9999,
-              particleCount: 50,
-              angle: 60,
-              spread: 75,
-              origin: { x: 0.15, y: 0.85 },
-              colors: ['#F59E0B', '#F97316', '#EF4444', '#8B5CF6', '#FFF']
-            });
-            confetti({ zIndex: 9999,
-              particleCount: 50,
-              angle: 120,
-              spread: 75,
-              origin: { x: 0.85, y: 0.85 },
-              colors: ['#F59E0B', '#F97316', '#EF4444', '#8B5CF6', '#FFF']
-            });
-            confetti({ zIndex: 9999,
-              particleCount: 40,
-              spread: 100,
-              origin: { x: 0.5, y: 0.5 },
-              colors: ['#F59E0B', '#F97316', '#FFF']
+            // Refined, subtle golden star sparkle from top header
+            confetti({
+              zIndex: 9999,
+              particleCount: 18,
+              spread: 40,
+              origin: { x: 0.5, y: 0.08 },
+              scalar: 0.7,
+              shapes: ['circle', 'star'],
+              ticks: 120,
+              colors: ['#F59E0B', '#FCD34D', '#FFF']
             });
           } else {
-            // Epic gold/rose sparkle burst from the top right corner near the toast
-            confetti({ zIndex: 9999,
-              particleCount: 20,
+            // Delicate gold sparkle burst near top right corner
+            confetti({
+              zIndex: 9999,
+              particleCount: 14,
               angle: 220,
-              spread: 45,
-              origin: { x: 0.9, y: 0.12 },
-              colors: ['#F59E0B', '#F97316', '#EF4444', '#EC4899']
+              spread: 35,
+              origin: { x: 0.9, y: 0.08 },
+              scalar: 0.65,
+              shapes: ['circle', 'star'],
+              ticks: 100,
+              colors: ['#F59E0B', '#FCD34D', '#F43F5E']
             });
           }
         }
@@ -2124,7 +2124,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      confetti({ zIndex: 9999, particleCount: 80, spread: 50, origin: { y: 0.6 } });
+      confetti({ zIndex: 9999, particleCount: 16, spread: 35, origin: { y: 0.08 }, scalar: 0.65, shapes: ['circle', 'star'], ticks: 100 });
       setBadgeMessage("Correct! 🎯");
     } else {
       if (sfxEnabled) playIncorrectSound();
@@ -2208,7 +2208,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      confetti({ zIndex: 9999, particleCount: 100, spread: 60, origin: { y: 0.6 } });
+      confetti({ zIndex: 9999, particleCount: 20, spread: 40, origin: { y: 0.08 }, scalar: 0.65, shapes: ['circle', 'star'], ticks: 100 });
       setBadgeMessage("Excellent! ⌨️");
     } else {
       if (sfxEnabled) playIncorrectSound();
@@ -3633,7 +3633,7 @@ export default function FlashcardPlay() {
 
   useEffect(() => {
     if (shouldShowFsrsCompleteScreen) {
-      confetti({ zIndex: 9999, particleCount: 150, spread: 80, origin: { y: 0.5 } });
+      confetti({ zIndex: 9999, particleCount: 36, spread: 55, origin: { y: 0.2 }, scalar: 0.75, shapes: ['circle', 'star'], ticks: 140 });
     }
   }, [shouldShowFsrsCompleteScreen]);
 
