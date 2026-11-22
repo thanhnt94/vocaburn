@@ -135,19 +135,20 @@ html, body, #root {
 .markdown-content tr:hover td { @apply bg-indigo-50/30; }
 
 /* Furigana (Ruby) Support - Professional Baseline Alignment */
-ruby, .markdown-content ruby {
+ruby, .markdown-content ruby, .markdown-content * ruby {
   display: inline-ruby;
   ruby-position: over;
   vertical-align: baseline;
 }
-rt, .markdown-content rt {
+rt, .markdown-content rt, .markdown-content * rt, ruby rt {
   display: ruby-text;
-  font-size: 0.55em;
+  font-size: 0.58em !important;
   font-weight: 400 !important;
   text-transform: none !important;
   color: inherit !important;
-  opacity: 0.65;
-  letter-spacing: 0.02em;
+  opacity: 0.62 !important;
+  letter-spacing: normal !important;
+  line-height: 1 !important;
   font-family: var(--font-sans);
 }
 
