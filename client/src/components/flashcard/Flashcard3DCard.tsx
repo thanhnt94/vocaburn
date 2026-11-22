@@ -376,6 +376,75 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     return list
   }, [rawBackPages])
 
+  const renderStyleTag = (question: any) => {
+    if (!question) return null;
+    let others: any = question.others;
+    if (typeof others === 'string') {
+      try { others = JSON.parse(others); } catch { others = {}; }
+    } else if (!others || typeof others !== 'object') {
+      others = {};
+    }
+
+    const vpRaw = String(others.văn_phong || others['văn phong'] || question.văn_phong || '').trim().toLowerCase();
+    const ttRaw = String(others.độ_trang_trọng || others['độ trang trọng'] || others.trang_trong || question.độ_trang_trọng || '').trim().toLowerCase();
+
+    // 1. Văn phong: Thư (văn viết) / Nói (văn nói) / Cả 2
+    let vpItem: { label: string; full: string; icon: string; textClass: string } | null = null;
+    if (vpRaw.includes('viết') || vpRaw.includes('thư')) {
+      vpItem = { label: 'Thư', full: 'Chuyên văn viết (書き言葉)', icon: '✍️', textClass: 'text-indigo-600 dark:text-indigo-400' };
+    } else if (vpRaw.includes('nói') || vpRaw.includes('khẩu')) {
+      vpItem = { label: 'Nói', full: 'Chuyên văn nói (話し言葉)', icon: '🗣️', textClass: 'text-amber-600 dark:text-amber-400' };
+    } else if (vpRaw.includes('cả hai') || vpRaw.includes('cả 2') || vpRaw.includes('chung')) {
+      vpItem = { label: 'Cả 2', full: 'Dùng cả hai (共通)', icon: '🔄', textClass: 'text-slate-600 dark:text-slate-400' };
+    }
+
+    // 2. Độ trang trọng: Cứng (trang trọng/kiểu cách) / Lịch sự / Mềm (thân mật/xuồng xã)
+    let ttItem: { label: string; full: string; icon: string; textClass: string } | null = null;
+    if (ttRaw.includes('trang trọng') || ttRaw.includes('kiểu cách') || ttRaw.includes('cứng')) {
+      ttItem = { label: 'Cứng', full: 'Trang trọng / Kiểu cách (硬い表現)', icon: '🏛️', textClass: 'text-purple-600 dark:text-purple-400' };
+    } else if (ttRaw.includes('lịch sự') || ttRaw.includes('thông dụng') || ttRaw.includes('chuẩn')) {
+      ttItem = { label: 'Lịch sự', full: 'Lịch sự thông dụng (丁寧 / 普通)', icon: '👔', textClass: 'text-emerald-600 dark:text-emerald-400' };
+    } else if (ttRaw.includes('thân mật') || ttRaw.includes('xuồng xã') || ttRaw.includes('mềm') || ttRaw.includes('khẩu ngữ')) {
+      ttItem = { label: 'Mềm', full: 'Thân mật / Xuồng xã (くだけた)', icon: '💬', textClass: 'text-rose-600 dark:text-rose-400' };
+    }
+
+    if (!vpItem && !ttItem) return null;
+
+    const tooltip = [vpItem?.full, ttItem?.full].filter(Boolean).join(' • ');
+
+    return (
+      <div 
+        data-no-flip="true"
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "w-full flex items-center mb-1 select-none",
+          backHalign === 'center' ? "justify-center" : "justify-start"
+        )}
+      >
+        <div 
+          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs text-[10.5px] font-black cursor-help transition-all hover:scale-102"
+          title={tooltip}
+        >
+          {vpItem && (
+            <span className={cn("inline-flex items-center gap-1", vpItem.textClass)}>
+              <span className="text-xs leading-none">{vpItem.icon}</span>
+              <span>{vpItem.label}</span>
+            </span>
+          )}
+          {vpItem && ttItem && (
+            <span className="text-slate-300 dark:text-slate-600 text-[9px] font-bold">•</span>
+          )}
+          {ttItem && (
+            <span className={cn("inline-flex items-center gap-1", ttItem.textClass)}>
+              <span className="text-xs leading-none">{ttItem.icon}</span>
+              <span>{ttItem.label}</span>
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative perspective-1000">
       <motion.div
@@ -554,6 +623,9 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               )}>
                 {activeBackPageIndex === 0 ? (
                   <>
+                    {/* Style & Formality Micro-Tag (Trang 1: Văn phong & Độ trang trọng) */}
+                    {renderStyleTag(currentQuestion)}
+
                     {/* Primary Back / Definition Content */}
                     {primaryBackText && (
                       <div 
