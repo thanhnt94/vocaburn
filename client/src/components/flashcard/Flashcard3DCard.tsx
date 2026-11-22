@@ -38,6 +38,12 @@ export const getCardColumnValue = (card: any, colName: string): string => {
         return String(v)
       }
     }
+    // Smart alias fallback for cong_thuc -> cách_kết_hợp
+    if (lowerCol === 'cong_thuc' || lowerCol === 'công_thức' || lowerCol === 'congthuc') {
+      if (card.others['cách_kết_hợp']) return String(card.others['cách_kết_hợp'])
+      if (card.others['cach_ket_hop']) return String(card.others['cach_ket_hop'])
+      if (card.others['kết_hợp']) return String(card.others['kết_hợp'])
+    }
   }
 
   if (cleanCol === 'back' || cleanCol === 'explanation') return card.explanation || card.back || ''
