@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import confetti from 'canvas-confetti'
+import { triggerCelebrationSparkles } from '@/utils/celebration'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Timer, Flame, Trophy, Check, X, Sparkles, Play, Target, Clock, Copy, HelpCircle, Sliders, Shuffle, Lock, Keyboard, Settings, Star } from 'lucide-react'
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
@@ -1514,22 +1515,7 @@ export default function FlashcardPlay() {
     if (correct) {
       if (sfxEnabled) playCorrectSound()
       if (hapticEnabled) triggerHaptic('success')
-      const confettiColors = streak >= 5 
-        ? ['#FFD700', '#FF9100', '#FF3D00', '#00E676', '#FFEA00'] 
-        : ['#FFD700', '#6C5CE7', '#00CEC9', '#FF7675', '#38BDF8']
-      confetti({
-        zIndex: 9999,
-        particleCount: streak >= 5 ? 38 : 24,
-        angle: 270, // Directed downward into view, NOT shooting up offscreen
-        spread: 65,
-        startVelocity: 22,
-        gravity: 1.25,
-        origin: { x: 0.5, y: 0.02 },
-        scalar: 0.9,
-        shapes: ['circle', 'star'],
-        ticks: 140,
-        colors: confettiColors
-      })
+      triggerCelebrationSparkles({ isBonus: streak >= 5, intensity: streak >= 5 ? 'normal' : 'light' })
       if (alreadyRated) setBadgeMessage("Correct! 🎯")
     } else {
       if (sfxEnabled) playIncorrectSound()
@@ -1879,64 +1865,12 @@ export default function FlashcardPlay() {
         }, 4500)
 
         if (goalUpdate.just_completed) {
-          // Vibrant twin celebratory sparkles from top corners downward
-          confetti({
-            zIndex: 9999,
-            particleCount: 28,
-            angle: 310,
-            spread: 50,
-            startVelocity: 25,
-            gravity: 1.25,
-            origin: { x: 0.05, y: 0.05 },
-            scalar: 0.9,
-            shapes: ['circle', 'star'],
-            ticks: 140,
-            colors: ['#FFD700', '#FF9100', '#00E676', '#7C4DFF', '#38BDF8']
-          });
-          confetti({
-            zIndex: 9999,
-            particleCount: 28,
-            angle: 230,
-            spread: 50,
-            startVelocity: 25,
-            gravity: 1.25,
-            origin: { x: 0.95, y: 0.05 },
-            scalar: 0.9,
-            shapes: ['circle', 'star'],
-            ticks: 140,
-            colors: ['#FFD700', '#FF9100', '#00E676', '#7C4DFF', '#38BDF8']
-          });
+          triggerCelebrationSparkles({ isBonus: true, intensity: 'grand' })
         } else if (goalUpdate.is_target_met) {
           if (correct && goalUpdate.done_today > goalUpdate.daily_target) {
-            // Snappy golden star celebration from top center downward
-            confetti({
-              zIndex: 9999,
-              particleCount: 30,
-              angle: 270,
-              spread: 60,
-              startVelocity: 22,
-              gravity: 1.25,
-              origin: { x: 0.5, y: 0.02 },
-              scalar: 0.9,
-              shapes: ['circle', 'star'],
-              ticks: 140,
-              colors: ['#FFD700', '#FFA500', '#00E676', '#FFF', '#7C4DFF']
-            });
+            triggerCelebrationSparkles({ isBonus: true, intensity: 'normal' })
           } else {
-            // Delicate gold sparkle burst from top right corner
-            confetti({
-              zIndex: 9999,
-              particleCount: 20,
-              angle: 230,
-              spread: 45,
-              startVelocity: 20,
-              gravity: 1.2,
-              origin: { x: 0.9, y: 0.05 },
-              scalar: 0.85,
-              shapes: ['circle', 'star'],
-              ticks: 120,
-              colors: ['#FFD700', '#FFA500', '#FF4500', '#38BDF8']
-            });
+            triggerCelebrationSparkles({ isBonus: false, intensity: 'light' })
           }
         }
       }
@@ -2134,19 +2068,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      confetti({
-        zIndex: 9999,
-        particleCount: 24,
-        angle: 270,
-        spread: 60,
-        startVelocity: 20,
-        gravity: 1.25,
-        origin: { x: 0.5, y: 0.02 },
-        scalar: 0.85,
-        shapes: ['circle', 'star'],
-        ticks: 130,
-        colors: ['#FFD700', '#6C5CE7', '#00CEC9', '#FF7675']
-      });
+      triggerCelebrationSparkles({ intensity: 'light' });
       setBadgeMessage("Correct! 🎯");
     } else {
       if (sfxEnabled) playIncorrectSound();
@@ -2230,19 +2152,7 @@ export default function FlashcardPlay() {
       setXpFloat({ visible: true, amount: xpGained });
       setTimeout(() => setXpFloat({ visible: false, amount: 0 }), 1500);
       
-      confetti({
-        zIndex: 9999,
-        particleCount: 26,
-        angle: 270,
-        spread: 60,
-        startVelocity: 20,
-        gravity: 1.25,
-        origin: { x: 0.5, y: 0.02 },
-        scalar: 0.85,
-        shapes: ['circle', 'star'],
-        ticks: 130,
-        colors: ['#FFD700', '#00E676', '#38BDF8', '#FF7675']
-      });
+      triggerCelebrationSparkles({ intensity: 'light' });
       setBadgeMessage("Excellent! ⌨️");
     } else {
       if (sfxEnabled) playIncorrectSound();
