@@ -1961,15 +1961,20 @@ export default function PracticePlay() {
 
     if (correct) {
       if (sfxEnabled) playCorrectSound()
-      const confettiColors = streak >= 5 ? ['#F59E0B', '#FCD34D', '#F97316'] : ['#818CF8', '#A78BFA', '#F472B6']
+      const confettiColors = streak >= 5 
+        ? ['#FFD700', '#FF9100', '#FF3D00', '#00E676', '#FFEA00'] 
+        : ['#FFD700', '#6C5CE7', '#00CEC9', '#FF7675', '#38BDF8']
       confetti({
         zIndex: 9999,
-        particleCount: streak >= 5 ? 24 : 14,
-        spread: 45,
-        origin: { y: 0.08 },
-        scalar: 0.7,
+        particleCount: streak >= 5 ? 38 : 24,
+        angle: 270,
+        spread: 65,
+        startVelocity: 22,
+        gravity: 1.25,
+        origin: { x: 0.5, y: 0.02 },
+        scalar: 0.9,
         shapes: ['circle', 'star'],
-        ticks: 110,
+        ticks: 140,
         colors: confettiColors
       })
       if (alreadyRated) setBadgeMessage("Correct! 🎯")
@@ -2287,33 +2292,34 @@ export default function PracticePlay() {
 
         if (goalUpdate.is_target_met) {
           if (correct && goalUpdate.done_today > goalUpdate.daily_target) {
-            // Screen flash lightning overlay
-            setIsLimitlessStrike(true);
-            setTimeout(() => setIsLimitlessStrike(false), 900);
-
-            // Refined, subtle golden star sparkle from top header
+            // Snappy golden star celebration from top center downward
             confetti({
               zIndex: 9999,
-              particleCount: 18,
-              spread: 40,
-              origin: { x: 0.5, y: 0.08 },
-              scalar: 0.7,
+              particleCount: 30,
+              angle: 270,
+              spread: 60,
+              startVelocity: 22,
+              gravity: 1.25,
+              origin: { x: 0.5, y: 0.02 },
+              scalar: 0.9,
               shapes: ['circle', 'star'],
-              ticks: 120,
-              colors: ['#F59E0B', '#FCD34D', '#FFF']
+              ticks: 140,
+              colors: ['#FFD700', '#FFA500', '#00E676', '#FFF', '#7C4DFF']
             });
           } else {
-            // Delicate gold sparkle burst near top right corner
+            // Delicate gold sparkle burst from top right corner
             confetti({
               zIndex: 9999,
-              particleCount: 14,
-              angle: 220,
-              spread: 35,
-              origin: { x: 0.9, y: 0.08 },
-              scalar: 0.65,
+              particleCount: 20,
+              angle: 230,
+              spread: 45,
+              startVelocity: 20,
+              gravity: 1.2,
+              origin: { x: 0.9, y: 0.05 },
+              scalar: 0.85,
               shapes: ['circle', 'star'],
-              ticks: 100,
-              colors: ['#F59E0B', '#FCD34D', '#F43F5E']
+              ticks: 120,
+              colors: ['#FFD700', '#FFA500', '#FF4500', '#38BDF8']
             });
           }
         }
@@ -2382,7 +2388,19 @@ export default function PracticePlay() {
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
 
-      confetti({ zIndex: 9999, particleCount: 16, spread: 35, origin: { y: 0.08 }, scalar: 0.65, shapes: ['circle', 'star'], ticks: 100 });
+      confetti({
+        zIndex: 9999,
+        particleCount: 24,
+        angle: 270,
+        spread: 60,
+        startVelocity: 20,
+        gravity: 1.25,
+        origin: { x: 0.5, y: 0.02 },
+        scalar: 0.85,
+        shapes: ['circle', 'star'],
+        ticks: 130,
+        colors: ['#FFD700', '#6C5CE7', '#00CEC9', '#FF7675']
+      });
       setBadgeMessage("Correct! 🎯");
     } else {
       if (sfxEnabled) playIncorrectSound();
@@ -2595,7 +2613,19 @@ export default function PracticePlay() {
       updatedStreak = streak + 1;
       setStreak(updatedStreak);
 
-      confetti({ zIndex: 9999, particleCount: 20, spread: 40, origin: { y: 0.08 }, scalar: 0.65, shapes: ['circle', 'star'], ticks: 100 });
+      confetti({
+        zIndex: 9999,
+        particleCount: 26,
+        angle: 270,
+        spread: 60,
+        startVelocity: 20,
+        gravity: 1.25,
+        origin: { x: 0.5, y: 0.02 },
+        scalar: 0.85,
+        shapes: ['circle', 'star'],
+        ticks: 130,
+        colors: ['#FFD700', '#00E676', '#38BDF8', '#FF7675']
+      });
       setBadgeMessage(`Excellent! +${pointsToAward} PTS ⌨️`);
     } else {
       if (sfxEnabled) playIncorrectSound();
