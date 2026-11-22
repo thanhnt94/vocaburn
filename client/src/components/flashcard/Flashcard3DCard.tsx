@@ -376,7 +376,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
     return list
   }, [rawBackPages])
 
-  const renderStyleTag = (question: any) => {
+  const renderCardTags = (question: any) => {
     if (!question) return null;
     let others: any = question.others;
     if (typeof others === 'string') {
@@ -385,121 +385,60 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
       others = {};
     }
 
-    const originalVp = String(others.văn_phong || others['văn phong'] || question.văn_phong || '').trim();
-    const originalTt = String(others.độ_trang_trọng || others['độ trang trọng'] || others.trang_trong || question.độ_trang_trọng || '').trim();
+    // 1. Direct tag column from card / others
+    let rawTags = others.tag || others.tags || question.tag || question.tags;
+    let tagList: string[] = [];
 
-    if (!originalVp && !originalTt) return null;
-
-    const vpRaw = originalVp.toLowerCase();
-    const ttRaw = originalTt.toLowerCase();
-
-    // 1. Văn phong: lấy tag từ DB nếu có, hoặc suy ra từ nội dung thực tế của thẻ
-    let vpItem: { label: string; full: string; icon: string; textClass: string } | null = null;
-    if (originalVp) {
-      let label = others.tag_van_phong ? String(others.tag_van_phong).trim() : '';
-      let icon = '✍️';
-      let textClass = 'text-indigo-600 dark:text-indigo-400';
-
-      if (!label) {
-        if (vpRaw.includes('viết') || vpRaw.includes('thư')) {
-          label = 'Thư';
-          icon = '✍️';
-          textClass = 'text-indigo-600 dark:text-indigo-400';
-        } else if (vpRaw.includes('nói') || vpRaw.includes('khẩu')) {
-          label = 'Nói';
-          icon = '🗣️';
-          textClass = 'text-amber-600 dark:text-amber-400';
-        } else if (vpRaw.includes('cả hai') || vpRaw.includes('cả 2') || vpRaw.includes('chung')) {
-          label = 'Cả 2';
-          icon = '🔄';
-          textClass = 'text-slate-600 dark:text-slate-400';
-        } else {
-          label = originalVp.slice(0, 10);
-          icon = '📝';
-        }
-      } else {
-        if (label === 'Nói' || vpRaw.includes('nói')) {
-          icon = '🗣️';
-          textClass = 'text-amber-600 dark:text-amber-400';
-        } else if (label === 'Cả 2' || vpRaw.includes('cả hai')) {
-          icon = '🔄';
-          textClass = 'text-slate-600 dark:text-slate-400';
-        }
-      }
-
-      vpItem = { label, full: originalVp, icon, textClass };
+    if (Array.isArray(rawTags)) {
+      tagList = rawTags.map(t => String(t).trim()).filter(Boolean);
+    } else if (rawTags && typeof rawTags === 'string') {
+      tagList = rawTags.split(/[,/・\s]+/).map(t => t.trim()).filter(Boolean);
     }
 
-    // 2. Độ trang trọng: lấy tag từ DB nếu có, hoặc suy ra từ nội dung thực tế của thẻ
-    let ttItem: { label: string; full: string; icon: string; textClass: string } | null = null;
-    if (originalTt) {
-      let label = others.tag_trang_trong ? String(others.tag_trang_trong).trim() : '';
-      let icon = '🏛️';
-      let textClass = 'text-purple-600 dark:text-purple-400';
+    // 2. Fallback inference if tag column is empty
+    if (tagList.length === 0) {
+      const originalVp = String(others.văn_phong || others['văn phong'] || question.văn_phong || '').trim().toLowerCase();
+      const originalTt = String(others.độ_trang_trọng || others['độ trang trọng'] || others.trang_trong || question.độ_trang_trọng || '').trim().toLowerCase();
 
-      if (!label) {
-        if (ttRaw.includes('trang trọng') || ttRaw.includes('kiểu cách') || ttRaw.includes('cứng')) {
-          label = 'Cứng';
-          icon = '🏛️';
-          textClass = 'text-purple-600 dark:text-purple-400';
-        } else if (ttRaw.includes('lịch sự') || ttRaw.includes('thông dụng') || ttRaw.includes('chuẩn')) {
-          label = 'Lịch sự';
-          icon = '👔';
-          textClass = 'text-emerald-600 dark:text-emerald-400';
-        } else if (ttRaw.includes('thân mật') || ttRaw.includes('xuồng xã') || ttRaw.includes('mềm') || ttRaw.includes('khẩu ngữ')) {
-          label = 'Mềm';
-          icon = '💬';
-          textClass = 'text-rose-600 dark:text-rose-400';
-        } else {
-          label = originalTt.slice(0, 10);
-          icon = '🏷️';
-        }
-      } else {
-        if (label === 'Lịch sự' || ttRaw.includes('lịch sự')) {
-          icon = '👔';
-          textClass = 'text-emerald-600 dark:text-emerald-400';
-        } else if (label === 'Mềm' || ttRaw.includes('thân mật')) {
-          icon = '💬';
-          textClass = 'text-rose-600 dark:text-rose-400';
-        }
-      }
+      if (originalVp.includes('viết') || originalVp.includes('thư')) tagList.push('書');
+      else if (originalVp.includes('nói') || originalVp.includes('khẩu')) tagList.push('話');
+      else if (originalVp.includes('cả hai') || originalVp.includes('cả 2') || originalVp.includes('chung')) tagList.push('共');
 
-      ttItem = { label, full: originalTt, icon, textClass };
+      if (originalTt.includes('trang trọng') || originalTt.includes('kiểu cách') || originalTt.includes('cứng')) tagList.push('硬');
+      else if (originalTt.includes('thân mật') || originalTt.includes('xuồng xã') || originalTt.includes('mềm') || originalTt.includes('khẩu ngữ')) tagList.push('砕');
+      else if (originalTt.includes('lịch sự') || originalTt.includes('thông dụng') || originalTt.includes('chuẩn')) tagList.push('普');
     }
 
-    if (!vpItem && !ttItem) return null;
+    if (tagList.length === 0) return null;
 
-    const tooltip = [vpItem?.full, ttItem?.full].filter(Boolean).join(' • ');
+    const getTooltip = (t: string) => {
+      if (t === '書') return 'Văn viết (書き言葉)';
+      if (t === '話') return 'Văn nói (話し言葉)';
+      if (t === '共') return 'Dùng cả hai (共通)';
+      if (t === '硬') return 'Trang trọng / Kiểu cách (硬い表現)';
+      if (t === '砕' || t === '軟') return 'Thân mật / Xuồng xã (くだけた)';
+      if (t === '普' || t === '丁') return 'Lịch sự / Thông dụng (丁寧・普通)';
+      return t;
+    };
 
     return (
       <div 
         data-no-flip="true"
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "w-full flex items-center mb-1 select-none",
+          "w-full flex items-center gap-1.5 mb-2 select-none",
           backHalign === 'center' ? "justify-center" : "justify-start"
         )}
       >
-        <div 
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs text-[10.5px] font-black cursor-help transition-all hover:scale-102"
-          title={tooltip}
-        >
-          {vpItem && (
-            <span className={cn("inline-flex items-center gap-1", vpItem.textClass)}>
-              <span className="text-xs leading-none">{vpItem.icon}</span>
-              <span>{vpItem.label}</span>
-            </span>
-          )}
-          {vpItem && ttItem && (
-            <span className="text-slate-300 dark:text-slate-600 text-[9px] font-bold">•</span>
-          )}
-          {ttItem && (
-            <span className={cn("inline-flex items-center gap-1", ttItem.textClass)}>
-              <span className="text-xs leading-none">{ttItem.icon}</span>
-              <span>{ttItem.label}</span>
-            </span>
-          )}
-        </div>
+        {tagList.map((tagText, idx) => (
+          <span
+            key={idx}
+            title={getTooltip(tagText)}
+            className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-lg border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-black text-sm shadow-2xs transition-all hover:border-slate-300"
+          >
+            {tagText}
+          </span>
+        ))}
       </div>
     );
   };
@@ -682,8 +621,8 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               )}>
                 {activeBackPageIndex === 0 ? (
                   <>
-                    {/* Style & Formality Micro-Tag (Trang 1: Văn phong & Độ trang trọng) */}
-                    {renderStyleTag(currentQuestion)}
+                    {/* Kanji Style & Formality Tags (Trang 1: Chữ Hán vuông) */}
+                    {renderCardTags(currentQuestion)}
 
                     {/* Primary Back / Definition Content */}
                     {primaryBackText && (
