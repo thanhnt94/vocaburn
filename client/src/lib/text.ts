@@ -44,14 +44,14 @@ export const stripBBCode = (text: string): string => {
 };
 
 /**
- * Automatically splits multiple grammar patterns / alternatives separated by '/' or '／' into clean lines (<br />).
+ * Automatically splits multiple grammar patterns / alternatives separated by '/', '／', '・', or '•' into clean lines (<br />).
  * Safely preserves fractions like (1/2) and HTML closing tags like </ruby> or </rt>.
  */
 export const formatFrontText = (text: string): string => {
   if (!text) return '';
   if (typeof text !== 'string') return String(text);
 
-  return text.replace(/\s*[/／]\s*/g, (match, offset, str) => {
+  return text.replace(/\s*[/／・•]\s*/g, (match, offset, str) => {
     // Safety check: ensure not inside an HTML tag <...>
     const beforeStr = str.slice(0, offset);
     const lastOpenTag = beforeStr.lastIndexOf('<');
