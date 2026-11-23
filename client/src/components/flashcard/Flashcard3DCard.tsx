@@ -576,7 +576,8 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                     {primaryBackText && (
                       <div 
                         className={cn(
-                          "text-slate-800 font-extrabold leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
+                          "text-slate-800 leading-snug markdown-content w-full whitespace-pre-wrap flex flex-col",
+                          primaryBackText.includes('<div') || primaryBackText.includes('<span') ? "font-normal" : "font-extrabold",
                           backHalign === 'center' ? "items-center text-center" : "items-start text-left",
                           isSelectMode && "select-text cursor-text"
                         )}
