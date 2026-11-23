@@ -180,23 +180,24 @@ def inject_cached_values(excel_bytes: bytes, formula_cached_map: Dict[Tuple[str,
         zout_buf = BytesIO()
         with zipfile.ZipFile(zin_buf, 'r') as zin, zipfile.ZipFile(zout_buf, 'w') as zout:
             wb_xml = zin.read('xl/workbook.xml').decode('utf-8')
-            sheet_target = None
-            m = re.search(r'<sheet[^>]+name="Data_Formula"[^>]+r:id="([^"]+)"', wb_xml)
-            if not m:
-                m = re.search(r'<sheet[^>]+r:id="([^"]+)"[^>]+name="Data_Formula"', wb_xml)
-            if m:
-                r_id = m.group(1)
-                rels_xml = zin.read('xl/_rels/workbook.xml.rels').decode('utf-8')
-                m_rel = re.search(rf'Id="{r_id}"[^>]+Target="([^"]+)"', rels_xml)
-                if not m_rel:
-                    m_rel = re.search(rf'Target="([^"]+)"[^>]+Id="{r_id}"', rels_xml)
-                if m_rel:
-                    t = m_rel.group(1).lstrip('/')
-                    sheet_target = t if t.startswith('xl/') else f"xl/{t}"
+            sheet_targets = set()
+            rels_xml = zin.read('xl/_rels/workbook.xml.rels').decode('utf-8')
+            for s_name in ['Data', 'Data_Formula']:
+                m = re.search(rf'<sheet[^>]+name="{s_name}"[^>]+r:id="([^"]+)"', wb_xml)
+                if not m:
+                    m = re.search(rf'<sheet[^>]+r:id="([^"]+)"[^>]+name="{s_name}"', wb_xml)
+                if m:
+                    r_id = m.group(1)
+                    m_rel = re.search(rf'Id="{r_id}"[^>]+Target="([^"]+)"', rels_xml)
+                    if not m_rel:
+                        m_rel = re.search(rf'Target="([^"]+)"[^>]+Id="{r_id}"', rels_xml)
+                    if m_rel:
+                        t = m_rel.group(1).lstrip('/')
+                        sheet_targets.add(t if t.startswith('xl/') else f"xl/{t}")
             
             for item in zin.infolist():
                 content = zin.read(item.filename)
-                if sheet_target and item.filename == sheet_target:
+                if item.filename in sheet_targets:
                     xml_str = content.decode('utf-8')
                     for (col_let, r_num), cached_val in formula_cached_map.items():
                         coord = f"{col_let}{r_num}"
@@ -1369,18 +1370,20 @@ class ExcelDeckService:
                     if c_col not in card_formulas and c_form:
                         card_formulas[c_col] = c_form
 
-            rows_data.append(row)
-
             if has_any_formulas:
                 row_form = dict(row)
                 for col_key, tok_form in card_formulas.items():
                     if col_key in col_name_to_letter:
-                        row_form[col_key] = transpile_formula(tok_form, excel_row_num, col_name_to_letter)
+                        transpiled = transpile_formula(tok_form, excel_row_num, col_name_to_letter)
+                        row_form[col_key] = transpiled
                         col_let = col_name_to_letter[col_key]
                         cached_val = row.get(col_key, "")
                         if cached_val:
                             formula_cached_map[(col_let, excel_row_num)] = str(cached_val)
+                        row[col_key] = transpiled
                 rows_formula.append(row_form)
+
+            rows_data.append(row)
             
         df_data = pd.DataFrame(rows_data) if rows_data else pd.DataFrame(columns=export_cols)
         
