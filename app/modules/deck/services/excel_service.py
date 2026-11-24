@@ -1310,24 +1310,6 @@ class ExcelDeckService:
         df_collab = pd.DataFrame(collab_rows, columns=collab_cols) if collab_rows else pd.DataFrame(columns=collab_cols)
 
         # 6. Prepare Data sheet rows
-        STANDARD_COLUMN_ORDER = [
-            # Group 1: Identity & Sub-lesson / Unit
-            "id", "unit", "nhóm_chủ_đề", "lesson", "sub_lesson", "stt", "order",
-            # Group 2: Core Flashcard
-            "front", "back", "nghĩa", "văn_phong", "độ_trang_trọng",
-            # Group 3: Grammar Structure & Analysis / Mnemonic
-            "cách_kết_hợp", "phân_tích_cách_nhớ", "mức_độ_jlpt", "từ_đi_kèm_tiêu_biểu", 
-            "ngữ_cảnh_sử_dụng", "bối_cảnh_sử_dụng", "tính_ý_chí", "sắc_thái", "bản_chất_sắc_thái", "mẹo_nhớ_bẫy_thi", "lưu_ý_cách_dùng", "chú_ý",
-            # Group 4: Examples & Translations
-            "ví_dụ_1", "dịch_ví_dụ_1", "ví_dụ_2", "dịch_ví_dụ_2", "ví_dụ_3", "dịch_ví_dụ_3", "ví_dụ_4", "dịch_ví_dụ_4",
-            # Group 5: Audio & Media
-            "front_audio_content", "front_audio_url", "back_audio_content", "back_audio_url", 
-            "meaning_audio_content", "meaning_audio_url", "podcast_audio_content", "podcast_audio_url", "front_img", "back_img",
-            # Group 6: Practice Options
-            "option_a", "option_b", "option_c", "option_d"
-        ]
-        standard_order_map = {col.lower(): idx for idx, col in enumerate(STANDARD_COLUMN_ORDER)}
-
         EXCLUDED_CUSTOM_COLS = {
             "id", "item_id", "order_in_container", "front", "back", "explanation", 
             "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", 
@@ -1411,11 +1393,19 @@ class ExcelDeckService:
                 seen_cols.add(c_low)
                 unique_cols.append(c)
 
-        # Sort columns strictly according to logical groups
+        # Dynamic Priority 1: Sort columns strictly according to deck's configured column_order
+        deck_col_order = ps.get("column_order") if isinstance(ps, dict) else []
+        if isinstance(deck_col_order, str):
+            deck_col_order = [c.strip() for c in deck_col_order.split(",") if c.strip()]
+        if not isinstance(deck_col_order, list):
+            deck_col_order = []
+
+        deck_order_map = {col.strip().lower(): idx for idx, col in enumerate(deck_col_order) if col}
+
         def col_sort_priority(col_name: str):
             c_low = col_name.strip().lower()
-            if c_low in standard_order_map:
-                return (0, standard_order_map[c_low], col_name)
+            if deck_order_map and c_low in deck_order_map:
+                return (0, deck_order_map[c_low], col_name)
             return (1, 0, col_name)
 
         export_cols = sorted(unique_cols, key=col_sort_priority)
