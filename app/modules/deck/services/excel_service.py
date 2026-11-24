@@ -1054,10 +1054,19 @@ class ExcelDeckService:
         ]
         
         # Column Manager
+        EXCLUDED_CUSTOM_COLS = {
+            "id", "item_id", "order_in_container", "front", "back", "explanation", 
+            "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", 
+            "front_img", "back_img", "options", "_formulas", "_formula", "formulas",
+            "mẫu_ngữ_pháp", "vùng_cấm_lưu_ý", "quy_ước_vế_sau", "dấu_hiệu_nhận_biết",
+            "cặp_dễ_nhầm_lẫn", "lưu_ý_không_sử_dụng", "mẫu_tương_đương", "ràng_buộc_chủ_ngữ",
+            "từ_khóa_bắt_cặp", "mã_mẫu", "phản_xạ_3s", "dich_category", "nghĩa_stt", "ví_dụ"
+        }
         if "column_order" in ps and isinstance(ps["column_order"], list):
             info_data.append({"key": "column_order", "value": ", ".join(ps["column_order"])})
         if "custom_columns" in ps and isinstance(ps["custom_columns"], list):
-            info_data.append({"key": "custom_columns", "value": ", ".join(ps["custom_columns"])})
+            cleaned_cc = [c for c in ps["custom_columns"] if c.strip().lower() not in EXCLUDED_CUSTOM_COLS]
+            info_data.append({"key": "custom_columns", "value": ", ".join(cleaned_cc)})
         if "insight_columns" in ps and isinstance(ps["insight_columns"], list):
             info_data.append({"key": "insight_columns", "value": ", ".join(ps["insight_columns"])})
             
@@ -1086,6 +1095,12 @@ class ExcelDeckService:
         # Audio speech rate if present
         if "speech_rate" in ps and ps["speech_rate"] is not None:
             info_data.append({"key": "audio_speech_rate", "value": str(ps["speech_rate"])})
+
+        # Color Coding Legend for Data Sheet
+        info_data.append({"key": "--- DATA SHEET COLOR GUIDE ---", "value": "--- HƯỚNG DẪN MÀU CỘT TRONG SHEET DATA ---"})
+        info_data.append({"key": "Formula Column (Tím #7C3AED)", "value": "Cột Công Thức: Giá trị được tính tự động từ công thức"})
+        info_data.append({"key": "Source Column (Xanh Dương #0284C7)", "value": "Cột Nguồn / Tham Chiếu: Dữ liệu gốc được dùng trong các công thức"})
+        info_data.append({"key": "Standard Column (Xanh Lá #059669)", "value": "Cột Chuẩn Độc Lập: Dữ liệu độc lập thông thường"})
             
         df_info = pd.DataFrame(info_data)
         
@@ -1295,44 +1310,115 @@ class ExcelDeckService:
         df_collab = pd.DataFrame(collab_rows, columns=collab_cols) if collab_rows else pd.DataFrame(columns=collab_cols)
 
         # 6. Prepare Data sheet rows
+        STANDARD_COLUMN_ORDER = [
+            # Group 1: Identity & Sub-lesson / Unit
+            "id", "unit", "nhóm_chủ_đề", "lesson", "sub_lesson", "stt", "order",
+            # Group 2: Core Flashcard
+            "front", "back", "nghĩa", "văn_phong", "độ_trang_trọng",
+            # Group 3: Grammar Structure & Analysis / Mnemonic
+            "cách_kết_hợp", "phân_tích_cách_nhớ", "mức_độ_jlpt", "từ_đi_kèm_tiêu_biểu", 
+            "ngữ_cảnh_sử_dụng", "bối_cảnh_sử_dụng", "tính_ý_chí", "sắc_thái", "bản_chất_sắc_thái", "mẹo_nhớ_bẫy_thi", "lưu_ý_cách_dùng", "chú_ý",
+            # Group 4: Examples & Translations
+            "ví_dụ_1", "dịch_ví_dụ_1", "ví_dụ_2", "dịch_ví_dụ_2", "ví_dụ_3", "dịch_ví_dụ_3", "ví_dụ_4", "dịch_ví_dụ_4",
+            # Group 5: Audio & Media
+            "front_audio_content", "front_audio_url", "back_audio_content", "back_audio_url", 
+            "meaning_audio_content", "meaning_audio_url", "podcast_audio_content", "podcast_audio_url", "front_img", "back_img",
+            # Group 6: Practice Options
+            "option_a", "option_b", "option_c", "option_d"
+        ]
+        standard_order_map = {col.lower(): idx for idx, col in enumerate(STANDARD_COLUMN_ORDER)}
+
+        EXCLUDED_CUSTOM_COLS = {
+            "id", "item_id", "order_in_container", "front", "back", "explanation", 
+            "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", 
+            "front_img", "back_img", "options", "_formulas", "_formula", "formulas",
+            "mẫu_ngữ_pháp", "vùng_cấm_lưu_ý", "quy_ước_vế_sau", "dấu_hiệu_nhận_biết",
+            "cặp_dễ_nhầm_lẫn", "lưu_ý_không_sử_dụng", "mẫu_tương_đương", "ràng_buộc_chủ_ngữ",
+            "từ_khóa_bắt_cặp", "mã_mẫu", "phản_xạ_3s", "dich_category", "nghĩa_stt", "ví_dụ"
+        }
+
         custom_cols = set()
         for q in cards:
-            if hasattr(q, 'others') and q.others and isinstance(q.others, dict):
-                for k in q.others.keys():
-                    if k not in ("id", "item_id", "order_in_container", "front", "back", "explanation", 
-                                 "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", 
-                                 "front_img", "back_img", "options", "_formulas", "_formula", "formulas"):
-                        custom_cols.add(k)
-                        
-        custom_cols = sorted(list(custom_cols))
+            if hasattr(q, 'others') and q.others:
+                others_val = q.others
+                if isinstance(others_val, str):
+                    try:
+                        others_val = json.loads(others_val)
+                    except Exception:
+                        others_val = {}
+                if isinstance(others_val, dict):
+                    for k in others_val.keys():
+                        k_clean = str(k).strip()
+                        if k_clean and k_clean.lower() not in EXCLUDED_CUSTOM_COLS:
+                            custom_cols.add(k_clean)
 
-        # Check if the deck or any card has formulas
+        # Check if the deck or any card has formulas, and detect formula & referenced columns
         has_any_formulas = False
+        formula_cols = set()
+        referenced_cols = set()
+
         deck_col_formulas = ps.get("column_formulas") if isinstance(ps, dict) else {}
         if isinstance(deck_col_formulas, dict) and deck_col_formulas:
             has_any_formulas = True
-        else:
-            for q in cards:
-                if getattr(q, 'formulas', None):
-                    has_any_formulas = True
-                    break
-                others = getattr(q, 'others', None)
-                if isinstance(others, str):
-                    try:
-                        others = json.loads(others)
-                    except Exception:
-                        others = {}
-                if isinstance(others, dict) and others.get("_formulas"):
-                    has_any_formulas = True
-                    break
+            for tgt_col, f_expr in deck_col_formulas.items():
+                if f_expr:
+                    formula_cols.add(str(tgt_col).strip().lower())
+                    tokens = re.findall(r'\{\{([^}:]+?)(?::\d+)?\}\}', str(f_expr))
+                    for tok in tokens:
+                        referenced_cols.add(str(tok).strip().lower())
+
+        for q in cards:
+            q_forms = getattr(q, 'formulas', None)
+            if isinstance(q_forms, str):
+                try:
+                    q_forms = json.loads(q_forms)
+                except Exception:
+                    q_forms = None
+            others = getattr(q, 'others', None)
+            if isinstance(others, str):
+                try:
+                    others = json.loads(others)
+                except Exception:
+                    others = {}
+            if not isinstance(q_forms, dict) and isinstance(others, dict) and others.get("_formulas"):
+                q_forms = others.get("_formulas")
+            if isinstance(q_forms, dict) and q_forms:
+                has_any_formulas = True
+                for tgt_col, f_expr in q_forms.items():
+                    if f_expr:
+                        formula_cols.add(str(tgt_col).strip().lower())
+                        tokens = re.findall(r'\{\{([^}:]+?)(?::\d+)?\}\}', str(f_expr))
+                        for tok in tokens:
+                            referenced_cols.add(str(tok).strip().lower())
+
+        # Formula takes precedence over referenced
+        referenced_cols = {c for c in referenced_cols if c not in formula_cols}
 
         from openpyxl.utils import get_column_letter
 
         has_options = any(getattr(q, 'options', None) for q in cards)
-        export_cols = ["id", "front", "back", "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img"]
+        raw_cols = ["id", "front", "back", "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img"]
         if has_options:
-            export_cols.extend(["option_a", "option_b", "option_c", "option_d"])
-        export_cols.extend(custom_cols)
+            raw_cols.extend(["option_a", "option_b", "option_c", "option_d"])
+        raw_cols.extend(list(custom_cols))
+
+        # Deduplicate while preserving case
+        seen_cols = set()
+        unique_cols = []
+        for c in raw_cols:
+            c_low = c.strip().lower()
+            if c_low not in seen_cols:
+                seen_cols.add(c_low)
+                unique_cols.append(c)
+
+        # Sort columns strictly according to logical groups
+        def col_sort_priority(col_name: str):
+            c_low = col_name.strip().lower()
+            if c_low in standard_order_map:
+                return (0, standard_order_map[c_low], col_name)
+            return (1, 0, col_name)
+
+        export_cols = sorted(unique_cols, key=col_sort_priority)
 
         col_name_to_letter = {}
         for idx, col in enumerate(export_cols, start=1):
@@ -1350,7 +1436,8 @@ class ExcelDeckService:
             excel_row_num = idx + 1 # Header is row 1
             front_val = getattr(q, 'front', None) or getattr(q, 'content', "") or ""
             back_val = getattr(q, 'back', None) or getattr(q, 'explanation', "") or ""
-            row = {
+            
+            base_map = {
                 "id": getattr(q, 'id', None),
                 "front": front_val,
                 "back": back_val,
@@ -1366,7 +1453,7 @@ class ExcelDeckService:
                 options = getattr(q, 'options', []) or []
                 for i in range(4):
                     opt_content = options[i].get('content', "") if i < len(options) and isinstance(options[i], dict) else ""
-                    row[f"option_{chr(97+i)}"] = opt_content
+                    base_map[f"option_{chr(97+i)}"] = opt_content
 
             others = getattr(q, 'others', {})
             if isinstance(others, str):
@@ -1374,6 +1461,25 @@ class ExcelDeckService:
                     others = json.loads(others)
                 except Exception:
                     others = {}
+            if not isinstance(others, dict):
+                others = {}
+
+            row = {}
+            for col in export_cols:
+                if col in base_map:
+                    row[col] = base_map[col]
+                elif col in others:
+                    row[col] = others.get(col, "")
+                else:
+                    found = False
+                    for ok, ov in others.items():
+                        if ok.strip().lower() == col.strip().lower():
+                            row[col] = ov
+                            found = True
+                            break
+                    if not found:
+                        row[col] = ""
+
             card_formulas = {}
             q_forms = getattr(q, 'formulas', None)
             if isinstance(q_forms, str):
@@ -1383,12 +1489,8 @@ class ExcelDeckService:
                     q_forms = None
             if isinstance(q_forms, dict):
                 card_formulas = dict(q_forms)
-            elif isinstance(others, dict) and others.get("_formulas"):
+            elif others.get("_formulas"):
                 card_formulas = dict(others.get("_formulas") or {})
-
-            if isinstance(others, dict):
-                for col in custom_cols:
-                    row[col] = others.get(col, "")
 
             if isinstance(deck_col_formulas, dict):
                 for c_col, c_form in deck_col_formulas.items():
@@ -1410,7 +1512,7 @@ class ExcelDeckService:
 
             rows_data.append(row)
             
-        df_data = pd.DataFrame(rows_data) if rows_data else pd.DataFrame(columns=export_cols)
+        df_data = pd.DataFrame(rows_data, columns=export_cols) if rows_data else pd.DataFrame(columns=export_cols)
         
         # 7. Write all sheets using openpyxl engine
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -1421,7 +1523,7 @@ class ExcelDeckService:
             df_audio.to_excel(writer, sheet_name="Audio", index=False)
             df_collab.to_excel(writer, sheet_name="Collaborators", index=False)
             if has_any_formulas:
-                df_formula = pd.DataFrame(rows_formula)
+                df_formula = pd.DataFrame(rows_formula, columns=export_cols) if rows_formula else pd.DataFrame(columns=export_cols)
                 df_formula.to_excel(writer, sheet_name="Data_Formula", index=False)
                 
             wb = writer.book
@@ -1450,16 +1552,39 @@ class ExcelDeckService:
                 "Data_Formula": "7C3AED" # Violet
             }
 
+            formula_header_fill = PatternFill(start_color="7C3AED", end_color="7C3AED", fill_type="solid")
+            referenced_header_fill = PatternFill(start_color="0284C7", end_color="0284C7", fill_type="solid")
+            standard_header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
+
+            formula_cell_fill = PatternFill(start_color="F5F3FF", end_color="F5F3FF", fill_type="solid")
+            referenced_cell_fill = PatternFill(start_color="F0F9FF", end_color="F0F9FF", fill_type="solid")
+
             for sheet_name in wb.sheetnames:
                 ws = wb[sheet_name]
                 color = sheet_colors.get(sheet_name, "4F46E5")
-                fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+                default_fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
 
-                ws.row_dimensions[1].height = 26
-                for cell in ws[1]:
-                    cell.font = header_font
-                    cell.fill = fill
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                if sheet_name in ("Data", "Data_Formula"):
+                    ws.row_dimensions[1].height = 28
+                    for col_idx, cell in enumerate(ws[1], start=1):
+                        cell.font = header_font
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                        if col_idx <= len(export_cols):
+                            c_low = export_cols[col_idx - 1].strip().lower()
+                            if c_low in formula_cols:
+                                cell.fill = formula_header_fill
+                            elif c_low in referenced_cols:
+                                cell.fill = referenced_header_fill
+                            else:
+                                cell.fill = standard_header_fill
+                        else:
+                            cell.fill = standard_header_fill
+                else:
+                    ws.row_dimensions[1].height = 26
+                    for cell in ws[1]:
+                        cell.font = header_font
+                        cell.fill = default_fill
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
 
                 for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
                     ws.row_dimensions[row[0].row].height = 20
@@ -1470,6 +1595,13 @@ class ExcelDeckService:
                         else:
                             cell.font = body_font
                         cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=False)
+
+                        if sheet_name in ("Data", "Data_Formula") and cell.column <= len(export_cols):
+                            c_low = export_cols[cell.column - 1].strip().lower()
+                            if c_low in formula_cols:
+                                cell.fill = formula_cell_fill
+                            elif c_low in referenced_cols:
+                                cell.fill = referenced_cell_fill
 
                 for col in ws.columns:
                     col_letter = get_column_letter(col[0].column)
