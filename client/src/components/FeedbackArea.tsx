@@ -120,6 +120,35 @@ const getQuestionField = (question: any, key: string, useAiResponse: boolean = f
   return '';
 };
 
+const getCardSummarySubtitle = (cardInfo: any, currentQuestion: any): string => {
+  const others = cardInfo?.others || currentQuestion?.others;
+  if (others && typeof others === 'object') {
+    const candidateKeys = ['nghĩa', 'meaning', 'vietnamese', 'dịch_nghĩa', 'vi', 'definition', 'cách_kết_hợp'];
+    for (const key of candidateKeys) {
+      if (others[key] && typeof others[key] === 'string' && others[key].trim()) {
+        const val = others[key].trim();
+        return val.replace(/<[^>]+>/g, '').trim();
+      }
+    }
+  }
+
+  const rawBack = cardInfo?.back || cardInfo?.explanation || currentQuestion?.back || currentQuestion?.explanation || '';
+  if (!rawBack) return '';
+
+  if (rawBack.includes('<')) {
+    const cleanText = rawBack
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleanText) return '';
+    return cleanText.length > 120 ? `${cleanText.slice(0, 120)}...` : cleanText;
+  }
+
+  return rawBack;
+};
+
 export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   showFeedback,
   activeFeedbackTab,
@@ -185,11 +214,12 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     return `${mins}m ${secs > 0 ? `${secs}s` : ''}`
   }
 
-  const effectiveCardInfo = cardStats?.card || {
+  const effectiveCardInfo = (cardStats?.content ? cardStats : cardStats?.card) || {
     content: currentQuestion?.content,
     front: currentQuestion?.front || currentQuestion?.content,
     back: currentQuestion?.back || currentQuestion?.explanation,
     explanation: currentQuestion?.back || currentQuestion?.explanation,
+    others: currentQuestion?.others,
     box_level: (currentQuestion as any)?.box_level || 1,
     consecutive_correct: (currentQuestion as any)?.stats?.total || 0,
     fsrs: (currentQuestion as any)?.fsrs || {},
@@ -477,14 +507,22 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                   </span>
                 )}
               </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-800 leading-snug">
-                {cardInfo.content || currentQuestion?.content || "Card Content"}
-              </h3>
-              {(cardInfo.back || cardInfo.explanation) && (
-                <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
-                  {cardInfo.back || cardInfo.explanation}
-                </p>
-              )}
+              <h3 
+                className="text-base sm:text-lg font-black text-slate-800 leading-snug"
+                dangerouslySetInnerHTML={{ 
+                  __html: parseBBCodeToHtml(cardInfo.content || currentQuestion?.content || "Card Content") 
+                }}
+              />
+              {(() => {
+                const subtitle = getCardSummarySubtitle(cardInfo, currentQuestion);
+                if (!subtitle) return null;
+                return (
+                  <p 
+                    className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed line-clamp-2"
+                    dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(subtitle) }}
+                  />
+                );
+              })()}
             </div>
             <button
               type="button"
@@ -671,7 +709,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               let content = ''
               
               if (tab.id === 'explanation' || tab.id === 'back') {
-                 content = currentQuestion?.explanation || currentQuestion?.ai_explanation || ''
+                 content = currentQuestion?.back || currentQuestion?.explanation || currentQuestion?.ai_explanation || ''
                  tabHasContent = !!content
               } else if (tab.id === 'mnemonic') {
                  content = currentQuestion?.mnemonic || ''
@@ -1165,8 +1203,14 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
                activeFeedbackTab === 'note' ? 'Personal Notes Journal' :
                'Community Discussion & Feedback'}
             </h3>
-            <p className="text-[10px] font-semibold text-slate-400 truncate">
-              Card #{currentIndex !== undefined ? currentIndex + 1 : (currentQuestion?.id || 1)}: {currentQuestion?.content || 'Flashcard'}
+            <p className="text-[10px] font-semibold text-slate-400 truncate flex items-center gap-1">
+              <span>Card #{currentIndex !== undefined ? currentIndex + 1 : (currentQuestion?.id || 1)}:</span>
+              <span 
+                className="inline-block truncate max-w-[200px]"
+                dangerouslySetInnerHTML={{ 
+                  __html: parseBBCodeToHtml(currentQuestion?.content || 'Flashcard') 
+                }}
+              />
             </p>
           </div>
         </div>
