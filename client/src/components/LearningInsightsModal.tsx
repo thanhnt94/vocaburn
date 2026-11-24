@@ -1048,11 +1048,11 @@ export default function LearningInsightsModal({
     });
   }
 
-  if (card.explanation || card.back || card.ai_explanation) {
+  if (card.back || card.explanation || card.ai_explanation) {
     fullCardTabs.push({
       id: 'back',
-      title: 'EXPLANATION (BACK)',
-      content: card.explanation || card.back || card.ai_explanation || ''
+      title: 'MẶT SAU (BACK)',
+      content: card.back || card.explanation || card.ai_explanation || ''
     });
   }
 

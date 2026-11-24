@@ -279,7 +279,7 @@ async def import_update_deck(request: Request, deck_id: int, file: UploadFile = 
             if c_id and c_id in existing_c_map:
                 db_c = existing_c_map[c_id]
                 db_c.content = c_data["content"]
-                db_c.explanation = c_data["explanation"]
+                db_c.back = c_data.get("back") or c_data.get("explanation")
                 db_c.front_audio_content = front_audio_content
                 db_c.back_audio_content = back_audio_content
                 db_c.front_audio_url = front_audio_url
@@ -405,7 +405,7 @@ async def import_text_update(request: Request, deck_id: int, data: dict, db: Asy
             if c_id and c_id in existing_c_map:
                 db_c = existing_c_map[c_id]
                 db_c.content = content
-                db_c.explanation = explanation
+                db_c.back = explanation
                 db_c.front_audio_content = front_audio_content
                 db_c.back_audio_content = back_audio_content
                 db_c.front_audio_url = front_audio_url
@@ -607,7 +607,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
         if lower_content in ("front", "content"):
             text = c.content
         elif lower_content in ("back", "explanation"):
-            text = c.explanation
+            text = c.back or c.explanation
         elif c.others and isinstance(c.others, dict):
             for k, v in c.others.items():
                 if str(k).strip().lower() == lower_content and v and str(v).strip():
@@ -623,7 +623,7 @@ async def generate_single_card_audio_helper(c, face: str, force: bool, db: Async
         if norm_face in ("front", "content"):
             text = c.front_audio_content or (c.others.get("front_audio_content") if c.others and isinstance(c.others, dict) else None) or c.content
         elif norm_face in ("back", "explanation"):
-            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others and isinstance(c.others, dict) else None) or c.explanation
+            text = c.back_audio_content or (c.others.get("back_audio_content") if c.others and isinstance(c.others, dict) else None) or c.back or c.explanation
         elif c.others and isinstance(c.others, dict):
             for k, v in c.others.items():
                 if str(k).strip().lower() in (norm_face, clean_base_face) and v and str(v).strip():

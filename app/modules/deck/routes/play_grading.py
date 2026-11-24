@@ -984,7 +984,7 @@ async def ask_ai(deck_id: int, payload: dict, background_tasks: BackgroundTasks,
         if card_options:
             options_text = ", ".join([o.content for o in card_options])
             
-        correct_answer_text = c.explanation or ""
+        correct_answer_text = c.back or c.explanation or ""
         if card_options:
             correct_opt = next((o for o in card_options if o.is_correct), None)
             if correct_opt:

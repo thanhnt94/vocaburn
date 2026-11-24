@@ -417,9 +417,9 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       setFormData({
         ...unresolvedCard,
         content: unresolvedCard.content || unresolvedCard.front || '',
-        explanation: unresolvedCard.explanation || unresolvedCard.back || '',
-        front: unresolvedCard.content || unresolvedCard.front || '',
-        back: unresolvedCard.explanation || unresolvedCard.back || '',
+        front: unresolvedCard.front || unresolvedCard.content || '',
+        back: unresolvedCard.back || unresolvedCard.explanation || '',
+        explanation: unresolvedCard.back || unresolvedCard.explanation || '',
         others: merged
       })
 
@@ -481,8 +481,8 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
     try {
       let currentCard = { ...formData }
       const updatedOptions = (currentCard.options || []).map((opt: any) => {
-        if (opt.is_correct && currentCard.explanation) {
-          return { ...opt, content: currentCard.explanation }
+        if (opt.is_correct && (currentCard.back || currentCard.explanation)) {
+          return { ...opt, content: currentCard.back || currentCard.explanation }
         }
         return opt
       })
@@ -507,7 +507,9 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
 
         const payload = {
           content: currentCard.content,
-          explanation: currentCard.explanation,
+          front: currentCard.front || currentCard.content,
+          back: currentCard.back || currentCard.explanation,
+          explanation: currentCard.back || currentCard.explanation,
           ai_explanation: currentCard.ai_explanation,
           hint: currentCard.hint || null,
           mnemonic: currentCard.mnemonic || null,

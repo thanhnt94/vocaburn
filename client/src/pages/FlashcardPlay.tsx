@@ -2865,17 +2865,16 @@ export default function FlashcardPlay() {
       // Auto-recompile grammar back formula if card has grammar formula components
       if (finalOthers.cách_kết_hợp || finalOthers.cong_thuc) {
         const formulaKetHop = finalOthers.cách_kết_hợp || finalOthers.cong_thuc || ''
-        const formulaNghia = finalOthers.nghĩa || updatedCardData.explanation || ''
+        const formulaNghia = finalOthers.nghĩa || updatedCardData.back || updatedCardData.explanation || ''
         const formulaVd1 = finalOthers.ví_dụ_1 || ''
         const formulaDich1 = finalOthers.dịch_ví_dụ_1 || ''
         const formulaTag = finalOthers.tag || finalOthers.chú_ý || ''
         if (formulaNghia && formulaKetHop && formulaVd1) {
           const compiledBack = compileGrammarBackFormula(formulaNghia, formulaKetHop, formulaVd1, formulaDich1, formulaTag)
-          finalOthers.back = compiledBack
+          updatedCardData.back = compiledBack
+          updatedCardData.explanation = compiledBack
           finalOthers.cong_thuc = formulaKetHop
-          if (updatedCardData.explanation === currentQuestion?.explanation || !updatedCardData.explanation) {
-            updatedCardData.explanation = compiledBack
-          }
+          delete finalOthers.back
         }
       }
 

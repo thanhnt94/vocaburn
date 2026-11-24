@@ -3486,7 +3486,7 @@ export default function PracticePlay() {
     if (isFlashcard) {
       return 'No detail.';
     }
-    return currentQuestion.explanation || 'No detail.';
+    return currentQuestion.back || currentQuestion.explanation || 'No detail.';
   }
 
   const saveInsight = async () => {

@@ -183,11 +183,11 @@ async def _bulk_generate_deck_audio_task(deck_id: int, target_face: str, force: 
                 if src_col == "front_audio_content":
                     text = c.front_audio_content or (c.others.get("front_audio_content") if c.others else None) or c.content
                 elif src_col == "back_audio_content":
-                    text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.explanation
+                    text = c.back_audio_content or (c.others.get("back_audio_content") if c.others else None) or c.back or c.explanation
                 elif src_col == "front":
                     text = c.content
-                elif src_col == "back":
-                    text = c.explanation
+                elif src_col in ("back", "explanation"):
+                    text = c.back or c.explanation
                 elif c.others and src_col in c.others:
                     text = c.others.get(src_col)
                 elif hasattr(c, src_col):
@@ -327,11 +327,11 @@ async def get_deck_tts_status(
         if source_field in ("front", "content"):
             text = c.content or (c.others.get("front") if isinstance(c.others, dict) else None)
         elif source_field in ("back", "explanation"):
-            text = c.explanation or (c.others.get("back") if isinstance(c.others, dict) else None)
+            text = c.back or c.explanation or (c.others.get("back") if isinstance(c.others, dict) else None)
         elif source_field == "front_audio_content":
             text = c.front_audio_content or (c.others.get("front_audio_content") if isinstance(c.others, dict) else None) or c.content
         elif source_field == "back_audio_content":
-            text = c.back_audio_content or (c.others.get("back_audio_content") if isinstance(c.others, dict) else None) or c.explanation
+            text = c.back_audio_content or (c.others.get("back_audio_content") if isinstance(c.others, dict) else None) or c.back or c.explanation
         else:
             text = c.others.get(source_field) if isinstance(c.others, dict) else None
             
@@ -743,7 +743,7 @@ async def _bulk_generate_deck_ai_task(deck_id: int, field: str, force: bool, bas
                 if card_options:
                     options_text = ", ".join([o.content for o in card_options])
                     
-                correct_answer_text = c.explanation or ""
+                correct_answer_text = c.back or c.explanation or ""
                 if card_options:
                     correct_opt = next((o for o in card_options if o.is_correct), None)
                     if correct_opt:
@@ -919,7 +919,7 @@ async def generate_single_card_ai(
     if card_options:
         options_text = ", ".join([o.content for o in card_options])
         
-    correct_answer_text = card.explanation or ""
+    correct_answer_text = card.back or card.explanation or ""
     if card_options:
         correct_opt = next((o for o in card_options if o.is_correct), None)
         if correct_opt:

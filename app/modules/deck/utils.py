@@ -210,16 +210,16 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
                     return str(v).strip()
 
     if key in ("front", "content"):
-        return (getattr(card, "content", None) or "").strip()
+        return (getattr(card, "front", None) or getattr(card, "content", None) or "").strip()
     if key in ("back", "explanation"):
-        return (getattr(card, "explanation", None) or "").strip()
+        return (getattr(card, "back", None) or getattr(card, "explanation", None) or "").strip()
     if hasattr(card, key):
         val = getattr(card, key)
         if val is not None and str(val).strip():
             return str(val).strip()
 
     # Fallback with tag extraction for nghĩa/meaning
-    exp = getattr(card, "explanation", None) or getattr(card, "content", None) or ""
+    exp = getattr(card, "back", None) or getattr(card, "explanation", None) or getattr(card, "content", None) or ""
     exp_str = str(exp).strip()
     if lower_key in ("nghĩa", "meaning") or "nghĩa" in lower_key or "mean" in lower_key:
         import re
@@ -235,7 +235,7 @@ def extract_card_val(card: Any, key: Optional[str]) -> str:
 def extract_card_answers(card: Any, key: Any) -> list[str]:
     """Extracts a list of non-empty text answers for a given column key or list of keys, supporting '|' delimiter."""
     if not key:
-        default_val = (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
+        default_val = (getattr(card, "back", None) or getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
         if not default_val:
             return []
         if "|" in default_val:
@@ -266,7 +266,7 @@ def extract_card_answers(card: Any, key: Any) -> list[str]:
                 results.append(val)
 
     if not results:
-        fallback = (getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
+        fallback = (getattr(card, "back", None) or getattr(card, "explanation", None) or getattr(card, "content", None) or "").strip()
         if fallback:
             if "|" in fallback:
                 for sub in fallback.split("|"):

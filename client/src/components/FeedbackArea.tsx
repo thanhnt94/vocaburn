@@ -30,6 +30,8 @@ const MarkdownComponents = {
 interface Question {
   id: number
   content: string
+  front?: string
+  back?: string
   explanation: string
   ai_explanation?: string
   mnemonic?: string | null
@@ -185,7 +187,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
 
   const effectiveCardInfo = cardStats?.card || {
     content: currentQuestion?.content,
-    explanation: currentQuestion?.explanation,
+    front: currentQuestion?.front || currentQuestion?.content,
+    back: currentQuestion?.back || currentQuestion?.explanation,
+    explanation: currentQuestion?.back || currentQuestion?.explanation,
     box_level: (currentQuestion as any)?.box_level || 1,
     consecutive_correct: (currentQuestion as any)?.stats?.total || 0,
     fsrs: (currentQuestion as any)?.fsrs || {},
@@ -276,7 +280,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   const getActiveAIContent = () => {
     if (!currentQuestion) return ''
     if (activeInsightTab === 'explanation' || activeInsightTab === 'back') {
-      return currentQuestion.explanation || currentQuestion.ai_explanation || ''
+      return currentQuestion.back || currentQuestion.explanation || currentQuestion.ai_explanation || ''
     }
     return getQuestionField(currentQuestion, activeInsightTab, true) || getQuestionField(currentQuestion, activeInsightTab) || ''
   }
@@ -300,7 +304,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
     if (!currentQuestion) return false
     return insightTabs.some((tab: any) => {
       if (tab.id === 'explanation' || tab.id === 'back') {
-        return !!(currentQuestion.explanation || currentQuestion.ai_explanation)
+        return !!(currentQuestion.back || currentQuestion.explanation || currentQuestion.ai_explanation)
       }
       return !!(getQuestionField(currentQuestion, tab.id, true) || getQuestionField(currentQuestion, tab.id))
     })
@@ -476,9 +480,9 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
               <h3 className="text-base sm:text-lg font-black text-slate-800 leading-snug">
                 {cardInfo.content || currentQuestion?.content || "Card Content"}
               </h3>
-              {cardInfo.explanation && (
+              {(cardInfo.back || cardInfo.explanation) && (
                 <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">
-                  {cardInfo.explanation}
+                  {cardInfo.back || cardInfo.explanation}
                 </p>
               )}
             </div>

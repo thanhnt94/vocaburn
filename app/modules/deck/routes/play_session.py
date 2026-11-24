@@ -665,8 +665,8 @@ def _resolve_prompt_placeholders(template: str, card, deck, options_text: str, c
     prompt = prompt.replace("{{card}}", card.content or "")
     prompt = prompt.replace("{{question}}", card.content or "")
     prompt = prompt.replace("{{front}}", card.content or "")
-    prompt = prompt.replace("{{back}}", card.explanation or "")
-    prompt = prompt.replace("{{explanation}}", card.explanation or "")
+    prompt = prompt.replace("{{back}}", card.back or card.explanation or "")
+    prompt = prompt.replace("{{explanation}}", card.back or card.explanation or "")
     prompt = prompt.replace("{{correct_answer}}", correct_answer_text)
     prompt = prompt.replace("{{options}}", options_text)
     prompt = prompt.replace("{{global_instruction}}", (deck.instruction if deck else "") or "")
@@ -731,7 +731,7 @@ async def _generate_ai_content_sync(db: AsyncSession, deck_id: int, card_id: int
     if card_options:
         options_text = ", ".join([o.content for o in card_options])
         
-    correct_answer_text = card.explanation or ""
+    correct_answer_text = card.back or card.explanation or ""
     if card_options:
         correct_opt = next((o for o in card_options if o.is_correct), None)
         if correct_opt:

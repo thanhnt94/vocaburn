@@ -1337,8 +1337,9 @@ export default function HybridPlay() {
           const isJpAnswer = isJapanese(item.text) || (typeof primary_answer_key === 'string' && (primary_answer_key.includes('mẫu') || primary_answer_key.includes('front') || primary_answer_key.includes('kanji')))
           if (isJpAnswer) {
             itemSubtext = getVal(itemCard, 'nghĩa') || getVal(itemCard, 'meaning') || getVal(itemCard, 'dịch_nghĩa') || getVal(itemCard, 'back') || ''
-            if (!itemSubtext && itemCard.explanation) {
-              itemSubtext = itemCard.explanation.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
+            const backText = itemCard.back || itemCard.explanation
+            if (!itemSubtext && backText) {
+              itemSubtext = backText.split('\n')[0].replace(/^[#*-\s]+/, '').slice(0, 80)
             }
           } else {
             itemSubtext = getVal(itemCard, 'mẫu_ngữ_pháp') || getVal(itemCard, 'front') || getVal(itemCard, 'kanji') || itemCard.content || ''

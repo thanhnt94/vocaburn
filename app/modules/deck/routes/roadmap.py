@@ -549,7 +549,9 @@ async def get_global_focus_play_data(
             "deck_id": card.deck_id,
             "deck_title": deck_title,
             "content": card.content,
-            "explanation": card.explanation,
+            "front": card.content,
+            "back": card.back,
+            "explanation": card.back,
             "image": card.back_img,
             "audio": card.front_audio_url,
             "front_audio_url": card.front_audio_url,
@@ -1363,7 +1365,7 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             q_val = extract_card_val(c_item, q_key)
             a_val = extract_card_val(c_item, a_key if isinstance(a_key, str) else (a_key[0] if a_key else "back"))
             c_front = (c_item.content or "").strip()
-            c_back = (c_item.explanation or "").strip()
+            c_back = (c_item.back or c_item.explanation or "").strip()
             is_correct = (c_item.id == card.id)
 
             options_list.append({
@@ -1382,7 +1384,9 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
                 "card": {
                     "id": c_item.id,
                     "content": c_item.content,
-                    "explanation": c_item.explanation,
+                    "front": c_item.content,
+                    "back": c_item.back,
+                    "explanation": c_item.back,
                     "others": fix_static_urls(c_item.others),
                     "front_audio_url": fix_static_urls(c_item.front_audio_url),
                     "back_audio_url": fix_static_urls(c_item.back_audio_url),
@@ -1395,7 +1399,9 @@ async def get_roadmap_test_questions(request: Request, deck_id: int, db: AsyncSe
             "id": card.id,
             "orig_index": idx,
             "content": card.content,
-            "explanation": card.explanation,
+            "front": card.content,
+            "back": card.back,
+            "explanation": card.back,
             "options": options_list,
             "front_audio_url": fix_static_urls(card.front_audio_url),
             "back_audio_url": fix_static_urls(card.back_audio_url),
