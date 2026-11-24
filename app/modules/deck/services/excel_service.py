@@ -878,6 +878,8 @@ class ExcelDeckService:
                     question_data = {
                         "id": row_dict.get("id") or row_dict.get("item_id") or None,
                         "content": front_text,
+                        "front": front_text,
+                        "back": explanation_text,
                         "explanation": explanation_text,
                         "front_img": unresolve_central_url(row_dict.get("front_img") or row_dict.get("image")),
                         "back_img": unresolve_central_url(row_dict.get("back_img")),
@@ -945,6 +947,8 @@ class ExcelDeckService:
                 question_data = {
                     "id": get_val("id") or get_val("item_id") or None,
                     "content": front_text,
+                    "front": front_text,
+                    "back": explanation_text,
                     "explanation": explanation_text,
                     "front_img": unresolve_central_url(get_val("front_img") or get_val("image")),
                     "back_img": unresolve_central_url(get_val("back_img")),

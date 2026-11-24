@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, JSON, DateTime, Float, UniqueConstraint, Date, Index
 from sqlalchemy.orm import relationship, backref
+from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from app.core.db import Base
 
@@ -44,7 +45,7 @@ class Flashcard(Base):
     front_img = Column(String(512), nullable=True)
     back_img = Column(String(512), nullable=True)
     question_type = Column(String(50), default="flashcard")
-    explanation = Column(Text, nullable=True)
+    back = Column("back", Text, nullable=True)
     others = Column(JSON, nullable=True)
     formulas = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=True)
@@ -52,7 +53,7 @@ class Flashcard(Base):
     deck = relationship("FlashcardDeck", back_populates="cards")
     contributions = relationship("CardContribution", back_populates="card", cascade="all, delete-orphan")
 
-    @property
+    @hybrid_property
     def front(self) -> str:
         return self.content
 
@@ -60,13 +61,13 @@ class Flashcard(Base):
     def front(self, value: str):
         self.content = value
 
-    @property
-    def back(self) -> str:
-        return self.explanation
+    @hybrid_property
+    def explanation(self) -> str:
+        return self.back
 
-    @back.setter
-    def back(self, value: str):
-        self.explanation = value
+    @explanation.setter
+    def explanation(self, value: str):
+        self.back = value
 
     @property
     def audio(self) -> str:

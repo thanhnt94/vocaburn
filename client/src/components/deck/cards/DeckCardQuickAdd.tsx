@@ -169,7 +169,9 @@ export function DeckCardQuickAdd({
 
       if (key === 'front') {
         payload.content = val
+        payload.front = val
       } else if (key === 'back') {
+        payload.back = val
         payload.explanation = val
       } else if (key === 'front_audio_content') {
         payload.front_audio_content = val

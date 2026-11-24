@@ -7,6 +7,8 @@ import { registerAudioElement, cancelAllAudio } from '@/lib/audio'
 export interface CardData {
   id: number
   content: string
+  front?: string
+  back?: string
   explanation: string
   ai_explanation?: string
   hint?: string | null
@@ -135,7 +137,7 @@ export const DeckCardItem = memo(function DeckCardItem({
             </div>
             <div
               className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed break-words"
-              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(card.explanation || '') }}
+              dangerouslySetInnerHTML={{ __html: parseBBCodeToHtml(card.back || card.explanation || '') }}
             />
             {card.hint && (
               <p className="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-50/60 dark:bg-amber-950/30 p-1.5 rounded-lg border border-amber-100 dark:border-amber-900/40">

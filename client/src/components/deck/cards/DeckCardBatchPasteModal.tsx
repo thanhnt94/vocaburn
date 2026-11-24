@@ -229,6 +229,8 @@ export function DeckCardBatchPasteModal({
 
       return {
         content,
+        front: content,
+        back: explanation,
         explanation,
         others,
         rawParts: trimmedParts

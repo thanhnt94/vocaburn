@@ -12,6 +12,8 @@ export interface Question {
   is_ignored?: boolean
   is_starred?: boolean
   content: string
+  front?: string
+  back?: string
   explanation: string
   ai_explanation?: string
   hint?: string | null

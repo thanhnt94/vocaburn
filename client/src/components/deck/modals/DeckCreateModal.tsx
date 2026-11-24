@@ -44,7 +44,7 @@ export function DeckCreateModal({ isOpen, onClose, onSuccess, initialMode = 'man
   const [isParsingExcel, setIsParsingExcel] = useState(false)
   const [previewData, setPreviewData] = useState<{
     metadata: { title?: string; description?: string; category?: string; cover_image?: string };
-    cards: Array<{ content?: string; explanation?: string; question_type?: string }>;
+    cards: Array<{ content?: string; front?: string; back?: string; explanation?: string; question_type?: string }>;
     count: number;
   } | null>(null)
   const [excelTitle, setExcelTitle] = useState('')

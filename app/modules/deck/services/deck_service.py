@@ -34,7 +34,7 @@ class DeckService:
             front_img=card_data.front_img,
             back_img=card_data.back_img,
             question_type=card_data.question_type,
-            explanation=card_data.explanation,
+            back=card_data.back or card_data.explanation,
             others=card_data.others
         )
         db.add(db_card)
@@ -56,7 +56,7 @@ class DeckService:
                 front_img=c_data.front_img,
                 back_img=c_data.back_img,
                 question_type=c_data.question_type,
-                explanation=c_data.explanation,
+                back=c_data.back or c_data.explanation,
                 others=c_data.others,
                 formulas=getattr(c_data, "formulas", None)
             )

@@ -317,11 +317,11 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
         if search_col == "front":
             query = query.filter(Flashcard.content.ilike(f"%{search}%"))
         elif search_col == "back":
-            query = query.filter(Flashcard.explanation.ilike(f"%{search}%"))
+            query = query.filter(Flashcard.back.ilike(f"%{search}%"))
         elif search_col == "all":
             query = query.filter(or_(
                 Flashcard.content.ilike(f"%{search}%"),
-                Flashcard.explanation.ilike(f"%{search}%"),
+                Flashcard.back.ilike(f"%{search}%"),
                 cast(Flashcard.others, String).ilike(f"%{search}%")
             ))
         else:
@@ -339,7 +339,7 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
         if filter_col == "front":
             query = query.filter(or_(Flashcard.content == None, Flashcard.content == ""))
         elif filter_col == "back":
-            query = query.filter(or_(Flashcard.explanation == None, Flashcard.explanation == ""))
+            query = query.filter(or_(Flashcard.back == None, Flashcard.back == ""))
         elif filter_col in ("front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", "front_img", "back_img"):
             col_attr = getattr(Flashcard, filter_col, None)
             if col_attr is not None:
@@ -412,7 +412,9 @@ async def get_deck_cards(deck_id: int, request: Request, page: int = 1, size: in
             "id": c.id,
             "orig_index": (page - 1) * size + i + 1,
             "content": c.content,
-            "explanation": c.explanation,
+            "front": c.content,
+            "back": c.back,
+            "explanation": c.back,
             "front_audio_content": c.front_audio_content,
             "back_audio_content": c.back_audio_content,
             "front_audio_url": c.front_audio_url,
@@ -766,7 +768,9 @@ async def create_card(request: Request, deck_id: int, data: dict, db: AsyncSessi
     card_dict = {
         "id": db_c.id,
         "content": db_c.content,
-        "explanation": db_c.explanation,
+        "front": db_c.content,
+        "back": db_c.back,
+        "explanation": db_c.back,
         "front_audio_content": db_c.front_audio_content,
         "back_audio_content": db_c.back_audio_content,
         "front_audio_url": db_c.front_audio_url,
@@ -810,7 +814,9 @@ async def update_card(request: Request, card_id: int, data: dict, db: AsyncSessi
     unresolve_card_dict(data, sso_url)
     
     if "content" in data: card.content = data["content"]
-    if "explanation" in data: card.explanation = data["explanation"]
+    elif "front" in data: card.content = data["front"]
+    if "back" in data: card.back = data["back"]
+    elif "explanation" in data: card.back = data["explanation"]
     if "front_audio_content" in data: card.front_audio_content = data["front_audio_content"]
     if "back_audio_content" in data: card.back_audio_content = data["back_audio_content"]
     if "front_audio_url" in data and data["front_audio_url"]:

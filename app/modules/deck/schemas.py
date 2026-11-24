@@ -12,6 +12,7 @@ class CardSchema(BaseModel):
     front_img: Optional[str] = None
     back_img: Optional[str] = None
     question_type: str = "flashcard"
+    back: Optional[str] = None
     explanation: Optional[str] = None
     others: Optional[Dict[str, Any]] = None
     formulas: Optional[Dict[str, Any]] = None
