@@ -48,6 +48,7 @@ export interface Question {
   front_audio_content?: string | null
   back_audio_content?: string | null
   others?: Record<string, any> | null
+  formulas?: Record<string, string> | null
   fsrs?: {
     state: number
     stability: number | null

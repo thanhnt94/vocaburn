@@ -146,7 +146,7 @@ export const QuestionMapGrid: React.FC<QuestionMapGridProps> = ({
     const excluded = new Set([
       'id', 'item_id', 'order_in_container', 'other_content',
       'front_audio_url', 'back_audio_url', 'front_audio_content', 'back_audio_content',
-      'front_img', 'back_img', '_formulas', '_formula'
+      'front_img', 'back_img', '_formulas', '_formula', 'formulas'
     ])
 
     questions?.forEach((q) => {

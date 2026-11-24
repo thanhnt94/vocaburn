@@ -57,7 +57,8 @@ class DeckService:
                 back_img=c_data.back_img,
                 question_type=c_data.question_type,
                 explanation=c_data.explanation,
-                others=c_data.others
+                others=c_data.others,
+                formulas=getattr(c_data, "formulas", None)
             )
             db_cards.append(db_card)
             

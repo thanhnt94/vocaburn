@@ -14,6 +14,7 @@ class CardSchema(BaseModel):
     question_type: str = "flashcard"
     explanation: Optional[str] = None
     others: Optional[Dict[str, Any]] = None
+    formulas: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

@@ -865,8 +865,15 @@ class ExcelDeckService:
                         except Exception:
                             others_dict["other_content"] = raw_other_content
 
+                    # Extract formulas: only store override if different from deck_column_formulas
+                    custom_row_formulas = None
                     if row_formulas:
-                        others_dict["_formulas"] = row_formulas
+                        diff_forms = {
+                            k: v for k, v in row_formulas.items()
+                            if k not in deck_column_formulas or deck_column_formulas.get(k) != v
+                        }
+                        if diff_forms:
+                            custom_row_formulas = diff_forms
 
                     question_data = {
                         "id": row_dict.get("id") or row_dict.get("item_id") or None,
@@ -879,7 +886,8 @@ class ExcelDeckService:
                         "front_audio_content": row_dict.get("front_audio_content"),
                         "back_audio_content": row_dict.get("back_audio_content"),
                         "options": options_list,
-                        "others": others_dict
+                        "others": others_dict,
+                        "formulas": custom_row_formulas
                     }
                     questions.append(question_data)
 
@@ -1289,7 +1297,7 @@ class ExcelDeckService:
                 for k in q.others.keys():
                     if k not in ("id", "item_id", "order_in_container", "front", "back", "explanation", 
                                  "front_audio_content", "back_audio_content", "front_audio_url", "back_audio_url", 
-                                 "front_img", "back_img", "options", "_formulas", "_formula"):
+                                 "front_img", "back_img", "options", "_formulas", "_formula", "formulas"):
                         custom_cols.add(k)
                         
         custom_cols = sorted(list(custom_cols))
@@ -1301,6 +1309,9 @@ class ExcelDeckService:
             has_any_formulas = True
         else:
             for q in cards:
+                if getattr(q, 'formulas', None):
+                    has_any_formulas = True
+                    break
                 others = getattr(q, 'others', None)
                 if isinstance(others, str):
                     try:
@@ -1360,8 +1371,18 @@ class ExcelDeckService:
                 except Exception:
                     others = {}
             card_formulas = {}
-            if isinstance(others, dict):
+            q_forms = getattr(q, 'formulas', None)
+            if isinstance(q_forms, str):
+                try:
+                    q_forms = json.loads(q_forms)
+                except Exception:
+                    q_forms = None
+            if isinstance(q_forms, dict):
+                card_formulas = dict(q_forms)
+            elif isinstance(others, dict) and others.get("_formulas"):
                 card_formulas = dict(others.get("_formulas") or {})
+
+            if isinstance(others, dict):
                 for col in custom_cols:
                     row[col] = others.get(col, "")
 

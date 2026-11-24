@@ -369,7 +369,9 @@ async def get_quick_play_data(request: Request, db: AsyncSession = Depends(get_d
             "options": [],
             "image": fix_static_urls(c.back_img),
             "audio": fix_static_urls(c.front_audio_url),
-            "others": fix_static_urls(c.others)
+            "others": fix_static_urls(clean_card_others(c.others)),
+            "formulas": getattr(c, "formulas", None),
+            "formulas": getattr(c, "formulas", None)
         })
         
     await resolve_play_cards(cards_list, db)
@@ -482,7 +484,9 @@ async def get_deck_play_data(
             "back_img": c.back_img,
             "image": fix_static_urls(c.back_img),
             "audio": fix_static_urls(c.front_audio_url),
-            "others": fix_static_urls(c.others)
+            "others": fix_static_urls(clean_card_others(c.others)),
+            "formulas": getattr(c, "formulas", None),
+            "formulas": getattr(c, "formulas", None)
         } for i, c in enumerate(source_cards)]
         
         await resolve_play_cards(cards_list, db)
@@ -944,7 +948,8 @@ async def get_deck_play_data(
             "options": [],
             "image": fix_static_urls(c.back_img),
             "audio": fix_static_urls(c.front_audio_url),
-            "others": fix_static_urls(clean_card_others(c.others))
+            "others": fix_static_urls(clean_card_others(c.others)),
+            "formulas": getattr(c, "formulas", None)
         })
         
     if user_id:
