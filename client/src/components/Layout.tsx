@@ -57,6 +57,112 @@ export default function Layout() {
   const showDesktopHeader = !isLandingPage && !isFullscreenPlay
   const showBottomNav = isLoggedIn && !isImmersiveView
 
+  const renderMobileNavIcon = (label: string, isActive: boolean) => {
+    const strokeColor = isActive ? '#EA580C' : '#94A3B8'
+    const fillColor = isActive ? '#FED7AA' : 'transparent'
+    if (label === 'Home') {
+      return (
+        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
+          <path
+            d="M3.5 10.2L11.1 4.1C11.6 3.7 12.4 3.7 12.9 4.1L20.5 10.2C20.8 10.5 21 10.9 21 11.4V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V11.4C3 10.9 3.2 10.5 3.5 10.2Z"
+            fill={fillColor}
+            stroke={strokeColor}
+            strokeWidth={isActive ? 2.1 : 1.8}
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9.5 21V15.5C9.5 14.7 10.2 14 11 14H13C13.8 14 14.5 14.7 14.5 15.5V21"
+            stroke={strokeColor}
+            strokeWidth={isActive ? 2.1 : 1.8}
+            strokeLinecap="round"
+          />
+        </svg>
+      )
+    }
+    if (label === 'Decks') {
+      return (
+        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
+          <rect
+            x="6"
+            y="4"
+            width="14"
+            height="14"
+            rx="3.2"
+            transform="rotate(6 13 11)"
+            fill={isActive ? '#FFEDD5' : 'none'}
+            stroke={strokeColor}
+            strokeWidth={isActive ? 1.8 : 1.6}
+          />
+          <rect
+            x="4"
+            y="6"
+            width="14"
+            height="14"
+            rx="3.2"
+            fill={isActive ? '#FDBA74' : '#FFFFFF'}
+            stroke={strokeColor}
+            strokeWidth={isActive ? 2.1 : 1.8}
+          />
+          <path
+            d="M7.5 11.5H14.5M7.5 14.8H11.8"
+            stroke={isActive ? '#C2410C' : strokeColor}
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          />
+        </svg>
+      )
+    }
+    if (label === 'Stats') {
+      return (
+        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
+          <rect
+            x="3.5"
+            y="12.5"
+            width="4.2"
+            height="7.5"
+            rx="1.5"
+            fill={fillColor}
+            stroke={strokeColor}
+            strokeWidth={isActive ? 2 : 1.75}
+          />
+          <rect
+            x="9.9"
+            y="5"
+            width="4.2"
+            height="15"
+            rx="1.5"
+            fill={isActive ? '#FB923C' : 'none'}
+            stroke={strokeColor}
+            strokeWidth={isActive ? 2 : 1.75}
+          />
+          <rect
+            x="16.3"
+            y="9"
+            width="4.2"
+            height="11"
+            rx="1.5"
+            fill={fillColor}
+            stroke={strokeColor}
+            strokeWidth={isActive ? 2 : 1.75}
+          />
+        </svg>
+      )
+    }
+    return (
+      <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
+        <path
+          d="M4 7H9M13 7H20M4 12H15M19 12H20M4 17H7M11 17H20"
+          stroke={strokeColor}
+          strokeWidth={isActive ? 2.1 : 1.8}
+          strokeLinecap="round"
+        />
+        <circle cx="11" cy="7" r="2.2" fill={isActive ? '#F97316' : '#FFFFFF'} stroke={strokeColor} strokeWidth="2" />
+        <circle cx="17" cy="12" r="2.2" fill={isActive ? '#F97316' : '#FFFFFF'} stroke={strokeColor} strokeWidth="2" />
+        <circle cx="9" cy="17" r="2.2" fill={isActive ? '#F97316' : '#FFFFFF'} stroke={strokeColor} strokeWidth="2" />
+      </svg>
+    )
+  }
+
   return (
     <div className={cn(
       "min-h-screen flex flex-col",
@@ -195,12 +301,11 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Clean Native-Style Mobile Bottom Nav */}
+      {/* Flagship Custom-Duotone Mobile Bottom Nav */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/75 dark:border-slate-800 shadow-[0_-4px_20px_rgba(15,23,42,0.04)] px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-t border-slate-200/60 dark:border-slate-800 shadow-[0_-8px_30px_rgba(15,23,42,0.06)] px-3 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto h-[48px]">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
-              const Icon = item.icon
               const isActive = item.path === '/' 
                 ? (location.pathname === '/' || location.pathname === '/dashboard')
                 : location.pathname.startsWith(item.path)
@@ -210,31 +315,27 @@ export default function Layout() {
                   key={item.path}
                   to={item.path} 
                   className={cn(
-                    "relative flex flex-col items-center justify-center h-full rounded-xl select-none transition-colors duration-150 cursor-pointer active:scale-90 outline-none focus:outline-none focus-visible:outline-none",
+                    "relative flex flex-col items-center justify-center h-full rounded-2xl select-none transition-all duration-150 cursor-pointer active:scale-90 outline-none focus:outline-none focus-visible:outline-none",
                     isActive ? "text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                   )}
                 >
-                  {/* Crisp Top Active Indicator */}
-                  <span
-                    className={cn(
-                      "absolute top-0 w-7 h-[2.5px] rounded-full bg-orange-500 transition-all duration-150",
-                      isActive ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"
-                    )}
-                  />
-                  <Icon className={cn(
-                    "w-[20px] h-[20px] transition-transform duration-150",
-                    isActive 
-                      ? "text-orange-600 dark:text-orange-400 stroke-[2.3] -translate-y-[0.5px]" 
-                      : "text-slate-400 dark:text-slate-500 stroke-[1.75]"
-                  )} />
+                  <div className={cn("transition-transform duration-200", isActive ? "-translate-y-0.5 scale-105" : "")}>
+                    {renderMobileNavIcon(item.label, isActive)}
+                  </div>
                   <span className={cn(
-                    "text-[10.5px] tracking-tight mt-1 transition-colors duration-150 leading-none",
+                    "text-[10px] tracking-tight mt-0.5 transition-colors duration-150 leading-none",
                     isActive 
-                      ? "font-bold text-orange-600 dark:text-orange-400" 
-                      : "font-medium text-slate-400 dark:text-slate-500"
+                      ? "font-extrabold text-orange-600 dark:text-orange-400" 
+                      : "font-semibold text-slate-400 dark:text-slate-500"
                   )}>
                     {item.label}
                   </span>
+                  <span
+                    className={cn(
+                      "w-1 h-1 rounded-full bg-orange-500 mt-0.5 transition-all duration-200",
+                      isActive ? "opacity-100 scale-100 shadow-[0_0_6px_rgba(249,115,22,0.8)]" : "opacity-0 scale-0"
+                    )}
+                  />
                 </Link>
               )
             })}
