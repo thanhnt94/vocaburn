@@ -124,20 +124,20 @@ export default function PersonalStatsTab({
   }
 
   return (
-    <div className="space-y-6 text-left w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
+    <div className="space-y-4 sm:space-y-5 text-left w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto">
       {/* 📅 Top Horizon & Executive KPI Card */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4 text-left">
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs space-y-3.5 text-left">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0">
               <Target className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest leading-none">
-                Personal Learning Performance
+              <h2 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider leading-none">
+                Performance Overview
               </h2>
-              <p className="text-[9px] font-bold text-slate-400 mt-1">
-                Select a time horizon to synchronize all metrics
+              <p className="text-[10px] font-semibold text-slate-400 mt-1">
+                Synchronized metrics for {periodLabels[personalPeriod].toLowerCase()}
               </p>
             </div>
           </div>
@@ -149,9 +149,9 @@ export default function PersonalStatsTab({
                 key={period}
                 onClick={() => setPersonalPeriod(period)}
                 className={cn(
-                  "flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap text-center",
+                  "flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap text-center outline-none",
                   personalPeriod === period
-                    ? "bg-white text-slate-900 shadow-sm border border-slate-200/60"
+                    ? "bg-white text-slate-900 shadow-xs border border-slate-200/60"
                     : "text-slate-500 hover:text-slate-900 font-bold hover:bg-white/40"
                 )}
               >
@@ -162,26 +162,26 @@ export default function PersonalStatsTab({
         </div>
 
         {/* 4 Hero KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 border-t border-slate-100">
-          <div className="bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100/70">
-            <span className="text-[8px] font-black text-indigo-500 uppercase tracking-wider block">Cards Studied</span>
-            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
+          <div className="bg-indigo-50/50 p-3 sm:p-3.5 rounded-2xl border border-indigo-100/80">
+            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider block">Cards Studied</span>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 tabular-nums">
               {periodSummary.total_questions.toLocaleString()} <span className="text-[10px] font-bold text-slate-400">cards</span>
             </div>
-            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">In {periodLabels[personalPeriod].toLowerCase()}</p>
+            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">In {periodLabels[personalPeriod].toLowerCase()}</p>
           </div>
 
-          <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100/70">
-            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider block">Accuracy</span>
-            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+          <div className="bg-emerald-50/50 p-3 sm:p-3.5 rounded-2xl border border-emerald-100/80">
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider block">Accuracy</span>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 tabular-nums">
               {periodSummary.global_accuracy}%
             </div>
-            <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">{periodSummary.total_correct} correct cards</p>
+            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{periodSummary.total_correct} correct</p>
           </div>
 
-          <div className="bg-amber-50/50 p-3.5 rounded-2xl border border-amber-100/70">
-            <span className="text-[8px] font-black text-amber-600 uppercase tracking-wider block">Focus Time</span>
-            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+          <div className="bg-amber-50/50 p-3 sm:p-3.5 rounded-2xl border border-amber-100/80">
+            <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider block">Focus Time</span>
+            <div className="text-lg sm:text-xl font-black text-slate-900 mt-0.5 tabular-nums">
               {periodSummary.total_time_hours} <span className="text-[10px] font-bold text-slate-400">hrs</span>
             </div>
             <p className="text-[7.5px] font-bold text-slate-400 uppercase mt-0.5">~{periodSummary.total_time_minutes} mins total</p>

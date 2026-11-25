@@ -217,7 +217,7 @@ export default function LeaderboardTab({
                   type="button"
                   onClick={() => onSelectCategory(cat)}
                   className={cn(
-                    "flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all select-none cursor-pointer",
+                    "shrink-0 sm:flex-none flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all select-none cursor-pointer whitespace-nowrap outline-none",
                     isActive
                       ? "bg-white text-slate-900 shadow-xs border border-slate-200/80 font-black"
                       : "text-slate-500 hover:text-slate-800"

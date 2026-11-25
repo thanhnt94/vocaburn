@@ -195,32 +195,68 @@ export default function Stats() {
   return (
     <div className="fixed inset-0 top-0 bottom-[calc(56px+env(safe-area-inset-bottom))] md:relative md:inset-auto md:top-auto md:bottom-auto md:h-full md:min-h-0 md:w-full flex flex-col bg-[#F8FAFC] dark:bg-[#0b0f19] overflow-hidden text-left select-none">
       {/* ═══════════ TOP UNIFIED HEADER ═══════════ */}
-      <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 md:backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs md:shadow-none px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-2.5">
-        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 text-left">
-          {/* Left: Warm Branding with Orange/Amber Trophy Squircle & Badge */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25 shrink-0">
-              <Trophy className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight leading-none truncate">
-                  Stats & Leaderboard
-                </h1>
-                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 text-amber-700 text-[10px] font-black shrink-0 leading-none">
-                  Rankings
-                </span>
+      <div className="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 md:backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-2xs md:shadow-none px-3.5 sm:px-6 lg:px-8 xl:px-10 pt-2.5 pb-0 sm:py-2.5 short:sm:py-1.5">
+        <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-4 text-left">
+          {/* Left: Compact Brand Header */}
+          <div className="flex items-center justify-between sm:justify-start gap-2.5 min-w-0 pb-1 sm:pb-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/20 shrink-0">
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
               </div>
-              <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1 leading-none truncate">
-                <span>Track personal progress & global rankings</span>
-                <span className="text-amber-500">✨</span>
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+                    Stats & Rankings
+                  </h1>
+                  <span className="px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/80 text-orange-700 text-[10px] font-black shrink-0 leading-none">
+                    Live
+                  </span>
+                </div>
+                <p className="hidden sm:flex text-xs font-semibold text-slate-400 mt-1 items-center gap-1 leading-none truncate">
+                  <span>Track personal progress & global rankings</span>
+                  <span className="text-amber-500">✨</span>
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Unified Responsive Segmented Tab Switcher */}
-          <div className="w-full sm:w-auto">
-            <div className="grid grid-cols-3 sm:flex sm:items-center p-1 rounded-2xl bg-slate-100/90 border border-slate-200/70 shadow-inner gap-1">
+          {/* Mobile: Material Underline Tabs */}
+          <div className="sm:hidden -mx-3.5 px-3.5 border-t border-slate-100/80 dark:border-slate-800">
+            <div className="grid grid-cols-3">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      if (navigator.vibrate) navigator.vibrate(8)
+                      setActiveTab(tab.id)
+                    }}
+                    className={cn(
+                      "relative py-2.5 px-1 text-xs transition-colors select-none cursor-pointer flex items-center justify-center gap-1.5 min-w-0 outline-none focus:outline-none focus-visible:outline-none",
+                      isActive
+                        ? "text-orange-600 dark:text-orange-400 font-black"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 font-semibold"
+                    )}
+                  >
+                    <span className="truncate text-[12px] tracking-tight leading-none">{tab.shortLabel}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobileStatsUnderline"
+                        className="absolute bottom-0 left-3 right-3 h-[2.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                        transition={{ type: "spring", stiffness: 460, damping: 34 }}
+                      />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Desktop/Tablet: Segmented Tab Switcher */}
+          <div className="hidden sm:block w-auto">
+            <div className="flex items-center p-1 rounded-2xl bg-slate-100/90 border border-slate-200/70 gap-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
@@ -232,17 +268,17 @@ export default function Stats() {
                       setActiveTab(tab.id)
                     }}
                     className={cn(
-                      "relative py-1.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 min-w-0",
+                      "relative py-1.5 px-4 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 min-w-0 outline-none focus:outline-none",
                       isActive
                         ? "text-slate-900 font-black shadow-xs bg-white"
                         : "text-slate-500 hover:text-slate-800"
                     )}
                   >
                     <Icon className={cn(
-                      "w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-colors",
+                      "w-4 h-4 shrink-0 transition-colors",
                       isActive ? tab.color + " stroke-[2.4]" : "text-slate-400"
                     )} />
-                    <span className="truncate text-[11px] sm:text-xs leading-tight">{tab.shortLabel}</span>
+                    <span className="truncate text-xs leading-tight">{tab.shortLabel}</span>
                   </button>
                 )
               })}
