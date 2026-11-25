@@ -615,9 +615,9 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Row 2 on Mobile: Modern iOS-Style Segmented Pill Bar */}
-          <div className="md:hidden pt-0.5 pb-1.5">
-            <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/70 dark:border-slate-700/70 shadow-inner">
+          {/* Row 2 on Mobile: Modern iOS-Style Animated Segmented Pill Bar */}
+          <div className="md:hidden pt-1 pb-2">
+            <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/95 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/70">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
                 const TabIcon = tab.icon
@@ -627,24 +627,33 @@ export default function DecksPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "relative py-1.5 px-0.5 rounded-xl text-xs font-bold transition-all select-none cursor-pointer flex items-center justify-center gap-1 min-w-0",
+                      "relative py-1.5 px-1 rounded-xl text-xs transition-all select-none cursor-pointer flex items-center justify-center gap-1 min-w-0",
                       isActive
-                        ? "text-slate-900 dark:text-slate-100 font-black shadow-xs bg-white dark:bg-slate-700"
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                        ? "text-slate-900 dark:text-slate-100 font-black"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-semibold"
                     )}
                   >
-                    <TabIcon className={cn(
-                      "w-3.5 h-3.5 shrink-0 transition-colors",
-                      isActive ? "text-orange-500 stroke-[2.4]" : "text-slate-400 dark:text-slate-500"
-                    )} />
-                    <span className="truncate text-[10.5px] leading-tight">{shortLabel}</span>
-                    <span className={cn(
-                      "px-1 py-0.2 rounded-full text-[9px] font-black leading-none shrink-0",
-                      isActive 
-                        ? "bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-300 border border-orange-200/70 dark:border-orange-800/60" 
-                        : "bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                    )}>
-                      {tab.count}
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobileDecksTabPill"
+                        className="absolute inset-0 bg-white dark:bg-slate-700 rounded-xl shadow-xs border border-slate-200/70 dark:border-slate-600"
+                        transition={{ type: "spring", stiffness: 460, damping: 34 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center gap-1 min-w-0">
+                      <TabIcon className={cn(
+                        "w-3.5 h-3.5 shrink-0 transition-colors",
+                        isActive ? "text-orange-500 stroke-[2.3]" : "text-slate-400 dark:text-slate-500 stroke-[1.9]"
+                      )} />
+                      <span className="truncate text-[11px] leading-none">{shortLabel}</span>
+                      <span className={cn(
+                        "px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none shrink-0",
+                        isActive
+                          ? "bg-orange-500 text-white"
+                          : "bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                      )}>
+                        {tab.count}
+                      </span>
                     </span>
                   </button>
                 )
@@ -652,76 +661,75 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Row 3: Pure Status Filter Chips with Tag Toggle at Front */}
+          {/* Row 3: Clean Modern Filter & Sort Pills */}
           {activeTab !== 'folders' ? (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1.5 pt-0.5 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
+            <div className="flex items-center justify-between gap-1.5 pb-2 pt-0.5 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
               {activeTab === 'my' && (
                 <>
-                  {/* Tag Toggle Button at Front */}
-                  {allAvailableTags.length > 0 && (
-                    <button
-                      onClick={() => setIsTagRowOpen(prev => !prev)}
-                      className={cn(
-                        "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
-                        activeTag
-                          ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
-                          : isTagRowOpen
-                          ? "bg-amber-100 border-amber-300 text-amber-900 font-extrabold"
-                          : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60"
-                      )}
-                      title={isTagRowOpen ? "Hide tags bar" : "Filter by tags"}
-                    >
-                      <span>{activeTag ? `🏷️ #${activeTag}` : '🏷️ Tags'}</span>
-                      {activeTag ? (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActiveTag(null)
-                          }}
-                          className="hover:bg-white/20 rounded p-0.5"
-                          title="Clear tag filter"
-                        >
-                          <X className="w-3 h-3" />
-                        </span>
-                      ) : (
-                        <ChevronDown className={cn("w-3 h-3 transition-transform duration-200 opacity-60", isTagRowOpen && "rotate-180")} />
-                      )}
-                    </button>
-                  )}
-
-                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
-
-                  {/* Status Chips */}
-                  {[
-                    { id: 'all' as StatusFilter, label: 'All' },
-                    { id: 'learning' as StatusFilter, label: '⚡ In Progress' },
-                    { id: 'unlearned' as StatusFilter, label: '✨ New' },
-                    { id: 'mastered' as StatusFilter, label: '🌟 Mastered' },
-                  ].map(st => {
-                    const isSelected = statusFilter === st.id
-                    return (
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 pr-1">
+                    {/* Tag Toggle Button at Front */}
+                    {allAvailableTags.length > 0 && (
                       <button
-                        key={st.id}
-                        onClick={() => setStatusFilter(st.id)}
+                        onClick={() => setIsTagRowOpen(prev => !prev)}
                         className={cn(
-                          "px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none",
-                          isSelected
-                            ? "bg-orange-500 border-orange-500 text-white shadow-xs shadow-orange-500/20 font-black"
-                            : "bg-slate-100/80 md:bg-white border-slate-200/80 text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                          "h-7 px-2.5 rounded-full text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none flex items-center gap-1",
+                          activeTag
+                            ? "bg-amber-500 border-amber-500 text-white shadow-xs font-black"
+                            : isTagRowOpen
+                            ? "bg-amber-50 border-amber-300 text-amber-800 font-extrabold"
+                            : "bg-white border-slate-200/90 text-slate-600 hover:bg-slate-50"
                         )}
+                        title={isTagRowOpen ? "Hide tags bar" : "Filter by tags"}
                       >
-                        {st.label}
+                        <Bookmark className="w-3 h-3 text-amber-500 shrink-0" />
+                        <span>{activeTag ? `#${activeTag}` : 'Tags'}</span>
+                        {activeTag ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveTag(null)
+                            }}
+                            className="hover:bg-white/20 rounded-full p-0.5"
+                            title="Clear tag filter"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </span>
+                        ) : (
+                          <ChevronDown className={cn("w-3 h-3 transition-transform duration-200 opacity-60", isTagRowOpen && "rotate-180")} />
+                        )}
                       </button>
-                    )
-                  })}
+                    )}
 
-                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
+                    {/* Status Chips */}
+                    {[
+                      { id: 'all' as StatusFilter, label: 'All' },
+                      { id: 'learning' as StatusFilter, label: 'Active' },
+                      { id: 'unlearned' as StatusFilter, label: 'New' },
+                      { id: 'mastered' as StatusFilter, label: 'Mastered' },
+                    ].map(st => {
+                      const isSelected = statusFilter === st.id
+                      return (
+                        <button
+                          key={st.id}
+                          onClick={() => setStatusFilter(st.id)}
+                          className={cn(
+                            "h-7 px-2.5 rounded-full text-[11px] font-bold transition-all shrink-0 border cursor-pointer select-none",
+                            isSelected
+                              ? "bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold"
+                              : "bg-white border-slate-200/90 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          )}
+                        >
+                          {st.label}
+                        </button>
+                      )
+                    })}
+                  </div>
 
-                  {/* 1-Tap Sort Cycle Pill */}
+                  {/* Pinned 1-Tap Sort Cycle Pill (Never cut off on right edge) */}
                   <button
                     type="button"
                     onClick={() => setSortMode(prev => prev === 'recent' ? 'progress' : prev === 'progress' ? 'name' : 'recent')}
-                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border border-slate-200/80 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer select-none flex items-center gap-1"
+                    className="h-7 px-2.5 rounded-full text-[11px] font-bold transition-all shrink-0 border border-slate-200/90 bg-slate-50 text-slate-700 hover:bg-slate-100 cursor-pointer select-none flex items-center gap-1"
                     title="Cycle sort order"
                   >
                     <ArrowUpDown className="w-3 h-3 text-orange-500" />
@@ -1287,7 +1295,7 @@ export default function DecksPage() {
                           {activeTab !== 'discover' && (
                             <div className="flex items-center gap-2 mt-1.5">
                               <div className={cn(
-                                "flex-1 h-1.5 rounded-full overflow-hidden p-0.5 shadow-inner",
+                                "flex-1 h-1.5 rounded-full overflow-hidden",
                                 isSelected ? "bg-orange-100" : "bg-slate-100"
                               )}>
                                 <div
@@ -1344,19 +1352,41 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ CLEAR BOTTOM ACTION DOCK WITH SELECTED DECK NAME + DETAILS ═══════════ */}
-      {selectedDeck && activeTab !== 'folders' && (
-        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2">
-          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-2 px-0.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-                <span className="text-xs font-black text-slate-800 truncate">
-                  {selectedDeck.title}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400 shrink-0">
-                  • {selectedDeck.questions_count} cards
-                </span>
+      {/* ═══════════ APP-STYLE BOTTOM ACTION SHEET DOCK ═══════════ */}
+      {selectedDeck && activeTab !== 'folders' && (() => {
+        const dockTheme = getDeckTheme(selectedDeck)
+        const DockIcon = dockTheme.icon
+        const dockPct = selectedDeck.progress_percent ?? Math.min(100, Math.round(((selectedDeck.learned_count || 0) / Math.max(1, selectedDeck.questions_count || 1)) * 100))
+        return (
+        <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl rounded-t-[24px] border-t border-slate-200/90 shadow-[0_-10px_35px_rgba(15,23,42,0.08)] px-3.5 sm:px-6 lg:px-8 xl:px-10 pt-2 pb-2.5">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col gap-2">
+            {/* Selected Deck Identity Strip */}
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={cn(
+                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs border border-white overflow-hidden",
+                  selectedDeck.cover_image ? "bg-slate-100" : cn("bg-gradient-to-tr text-white", dockTheme.gradient)
+                )}>
+                  {selectedDeck.cover_image ? (
+                    <img src={resolveMediaUrl(selectedDeck.cover_image)} alt={selectedDeck.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <DockIcon className="w-4 h-4 stroke-[2.2]" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-slate-900 truncate leading-tight">
+                    {selectedDeck.title}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-500 leading-tight mt-0.5 flex items-center gap-1.5">
+                    <span>{selectedDeck.questions_count} cards</span>
+                    {activeTab !== 'discover' && (
+                      <>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-orange-600 font-extrabold">{dockPct}% learned</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {activeTab === 'my' && (
@@ -1367,7 +1397,7 @@ export default function DecksPage() {
                       archiveMutation.mutate(selectedDeck.id)
                     }}
                     disabled={archiveMutation.isPending}
-                    className="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-amber-50 text-slate-500 hover:text-amber-600 flex items-center justify-center transition-colors cursor-pointer"
                     title="Archive deck"
                   >
                     <Archive className="w-3.5 h-3.5" />
@@ -1376,7 +1406,7 @@ export default function DecksPage() {
                 <button
                   type="button"
                   onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                  className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-[11px] font-black text-orange-600 flex items-center gap-0.5 shrink-0 cursor-pointer transition-colors"
+                  className="h-8 px-3 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 text-[11px] font-black flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
                 >
                   <span>Details</span>
                   <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1470,7 +1500,8 @@ export default function DecksPage() {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* ═══════════ MODALS ═══════════ */}
       <DeckCreateModal
