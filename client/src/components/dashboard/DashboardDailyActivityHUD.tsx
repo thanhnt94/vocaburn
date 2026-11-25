@@ -1,7 +1,7 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { Clock, Zap, ChevronRight, Sparkles, Layers, Target } from 'lucide-react'
+import { Clock, Zap, ChevronRight, Sparkles, Layers, Target, Keyboard, Headphones } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DashboardDailyActivityHUDProps {
@@ -108,52 +108,52 @@ export function DashboardDailyActivityHUD({
       >
         <div className={cn("grid gap-1.5 sm:gap-2 w-full", listenCount > 0 ? "grid-cols-5" : "grid-cols-4")}>
           {/* Box 1: Time */}
-          <div className="flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 shadow-2xs">
-            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2.4] shrink-0" />
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200">
+            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 stroke-[2.3] shrink-0" />
             <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none">{timeLabel}</span>
             <span className="text-[9px] sm:text-[9.5px] font-bold text-amber-700/80 dark:text-amber-400/80 uppercase">Time</span>
           </div>
 
           {/* Box 2: MCQ */}
           <div className={cn(
-            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border shadow-2xs transition-colors",
+            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border transition-colors",
             mcqCount > 0
               ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200"
               : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
           )}>
-            <span className="text-xs shrink-0">🎯</span>
+            <Target className={cn("w-3.5 h-3.5 shrink-0 stroke-[2.2]", mcqCount > 0 ? "text-emerald-600" : "text-slate-400")} />
             <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{mcqCount}</span>
             <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">MCQ</span>
           </div>
 
           {/* Box 3: Typing */}
           <div className={cn(
-            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border shadow-2xs transition-colors",
+            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border transition-colors",
             typingCount > 0
               ? "bg-violet-50/90 dark:bg-violet-950/40 border-violet-200/80 dark:border-violet-800/60 text-violet-900 dark:text-violet-200"
               : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
           )}>
-            <span className="text-xs shrink-0">⌨️</span>
+            <Keyboard className={cn("w-3.5 h-3.5 shrink-0 stroke-[2.2]", typingCount > 0 ? "text-violet-600" : "text-slate-400")} />
             <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{typingCount}</span>
             <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">Type</span>
           </div>
 
           {/* Box 4: Cards */}
           <div className={cn(
-            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border shadow-2xs transition-colors",
+            "flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl border transition-colors",
             flashcardCount > 0
               ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-800/60 text-blue-900 dark:text-blue-200"
               : "bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500"
           )}>
-            <span className="text-xs shrink-0">🗂️</span>
+            <Layers className={cn("w-3.5 h-3.5 shrink-0 stroke-[2.2]", flashcardCount > 0 ? "text-blue-600" : "text-slate-400")} />
             <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{flashcardCount}</span>
             <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">Cards</span>
           </div>
 
           {/* Box 5: Optional Listening if active */}
           {listenCount > 0 && (
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/60 text-sky-900 dark:text-sky-200 shadow-2xs">
-              <span className="text-xs shrink-0">🎧</span>
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 rounded-xl bg-sky-50/90 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/60 text-sky-900 dark:text-sky-200">
+              <Headphones className="w-3.5 h-3.5 shrink-0 stroke-[2.2] text-sky-600" />
               <span className="text-xs sm:text-sm font-black tabular-nums tracking-tight leading-none text-slate-900 dark:text-white">{listenCount}</span>
               <span className="text-[9px] sm:text-[9.5px] font-bold opacity-75 uppercase">Listen</span>
             </div>

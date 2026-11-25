@@ -911,46 +911,49 @@ export default function Dashboard() {
           }
         }}
       >
-        {/* UNIFIED TOP APP HEADER (VS Code Light Studio Tabs) */}
-        <div className="bg-white border-b border-slate-200/70 flex flex-col flex-shrink-0 z-30 shadow-xs">
-          {/* Top Bar: Brand Logo + Utility Cluster */}
+        {/* UNIFIED TOP APP HEADER */}
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800 flex flex-col flex-shrink-0 z-30 shadow-2xs">
+          {/* Top Bar: Brand Logo + Purposeful Utility Cluster */}
           <div className="flex items-center justify-between px-3.5 pt-2 pb-1.5 w-full max-w-[1700px] mx-auto">
             <Link to="/" className="active:scale-95 transition-transform flex items-center">
               <VocaburnLogo height="md" />
             </Link>
             
             <div className="flex items-center gap-2">
-              {/* Today Activity Trigger Pill */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (navigator.vibrate) navigator.vibrate(8)
-                  setIsDailyDrawerOpen(true)
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-orange-50 border border-slate-200/80 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-full text-xs font-black shadow-2xs active:scale-95 transition-all cursor-pointer"
-                title="Today's Activity Report"
-              >
-                <Activity className="w-3.5 h-3.5 text-orange-500 stroke-[2.4]" />
-                <span className="text-[11.5px]">Today</span>
-              </button>
+              {/* Quick Global Focus Pill when cards are due */}
+              {globalFocus && globalFocus.total_due > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(8)
+                    navigate('/flashcard/global-focus/play?mode=fsrs&order=random')
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-700 rounded-full text-[11px] font-black shadow-2xs active:scale-95 transition-all cursor-pointer"
+                  title="Global Focus Review"
+                >
+                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
+                  <span className="tabular-nums">{globalFocus.total_due} due</span>
+                </button>
+              )}
 
-              {/* Streak Badge (Also opens Today's Activity Report) */}
+              {/* Streak Badge (Opens Today's Activity Report) */}
               <button 
                 type="button"
                 onClick={() => {
                   if (navigator.vibrate) navigator.vibrate(8)
                   setIsDailyDrawerOpen(true)
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 text-white rounded-full text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-xs font-black shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer tabular-nums"
                 title="Daily Streak & Activity"
               >
-                <Zap className="w-3 h-3 fill-white text-white animate-pulse" />
+                <Flame className="w-3 h-3 fill-white text-white" />
                 {data?.gamify?.streak || 0}d
               </button>
 
               <Link 
                 to="/profile" 
-                className="w-7.5 h-7.5 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200/70 border border-slate-200/70 flex items-center justify-center text-slate-700 active:scale-95 transition-all shadow-2xs"
+                title="Profile"
               >
                 <User className="w-4 h-4" />
               </Link>

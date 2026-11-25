@@ -227,10 +227,10 @@ export function DashboardQuickDecksWidget({
                   setSelectedDeckId(deckId)
                 }}
                 className={cn(
-                  "relative rounded-[28px] p-4 sm:p-4.5 flex items-center gap-4 transition-all duration-200 cursor-pointer select-none",
+                  "relative rounded-2xl p-3.5 sm:p-4 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none active:scale-[0.99]",
                   isSelected
-                    ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/95 via-white to-amber-50/60 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/25"
-                    : cn("border border-slate-200/90 hover:border-slate-300 shadow-xs", palette.cardBg)
+                    ? "border-[1.5px] border-orange-500 bg-gradient-to-r from-orange-50/75 via-white to-amber-50/40 shadow-[0_6px_20px_-4px_rgba(249,115,22,0.18)]"
+                    : cn("border border-slate-200/85 hover:border-slate-300 shadow-[0_1px_4px_rgba(15,23,42,0.03)]", palette.cardBg)
                 )}
               >
                 {/* Deck Mascot / Avatar */}
@@ -282,7 +282,7 @@ export function DashboardQuickDecksWidget({
                   {/* Progress Bar with Percentage */}
                   <div className="flex items-center gap-2.5 mt-2">
                     <div className={cn(
-                      "flex-1 h-2 rounded-full overflow-hidden p-0.5 shadow-inner",
+                      "flex-1 h-1.5 rounded-full overflow-hidden",
                       isSelected ? "bg-orange-100" : palette.barTrack
                     )}>
                       <div
@@ -322,10 +322,10 @@ export function DashboardQuickDecksWidget({
           </div>
 
           {/* Section Header */}
-          <div className="flex items-center justify-center gap-1.5 text-xs font-black text-slate-800 tracking-wide select-none">
-            <span className="text-orange-500 font-black text-sm">≥</span>
-            <span>Start Studying Now!</span>
-            <span className="text-orange-500 font-black text-sm">≤</span>
+          <div className="flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-600 select-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+            <span>Start Studying Now</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           </div>
 
           {/* 2 Big Action Launch Buttons */}
