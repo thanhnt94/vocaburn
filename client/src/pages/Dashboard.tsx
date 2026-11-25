@@ -786,27 +786,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Action Button: Today's Activity Report Modal */}
-          <button
-            type="button"
-            onClick={() => {
-              if (navigator.vibrate) navigator.vibrate(8)
-              setIsDailyDrawerOpen(true)
-            }}
-            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-orange-50/80 via-white to-amber-50/40 hover:from-orange-100/80 hover:to-amber-100/50 border border-orange-200/70 rounded-2xl transition-all cursor-pointer group shadow-2xs"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-xs">
-                <Activity className="w-4 h-4 stroke-[2.4]" />
-              </div>
-              <div className="text-left">
-                <span className="text-xs font-black text-slate-800 block leading-tight">Today's Activity</span>
-                <span className="text-[9.5px] font-bold text-orange-600">Daily study & review pulse</span>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-orange-400 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-
           {/* Action Button: Global Focus Review (Daily Focus Queue) */}
           <button
             type="button"

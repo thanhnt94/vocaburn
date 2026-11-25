@@ -569,8 +569,8 @@ export function DashboardRoadmapSection({
           exit="exit"
           className="flex-1 flex flex-col justify-between gap-2.5 short:gap-1.5 min-h-0 cursor-grab active:cursor-grabbing touch-pan-y"
         >
-          {/* ── 2A. HERO STAGE (FULL-WIDTH TOP PROGRESS + RICH LEFT METRICS + ANCHORED MASCOT) ── */}
-          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 short:p-2.5 relative overflow-y-auto overflow-x-hidden custom-scrollbar shadow-2xs flex-1 flex flex-col justify-between min-h-0">
+          {/* ── 2A. HERO STAGE (CLEAN CARD + LIFECYCLE BAR + MATRIX + MASCOT) ── */}
+          <div className="bg-gradient-to-br from-white via-orange-50/35 to-amber-50/50 border border-slate-200/90 rounded-3xl p-3.5 sm:p-4.5 short:p-2.5 relative overflow-y-auto overflow-x-hidden custom-scrollbar shadow-[0_8px_30px_rgba(15,23,42,0.05)] flex-1 flex flex-col justify-between min-h-0">
             
             {/* 1. TOP HEADER & FULL-WIDTH PROGRESS */}
             <div className="relative z-20 w-full shrink-0 space-y-2">
@@ -612,7 +612,7 @@ export function DashboardRoadmapSection({
               </div>
 
               {/* GAMIFIED MASTERY & CARD LIFECYCLE HUD */}
-              <div className="bg-gradient-to-r from-orange-500/10 via-amber-400/15 to-emerald-500/15 border-2 border-orange-300/80 rounded-2xl p-2.5 sm:p-3 shadow-xs relative overflow-hidden backdrop-blur-xs">
+              <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-2.5 sm:p-3 relative overflow-hidden">
                 {/* Decorative background glow */}
                 <div className="absolute -right-6 -top-6 w-20 h-20 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
                 <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-emerald-400/15 rounded-full blur-xl pointer-events-none" />
@@ -711,19 +711,13 @@ export function DashboardRoadmapSection({
                   )}
                 </div>
 
-                {/* Bottom Row: Milestone Metrics Summary */}
-                <div className="flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-bold text-slate-600 mt-1.5 px-0.5 relative z-10">
-                  <span className="flex items-center gap-1.5 text-slate-600 font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    Retained: <strong className="text-emerald-700 font-extrabold">{retainedCount.toLocaleString()}</strong>
-                    <span className="text-slate-300">•</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
-                    Due: <strong className={dueRecallCount > 0 ? "text-rose-600 font-extrabold" : "text-slate-700"}>{dueRecallCount.toLocaleString()}</strong>
+                {/* Bottom Row: Clean Total Progress Caption (No duplication with Matrix below) */}
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mt-1.5 px-0.5 relative z-10">
+                  <span>
+                    <strong className="text-slate-800 font-black tabular-nums">{learnedCards.toLocaleString()}</strong> / {totalCards.toLocaleString()} cards learned
                   </span>
-                  <span className="flex items-center gap-1 text-slate-500 font-bold">
-                    Acquisition: <strong className="text-slate-700 font-extrabold">{(freshCount + previewedCount + practicedCount + reinforcedCount).toLocaleString()}</strong>
-                    <span className="text-slate-300">•</span>
-                    Total: <strong className="text-slate-800 font-extrabold">{totalCards.toLocaleString()}</strong>
+                  <span className="text-orange-600 font-black tabular-nums">
+                    {pct}% complete
                   </span>
                 </div>
               </div>
@@ -886,52 +880,7 @@ export function DashboardRoadmapSection({
             </div>
           </div>
 
-          {/* ── 2B. 3 TRUTH STAT BOXES (DUE, UNLEARNED, LEARNED) ── */}
-          <div className="grid grid-cols-3 gap-2 short:gap-1.5 shrink-0">
-            {/* Due for Review */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 short:p-1.5 text-center shadow-2xs">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Cards currently due for review right now">
-                Due for Review
-              </span>
-              <div className="flex items-baseline justify-center gap-1 mt-0.5">
-                <span className={cn(
-                  "text-base sm:text-lg font-black tabular-nums",
-                  dueRemaining > 0 ? "text-purple-600" : "text-emerald-600"
-                )}>
-                  {dueRemaining}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">cards</span>
-              </div>
-            </div>
-
-            {/* Fresh / Brand-New Cards */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Untouched fresh cards">
-                Fresh Cards
-              </span>
-              <div className="flex items-baseline justify-center gap-1 mt-0.5">
-                <span className="text-base sm:text-lg font-black text-orange-600 tabular-nums">
-                  {freshCount.toLocaleString()}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">cards</span>
-              </div>
-            </div>
-
-            {/* Learned / FSRS Cards */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Total cards memorized in FSRS (Retained + Due Recall)">
-                {hasExplicitMastered ? 'Mastered' : 'Learned (FSRS)'}
-              </span>
-              <div className="flex items-baseline justify-center gap-1 mt-0.5">
-                <span className="text-base sm:text-lg font-black text-emerald-600 tabular-nums">
-                  {(hasExplicitMastered ? masteredCount : learnedCards).toLocaleString()}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">cards</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ── 2C. DUAL STUDY ACTIONS (INSTANT PLAY + QUICK MODE POPUP) ── */}
+          {/* ── 2B. DUAL STUDY ACTIONS (INSTANT PLAY + QUICK MODE POPUP) ── */}
           <div className="shrink-0">
             {renderDualActions(deck, deckData)}
           </div>
