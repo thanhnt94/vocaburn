@@ -7,7 +7,7 @@ import {
   Play, Sparkles, Layers, Eye, Check,
   Compass, ChevronDown, BookOpen, Folder as FolderIcon, FolderPlus,
   Edit3, Trash2, Settings,
-  Zap, Target, Flame, Globe, GraduationCap, Star, Award, Bookmark
+  Zap, Target, Flame, Globe, GraduationCap, Star, Award, Bookmark, ArrowUpDown
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
@@ -97,6 +97,7 @@ export default function DecksPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sortMode, setSortMode] = useState<'recent' | 'progress' | 'name'>('recent')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   
   // Selection State (Master-Detail matching Home Learning)
@@ -121,7 +122,7 @@ export default function DecksPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 12
+  const itemsPerPage = 24
 
   const { setUser, setGamify } = useAppStore()
   const queryClient = useQueryClient()
@@ -268,8 +269,16 @@ export default function DecksPage() {
       return matchesSearch && matchesTag && matchesStatus && matchesFolder
     })
 
-    // Sort by most recently studied first, fallback to created_at desc, fallback to id desc
+    // Sort based on selected sortMode
     return list.sort((a, b) => {
+      if (sortMode === 'name') {
+        return (a.title || '').localeCompare(b.title || '')
+      }
+      if (sortMode === 'progress') {
+        const pctA = a.progress_percent ?? Math.round(((a.learned_count || 0) / Math.max(1, a.questions_count || 1)) * 100)
+        const pctB = b.progress_percent ?? Math.round(((b.learned_count || 0) / Math.max(1, b.questions_count || 1)) * 100)
+        if (pctA !== pctB) return pctB - pctA
+      }
       const timeA = a.last_studied_at ? new Date(a.last_studied_at).getTime() : 0
       const timeB = b.last_studied_at ? new Date(b.last_studied_at).getTime() : 0
       if (timeA !== timeB) {
@@ -282,7 +291,7 @@ export default function DecksPage() {
       }
       return b.id - a.id
     })
-  }, [data, activeTab, searchQuery, activeTag, statusFilter, activeFolderId, folders])
+  }, [data, activeTab, searchQuery, activeTag, statusFilter, activeFolderId, folders, sortMode])
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filteredData.length / itemsPerPage))
@@ -582,6 +591,18 @@ export default function DecksPage() {
                 <Search className="w-4 h-4" />
               </button>
 
+              {/* Folder Quick Button */}
+              <button
+                onClick={() => {
+                  setEditingFolder(null)
+                  setIsFolderModalOpen(true)
+                }}
+                className="h-8.5 w-8.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Create folder"
+              >
+                <FolderPlus className="w-4 h-4" />
+              </button>
+
               {/* New Deck Primary Action */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
@@ -693,6 +714,19 @@ export default function DecksPage() {
                       </button>
                     )
                   })}
+
+                  <div className="w-[1px] h-4 bg-slate-200 shrink-0 mx-0.5" />
+
+                  {/* 1-Tap Sort Cycle Pill */}
+                  <button
+                    type="button"
+                    onClick={() => setSortMode(prev => prev === 'recent' ? 'progress' : prev === 'progress' ? 'name' : 'recent')}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 border border-slate-200/80 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer select-none flex items-center gap-1"
+                    title="Cycle sort order"
+                  >
+                    <ArrowUpDown className="w-3 h-3 text-orange-500" />
+                    <span>{sortMode === 'recent' ? 'Recent' : sortMode === 'progress' ? 'Progress' : 'A–Z'}</span>
+                  </button>
                 </>
               )}
             </div>
@@ -1172,9 +1206,9 @@ export default function DecksPage() {
                           }
                         }}
                         className={cn(
-                          "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none",
+                          "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none active:scale-[0.99]",
                           isSelected
-                            ? "border-2 border-orange-500 bg-orange-50/20 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/20"
+                            ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/50 via-white to-amber-50/30 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/20"
                             : "bg-white border border-slate-200/90 hover:border-slate-300 shadow-2xs hover:shadow-xs"
                         )}
                       >
@@ -1208,55 +1242,8 @@ export default function DecksPage() {
                               </h4>
                             </div>
 
-                            {/* Right Indicator: Quick Study + Quick Archive/Restore + Direct Open Details */}
+                            {/* Right Indicator: Clean Selection Checkmark or Direct Open Details */}
                             <div className="flex items-center gap-1 shrink-0">
-                              {activeTab === 'my' && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (navigator.vibrate) navigator.vibrate(10)
-                                    handleLaunchDefaultStudy(quiz)
-                                  }}
-                                  className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-orange-200/70 active:scale-90"
-                                  title="Quick Study"
-                                >
-                                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                                </button>
-                              )}
-
-                              {activeTab === 'my' && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (navigator.vibrate) navigator.vibrate(8)
-                                    archiveMutation.mutate(quiz.id)
-                                  }}
-                                  disabled={archiveMutation.isPending}
-                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-amber-200"
-                                  title="Archive deck"
-                                >
-                                  <Archive className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
-                              {activeTab === 'archived' && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (navigator.vibrate) navigator.vibrate(8)
-                                    archiveMutation.mutate(quiz.id)
-                                  }}
-                                  disabled={archiveMutation.isPending}
-                                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer border border-transparent hover:border-emerald-200"
-                                  title="Restore deck"
-                                >
-                                  <RotateCcw className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1265,14 +1252,14 @@ export default function DecksPage() {
                                   navigate(`/decks/${quiz.id}`)
                                 }}
                                 className={cn(
-                                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-90",
+                                  "w-7.5 h-7.5 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-90",
                                   isSelected
                                     ? "bg-orange-500 text-white shadow-xs"
                                     : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
                                 )}
                                 title="Open deck details"
                               >
-                                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                                {isSelected ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <ChevronRight className="w-4 h-4 stroke-[2.5]" />}
                               </button>
                             </div>
                           </div>
@@ -1362,17 +1349,39 @@ export default function DecksPage() {
         <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2">
           <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2 px-0.5">
-              <span className="text-[11px] font-black text-slate-700 truncate">
-                {selectedDeck.title}
-              </span>
-              <button
-                type="button"
-                onClick={() => navigate(`/decks/${selectedDeck.id}`)}
-                className="text-[11px] font-black text-orange-600 hover:text-orange-700 flex items-center gap-0.5 shrink-0 cursor-pointer"
-              >
-                <span>Open Details</span>
-                <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
-              </button>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                <span className="text-xs font-black text-slate-800 truncate">
+                  {selectedDeck.title}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                  • {selectedDeck.questions_count} cards
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeTab === 'my' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.vibrate) navigator.vibrate(8)
+                      archiveMutation.mutate(selectedDeck.id)
+                    }}
+                    disabled={archiveMutation.isPending}
+                    className="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Archive deck"
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/decks/${selectedDeck.id}`)}
+                  className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-[11px] font-black text-orange-600 flex items-center gap-0.5 shrink-0 cursor-pointer transition-colors"
+                >
+                  <span>Details</span>
+                  <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
             {activeTab === 'my' && (
