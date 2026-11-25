@@ -901,7 +901,7 @@ async def get_card_detailed_stats(request: Request, card_id: int, db: AsyncSessi
         "front": card.content,
         "back": card.back,
         "explanation": card.back,
-        "others": card.others_dict,
+        "others": card.others if isinstance(card.others, dict) else {},
         "box_level": box_level,
         "consecutive_correct": mastery.consecutive_correct if mastery else 0,
         "is_ignored": mastery.is_ignored if mastery else False,
