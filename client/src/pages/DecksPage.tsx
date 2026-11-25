@@ -121,7 +121,7 @@ export default function DecksPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8 
+  const itemsPerPage = 12
 
   const { setUser, setGamify } = useAppStore()
   const queryClient = useQueryClient()
@@ -1208,8 +1208,23 @@ export default function DecksPage() {
                               </h4>
                             </div>
 
-                            {/* Right Indicator: Quick Archive + Checkmark if selected, subtle Chevron if not */}
-                            <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Right Indicator: Quick Study + Quick Archive/Restore + Direct Open Details */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {activeTab === 'my' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (navigator.vibrate) navigator.vibrate(10)
+                                    handleLaunchDefaultStudy(quiz)
+                                  }}
+                                  className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-orange-200/70 active:scale-90"
+                                  title="Quick Study"
+                                >
+                                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                                </button>
+                              )}
+
                               {activeTab === 'my' && (
                                 <button
                                   type="button"
@@ -1242,13 +1257,23 @@ export default function DecksPage() {
                                 </button>
                               )}
 
-                              {isSelected ? (
-                                <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                </div>
-                              ) : (
-                                <ChevronRight className="w-4.5 h-4.5 text-slate-300 stroke-[2.5] shrink-0" />
-                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (navigator.vibrate) navigator.vibrate(6)
+                                  navigate(`/decks/${quiz.id}`)
+                                }}
+                                className={cn(
+                                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer active:scale-90",
+                                  isSelected
+                                    ? "bg-orange-500 text-white shadow-xs"
+                                    : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                )}
+                                title="Open deck details"
+                              >
+                                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                              </button>
                             </div>
                           </div>
 
@@ -1332,10 +1357,24 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* ═══════════ STRICTLY SINGLE-ROW BOTTOM ACTION DOCK (H-[54PX]) ═══════════ */}
+      {/* ═══════════ CLEAR BOTTOM ACTION DOCK WITH SELECTED DECK NAME + DETAILS ═══════════ */}
       {selectedDeck && activeTab !== 'folders' && (
         <div className="shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3.5 sm:px-6 lg:px-8 xl:px-10 py-2">
-          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex items-center gap-2">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2 px-0.5">
+              <span className="text-[11px] font-black text-slate-700 truncate">
+                {selectedDeck.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate(`/decks/${selectedDeck.id}`)}
+                className="text-[11px] font-black text-orange-600 hover:text-orange-700 flex items-center gap-0.5 shrink-0 cursor-pointer"
+              >
+                <span>Open Details</span>
+                <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
             {activeTab === 'my' && (
               <div className="flex-1 min-w-0 flex items-center gap-2">
                 {/* Study */}
@@ -1419,6 +1458,7 @@ export default function DecksPage() {
                 </button>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
