@@ -314,7 +314,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       }
     } catch (e) {
       console.error(`Failed to generate AI ${field}`, e);
-      alert(`Gửi yêu cầu tạo AI cho ô ${field} thất bại.`);
+      alert(`Failed to send AI generation request for field ${field}.`);
     } finally {
       setIsGeneratingField(prev => ({ ...prev, [field]: false }));
     }
@@ -334,7 +334,7 @@ export const FlashcardEditModal: React.FC<FlashcardEditModalProps> = ({
       }
     } catch (e) {
       console.error(e)
-      alert("Lỗi khi rắc Furigana cho ô này.")
+      alert("Failed to apply Furigana to this field.")
     } finally {
       setIsFuriganaRunning(prev => ({ ...prev, [col]: false }))
     }

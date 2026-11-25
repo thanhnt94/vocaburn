@@ -941,15 +941,16 @@ async def get_deck_overview_stats(request: Request, deck_id: int, db: AsyncSessi
     if not user_id:
         user_id = 1
 
-    # 1. Fetch deck with cards
-    deck_stmt = select(FlashcardDeck).where(FlashcardDeck.id == deck_id).options(selectinload(FlashcardDeck.cards))
+    # 1. Fetch deck metadata & card IDs only (avoid loading full card HTML/JSON)
+    deck_stmt = select(FlashcardDeck).where(FlashcardDeck.id == deck_id)
     deck_res = await db.execute(deck_stmt)
     deck = deck_res.scalar_one_or_none()
     if not deck:
         return JSONResponse(status_code=404, content={"error": "Deck not found"})
 
-    total_cards = len(deck.cards)
-    card_ids = [c.id for c in deck.cards]
+    card_ids_res = await db.execute(select(Flashcard.id).where(Flashcard.deck_id == deck_id))
+    card_ids = card_ids_res.scalars().all()
+    total_cards = len(card_ids)
 
     # 2. Parallel queries: mastery records & historical answer stats
     mastery_stmt = select(UserCardMastery).where(

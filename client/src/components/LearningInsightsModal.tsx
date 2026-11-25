@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { speakWithEdgeTTS } from '@/lib/audio'
 import { resolveMediaUrl } from '@/components/common/MediaUrlInput'
 import { usePreventPullToRefresh } from '@/hooks/usePreventPullToRefresh'
@@ -53,7 +54,7 @@ const parseBBCodeToHtml = (text: string): string => {
     .replace(/\$\\Leftarrow\$/gi, '←')
     .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] sm:text-xs font-semibold">$1</code>');
 
-  return html;
+  return sanitizeHtml(html);
 };
 
 const MarkdownComponents = {
@@ -62,7 +63,7 @@ const MarkdownComponents = {
     const hasRuby = value.includes('<ruby>') || value.includes('</ruby>');
     if (hasRuby) {
       return (
-        <code className={className} dangerouslySetInnerHTML={{ __html: value }} {...props} />
+        <code className={className} dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} {...props} />
       );
     }
     return <code className={className} {...props}>{children}</code>;

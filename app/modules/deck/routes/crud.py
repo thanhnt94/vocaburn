@@ -30,10 +30,11 @@ from app.modules.deck.services.fsrs_service import build_fsrs_card
 @router.get("/template/download")
 async def download_template():
     import os
+    import asyncio
     path = "app/static/Vocaburn_Template.xlsx"
     os.makedirs(os.path.dirname(path), exist_ok=True)
     from app.modules.deck.services.excel_service import ExcelDeckService
-    ExcelDeckService.generate_template_excel(output_path=path)
+    await asyncio.to_thread(ExcelDeckService.generate_template_excel, output_path=path)
     if os.path.exists(path):
         return FileResponse(path, filename="Vocaburn_Template.xlsx", media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     return JSONResponse(status_code=404, content={"error": "Template not found"})

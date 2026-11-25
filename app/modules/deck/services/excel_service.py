@@ -140,6 +140,12 @@ def tokenize_formula(formula: str, current_row: int, col_letter_to_name: Dict[st
     return "".join(result_parts)
 
 
+_FORMULA_TOKEN_RE = re.compile(r'\{\{([^}:]+?)(?::(\d+))?\}\}')
+_CELL_FORMULA_RE = re.compile(r'<c r="([A-Z]+\d+)"[^>]*><f>.*?</c>')
+_CELL_V_TAG_RE = re.compile(r'<v\s*/>|<v[^>]*>.*?</v>')
+_CELL_T_ATTR_RE = re.compile(r't="[^"]*"')
+
+
 def transpile_formula(tokenized_formula: str, target_row: int, col_name_to_letter: Dict[str, str]) -> str:
     """
     Converts semantic tokens {{col_name}} to physical cell coordinates (e.g. B2, K2) based on exported column layout.
@@ -147,8 +153,6 @@ def transpile_formula(tokenized_formula: str, target_row: int, col_name_to_lette
     """
     if not isinstance(tokenized_formula, str) or not tokenized_formula.startswith("="):
         return tokenized_formula
-
-    pattern = re.compile(r'\{\{([^}:]+?)(?::(\d+))?\}\}')
 
     def replacer(match):
         col_name, explicit_row = match.groups()
@@ -164,21 +168,40 @@ def transpile_formula(tokenized_formula: str, target_row: int, col_name_to_lette
         row_str = explicit_row if explicit_row else str(target_row)
         return f"{target_col_letter}{row_str}"
 
-    return pattern.sub(replacer, tokenized_formula)
+    return _FORMULA_TOKEN_RE.sub(replacer, tokenized_formula)
 
 
 def inject_cached_values(excel_bytes: bytes, formula_cached_map: Dict[Tuple[str, int], str]) -> bytes:
     """
-    Injects cached string values into OpenXML <v> tags for formula cells in the 'Data_Formula' sheet.
-    This guarantees that Excel, Google Sheets, LibreOffice, and mobile viewers immediately display
-    the evaluated text upon opening, without displaying blank cells.
+    Injects cached string values into OpenXML <v> tags for formula cells in a single O(N) pass.
     """
     if not formula_cached_map:
         return excel_bytes
     try:
+        coord_map = {
+            f"{col_let}{r_num}": html.escape(str(cached_val or ''))
+            for (col_let, r_num), cached_val in formula_cached_map.items()
+        }
+
+        def repl_cell(match):
+            coord = match.group(1)
+            escaped_val = coord_map.get(coord)
+            if escaped_val is None:
+                return match.group(0)
+            cell_xml = match.group(0)
+            if ' t="' not in cell_xml:
+                cell_xml = cell_xml.replace(f'<c r="{coord}"', f'<c r="{coord}" t="str"', 1)
+            else:
+                cell_xml = _CELL_T_ATTR_RE.sub('t="str"', cell_xml, count=1)
+            if '<v' in cell_xml:
+                cell_xml = _CELL_V_TAG_RE.sub(f'<v>{escaped_val}</v>', cell_xml, count=1)
+            else:
+                cell_xml = cell_xml.replace('</c>', f'<v>{escaped_val}</v></c>', 1)
+            return cell_xml
+
         zin_buf = BytesIO(excel_bytes)
         zout_buf = BytesIO()
-        with zipfile.ZipFile(zin_buf, 'r') as zin, zipfile.ZipFile(zout_buf, 'w') as zout:
+        with zipfile.ZipFile(zin_buf, 'r') as zin, zipfile.ZipFile(zout_buf, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
             wb_xml = zin.read('xl/workbook.xml').decode('utf-8')
             sheet_targets = set()
             rels_xml = zin.read('xl/_rels/workbook.xml.rels').decode('utf-8')
@@ -194,28 +217,12 @@ def inject_cached_values(excel_bytes: bytes, formula_cached_map: Dict[Tuple[str,
                     if m_rel:
                         t = m_rel.group(1).lstrip('/')
                         sheet_targets.add(t if t.startswith('xl/') else f"xl/{t}")
-            
+
             for item in zin.infolist():
                 content = zin.read(item.filename)
                 if item.filename in sheet_targets:
                     xml_str = content.decode('utf-8')
-                    for (col_let, r_num), cached_val in formula_cached_map.items():
-                        coord = f"{col_let}{r_num}"
-                        escaped_val = html.escape(str(cached_val or ''))
-                        def repl_cell(match):
-                            cell_xml = match.group(0)
-                            if ' t="' not in cell_xml:
-                                cell_xml = cell_xml.replace(f'<c r="{coord}"', f'<c r="{coord}" t="str"')
-                            else:
-                                cell_xml = re.sub(r't="[^"]*"', 't="str"', cell_xml)
-                            if '<v' in cell_xml:
-                                cell_xml = re.sub(r'<v\s*/>|<v[^>]*>.*?</v>', f'<v>{escaped_val}</v>', cell_xml)
-                            else:
-                                cell_xml = cell_xml.replace('</c>', f'<v>{escaped_val}</v></c>')
-                            return cell_xml
-
-                        pat = re.compile(rf'<c r="{coord}"[^>]*><f>.*?</c>')
-                        xml_str = pat.sub(repl_cell, xml_str)
+                    xml_str = _CELL_FORMULA_RE.sub(repl_cell, xml_str)
                     content = xml_str.encode('utf-8')
                 zout.writestr(item, content)
         return zout_buf.getvalue()
@@ -280,7 +287,7 @@ class ExcelDeckService:
                                 if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
                                     metadata["practice_settings"] = {}
                                 metadata["practice_settings"].update(parsed)
-                        except:
+                        except Exception:
                             pass
                     elif key in ("study_defaults", "cài đặt học mặc định", "cài đặt học"):
                         try:
@@ -297,7 +304,7 @@ class ExcelDeckService:
                                         norm_val = normalize_study_setting_value(norm_key, sv)
                                         if norm_val is not None:
                                             metadata["practice_settings"]["study_defaults"][norm_key] = norm_val
-                        except:
+                        except Exception:
                             pass
                     elif key in (
                         "study_autoplay_audio", "autoplay_audio", "tự động phát âm thanh", "phát âm thanh",
@@ -359,7 +366,7 @@ class ExcelDeckService:
                                 if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
                                     metadata["practice_settings"] = {}
                                 metadata["practice_settings"]["sub_lesson_grouping"] = parsed
-                        except:
+                        except Exception:
                             pass
                     elif key in ("sub_lesson_column", "cột bài học con", "cột phân nhóm", "nhóm bài học", "group_by_column", "group_column"):
                         col_val = value.strip().lower()
@@ -385,7 +392,7 @@ class ExcelDeckService:
                                 if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
                                     metadata["practice_settings"] = {}
                                 metadata["practice_settings"]["disabled_modes"] = [str(x).strip().lower() for x in parsed]
-                        except:
+                        except Exception:
                             modes = [m.strip().lower() for m in value.split(",") if m.strip()]
                             if "practice_settings" not in metadata or not isinstance(metadata["practice_settings"], dict):
                                 metadata["practice_settings"] = {}
@@ -393,7 +400,7 @@ class ExcelDeckService:
                     elif key in ("custom_columns", "insight_columns", "column_order", "study_modes", "default_mode", "ai_prompts", "audio_pairs", "front_audio_config", "back_audio_config", "mcq", "typing", "listening", "audio_mcq", "audio_typing"):
                         try:
                             parsed_val = json.loads(value)
-                        except:
+                        except Exception:
                             if key in ("custom_columns", "insight_columns", "column_order", "study_modes"):
                                 parsed_val = [t.strip() for t in value.split(",") if t.strip()]
                             else:
@@ -418,7 +425,7 @@ class ExcelDeckService:
                         metadata["practice_settings"]["ai_prompt_mnemonic"] = value
                     elif key == "time_limit": 
                         try: metadata["time_limit"] = int(float(value))
-                        except: pass
+                        except Exception: pass
                     elif key in ("active_pairs", "practice_pairs", "cấu hình luyện tập", "cặp câu hỏi luyện tập", "luyện tập", "mcq_active_pairs"):
                         pairs = []
                         parts = re.split(r'[,;]+', value)
@@ -481,7 +488,7 @@ class ExcelDeckService:
                                     metadata["practice_settings"]["mcq"] = {}
                                 metadata["practice_settings"]["mcq"]["num_choices"] = num
                                 metadata["practice_settings"]["num_choices"] = num
-                        except:
+                        except Exception:
                             pass
                     elif key in ("listening_num_choices", "số lựa chọn nghe"):
                         try:
@@ -491,7 +498,7 @@ class ExcelDeckService:
                                 if "listening" not in metadata["practice_settings"] or not isinstance(metadata["practice_settings"]["listening"], dict):
                                     metadata["practice_settings"]["listening"] = {}
                                 metadata["practice_settings"]["listening"]["num_choices"] = num
-                        except:
+                        except Exception:
                             pass
                     elif key in ("collaborators", "cộng tác viên", "contributors"):
                         collabs = []
@@ -1549,6 +1556,9 @@ class ExcelDeckService:
             formula_cell_fill = PatternFill(start_color="F5F3FF", end_color="F5F3FF", fill_type="solid")
             referenced_cell_fill = PatternFill(start_color="F0F9FF", end_color="F0F9FF", fill_type="solid")
 
+            body_align = Alignment(horizontal="left", vertical="center", wrap_text=False)
+            header_align = Alignment(horizontal="center", vertical="center")
+
             for sheet_name in wb.sheetnames:
                 ws = wb[sheet_name]
                 color = sheet_colors.get(sheet_name, "4F46E5")
@@ -1558,7 +1568,7 @@ class ExcelDeckService:
                     ws.row_dimensions[1].height = 28
                     for col_idx, cell in enumerate(ws[1], start=1):
                         cell.font = header_font
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                        cell.alignment = header_align
                         if col_idx <= len(export_cols):
                             c_low = export_cols[col_idx - 1].strip().lower()
                             if c_low in formula_cols:
@@ -1574,30 +1584,37 @@ class ExcelDeckService:
                     for cell in ws[1]:
                         cell.font = header_font
                         cell.fill = default_fill
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                        cell.alignment = header_align
 
-                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-                    ws.row_dimensions[row[0].row].height = 20
-                    for cell in row:
-                        cell.border = thin_border
-                        if sheet_name == "Info" and cell.column == 1:
-                            cell.font = key_font
-                        else:
-                            cell.font = body_font
-                        cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=False)
+                # Skip expensive per-cell border/font/alignment styling on large data sheets (>500 rows)
+                if sheet_name in ("Data", "Data_Formula") and ws.max_row > 500:
+                    pass
+                else:
+                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                        ws.row_dimensions[row[0].row].height = 20
+                        for cell in row:
+                            cell.border = thin_border
+                            if sheet_name == "Info" and cell.column == 1:
+                                cell.font = key_font
+                            else:
+                                cell.font = body_font
+                            cell.alignment = body_align
 
-                        if sheet_name in ("Data", "Data_Formula") and cell.column <= len(export_cols):
-                            c_low = export_cols[cell.column - 1].strip().lower()
-                            if c_low in formula_cols:
-                                cell.fill = formula_cell_fill
-                            elif c_low in referenced_cols:
-                                cell.fill = referenced_cell_fill
+                            if sheet_name in ("Data", "Data_Formula") and cell.column <= len(export_cols):
+                                c_low = export_cols[cell.column - 1].strip().lower()
+                                if c_low in formula_cols:
+                                    cell.fill = formula_cell_fill
+                                elif c_low in referenced_cols:
+                                    cell.fill = referenced_cell_fill
 
-                for col in ws.columns:
-                    col_letter = get_column_letter(col[0].column)
+                # Auto column width: sample up to 50 rows for fast export on large datasets
+                max_check_row = min(ws.max_row, 50)
+                for col_idx in range(1, ws.max_column + 1):
+                    col_letter = get_column_letter(col_idx)
                     max_len = 0
-                    for cell in col:
-                        val_str = str(cell.value or '')
+                    for r_idx in range(1, max_check_row + 1):
+                        cell_val = ws.cell(row=r_idx, column=col_idx).value
+                        val_str = str(cell_val or '')
                         if '\n' in val_str:
                             val_str = max(val_str.split('\n'), key=len)
                         if len(val_str) > max_len:

@@ -11,6 +11,7 @@ import rehypeRaw from 'rehype-raw'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { parseBBCodeToHtml } from '@/lib/text'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { speakWithEdgeTTS } from '@/lib/audio'
 import { formatOverdueTime, formatRelativeTime, getFSRSIntervals } from '@/lib/flashcard-utils'
 
@@ -20,7 +21,7 @@ const MarkdownComponents = {
     const hasRuby = value.includes('<ruby>') || value.includes('</ruby>')
     if (hasRuby) {
       return (
-        <code className={className} dangerouslySetInnerHTML={{ __html: value }} {...props} />
+        <code className={className} dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} {...props} />
       )
     }
     return <code className={className} {...props}>{children}</code>
@@ -439,7 +440,7 @@ export const FeedbackArea: React.FC<FeedbackAreaProps> = ({
   }
 
   const handleDeleteContribution = async (contribId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xoá bình luận này?")) return
+    if (!confirm("Are you sure you want to delete this comment?")) return
     try {
       const res = await fetch(`/api/v1/deck/contributions/${contribId}`, {
         method: 'DELETE'

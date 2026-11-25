@@ -67,7 +67,8 @@ async def export_deck(deck_id: int, request: Request, exclude_ids: bool = False,
     category_name = deck.category.name if deck.category else "General"
     tags = [t.name for t in deck.tags]
     
-    excel_bytes = ExcelDeckService.export_deck_to_excel(
+    excel_bytes = await asyncio.to_thread(
+        ExcelDeckService.export_deck_to_excel,
         deck_title=deck.title,
         deck_description=deck.description,
         category_name=category_name,

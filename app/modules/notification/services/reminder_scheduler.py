@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from sqlalchemy import select
 from app.core.db import SessionLocal
 from app.modules.notification.models import PushSubscription
@@ -207,10 +208,24 @@ async def check_advanced_reminders_for_minute(current_time_str: str, now: dateti
             pass
 
 async def scheduler_loop():
-    logger.info("[SCHEDULER] Reminder scheduler loop started. Checking every minute.")
+    # Ensure only one Gunicorn worker runs the reminder scheduler
+    lock_file = None
+    try:
+        import fcntl
+        lock_file = open("/tmp/vocaburn_scheduler.lock", "w")
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except ImportError:
+        pass  # Windows dev environment
+    except OSError:
+        logger.info("[SCHEDULER] Another worker holds the scheduler lock; skipping duplicate loop.")
+        if lock_file:
+            lock_file.close()
+        return
+
+    logger.info("[SCHEDULER] Reminder scheduler loop started (UTC). Checking every minute.")
     while True:
         try:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             current_time_str = now.strftime("%H:%M")
             await check_and_send_reminders_for_minute(current_time_str)
             await check_advanced_reminders_for_minute(current_time_str, now)
