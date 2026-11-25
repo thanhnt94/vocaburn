@@ -34,7 +34,7 @@
           console.warn("Ignored external or non-critical error:", msg, src);
           return true; // Ignore external/extension/legacy errors
         }
-        alert("Runtime Error: " + message + "\nSource: " + source + "\nLine: " + lineno + ":" + colno);
+        console.error("Runtime Error:", message, source, lineno, colno);
         return false;
       };
       window.addEventListener('unhandledrejection', function(event) {
@@ -48,7 +48,7 @@
           console.warn("Ignored Vite legacy or external rejection:", reason);
           return; // Ignore Vite legacy and external promise rejections
         }
-        alert("Unhandled Promise Rejection: " + event.reason);
+        console.error("Unhandled Promise Rejection:", event.reason);
       });
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

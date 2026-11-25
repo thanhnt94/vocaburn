@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
+import { toast } from '@/lib/toast'
 import { 
   Settings as SettingsIcon, 
   Sparkles,
@@ -207,13 +208,13 @@ export const Settings = () => {
       }
     } else {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        alert("Push notifications are not supported in this browser.")
+        toast.error("Push notifications are not supported in this browser.")
         return
       }
       
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
-        alert("Notification permission denied. Please allow notifications in browser settings.")
+        toast.error("Notification permission denied. Please allow notifications in browser settings.")
         return
       }
 
@@ -239,7 +240,7 @@ export const Settings = () => {
         setPushActive(true)
       } catch (error) {
         console.error("Push subscription failed", error)
-        alert("Failed to subscribe. Please try again.")
+        toast.error("Failed to subscribe. Please try again.")
       }
     }
   }

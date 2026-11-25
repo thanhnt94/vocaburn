@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakMultiLanguage, stripTagsAndBBCode, speakSequentially, speakWithEdgeTTS, speakEdgeTTSSequentially, cancelAllAudio, preloadAudioUrls, registerAudioElement } from '@/lib/audio'
 import { parseBBCodeToHtml, stripBBCode, isJapanese, getJpPattern, extractTokens, tokensOverlapHigh, formatFrontText } from '@/lib/text'
@@ -1821,7 +1822,7 @@ export default function PracticePlay() {
       }
     } catch (e: any) {
       if (e?.response?.data?.error === 'stage_1_not_done') {
-        alert(e.response.data.message || "You have not completed Step 1: Learn New Words yet!");
+        toast.info(e.response.data.message || "You have not completed Step 1: Learn New Words yet!");
         navigate(`/decks/${id}?tab=roadmap`);
         return;
       }
@@ -1879,7 +1880,7 @@ export default function PracticePlay() {
         navigate(`/practice/${id}/${practiceSubMode}`)
       }
     } catch (e) {
-      alert("Failed to save practice settings.")
+      toast.error("Failed to save practice settings.")
     }
   }
 
@@ -1897,7 +1898,7 @@ export default function PracticePlay() {
         navigate(`/practice/${id}/${practiceSubMode}`)
       }
     } catch (e) {
-      alert("Failed to restore practice settings.")
+      toast.error("Failed to restore practice settings.")
     }
   }
 
@@ -1916,7 +1917,7 @@ export default function PracticePlay() {
         content: personalNote
       })
     } catch (e) {
-      alert("Failed to save note.")
+      toast.error("Failed to save note.")
     }
   }
 
@@ -3314,7 +3315,7 @@ export default function PracticePlay() {
       const res = await axios.post(`/api/v1/deck/${id}/ask-ai`, payload)
 
       if (res.data.error) {
-        alert(res.data.error)
+        toast.error(res.data.error)
         setIsAskingAI(false)
         return
       }
@@ -3392,7 +3393,7 @@ export default function PracticePlay() {
         setIsAskingAI(false)
       }
     } catch (e) {
-      alert("AI service unavailable.")
+      toast.error("AI service unavailable.")
       setIsAskingAI(false)
     }
   }
@@ -3425,9 +3426,9 @@ export default function PracticePlay() {
         setSession((prev: any) => ({ ...prev, ai_prompts: newPrompts }))
       }
       setIsEditingPrompt(false)
-      alert("Prompt saved successfully!")
+      toast.success("Prompt saved successfully!")
     } catch (e) {
-      alert("Failed to save prompt.")
+      toast.error("Failed to save prompt.")
     }
   }
 
@@ -3467,7 +3468,7 @@ export default function PracticePlay() {
         })
       }
     } catch (e) {
-      alert("Failed to delete AI explanation.")
+      toast.error("Failed to delete AI explanation.")
     }
   }
 
@@ -3513,7 +3514,7 @@ export default function PracticePlay() {
       })
       setIsEditingInsight(false)
     } catch (e) {
-      alert("Failed to save insight.")
+      toast.error("Failed to save insight.")
     }
   }
 
@@ -3641,7 +3642,7 @@ export default function PracticePlay() {
       showLocalToast('Card updated successfully! ✓', 'success')
     } catch (e) {
       console.error('Failed to save edited question:', e)
-      alert("Failed to save changes.")
+      toast.error("Failed to save changes.")
     } finally {
       setIsSavingEdit(false)
     }
@@ -3701,7 +3702,7 @@ export default function PracticePlay() {
     const text = `Question: ${currentQuestion.content}\n` +
       currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt.content}`).join('\n')
     navigator.clipboard.writeText(text)
-    alert("Copied to clipboard!")
+    toast.success("Copied to clipboard!")
   }
 
 

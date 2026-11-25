@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { toast } from '@/lib/toast'
 import type { Question } from '@/types/flashcard'
 
 export interface UseCardAIOptions {
@@ -45,7 +46,7 @@ export function useCardAI({
       setPersonalNote(textToSave)
       setIsEditingNote(false)
     } catch (e) {
-      alert("Failed to save note.")
+      toast.error("Failed to save note.")
     }
   }
 
@@ -64,7 +65,7 @@ export function useCardAI({
       const res = await axios.post(`/api/v1/deck/${deckId}/ask-ai`, payload)
       
       if (res.data.error) {
-        alert(res.data.error)
+        toast.error(res.data.error)
         setIsAskingAI(false)
         return
       }
@@ -137,7 +138,7 @@ export function useCardAI({
       }
     } catch (e) {
       console.error("AI explanation generation failed:", e)
-      alert("AI service is currently unavailable.")
+      toast.error("AI service is currently unavailable.")
       setIsAskingAI(false)
     }
   }
@@ -171,9 +172,9 @@ export function useCardAI({
         setSession((prev: any) => ({ ...prev, ai_prompts: newPrompts }))
       }
       setIsEditingPrompt(false)
-      alert("Prompt saved successfully!")
+      toast.success("Prompt saved successfully!")
     } catch (e) {
-      alert("Failed to save prompt.")
+      toast.error("Failed to save prompt.")
     }
   }
 
@@ -215,7 +216,7 @@ export function useCardAI({
         })
       }
     } catch (e) {
-      alert("Failed to delete AI explanation.")
+      toast.error("Failed to delete AI explanation.")
     }
   }
 
@@ -253,7 +254,7 @@ export function useCardAI({
       })
       setIsEditingInsight(false)
     } catch (e) {
-      alert("Failed to save insight.")
+      toast.error("Failed to save insight.")
     }
   }
 

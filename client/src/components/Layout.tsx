@@ -197,8 +197,8 @@ export default function Layout() {
 
       {/* Reference-Styled Mobile Bottom Nav (Clean, Filled Active Icon, Soft Pill Background) */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] px-3 pt-1.5 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
-          <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto gap-1">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] px-3 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+          <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto gap-1 h-[48px]">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
               const isActive = item.path === '/' 
@@ -210,7 +210,7 @@ export default function Layout() {
                   key={item.path}
                   to={item.path} 
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl select-none transition-all duration-200 cursor-pointer active:scale-95",
+                    "relative flex flex-col items-center justify-center py-1 px-2 rounded-2xl select-none transition-all duration-200 cursor-pointer active:scale-95",
                     isActive ? "bg-orange-50/90 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   )}
                 >

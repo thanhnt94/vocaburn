@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { useAppStore } from '@/store/useAppStore'
 import { playCorrectSound, playIncorrectSound, speakWithEdgeTTS, cancelAllAudio, preloadAudioUrls } from '@/lib/audio'
 import { triggerHaptic } from '@/lib/haptic'
@@ -1442,7 +1443,7 @@ export default function FlashcardPlay() {
         navigate(`/practice/${id}/${practiceSubMode}`)
       }
     } catch (e) {
-      alert("Failed to save practice settings.")
+      toast.error("Failed to save practice settings.")
     }
   }
 
@@ -1459,7 +1460,7 @@ export default function FlashcardPlay() {
         navigate(`/practice/${id}/${practiceSubMode}`)
       }
     } catch (e) {
-      alert("Failed to restore practice settings.")
+      toast.error("Failed to restore practice settings.")
     }
   }
 
@@ -2014,7 +2015,7 @@ export default function FlashcardPlay() {
       }
     } catch (e) {
       console.error("Failed to undo rating:", e);
-      alert("Undo failed. Please try again.");
+      toast.error("Undo failed. Please try again.");
     } finally {
       undoInProgressRef.current = false;
     }
@@ -2943,7 +2944,7 @@ export default function FlashcardPlay() {
       showLocalToast("Card updated successfully! ✓", "success")
     } catch (e) {
       console.error("Failed to save edited question:", e)
-      alert("Failed to save changes.")
+      toast.error("Failed to save changes.")
     } finally {
       setIsSavingEdit(false)
     }
@@ -3003,7 +3004,7 @@ export default function FlashcardPlay() {
     const text = `Question: ${currentQuestion.content}\n` + 
                  currentQuestion.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt.content}`).join('\n')
     navigator.clipboard.writeText(text)
-    alert("Copied to clipboard!")
+    toast.success("Copied to clipboard!")
   }
 
   const renderPracticeLockScreen = () => {

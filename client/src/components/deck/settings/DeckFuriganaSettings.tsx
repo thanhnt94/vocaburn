@@ -3,6 +3,7 @@ import { Sparkles, RefreshCw, CheckCircle2, Server, HelpCircle } from 'lucide-re
 import axios from 'axios'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 
 export interface DeckFuriganaSettingsProps {
   deckId: string | number
@@ -64,7 +65,7 @@ export function DeckFuriganaSettings({ deckId }: DeckFuriganaSettingsProps) {
       }, 2000)
       setTimeout(() => setFuriganaMessage(null), 8000)
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Lỗi khi kích hoạt sinh Furigana')
+      toast.error(e?.response?.data?.error || 'Failed to trigger Furigana generation')
     } finally {
       setIsRunningFurigana(false)
     }

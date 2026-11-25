@@ -3,6 +3,7 @@ import { AlertTriangle, RotateCcw, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/lib/toast'
 
 export interface DeckDangerZoneProps {
   deckId: string | number
@@ -18,7 +19,7 @@ export function DeckDangerZone({ deckId, isOwner = true }: DeckDangerZoneProps) 
   const handleResetProgress = async () => {
     if (
       !window.confirm(
-        '⚠️ Bạn có chắc muốn đặt lại toàn bộ tiến độ học và các chỉ số FSRS v6 của bộ thẻ này về 0?'
+        'Reset all learning progress and FSRS v6 metrics for this deck back to 0?'
       )
     )
       return
@@ -34,9 +35,9 @@ export function DeckDangerZone({ deckId, isOwner = true }: DeckDangerZoneProps) 
       queryClient.invalidateQueries({ queryKey: ['deck-study-stats', String(deckId)] })
       queryClient.invalidateQueries({ queryKey: ['daily-summary'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      alert('Đã đặt lại tiến độ học tập thành công!')
+      toast.success('Learning progress reset successfully!')
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Đặt lại tiến độ thất bại')
+      toast.error(e?.response?.data?.error || 'Failed to reset learning progress')
     } finally {
       setIsResetting(false)
     }
@@ -45,7 +46,7 @@ export function DeckDangerZone({ deckId, isOwner = true }: DeckDangerZoneProps) 
   const handleDeleteDeck = async () => {
     if (
       !window.confirm(
-        '🚨 CẢNH BÁO: Xóa vĩnh viễn bộ thẻ này cùng toàn bộ thẻ từ vựng và lịch sử học tập? Thao tác này KHÔNG THỂ HOÀN TÁC!'
+        'WARNING: Permanently delete this deck along with all cards and study history? This action cannot be undone!'
       )
     )
       return
@@ -54,10 +55,10 @@ export function DeckDangerZone({ deckId, isOwner = true }: DeckDangerZoneProps) 
     try {
       await axios.delete(`/api/v1/deck/${deckId}`)
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      alert('Đã xóa bộ thẻ thành công!')
+      toast.success('Deck deleted successfully!')
       navigate('/decks')
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Xóa bộ thẻ thất bại')
+      toast.error(e?.response?.data?.error || 'Failed to delete deck')
     } finally {
       setIsDeleting(false)
     }

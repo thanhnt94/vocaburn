@@ -6,6 +6,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { ToastContainer } from './components/common/ToastContainer'
 
 // Lazy loaded page components
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -41,10 +42,10 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] text-white flex items-center justify-center font-sans">
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0b0f19] text-slate-800 dark:text-white flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-          <span className="text-gray-400 font-medium font-sans">Initializing Vocaburn Engine...</span>
+          <span className="text-slate-500 dark:text-gray-400 font-medium font-sans">Initializing Vocaburn Engine...</span>
         </div>
       </div>
     )
@@ -53,10 +54,10 @@ function AppContent() {
   return (
     <Router>
       <Suspense fallback={
-        <div className="min-h-screen bg-[#0b0f19] text-white flex items-center justify-center font-sans">
+        <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0b0f19] text-slate-800 dark:text-white flex items-center justify-center font-sans">
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-            <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest font-sans">Loading Page...</span>
+            <span className="text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-widest font-sans">Loading Page...</span>
           </div>
         </div>
       }>
@@ -108,6 +109,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppContent />
+      <ToastContainer />
     </QueryClientProvider>
   )
 }
