@@ -3707,7 +3707,7 @@ export default function PracticePlay() {
 
   const renderPracticeLockScreen = () => {
     return (
-      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-12 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[400px]">
+      <div className="flex-1 bg-white/60 backdrop-blur-xl md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 md:p-8 2xl:p-12 short:md:p-5 p-6 flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-100/40 min-h-[300px] 2xl:min-h-[400px]">
         <div className="max-w-md mx-auto space-y-6">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -4163,8 +4163,8 @@ export default function PracticePlay() {
         );
       })()}
 
-      <main className="flex-1 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden">
-        <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+      <main className="flex-1 flex w-full max-w-none justify-center gap-3 lg:gap-4 2xl:gap-8 px-2 lg:px-4 2xl:px-10 md:py-2.5 2xl:py-3 short:md:py-1.5 py-2 overflow-hidden">
+        <aside className="hidden xl:flex w-[290px] 2xl:w-[440px] flex-shrink-0 flex-col overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
           {showFeedback ? (
             <FeedbackArea
               showFeedback={showFeedback}
@@ -4492,7 +4492,7 @@ export default function PracticePlay() {
                     >
                       {/* FRONT SIDE */}
                       <div
-                        className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-4 md:px-8 pt-1.5 md:pt-2 pb-3 md:pb-4 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
+                        className="absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border border-slate-100 px-4 md:px-6 2xl:px-8 pt-1.5 md:pt-2 pb-3 md:pb-3.5 short:md:pb-2 flex flex-col justify-between shadow-2xl shadow-indigo-100/40"
                         style={{
                           backfaceVisibility: 'hidden',
                           transform: 'none',
@@ -4531,7 +4531,7 @@ export default function PracticePlay() {
                               <img
                                 src={resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || undefined}
                                 alt="Front Visual"
-                                className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
+                                className="max-h-40 md:max-h-48 short:md:max-h-32 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
                                 onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.front_img || currentQuestion.others?.front_img) || null)}
                               />
                             )}
@@ -4659,7 +4659,7 @@ export default function PracticePlay() {
                                 <img
                                   src={resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || undefined}
                                   alt="Back Visual"
-                                  className="max-h-40 md:max-h-48 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
+                                  className="max-h-40 md:max-h-48 short:md:max-h-32 object-contain rounded-3xl border border-slate-100/80 shadow-md bg-slate-50/50 p-1.5 animate-in zoom-in-95 duration-500 cursor-zoom-in hover:opacity-95 transition-opacity"
                                   onClick={() => setZoomedImage(resolveMediaUrl(currentQuestion.back_img || currentQuestion?.others?.back_img) || null)}
                                 />
                               </div>
@@ -4973,7 +4973,7 @@ export default function PracticePlay() {
         </div>
 
         {/* Sidebar */}
-        <aside className="hidden lg:flex w-[340px] 2xl:w-[420px] flex-shrink-0 flex-col overflow-hidden">
+        <aside className="hidden lg:flex w-[280px] 2xl:w-[420px] flex-shrink-0 flex-col min-h-0 overflow-hidden">
           <div className="flex-1 bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col overflow-hidden">
             <h4 className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 flex-shrink-0">
               {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}

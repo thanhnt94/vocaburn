@@ -733,12 +733,12 @@ export default function Dashboard() {
 
 
       {/* DESKTOP 3-COLUMN ZERO-WINDOW-SCROLL LAYOUT */}
-      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-6 py-4 gap-6">
+      <div className="hidden md:grid md:grid-cols-12 w-full h-full overflow-hidden px-4 xl:px-5 2xl:px-6 py-3 2xl:py-4 short:py-2 gap-4 2xl:gap-6">
 
         {/* COLUMN 1: Profile, Level/Streak/XP, Heatmap, Rich Leaderboard (Col 3 of 12) */}
-        <aside className="col-span-3 h-full overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-1 pb-4">
+        <aside className="col-span-3 h-full overflow-y-auto custom-scrollbar flex flex-col gap-3 2xl:gap-4 pr-1 pb-4">
           {/* User profile card */}
-          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-5 shadow-xs flex flex-col gap-3.5 text-left relative overflow-hidden flex-shrink-0">
+          <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-3xl p-4 2xl:p-5 short:p-3.5 shadow-xs flex flex-col gap-3 short:gap-2.5 text-left relative overflow-hidden flex-shrink-0">
             <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-orange-100/40 blur-xl pointer-events-none" />
 
             <div className="flex items-center gap-3 z-10">

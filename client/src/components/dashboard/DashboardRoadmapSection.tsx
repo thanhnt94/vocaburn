@@ -514,7 +514,7 @@ export function DashboardRoadmapSection({
 
   return (
     <div 
-      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 select-none touch-pan-y"
+      className="flex-1 flex flex-col justify-between min-h-0 w-full p-2.5 sm:p-3 short:p-2 select-none touch-pan-y"
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -567,10 +567,10 @@ export function DashboardRoadmapSection({
           initial="enter"
           animate="center"
           exit="exit"
-          className="flex-1 flex flex-col justify-between gap-2.5 min-h-0 cursor-grab active:cursor-grabbing touch-pan-y"
+          className="flex-1 flex flex-col justify-between gap-2.5 short:gap-1.5 min-h-0 cursor-grab active:cursor-grabbing touch-pan-y"
         >
           {/* ── 2A. HERO STAGE (FULL-WIDTH TOP PROGRESS + RICH LEFT METRICS + ANCHORED MASCOT) ── */}
-          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 relative overflow-hidden shadow-2xs flex-1 flex flex-col justify-between min-h-0">
+          <div className="bg-gradient-to-br from-amber-100/95 via-orange-50/85 to-amber-200/40 border border-orange-200/90 rounded-3xl p-3.5 sm:p-4.5 short:p-2.5 relative overflow-y-auto overflow-x-hidden custom-scrollbar shadow-2xs flex-1 flex flex-col justify-between min-h-0">
             
             {/* 1. TOP HEADER & FULL-WIDTH PROGRESS */}
             <div className="relative z-20 w-full shrink-0 space-y-2">
@@ -880,16 +880,16 @@ export function DashboardRoadmapSection({
                   transition={{ type: 'spring', stiffness: 350, damping: 22 }}
                   src={`${mascotImg}?v=2`} 
                   alt={mascotAlt} 
-                  className="h-[105%] max-h-[220px] sm:max-h-[250px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
+                  className="h-[105%] max-h-[220px] sm:max-h-[250px] short:max-h-[155px] w-auto max-w-none object-contain object-bottom drop-shadow-2xl translate-y-1 transition-transform group-hover:scale-105 active:scale-95 select-none"
                 />
               </div>
             </div>
           </div>
 
           {/* ── 2B. 3 TRUTH STAT BOXES (DUE, UNLEARNED, LEARNED) ── */}
-          <div className="grid grid-cols-3 gap-2 shrink-0">
+          <div className="grid grid-cols-3 gap-2 short:gap-1.5 shrink-0">
             {/* Due for Review */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 text-center shadow-2xs">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 short:p-1.5 text-center shadow-2xs">
               <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400 block" title="Cards currently due for review right now">
                 Due for Review
               </span>

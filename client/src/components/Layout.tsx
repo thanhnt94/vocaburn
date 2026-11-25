@@ -75,7 +75,7 @@ export default function Layout() {
             ? "bg-white border-slate-200/90 text-slate-900 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.06)]" 
             : "bg-slate-950/80 border-white/5 text-white"
         )}>
-          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2.5 flex items-center justify-between">
+          <div className="w-full max-w-[1700px] 2xl:max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-2.5 short:py-1.5 flex items-center justify-between">
             <div className="flex items-center gap-6 lg:gap-8">
               <Link to="/" className="active:scale-95 transition-all flex items-center shrink-0">
                 <VocaburnLogo height="md" />
@@ -189,7 +189,7 @@ export default function Layout() {
         isLoggedIn 
           ? (isFullscreenPlay 
               ? "pt-0 h-full overflow-hidden" 
-              : "pt-0 md:pt-[60px] md:h-full md:min-h-0 md:overflow-hidden")
+              : "pt-0 md:pt-[60px] short:md:pt-[52px] md:h-full md:min-h-0 md:overflow-hidden")
           : ""
       )}>
         <Outlet />

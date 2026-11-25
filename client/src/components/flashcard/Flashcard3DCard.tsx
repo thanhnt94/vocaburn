@@ -442,7 +442,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               }
             }}
             className={cn(
-              "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
+              "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-6 2xl:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-3.5 short:md:pb-2 flex flex-col justify-between shadow-2xl transition-all duration-200",
               !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
               isSelectMode && "cursor-text select-text",
               activeDragGrade?.direction === 'next' ? "border-emerald-400 shadow-emerald-200/60 ring-2 ring-emerald-400/20" :
@@ -474,7 +474,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                   <CardImageGallery
                     images={frontImages}
                     onZoom={setZoomedImage}
-                    maxHeight="max-h-40 md:max-h-48"
+                    maxHeight="max-h-40 md:max-h-48 short:md:max-h-32"
                   />
                 )}
                 <div 
@@ -529,7 +529,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
               }
             }}
             className={cn(
-              "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-4 flex flex-col justify-between shadow-2xl transition-all duration-200",
+              "absolute inset-0 backface-hidden bg-white md:rounded-[2rem] rounded-[1.25rem] border px-3 md:px-6 2xl:px-8 pt-2.5 md:pt-2 pb-2.5 md:pb-3.5 short:md:pb-2 flex flex-col justify-between shadow-2xl transition-all duration-200",
               !isSelectMode && effectiveCardFlipTrigger !== 'button_only' && "cursor-pointer",
               isSelectMode && "cursor-text select-text",
               activeDragGrade?.direction === 'again' ? "border-rose-400 shadow-rose-200/60 ring-2 ring-rose-400/20" :
@@ -610,7 +610,7 @@ export const Flashcard3DCard: React.FC<Flashcard3DCardProps> = ({
                       <CardImageGallery
                         images={backImages}
                         onZoom={setZoomedImage}
-                        maxHeight="max-h-40 md:max-h-48"
+                        maxHeight="max-h-40 md:max-h-48 short:md:max-h-32"
                       />
                     )}
 

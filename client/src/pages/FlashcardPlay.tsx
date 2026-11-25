@@ -3909,7 +3909,7 @@ export default function FlashcardPlay() {
 
       {/* Decoupled - Practice mode moved to standalone /practice/:id page */}
 
-      <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-4 lg:gap-8 px-2 lg:px-6 xl:px-10 md:py-3 py-2 overflow-hidden touch-pan-y">
+      <main className="flex-1 min-h-0 flex w-full max-w-none justify-center gap-3 lg:gap-4 2xl:gap-8 px-2 lg:px-4 2xl:px-10 md:py-2.5 2xl:py-3 short:md:py-1.5 py-2 overflow-hidden touch-pan-y">
         <FlashcardDesktopLeftAside
           showFeedback={showFeedback}
           activeFeedbackTab={activeFeedbackTab}

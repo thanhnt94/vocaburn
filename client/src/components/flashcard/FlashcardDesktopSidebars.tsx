@@ -122,7 +122,7 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
   currentIndex
 }) => {
   return (
-    <aside className="hidden xl:flex w-[340px] 2xl:w-[440px] flex-shrink-0 flex-col min-h-0 overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+    <aside className="hidden xl:flex w-[290px] 2xl:w-[440px] flex-shrink-0 flex-col min-h-0 overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
       {showFeedback ? (
         <FeedbackArea
           showFeedback={true}
@@ -164,7 +164,7 @@ export const FlashcardDesktopLeftAside: React.FC<FlashcardDesktopSidebarsProps> 
       ) : (
         <div className="flex flex-col h-full bg-slate-50/40">
           {/* Header */}
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+          <div className="p-4 2xl:p-6 short:p-3.5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
             <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">
               {mainTab === 'practice' ? "Practice Details" : "Review & Goals"}
             </span>
@@ -399,8 +399,8 @@ export const FlashcardDesktopRightAside: React.FC<{
   setMobileMapFilterMode
 }) => {
   return (
-    <aside className="hidden lg:flex w-[340px] 2xl:w-[420px] flex-shrink-0 flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm flex flex-col overflow-hidden">
+    <aside className="hidden lg:flex w-[280px] 2xl:w-[420px] flex-shrink-0 flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 bg-white border border-slate-100 rounded-[2.5rem] p-4 2xl:p-6 short:p-3.5 shadow-sm flex flex-col overflow-hidden">
         <h4 className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 flex-shrink-0">
           {mainTab === 'practice' ? 'PRACTICE STATS' : 'CARD MAP'}
         </h4>
