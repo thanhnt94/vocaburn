@@ -120,6 +120,9 @@ export default function DecksPage() {
   const [isTagRowOpen, setIsTagRowOpen] = useState(false)
   const [folderToDelete, setFolderToDelete] = useState<FolderData | null>(null)
 
+  // Track broken cover_image URLs so we gracefully fall back to the themed icon
+  const [failedCoverIds, setFailedCoverIds] = useState<Record<number, boolean>>({})
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 24
@@ -1187,7 +1190,7 @@ export default function DecksPage() {
                     const formattedDate = formatDate(quiz.last_studied_at || quiz.created_at)
                     const deckTheme = getDeckTheme(quiz)
                     const ThemeIcon = deckTheme.icon
-                    const hasCover = Boolean(quiz.cover_image)
+                    const hasCover = Boolean(quiz.cover_image) && !failedCoverIds[quiz.id]
 
                     return (
                       <motion.div
@@ -1206,29 +1209,29 @@ export default function DecksPage() {
                           }
                         }}
                         className={cn(
-                          "relative rounded-[24px] p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none active:scale-[0.99]",
+                          "relative rounded-2xl p-3 sm:p-3.5 flex items-center gap-3.5 transition-all duration-200 cursor-pointer select-none active:scale-[0.99]",
                           isSelected
-                            ? "border-2 border-orange-500 bg-gradient-to-r from-orange-50/50 via-white to-amber-50/30 shadow-md shadow-orange-500/10 ring-2 ring-orange-400/20"
-                            : "bg-white border border-slate-200/90 hover:border-slate-300 shadow-2xs hover:shadow-xs"
+                            ? "border-[1.5px] border-orange-500 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 shadow-[0_6px_20px_-4px_rgba(249,115,22,0.18)]"
+                            : "bg-white border border-slate-200/80 hover:border-slate-300 shadow-[0_1px_4px_rgba(15,23,42,0.03)] hover:shadow-xs"
                         )}
                       >
                         {/* Deck Mascot / Themed Avatar */}
                         <div className="relative shrink-0">
                           <div className={cn(
-                            "w-13 h-13 sm:w-15 sm:h-15 rounded-[18px] flex items-center justify-center overflow-hidden shadow-2xs border-2 border-white",
-                            hasCover ? "bg-slate-100" : cn("bg-gradient-to-tr text-white", deckTheme.gradient)
+                            "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center overflow-hidden shadow-xs",
+                            hasCover ? "bg-slate-100" : cn("bg-gradient-to-br text-white", deckTheme.gradient)
                           )}>
                             {hasCover ? (
                               <img
                                 src={resolveMediaUrl(quiz.cover_image!)}
                                 alt={quiz.title}
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLElement).style.display = 'none'
+                                onError={() => {
+                                  setFailedCoverIds(prev => (prev[quiz.id] ? prev : { ...prev, [quiz.id]: true }))
                                 }}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <ThemeIcon className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-white drop-shadow-2xs" />
+                              <ThemeIcon className="w-6 h-6 stroke-[2.1] text-white drop-shadow-2xs" />
                             )}
                           </div>
                         </div>
@@ -1264,19 +1267,20 @@ export default function DecksPage() {
                             </div>
                           </div>
 
-                          {/* Meta Badges: Cards count, creator, compact date */}
-                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-1.5 flex-wrap">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/60 text-slate-700 text-[10px] font-bold">
-                              📚 {quiz.questions_count} cards
+                          {/* Meta Badges: Clean inline stats without emoji box */}
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 mt-1 flex-wrap">
+                            <span className="inline-flex items-center gap-1 text-slate-700 font-bold">
+                              <BookOpen className="w-3 h-3 text-orange-500 shrink-0" />
+                              <span>{quiz.questions_count} cards</span>
                             </span>
                             <span className="text-slate-300">•</span>
-                            <span className="text-slate-600 font-bold truncate max-w-[120px]">
+                            <span className="text-slate-500 font-semibold truncate max-w-[110px]">
                               @{quiz.creator_name || 'Vocaburn'}
                             </span>
                             {formattedDate && (
                               <>
-                                <span className="text-slate-300">•</span>
-                                <span className="text-slate-400 font-medium text-[10px]">
+                                <span className="hidden sm:inline text-slate-300">•</span>
+                                <span className="hidden sm:inline text-slate-400 font-medium text-[10px]">
                                   {formattedDate}
                                 </span>
                               </>
@@ -1356,11 +1360,20 @@ export default function DecksPage() {
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs border border-white overflow-hidden",
-                  selectedDeck.cover_image ? "bg-slate-100" : cn("bg-gradient-to-tr text-white", dockTheme.gradient)
+                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs overflow-hidden",
+                  (selectedDeck.cover_image && !failedCoverIds[selectedDeck.id])
+                    ? "bg-slate-100"
+                    : cn("bg-gradient-to-br text-white", dockTheme.gradient)
                 )}>
-                  {selectedDeck.cover_image ? (
-                    <img src={resolveMediaUrl(selectedDeck.cover_image)} alt={selectedDeck.title} className="w-full h-full object-cover" />
+                  {(selectedDeck.cover_image && !failedCoverIds[selectedDeck.id]) ? (
+                    <img
+                      src={resolveMediaUrl(selectedDeck.cover_image)}
+                      alt={selectedDeck.title}
+                      onError={() => {
+                        setFailedCoverIds(prev => (prev[selectedDeck.id] ? prev : { ...prev, [selectedDeck.id]: true }))
+                      }}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <DockIcon className="w-4 h-4 stroke-[2.2]" />
                   )}
