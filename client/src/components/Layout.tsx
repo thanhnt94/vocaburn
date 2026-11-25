@@ -195,9 +195,9 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Reference-Styled Mobile Bottom Nav (Clean, Filled Active Icon, Soft Pill Background) */}
+      {/* Polished Mobile Bottom Nav */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_25px_rgba(0,0,0,0.05)] px-3 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/92 dark:bg-slate-900/92 backdrop-blur-xl border-t border-slate-200/70 dark:border-slate-800 shadow-[0_-6px_24px_rgba(15,23,42,0.05)] px-2.5 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto gap-1 h-[48px]">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const Icon = item.icon
@@ -210,26 +210,32 @@ export default function Layout() {
                   key={item.path}
                   to={item.path} 
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-1 px-2 rounded-2xl select-none transition-all duration-200 cursor-pointer active:scale-95",
-                    isActive ? "bg-orange-50/90 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    "relative flex flex-col items-center justify-center py-1 px-2 rounded-2xl select-none transition-colors duration-200 cursor-pointer active:scale-95 outline-none focus:outline-none focus-visible:outline-none",
+                    isActive ? "text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                   )}
                 >
-                  {/* Clean Icon (Filled when Active) */}
-                  <Icon className={cn(
-                    "w-5 h-5 transition-all duration-200",
-                    isActive 
-                      ? "text-orange-600 dark:text-orange-400 fill-orange-500 dark:fill-orange-400 stroke-[1.8] scale-105" 
-                      : "text-slate-400 dark:text-slate-500 stroke-[1.75]"
-                  )} />
-
-                  {/* Website-Synchronized Font & Typography */}
-                  <span className={cn(
-                    "text-[10.5px] tracking-tight mt-1 transition-colors duration-200 leading-none",
-                    isActive 
-                      ? "font-black text-orange-600 dark:text-orange-400" 
-                      : "font-semibold text-slate-400 dark:text-slate-500"
-                  )}>
-                    {item.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="mobileBottomNavPill"
+                      className="absolute inset-0 bg-gradient-to-b from-orange-50/95 to-amber-50/70 dark:from-orange-950/50 dark:to-orange-900/30 border border-orange-200/60 dark:border-orange-800/50 rounded-2xl shadow-[0_2px_8px_-2px_rgba(249,115,22,0.18)]"
+                      transition={{ type: "spring", stiffness: 460, damping: 34 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex flex-col items-center justify-center">
+                    <Icon className={cn(
+                      "w-[19px] h-[19px] transition-all duration-200",
+                      isActive 
+                        ? "text-orange-600 dark:text-orange-400 fill-orange-500/20 dark:fill-orange-400/25 stroke-[2.2] scale-105" 
+                        : "text-slate-400 dark:text-slate-500 stroke-[1.8]"
+                    )} />
+                    <span className={cn(
+                      "text-[10px] tracking-tight mt-1 transition-colors duration-200 leading-none",
+                      isActive 
+                        ? "font-extrabold text-orange-600 dark:text-orange-400" 
+                        : "font-semibold text-slate-400 dark:text-slate-500"
+                    )}>
+                      {item.label}
+                    </span>
                   </span>
                 </Link>
               )
