@@ -434,11 +434,11 @@ export default function DecksPage() {
           )}
 
           {/* Row 1: Header Brand, Desktop Tabs, and Quick Actions */}
-          <div className={cn("items-center justify-between pt-2 pb-1.5 md:py-2.5", isSearchOpen ? "hidden md:flex" : "flex")}>
+          <div className={cn("items-center justify-between pt-2.5 pb-1 md:py-2.5", isSearchOpen ? "hidden md:flex" : "flex")}>
             {/* Left: Warm Branding with Mascot / Orange Badge */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shadow-2xs shrink-0">
-                <Layers className="w-5 h-5 stroke-[2.4]" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/60 text-orange-600 dark:text-orange-400 flex items-center justify-center shadow-2xs shrink-0">
+                <Layers className="w-4 h-4 md:w-5 md:h-5 stroke-[2.4]" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -474,7 +474,7 @@ export default function DecksPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1 leading-none truncate">
+                <p className="hidden md:flex text-xs font-semibold text-slate-400 mt-1 items-center gap-1 leading-none truncate">
                   <span>{activeTab === 'folders' ? 'Manage your deck collections and study groups' : 'Choose a deck to study'}</span>
                   <span className="text-amber-500">✨</span>
                 </p>
@@ -615,46 +615,39 @@ export default function DecksPage() {
             </div>
           </div>
 
-          {/* Row 2 on Mobile: Modern iOS-Style Animated Segmented Pill Bar */}
-          <div className="md:hidden pt-1 pb-2">
-            <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-100/95 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/70">
+          {/* Row 2 on Mobile: Clean Material Underline Tabs */}
+          <div className="md:hidden border-b border-slate-100 dark:border-slate-800 -mx-3.5 px-3.5">
+            <div className="grid grid-cols-4">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id
-                const TabIcon = tab.icon
                 const shortLabel = tab.id === 'my' ? 'Decks' : tab.id === 'folders' ? 'Folders' : tab.id === 'discover' ? 'Discover' : 'Archive'
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      "relative py-1.5 px-1 rounded-xl text-xs transition-all select-none cursor-pointer flex items-center justify-center gap-1 min-w-0",
+                      "relative py-2 px-1 text-xs transition-colors select-none cursor-pointer flex items-center justify-center gap-1 min-w-0",
                       isActive
-                        ? "text-slate-900 dark:text-slate-100 font-black"
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-semibold"
+                        ? "text-orange-600 dark:text-orange-400 font-black"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-semibold"
                     )}
                   >
+                    <span className="truncate text-[12px] tracking-tight leading-none">{shortLabel}</span>
+                    <span className={cn(
+                      "text-[10px] font-black leading-none shrink-0",
+                      isActive
+                        ? "text-orange-500 dark:text-orange-400"
+                        : "text-slate-400 dark:text-slate-500"
+                    )}>
+                      {tab.count}
+                    </span>
                     {isActive && (
                       <motion.div
-                        layoutId="mobileDecksTabPill"
-                        className="absolute inset-0 bg-white dark:bg-slate-700 rounded-xl shadow-xs border border-slate-200/70 dark:border-slate-600"
+                        layoutId="mobileDecksUnderline"
+                        className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
                         transition={{ type: "spring", stiffness: 460, damping: 34 }}
                       />
                     )}
-                    <span className="relative z-10 flex items-center justify-center gap-1 min-w-0">
-                      <TabIcon className={cn(
-                        "w-3.5 h-3.5 shrink-0 transition-colors",
-                        isActive ? "text-orange-500 stroke-[2.3]" : "text-slate-400 dark:text-slate-500 stroke-[1.9]"
-                      )} />
-                      <span className="truncate text-[11px] leading-none">{shortLabel}</span>
-                      <span className={cn(
-                        "px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none shrink-0",
-                        isActive
-                          ? "bg-orange-500 text-white"
-                          : "bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                      )}>
-                        {tab.count}
-                      </span>
-                    </span>
                   </button>
                 )
               })}
@@ -663,7 +656,7 @@ export default function DecksPage() {
 
           {/* Row 3: Clean Modern Filter & Sort Pills */}
           {activeTab !== 'folders' ? (
-            <div className="flex items-center justify-between gap-1.5 pb-2 pt-0.5 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
+            <div className="flex items-center justify-between gap-1.5 py-2 md:border-t md:border-slate-100 md:pt-1.5 md:pb-1.5">
               {activeTab === 'my' && (
                 <>
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 pr-1">
