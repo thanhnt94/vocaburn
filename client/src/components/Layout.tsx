@@ -69,12 +69,27 @@ export default function Layout() {
     }
     if (label === 'Decks') {
       return isActive ? (
-        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
-          <path d="M7 3.75A1.75 1.75 0 0 1 8.75 2h8A3.25 3.25 0 0 1 20 5.25v10A1.75 1.75 0 0 1 18.25 17H18V7.25A3.25 3.25 0 0 0 14.75 4H7v-.25Z" opacity="0.4" />
+        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
           <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M4 8.25A2.25 2.25 0 0 1 6.25 6h8.5A2.25 2.25 0 0 1 17 8.25v11.5A2.25 2.25 0 0 1 14.75 22h-8.5A2.25 2.25 0 0 1 4 19.75V8.25Zm3.5 3.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5h-6Zm0 3.75a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5h-4Z"
+            d="M12 2.5L2.5 7.2L12 11.9L21.5 7.2L12 2.5Z"
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M2.5 12.2L12 16.9L21.5 12.2"
+            stroke="currentColor"
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M2.5 17.2L12 21.9L21.5 17.2"
+            stroke="currentColor"
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       ) : (
