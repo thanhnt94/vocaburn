@@ -58,108 +58,46 @@ export default function Layout() {
   const showBottomNav = isLoggedIn && !isImmersiveView
 
   const renderMobileNavIcon = (label: string, isActive: boolean) => {
-    const strokeColor = isActive ? '#EA580C' : '#94A3B8'
-    const fillColor = isActive ? '#FED7AA' : 'transparent'
     if (label === 'Home') {
-      return (
-        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
-          <path
-            d="M3.5 10.2L11.1 4.1C11.6 3.7 12.4 3.7 12.9 4.1L20.5 10.2C20.8 10.5 21 10.9 21 11.4V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V11.4C3 10.9 3.2 10.5 3.5 10.2Z"
-            fill={fillColor}
-            stroke={strokeColor}
-            strokeWidth={isActive ? 2.1 : 1.8}
-            strokeLinejoin="round"
-          />
-          <path
-            d="M9.5 21V15.5C9.5 14.7 10.2 14 11 14H13C13.8 14 14.5 14.7 14.5 15.5V21"
-            stroke={strokeColor}
-            strokeWidth={isActive ? 2.1 : 1.8}
-            strokeLinecap="round"
-          />
+      return isActive ? (
+        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+          <path d="M12.97 2.59a1.5 1.5 0 0 0-1.94 0l-7.5 6.36A1.5 1.5 0 0 0 3 10.1V19.5A2.5 2.5 0 0 0 5.5 22h3.75a.75.75 0 0 0 .75-.75v-5.25a2 2 0 0 1 4 0v5.25c0 .41.34.75.75.75H18.5A2.5 2.5 0 0 0 21 19.5V10.1a1.5 1.5 0 0 0-.53-1.15l-7.5-6.36Z" />
         </svg>
+      ) : (
+        <Home className="w-6 h-6 stroke-[1.85]" />
       )
     }
     if (label === 'Decks') {
-      return (
-        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
-          <rect
-            x="6"
-            y="4"
-            width="14"
-            height="14"
-            rx="3.2"
-            transform="rotate(6 13 11)"
-            fill={isActive ? '#FFEDD5' : 'none'}
-            stroke={strokeColor}
-            strokeWidth={isActive ? 1.8 : 1.6}
-          />
-          <rect
-            x="4"
-            y="6"
-            width="14"
-            height="14"
-            rx="3.2"
-            fill={isActive ? '#FDBA74' : '#FFFFFF'}
-            stroke={strokeColor}
-            strokeWidth={isActive ? 2.1 : 1.8}
-          />
+      return isActive ? (
+        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+          <path d="M7 3.75A1.75 1.75 0 0 1 8.75 2h8A3.25 3.25 0 0 1 20 5.25v10A1.75 1.75 0 0 1 18.25 17H18V7.25A3.25 3.25 0 0 0 14.75 4H7v-.25Z" opacity="0.4" />
           <path
-            d="M7.5 11.5H14.5M7.5 14.8H11.8"
-            stroke={isActive ? '#C2410C' : strokeColor}
-            strokeWidth="1.9"
-            strokeLinecap="round"
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M4 8.25A2.25 2.25 0 0 1 6.25 6h8.5A2.25 2.25 0 0 1 17 8.25v11.5A2.25 2.25 0 0 1 14.75 22h-8.5A2.25 2.25 0 0 1 4 19.75V8.25Zm3.5 3.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5h-6Zm0 3.75a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5h-4Z"
           />
         </svg>
+      ) : (
+        <Layers className="w-6 h-6 stroke-[1.85]" />
       )
     }
     if (label === 'Stats') {
-      return (
-        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
-          <rect
-            x="3.5"
-            y="12.5"
-            width="4.2"
-            height="7.5"
-            rx="1.5"
-            fill={fillColor}
-            stroke={strokeColor}
-            strokeWidth={isActive ? 2 : 1.75}
-          />
-          <rect
-            x="9.9"
-            y="5"
-            width="4.2"
-            height="15"
-            rx="1.5"
-            fill={isActive ? '#FB923C' : 'none'}
-            stroke={strokeColor}
-            strokeWidth={isActive ? 2 : 1.75}
-          />
-          <rect
-            x="16.3"
-            y="9"
-            width="4.2"
-            height="11"
-            rx="1.5"
-            fill={fillColor}
-            stroke={strokeColor}
-            strokeWidth={isActive ? 2 : 1.75}
-          />
+      return isActive ? (
+        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+          <rect x="3" y="11.5" width="4.5" height="9" rx="1.5" />
+          <rect x="9.75" y="4" width="4.5" height="16.5" rx="1.5" />
+          <rect x="16.5" y="8" width="4.5" height="12.5" rx="1.5" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3.5" y="12" width="4" height="8" rx="1.2" />
+          <rect x="10" y="4.5" width="4" height="15.5" rx="1.2" />
+          <rect x="16.5" y="8.5" width="4" height="11.5" rx="1.2" />
         </svg>
       )
     }
     return (
-      <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] transition-transform duration-200" fill="none">
-        <path
-          d="M4 7H9M13 7H20M4 12H15M19 12H20M4 17H7M11 17H20"
-          stroke={strokeColor}
-          strokeWidth={isActive ? 2.1 : 1.8}
-          strokeLinecap="round"
-        />
-        <circle cx="11" cy="7" r="2.2" fill={isActive ? '#F97316' : '#FFFFFF'} stroke={strokeColor} strokeWidth="2" />
-        <circle cx="17" cy="12" r="2.2" fill={isActive ? '#F97316' : '#FFFFFF'} stroke={strokeColor} strokeWidth="2" />
-        <circle cx="9" cy="17" r="2.2" fill={isActive ? '#F97316' : '#FFFFFF'} stroke={strokeColor} strokeWidth="2" />
-      </svg>
+      <Settings className={cn("w-6 h-6", isActive ? "stroke-[2.4]" : "stroke-[1.85]")} />
     )
   }
 
@@ -301,9 +239,9 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Flagship Custom-Duotone Mobile Bottom Nav */}
+      {/* Modern Flat Mobile Bottom Bar */}
       {showBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-t border-slate-200/60 dark:border-slate-800 shadow-[0_-8px_30px_rgba(15,23,42,0.06)] px-3 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           <nav className="grid grid-cols-4 items-center w-full max-w-md mx-auto h-[48px]">
             {navItems.filter(item => item.label !== 'Admin').map((item) => {
               const isActive = item.path === '/' 
@@ -315,27 +253,19 @@ export default function Layout() {
                   key={item.path}
                   to={item.path} 
                   className={cn(
-                    "relative flex flex-col items-center justify-center h-full rounded-2xl select-none transition-all duration-150 cursor-pointer active:scale-90 outline-none focus:outline-none focus-visible:outline-none",
-                    isActive ? "text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                    "flex flex-col items-center justify-center h-full select-none transition-colors duration-150 cursor-pointer active:opacity-70 outline-none focus:outline-none focus-visible:outline-none",
+                    isActive ? "text-orange-500 dark:text-orange-400" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                   )}
                 >
-                  <div className={cn("transition-transform duration-200", isActive ? "-translate-y-0.5 scale-105" : "")}>
-                    {renderMobileNavIcon(item.label, isActive)}
-                  </div>
+                  {renderMobileNavIcon(item.label, isActive)}
                   <span className={cn(
-                    "text-[10px] tracking-tight mt-0.5 transition-colors duration-150 leading-none",
+                    "text-[10.5px] tracking-tight mt-0.5 leading-none",
                     isActive 
-                      ? "font-extrabold text-orange-600 dark:text-orange-400" 
-                      : "font-semibold text-slate-400 dark:text-slate-500"
+                      ? "font-bold text-orange-500 dark:text-orange-400" 
+                      : "font-medium text-slate-400 dark:text-slate-500"
                   )}>
                     {item.label}
                   </span>
-                  <span
-                    className={cn(
-                      "w-1 h-1 rounded-full bg-orange-500 mt-0.5 transition-all duration-200",
-                      isActive ? "opacity-100 scale-100 shadow-[0_0_6px_rgba(249,115,22,0.8)]" : "opacity-0 scale-0"
-                    )}
-                  />
                 </Link>
               )
             })}
